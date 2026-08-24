@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小學勇者大冒險 V2.2</title>
+<style>
+:root{
+  --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
+  --gold:#f0883e;--blue:#58a6ff;--green:#3fb950;--purple:#bc8cff;
+  --pink:#ff7b72;--text:#c9d1d9;--bright:#f0f6fc;--muted:#8b949e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans TC",system-ui,sans-serif;padding:12px}
+.app{max-width:920px;margin:auto;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 32px #0008}
+h1,h2,h3{color:var(--gold);margin:8px 0 14px}
+h1{text-align:center;font-size:24px}
+h2{font-size:18px}
+h3{font-size:15px}
+.nav{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:12px 0 18px}
+.tab{border:1px solid var(--border);background:var(--card);color:var(--text);padding:10px 6px;border-radius:8px;font-weight:700;cursor:pointer}
+.tab.active{background:var(--gold);color:#111}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin:10px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#0d1117;border-left:4px solid var(--blue);padding:9px;border-radius:7px}
+button{border:0;border-radius:7px;padding:9px 12px;font-weight:700;cursor:pointer}
+.btn{background:#238636;color:#fff}.btn.blue{background:#1f6feb}.btn.red{background:#da3633}.btn.gray{background:#30363d;color:#fff}.btn.gold{background:var(--gold);color:#111}.btn.purple{background:#8957e5;color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{width:100%;background:#0d1117;color:var(--bright);border:1px solid var(--border);border-radius:7px;padding:10px;margin:5px 0 10px}
+label{font-size:12px;color:var(--muted);font-weight:700}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>*{flex:1}
+.small{font-size:12px;color:var(--muted)}
+.good{color:var(--green)}.warn{color:var(--gold)}.bad{color:var(--pink)}.purple{color:var(--purple)}
+.pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#0d1117;border:1px solid var(--border);font-size:11px;margin:2px}
+.progress{height:10px;background:#0d1117;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+.progress>div{height:100%;background:var(--green)}
+.boss{border:2px solid var(--pink);box-shadow:0 0 20px #ff7b7233}
+.dragon{border:2px solid var(--purple);box-shadow:0 0 24px #bc8cff33}
+hr{border:0;border-top:1px solid var(--border);margin:14px 0}
+
+.hero-scene{
+  position:relative;
+  height:260px;
+  overflow:hidden;
+  border:2px solid #3d444d;
+  border-radius:12px;
+  background:#101826;
+  image-rendering:pixelated;
+}
+.sky-layer{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(#20304a 0 48%,#354b3e 48% 65%,#253226 65% 100%);
+}
+.mountain-layer{
+  position:absolute;left:0;right:0;bottom:74px;height:92px;
+  opacity:.9;
+  background:
+    linear-gradient(135deg,transparent 0 34%,#314154 34% 51%,transparent 51% 100%) 0 0/180px 90px repeat-x,
+    linear-gradient(45deg,transparent 0 35%,#263747 35% 53%,transparent 53% 100%) 80px 16px/220px 80px repeat-x;
+  animation:scrollMountains 18s linear infinite;
+}
+.ground-layer{
+  position:absolute;left:0;right:0;bottom:0;height:78px;
+  background:
+    repeating-linear-gradient(90deg,#24351f 0 18px,#2e4427 18px 34px,#20301d 34px 52px);
+  border-top:6px solid #47663b;
+  animation:scrollGround 2.6s linear infinite;
+}
+.pixel-cloud{
+  position:absolute;width:84px;height:18px;background:#d8e5e8;opacity:.8;
+  box-shadow:16px -10px 0 #d8e5e8,36px -5px 0 #d8e5e8;
+  animation:cloudMove 24s linear infinite;
+}
+.pixel-cloud.c1{top:38px;left:-100px}
+.pixel-cloud.c2{top:72px;left:-240px;animation-duration:31s;transform:scale(.7)}
+@keyframes scrollMountains{from{background-position:0 0,80px 16px}to{background-position:-360px 0,-360px 16px}}
+@keyframes scrollGround{from{background-position:0 0}to{background-position:-104px 0}}
+@keyframes cloudMove{from{transform:translateX(0)}to{transform:translateX(1100px)}}
+.warrior-wrap{
+  position:absolute;left:50%;bottom:42px;transform:translateX(-50%);
+  animation:warriorBob .58s steps(2,end) infinite;
+  filter:drop-shadow(0 8px 0 rgba(0,0,0,.28));
+}
+@keyframes warriorBob{
+  0%,100%{margin-bottom:0}
+  50%{margin-bottom:5px}
+}
+.pixel-warrior{
+  position:relative;width:96px;height:142px;
+  image-rendering:pixelated;
+}
+.px{position:absolute;background:#999}
+.helm{left:30px;top:6px;width:42px;height:12px;background:#aeb6bf;box-shadow:6px -6px 0 #c6ced7,-6px 6px 0 #818b96,36px 8px 0 #707a86}
+.face{left:34px;top:24px;width:34px;height:28px;background:#d8a16f;box-shadow:0 10px 0 #c98d5e}
+.eye{left:56px;top:32px;width:6px;height:6px;background:#18202b}
+.body{left:30px;top:54px;width:42px;height:48px;background:#596877;box-shadow:6px 8px 0 #6f7f90,-6px 8px 0 #445260}
+.belt{left:28px;top:94px;width:48px;height:8px;background:#6b4a2c}
+.arm-l{left:18px;top:58px;width:12px;height:44px;background:#596877;transform:rotate(8deg)}
+.arm-r{left:72px;top:58px;width:12px;height:44px;background:#596877;transform:rotate(-8deg)}
+.hand-l{left:14px;top:94px;width:12px;height:12px;background:#d8a16f}
+.hand-r{left:80px;top:94px;width:12px;height:12px;background:#d8a16f}
+.leg-l{left:32px;top:102px;width:14px;height:34px;background:#303b48;transform:rotate(3deg)}
+.leg-r{left:56px;top:102px;width:14px;height:34px;background:#303b48;transform:rotate(-3deg)}
+.boot-l{left:26px;top:132px;width:24px;height:10px;background:#171d24}
+.boot-r{left:54px;top:132px;width:24px;height:10px;background:#171d24}
+.sword{left:4px;top:62px;width:8px;height:54px;background:#cdd8e2;transform:rotate(-16deg);box-shadow:0 -10px 0 #ecf4f8}
+.guard{left:0;top:105px;width:24px;height:6px;background:#b88635;transform:rotate(-16deg)}
+.scene-hud{
+  position:absolute;left:10px;right:10px;top:10px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+}
+.hud-chip{
+  background:rgba(8,12,18,.78);border:1px solid #56606b;border-radius:8px;
+  padding:6px 9px;color:#fff;font-weight:800;font-size:13px;
+}
+.xp-wrap{margin-top:10px}
+.xp-label{display:flex;justify-content:space-between;font-size:12px;color:#d7dde5;margin-bottom:5px}
+.xp-bar{
+  height:18px;background:#15191f;border:2px solid #59616d;border-radius:4px;
+  box-shadow:inset 0 0 0 2px #07090c;overflow:hidden;
+}
+.xp-fill{
+  height:100%;
+  background:linear-gradient(#8f46db,#6a2cb7);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.18);
+  transition:width .3s ease;
+}
+.kid-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px
+}
+.kid-box{
+  background:#11161d;border:1px solid #30363d;border-radius:9px;padding:10px;text-align:center;
+  font-size:14px;font-weight:800
+}
+
+.battle-stage{
+  display:grid;
+  grid-template-columns:1fr 86px 1fr;
+  align-items:center;
+  gap:10px;
+  margin:12px 0;
+}
+.fighter-card{
+  background:#11161d;
+  border:2px solid #30363d;
+  border-radius:12px;
+  padding:12px 8px;
+  text-align:center;
+  min-width:0;
+}
+.fighter-icon{
+  height:96px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:68px;
+  line-height:1;
+  filter:drop-shadow(0 6px 0 rgba(0,0,0,.25));
+}
+.fighter-name{
+  font-size:14px;
+  font-weight:900;
+  margin-top:4px;
+  color:#f0f6fc;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.power-number{
+  font-size:30px;
+  font-weight:1000;
+  margin-top:6px;
+  letter-spacing:1px;
+}
+.vs-center{
+  text-align:center;
+  min-width:0;
+}
+.cross-swords{
+  position:relative;
+  width:64px;height:64px;
+  margin:auto;
+}
+.cross-swords:before,
+.cross-swords:after{
+  content:"";
+  position:absolute;
+  left:29px;top:4px;
+  width:7px;height:54px;
+  border-radius:3px;
+  background:linear-gradient(#e9f1f7 0 72%,#b88635 72% 82%,#5f3b20 82% 100%);
+  transform-origin:center;
+  box-shadow:0 0 0 1px #0008;
+}
+.cross-swords:before{transform:rotate(45deg)}
+.cross-swords:after{transform:rotate(-45deg)}
+.vs-text{
+  font-size:12px;
+  font-weight:900;
+  color:#8b949e;
+  margin-top:2px;
+}
+.battle-message{
+  text-align:center;
+  font-size:22px;
+  font-weight:1000;
+  margin:10px 0 4px;
+}
+.big-battle-btn{
+  width:100%;
+  min-height:56px;
+  font-size:20px;
+  margin-top:12px;
+}
+@media(max-width:520px){
+  .battle-stage{grid-template-columns:1fr 64px 1fr;gap:6px}
+  .fighter-icon{height:78px;font-size:56px}
+  .power-number{font-size:25px}
+  .cross-swords{transform:scale(.82)}
+  .fighter-name{font-size:12px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .mountain-layer,.ground-layer,.pixel-cloud,.warrior-wrap{animation:none!important}
+}
+
+@media(max-width:760px){
+  .nav{grid-template-columns:repeat(4,1fr)}
+  .grid2,.grid3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>⚔️ 小學勇者大冒險 V2.2</h1>
+
+  <div id="heroSetup" class="card" style="display:none">
+    <h2>建立勇者</h2>
+    <label>勇者名稱</label>
+    <input id="setupName" placeholder="例如：熙熙">
+    <label>職業</label>
+    <select id="setupClass">
+      <option>戰士</option><option>法師</option><option>遊俠</option>
+    </select>
+    <button class="btn gold" onclick="createHero()">開始冒險</button>
+  </div>
+
+  <div id="mainUI" style="display:none">
+    <div class="nav">
+      <button class="tab active" onclick="switchTab('hero',this)">狀態</button>
+      <button class="tab" onclick="switchTab('tasks',this)">任務</button>
+      <button class="tab" onclick="switchTab('dungeon',this)">副本</button>
+      <button class="tab" onclick="switchTab('shop',this)">商店</button>
+      <button class="tab" onclick="switchTab('lottery',this)">抽獎</button>
+      <button class="tab" onclick="switchTab('bag',this)">背包</button>
+      <button class="tab" onclick="switchTab('gm',this)">家長後台</button>
+    </div>
+
+    <section id="panel-hero" class="panel active"></section>
+    <section id="panel-tasks" class="panel"></section>
+    <section id="panel-dungeon" class="panel"></section>
+    <section id="panel-shop" class="panel"></section>
+    <section id="panel-lottery" class="panel"></section>
+    <section id="panel-bag" class="panel"></section>
+    <section id="panel-gm" class="panel"></section>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY='heroRPG_V2';
+
+function uid(){return 'id_'+Math.random().toString(36).slice(2)+Date.now().toString(36);}
+function today(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function nowLocalTime(){
+  return new Date().toLocaleTimeString('zh-TW',{hour12:false});
+}
+function defaultData(){
+  return {
+    hero:{
+      name:'',heroClass:'',level:1,exp:0,maxExp:100,gold:0,lotteryCoins:0,
+      stats:{str:10,agi:10,int:10,vit:10,will:10}
+    },
+    tasks:[
+      {
+        id:uid(),name:'國語生字練習',description:'完成今日生字練習',
+        subject:'國語',progressType:'生字練習',progressValue:'第1課',
+        goldReward:20,expReward:10,dailyLimit:1,active:true,
+        statRules:[{maxMinutes:30,stat:'agi',value:5},{maxMinutes:60,stat:'agi',value:1}]
+      },
+      {
+        id:uid(),name:'數學複習',description:'完成今天的數學複習',
+        subject:'數學',progressType:'複習進度',progressValue:'第一單元',
+        goldReward:20,expReward:12,dailyLimit:1,active:true,
+        statRules:[{maxMinutes:45,stat:'int',value:3},{maxMinutes:90,stat:'int',value:1}]
+      }
+    ],
+    activeTasks:{},
+    taskRecords:[],
+    learningProgress:[],
+    shopItems:[
+      {id:uid(),name:'NS 30分鐘兌換券',price:100,description:'Nintendo Switch 30 分鐘',dailyLimit:1,active:true},
+      {id:uid(),name:'電視 30分鐘兌換券',price:80,description:'看電視 30 分鐘',dailyLimit:1,active:true}
+    ],
+    inventory:[],
+    couponRequests:[],
+    monsters:[
+      {id:uid(),name:'哥布林隊長',power:65,rewardGold:15,rewardExp:15,active:true},
+      {id:uid(),name:'獸人戰士',power:80,rewardGold:20,rewardExp:20,active:true},
+      {id:uid(),name:'黑暗騎士',power:100,rewardGold:25,rewardExp:25,active:true}
+    ],
+    dailyDungeon:{date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''},
+    battleRecords:[],
+    events:[],
+    lotteryPool:[
+      {id:uid(),type:'gold',label:'金幣 +30',value:30,weight:50},
+      {id:uid(),type:'gold',label:'金幣 +60',value:60,weight:25},
+      {id:uid(),type:'shop',label:'隨機商店兌換券',value:'random',weight:20},
+      {id:uid(),type:'gold',label:'金幣 +150',value:150,weight:5}
+    ]
+  };
+}
+let gameData=loadGame();
+let timerInterval=null;
+
+function loadGame(){
+  try{
+    const x=JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return x||defaultData();
+  }catch(e){return defaultData();}
+}
+function saveGame(){localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));}
+function statName(s){return {str:'力量',agi:'敏捷',int:'智力',vit:'體力',will:'意志'}[s]||s;}
+function combatPower(){
+  const s=gameData.hero.stats;
+  return Math.floor(s.str*1.2+s.agi*1.1+s.int+s.vit*1.2+s.will*.8);
+}
+function formatElapsed(ms){
+  const total=Math.max(0,Math.floor(ms/1000));
+  const h=String(Math.floor(total/3600)).padStart(2,'0');
+  const m=String(Math.floor((total%3600)/60)).padStart(2,'0');
+  const s=String(total%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+function startLiveTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    document.querySelectorAll('[data-task-timer]').forEach(el=>{
+      const id=el.getAttribute('data-task-timer');
+      const start=gameData.activeTasks[id];
+      if(start)el.textContent='⏱ 已進行 '+formatElapsed(Date.now()-start);
+    });
+  },1000);
+}
+function createHero(){
+  const n=document.getElementById('setupName').value.trim();
+  const c=document.getElementById('setupClass').value;
+  if(!n){alert('請輸入勇者名稱');return;}
+  gameData.hero.name=n;gameData.hero.heroClass=c;
+  if(c==='戰士')gameData.hero.stats.str+=5;
+  if(c==='法師')gameData.hero.stats.int+=5;
+  if(c==='遊俠')gameData.hero.stats.agi+=5;
+  saveGame();boot();
+}
+function switchTab(name,btn){
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');renderAll();
+}
+function addExp(v){
+  gameData.hero.exp+=v;
+  while(gameData.hero.exp>=gameData.hero.maxExp){
+    gameData.hero.exp-=gameData.hero.maxExp;
+    gameData.hero.level++;
+    gameData.hero.maxExp=Math.floor(gameData.hero.maxExp*1.2);
+    Object.keys(gameData.hero.stats).forEach(k=>gameData.hero.stats[k]+=1);
+    alert('✨ 升級！目前 Lv.'+gameData.hero.level+'，全能力 +1');
+  }
+}
+function completedCount(taskId){
+  return gameData.taskRecords.filter(r=>r.taskId===taskId&&r.date===today()&&r.status==='completed').length;
+}
+function startTask(taskId){
+  if(gameData.activeTasks[taskId]){alert('這個任務已經在計時');return;}
+  const t=gameData.tasks.find(x=>x.id===taskId);
+  if(!t)return;
+  if(completedCount(taskId)>=t.dailyLimit){alert('今天已達完成上限');return;}
+  gameData.activeTasks[taskId]=Date.now();
+  saveGame();renderTasks();startLiveTimer();
+}
+function finishTask(taskId){
+  const start=gameData.activeTasks[taskId];
+  if(!start){alert('請先開始任務');return;}
+  const t=gameData.tasks.find(x=>x.id===taskId);
+  const minutes=(Date.now()-start)/60000;
+  delete gameData.activeTasks[taskId];
+
+  let statGain=null;
+  for(const r of [...t.statRules].sort((a,b)=>a.maxMinutes-b.maxMinutes)){
+    if(minutes<=r.maxMinutes){statGain=r;break;}
+  }
+  gameData.hero.gold+=Number(t.goldReward)||0;
+  addExp(Number(t.expReward)||0);
+  if(statGain)gameData.hero.stats[statGain.stat]+=Number(statGain.value)||0;
+
+  const record={
+    id:uid(),taskId:t.id,date:today(),status:'completed',
+    startedAt:new Date(start).toISOString(),completedAt:new Date().toISOString(),
+    durationMinutes:minutes,rewards:{gold:t.goldReward,exp:t.expReward,statGain}
+  };
+  gameData.taskRecords.push(record);
+
+  if(t.subject||t.progressType||t.progressValue){
+    gameData.learningProgress.push({
+      id:uid(),date:today(),
+      subject:t.subject||'',
+      item:t.progressType||t.name,
+      progress:t.progressValue||'完成'
+    });
+  }
+  saveGame();
+  alert(`完成【${t.name}】\n耗時 ${minutes.toFixed(1)} 分鐘\n金幣 +${t.goldReward}\nEXP +${t.expReward}`+(statGain?`\n${statName(statGain.stat)} +${statGain.value}`:''));
+  renderAll();
+}
+function buyItem(itemId){
+  const item=gameData.shopItems.find(x=>x.id===itemId);
+  if(!item)return;
+  const bought=gameData.inventory.filter(x=>x.itemId===itemId&&x.boughtDate===today()).length;
+  if(bought>=item.dailyLimit){alert('今天已達購買上限');return;}
+  if(gameData.hero.gold<item.price){alert('金幣不足');return;}
+  if(!confirm(`花費 ${item.price} G 購買【${item.name}】？`))return;
+  gameData.hero.gold-=item.price;
+  gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'shop'});
+  saveGame();renderAll();
+}
+function requestCoupon(invId){
+  const inv=gameData.inventory.find(x=>x.id===invId);
+  if(!inv||inv.status!=='unused')return;
+  inv.status='pending';
+  gameData.couponRequests.push({id:uid(),inventoryId:inv.id,itemName:inv.name,date:today(),status:'pending'});
+  saveGame();renderAll();alert('已送出兌換申請');
+}
+function approveCoupon(reqId,approved){
+  const req=gameData.couponRequests.find(x=>x.id===reqId);
+  if(!req)return;
+  const inv=gameData.inventory.find(x=>x.id===req.inventoryId);
+  req.status=approved?'approved':'rejected';
+  if(inv)inv.status=approved?'used':'unused';
+  saveGame();renderAll();
+}
+function getTodayEvent(){
+  return gameData.events.find(e=>e.date===today()&&e.active!==false)||null;
+}
+function ensureDailyDungeon(){
+  if(gameData.dailyDungeon.date===today())return;
+  const evt=getTodayEvent();
+  if(evt){
+    gameData.dailyDungeon={date:today(),monsterId:'',challenged:false,result:'',drop:null,eventId:evt.id};
+  }else{
+    const list=gameData.monsters.filter(x=>x.active);
+    if(!list.length){
+      gameData.dailyDungeon={date:today(),monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+    }else{
+      const idx=Math.floor(new Date(today()).getTime()/86400000)%list.length;
+      gameData.dailyDungeon={date:today(),monsterId:list[idx].id,challenged:false,result:'',drop:null,eventId:''};
+    }
+  }
+  saveGame();
+}
+function weightedPick(items){
+  const total=items.reduce((s,x)=>s+Math.max(0,Number(x.weight)||0),0);
+  if(total<=0)return null;
+  let r=Math.random()*total;
+  for(const item of items){
+    r-=Math.max(0,Number(item.weight)||0);
+    if(r<=0)return item;
+  }
+  return items[items.length-1];
+}
+function rollDungeonDrop(){
+  const choices=[
+    {type:'gold',weight:60},
+    {type:'coupon',weight:25},
+    {type:'lottery',weight:15}
+  ];
+  const p=weightedPick(choices);
+  if(!p)return null;
+  if(p.type==='gold'){
+    const amount=10+Math.floor(Math.random()*21);
+    gameData.hero.gold+=amount;
+    return {type:'gold',label:`金幣 +${amount} G`,value:amount};
+  }
+  if(p.type==='coupon'){
+    const available=gameData.shopItems.filter(x=>x.active);
+    if(!available.length){
+      gameData.hero.gold+=20;
+      return {type:'gold',label:'金幣 +20 G',value:20};
+    }
+    const item=available[Math.floor(Math.random()*available.length)];
+    gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});
+    return {type:'coupon',label:item.name,value:item.id};
+  }
+  gameData.hero.lotteryCoins+=1;
+  return {type:'lottery',label:'抽獎金幣 ×1',value:1};
+}
+function challengeDungeon(){
+  ensureDailyDungeon();
+  if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
+
+  const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
+  const monster=evt?null:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId);
+  const enemyPower=evt?Number(evt.power):Number(monster?.power||0);
+  const enemyName=evt?evt.name:monster?.name;
+  if(!enemyName){alert('今天沒有敵人');return;}
+
+  const cp=combatPower();
+  const win=cp>=enemyPower;
+  gameData.dailyDungeon.challenged=true;
+  gameData.dailyDungeon.result=win?'win':'lose';
+
+  let baseGold=evt?Number(evt.rewardGold||0):Number(monster.rewardGold||0);
+  let baseExp=evt?Number(evt.rewardExp||0):Number(monster.rewardExp||0);
+  let drop=null;
+
+  if(win){
+    gameData.hero.gold+=baseGold;
+    addExp(baseExp);
+    drop=rollDungeonDrop();
+    gameData.dailyDungeon.drop=drop;
+  }
+
+  gameData.battleRecords.push({
+    id:uid(),date:today(),enemyName,power:cp,enemyPower,result:win?'win':'lose',eventType:evt?.type||'daily',drop
+  });
+
+  saveGame();
+  alert(win
+    ? `⚔️ 勝利！\n基礎獎勵：${baseGold} G、${baseExp} EXP\n🎁 隨機掉落：${drop?.label||'無'}`
+    : `💀 戰敗！\n你的戰鬥力 ${cp}\n敵方戰鬥力 ${enemyPower}`
+  );
+  renderAll();
+}
+function drawLottery(){
+  if(gameData.hero.lotteryCoins<1){alert('沒有抽獎金幣');return;}
+  const item=weightedPick(gameData.lotteryPool);
+  if(!item){alert('抽獎池尚未設定');return;}
+  gameData.hero.lotteryCoins--;
+
+  let result='';
+  if(item.type==='gold'){
+    const amount=Number(item.value)||0;
+    gameData.hero.gold+=amount;
+    result=item.label;
+  }else if(item.type==='shop'){
+    const available=gameData.shopItems.filter(x=>x.active);
+    if(available.length){
+      const shop=available[Math.floor(Math.random()*available.length)];
+      gameData.inventory.push({id:uid(),itemId:shop.id,name:shop.name,status:'unused',boughtDate:today(),source:'lottery'});
+      result=shop.name;
+    }else{
+      gameData.hero.gold+=50;
+      result='商店沒有商品，改獲得金幣 +50 G';
+    }
+  }
+  saveGame();renderAll();
+  alert('🎰 抽獎結果：'+result);
+}
+function exportLearningCSV(){
+  if(!gameData.learningProgress.length){alert('目前沒有學習進度紀錄');return;}
+  const rows=[['日期','科目','項目','進度']];
+  gameData.learningProgress.forEach(r=>rows.push([r.date,r.subject,r.item,r.progress]));
+  const esc=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv='\uFEFF'+rows.map(r=>r.map(esc).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`學習進度_${today()}.csv`;
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
+}
+function renderHero(){
+  const h=gameData.hero;
+  const xpPct=Math.min(100,h.exp/h.maxExp*100);
+  document.getElementById('panel-hero').innerHTML=`
+    <div class="hero-scene" aria-label="勇者冒險場景">
+      <div class="sky-layer"></div>
+      <div class="pixel-cloud c1"></div>
+      <div class="pixel-cloud c2"></div>
+      <div class="mountain-layer"></div>
+      <div class="ground-layer"></div>
+      <div class="scene-hud">
+        <div class="hud-chip">Lv.${h.level}</div>
+        <div class="hud-chip">⚔️ ${combatPower()}</div>
+      </div>
+      <div class="warrior-wrap" aria-label="點陣戰士">
+        <div class="pixel-warrior">
+          <div class="px helm"></div>
+          <div class="px face"></div>
+          <div class="px eye"></div>
+          <div class="px body"></div>
+          <div class="px belt"></div>
+          <div class="px arm-l"></div>
+          <div class="px arm-r"></div>
+          <div class="px hand-l"></div>
+          <div class="px hand-r"></div>
+          <div class="px leg-l"></div>
+          <div class="px leg-r"></div>
+          <div class="px boot-l"></div>
+          <div class="px boot-r"></div>
+          <div class="px sword"></div>
+          <div class="px guard"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xp-wrap">
+      <div class="xp-label"><span>${h.name}</span><span>Lv.${h.level}</span></div>
+      <div class="xp-bar" aria-label="經驗值"><div class="xp-fill" style="width:${xpPct}%"></div></div>
+    </div>
+
+    <div class="kid-summary">
+      <div class="kid-box">💰 ${h.gold}</div>
+      <div class="kid-box">🪙 ${h.lotteryCoins}</div>
+      <div class="kid-box">⚔️ ${combatPower()}</div>
+    </div>`;
+}
+function renderTasks(){
+  let html='<h2>📚 今日任務</h2>';
+  gameData.tasks.filter(t=>t.active).forEach(t=>{
+    const count=completedCount(t.id),start=gameData.activeTasks[t.id];
+    html+=`<div class="card">
+      <strong>${t.name}</strong>
+      <div class="small">${t.description||''}</div>
+      <div class="small purple">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div>
+      <div style="margin:8px 0">
+        <span class="pill">💰 ${t.goldReward} G</span>
+        <span class="pill">⭐ ${t.expReward} EXP</span>
+        <span class="pill">今日 ${count}/${t.dailyLimit}</span>
+      </div>
+      <div class="small">${t.statRules.map(r=>`≤ ${r.maxMinutes} 分鐘：${statName(r.stat)} +${r.value}`).join(' ｜ ')}</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn blue" ${start||count>=t.dailyLimit?'disabled':''} onclick="startTask('${t.id}')">開始任務</button>
+        <button class="btn" ${!start?'disabled':''} onclick="finishTask('${t.id}')">完成任務</button>
+      </div>
+      ${start?`<div class="small good">開始時間：${new Date(start).toLocaleTimeString()}</div><div class="small good" data-task-timer="${t.id}">⏱ 已進行 ${formatElapsed(Date.now()-start)}</div>`:''}
+    </div>`;
+  });
+  document.getElementById('panel-tasks').innerHTML=html;
+}
+function renderDungeon(){
+  ensureDailyDungeon();
+  const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
+  const m=!evt?gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId):null;
+  const enemy=evt||m;
+  const cp=combatPower();
+  const power=Number(enemy?.power||0);
+  const cls=evt?.type==='final'?'dragon':evt?'boss':'';
+  const enemyIcon=evt?.type==='final'?'🐉':evt?.type==='midterm'?'👿':'👹';
+  const ready=cp>=power;
+
+  document.getElementById('panel-dungeon').innerHTML=`
+    <div class="card ${cls}">
+      <div class="battle-stage">
+        <div class="fighter-card">
+          <div class="fighter-icon">🛡️</div>
+          <div class="fighter-name">${gameData.hero.name}</div>
+          <div class="power-number good">${cp}</div>
+        </div>
+
+        <div class="vs-center" aria-label="對戰">
+          <div class="cross-swords"></div>
+          <div class="vs-text">VS</div>
+        </div>
+
+        <div class="fighter-card">
+          <div class="fighter-icon">${enemyIcon}</div>
+          <div class="fighter-name">${enemy?.name||'怪物'}</div>
+          <div class="power-number bad">${power}</div>
+        </div>
+      </div>
+
+      <div class="battle-message ${ready?'good':'warn'}">
+        ${ready?'⚔️ 可以打！':'💪 再變強一點！'}
+      </div>
+
+      <button class="btn red big-battle-btn" ${gameData.dailyDungeon.challenged?'disabled':''} onclick="challengeDungeon()">
+        ${gameData.dailyDungeon.challenged?'今天打過了':'挑戰！'}
+      </button>
+
+      ${gameData.dailyDungeon.drop?`
+        <div class="card" style="text-align:center;margin-top:12px">
+          <div style="font-size:28px">🎁</div>
+          <strong>${gameData.dailyDungeon.drop.label}</strong>
+        </div>`:''}
+    </div>`;
+}
+function renderShop(){
+  let html='<h2>🏪 兌換商店</h2>';
+  gameData.shopItems.filter(i=>i.active).forEach(i=>{
+    html+=`<div class="card">
+      <strong>${i.name}</strong><div class="small">${i.description||''}</div>
+      <div>價格：<span class="bad">${i.price} G</span></div>
+      <button class="btn blue" onclick="buyItem('${i.id}')">購買</button>
+    </div>`;
+  });
+  document.getElementById('panel-shop').innerHTML=html;
+}
+function renderLottery(){
+  document.getElementById('panel-lottery').innerHTML=`
+    <h2>🎰 勇者抽獎機</h2>
+    <div class="card">
+      <div>目前抽獎金幣：<strong class="purple">${gameData.hero.lotteryCoins}</strong> 🪙</div>
+      <div class="small">每次消耗 1 枚抽獎金幣。</div>
+      <button class="btn purple" style="margin-top:10px" ${gameData.hero.lotteryCoins<1?'disabled':''} onclick="drawLottery()">抽獎一次</button>
+    </div>
+    <div class="card">
+      <h3>目前獎池</h3>
+      ${gameData.lotteryPool.map(x=>`<div class="small">${x.label}｜權重 ${x.weight}</div>`).join('')}
+    </div>`;
+}
+function renderBag(){
+  let html='<h2>🎒 背包</h2>';
+  if(!gameData.inventory.length)html+='<div class="card small">背包目前是空的。</div>';
+  gameData.inventory.forEach(inv=>{
+    html+=`<div class="card">
+      <strong>${inv.name}</strong>
+      <div class="small">來源：${inv.source==='dungeon'?'副本掉落':inv.source==='lottery'?'抽獎':'商店'}</div>
+      <div class="small">狀態：${inv.status==='unused'?'未使用':inv.status==='pending'?'等待家長核准':'已核銷'}</div>
+      ${inv.status==='unused'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}
+    </div>`;
+  });
+  document.getElementById('panel-bag').innerHTML=html;
+}
+function renderGM(){
+  const taskList=gameData.tasks.map(t=>`<div class="card"><strong>${t.name}</strong><div class="small">${t.subject}｜${t.progressType}｜${t.progressValue}</div><button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`).join('');
+  const shopList=gameData.shopItems.map(i=>`<div class="card"><strong>${i.name}</strong><div class="small">${i.price} G</div><button class="btn red" onclick="deleteShopItem('${i.id}')">刪除</button></div>`).join('');
+  const reqList=gameData.couponRequests.filter(r=>r.status==='pending').map(r=>`<div class="card"><strong>${r.itemName}</strong><button class="btn" onclick="approveCoupon('${r.id}',true)">核准並核銷</button> <button class="btn red" onclick="approveCoupon('${r.id}',false)">退回</button></div>`).join('')||'<div class="small">目前沒有待審核兌換券。</div>';
+  const eventList=gameData.events.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`<div class="card"><strong>${e.date}｜${e.name}</strong><div class="small">${e.type==='final'?'期末惡龍':'期中 Boss'}｜戰力 ${e.power}</div><button class="btn red" onclick="deleteEvent('${e.id}')">刪除</button></div>`).join('')||'<div class="small">尚未設定考試事件。</div>';
+
+  document.getElementById('panel-gm').innerHTML=`
+    <h2>🛠️ 家長控制後台</h2>
+
+    <div class="card">
+      <h3>新增任務＋學習進度</h3>
+      <label>任務名稱</label><input id="gmTaskName">
+      <label>任務說明</label><input id="gmTaskDesc">
+      <div class="grid3">
+        <div><label>科目</label><input id="gmSubject" placeholder="國語"></div>
+        <div><label>學習項目</label><input id="gmProgressType" placeholder="生字練習 / 複習進度"></div>
+        <div><label>進度</label><input id="gmProgressValue" placeholder="第3課 / 第二單元"></div>
+      </div>
+      <div class="grid3">
+        <div><label>金幣</label><input id="gmTaskGold" type="number" value="20"></div>
+        <div><label>EXP</label><input id="gmTaskExp" type="number" value="10"></div>
+        <div><label>每日上限</label><input id="gmTaskLimit" type="number" value="1"></div>
+      </div>
+      <h3>能力規則 1</h3>
+      <div class="grid3">
+        <div><label>幾分鐘內</label><input id="gmRule1Min" type="number" value="30"></div>
+        <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
+        <div><label>增加</label><input id="gmRule1Val" type="number" value="5"></div>
+      </div>
+      <h3>能力規則 2</h3>
+      <div class="grid3">
+        <div><label>幾分鐘內</label><input id="gmRule2Min" type="number" value="60"></div>
+        <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
+        <div><label>增加</label><input id="gmRule2Val" type="number" value="1"></div>
+      </div>
+      <button class="btn gold" onclick="gmAddTask()">新增任務</button>
+    </div>
+
+    <div class="card"><h3>任務清單</h3>${taskList}</div>
+
+    <div class="card">
+      <h3>學習進度</h3>
+      <div class="small">匯出內容只有：日期、科目、項目、進度。</div>
+      <button class="btn blue" onclick="exportLearningCSV()">匯出學習進度 CSV</button>
+    </div>
+
+    <div class="card">
+      <h3>新增商店兌換券</h3>
+      <label>名稱</label><input id="gmShopName">
+      <label>說明</label><input id="gmShopDesc">
+      <div class="grid2">
+        <div><label>價格</label><input id="gmShopPrice" type="number" value="100"></div>
+        <div><label>每日限購</label><input id="gmShopLimit" type="number" value="1"></div>
+      </div>
+      <button class="btn gold" onclick="gmAddShopItem()">新增商品</button>
+    </div>
+    <div class="card"><h3>商店清單</h3>${shopList}</div>
+
+    <div class="card">
+      <h3>新增每日怪物</h3>
+      <label>名稱</label><input id="gmMonName">
+      <div class="grid3">
+        <div><label>戰力</label><input id="gmMonPower" type="number" value="80"></div>
+        <div><label>金幣</label><input id="gmMonGold" type="number" value="20"></div>
+        <div><label>EXP</label><input id="gmMonExp" type="number" value="20"></div>
+      </div>
+      <button class="btn gold" onclick="gmAddMonster()">新增怪物</button>
+    </div>
+
+    <div class="card">
+      <h3>📅 新增考試 Boss</h3>
+      <div class="grid2">
+        <div><label>日期</label><input id="gmEventDate" type="date"></div>
+        <div><label>類型</label><select id="gmEventType"><option value="midterm">期中大魔王</option><option value="final">期末惡龍</option></select></div>
+      </div>
+      <label>Boss 名稱</label><input id="gmEventName" placeholder="期中大魔王 / 學期終焉之龍">
+      <div class="grid3">
+        <div><label>戰力</label><input id="gmEventPower" type="number" value="200"></div>
+        <div><label>金幣</label><input id="gmEventGold" type="number" value="100"></div>
+        <div><label>EXP</label><input id="gmEventExp" type="number" value="100"></div>
+      </div>
+      <button class="btn purple" onclick="gmAddEvent()">加入冒險日曆</button>
+    </div>
+    <div class="card"><h3>冒險日曆</h3>${eventList}</div>
+
+    <div class="card"><h3>兌換審核</h3>${reqList}</div>
+
+    <div class="card">
+      <h3>快捷調整</h3>
+      <button class="btn" onclick="gmAddGold(100)">+100 金幣</button>
+      <button class="btn purple" onclick="gmAddLotteryCoin(1)">+1 抽獎金幣</button>
+    </div>
+
+    <div class="card">
+      <h3 class="bad">危險操作</h3>
+      <button class="btn red" onclick="resetAll()">清除全部資料</button>
+    </div>`;
+}
+function gmAddTask(){
+  const name=document.getElementById('gmTaskName').value.trim();
+  if(!name){alert('請輸入任務名稱');return;}
+  const rules=[
+    {maxMinutes:Number(document.getElementById('gmRule1Min').value),stat:document.getElementById('gmRule1Stat').value,value:Number(document.getElementById('gmRule1Val').value)},
+    {maxMinutes:Number(document.getElementById('gmRule2Min').value),stat:document.getElementById('gmRule2Stat').value,value:Number(document.getElementById('gmRule2Val').value)}
+  ].filter(r=>r.maxMinutes>0&&r.value!==0);
+
+  gameData.tasks.push({
+    id:uid(),name,
+    description:document.getElementById('gmTaskDesc').value.trim(),
+    subject:document.getElementById('gmSubject').value.trim(),
+    progressType:document.getElementById('gmProgressType').value.trim(),
+    progressValue:document.getElementById('gmProgressValue').value.trim(),
+    goldReward:Number(document.getElementById('gmTaskGold').value)||0,
+    expReward:Number(document.getElementById('gmTaskExp').value)||0,
+    dailyLimit:Math.max(1,Number(document.getElementById('gmTaskLimit').value)||1),
+    active:true,statRules:rules
+  });
+  saveGame();renderAll();
+}
+function deleteTask(id){if(confirm('刪除此任務？')){gameData.tasks=gameData.tasks.filter(x=>x.id!==id);saveGame();renderAll();}}
+function gmAddShopItem(){
+  const name=document.getElementById('gmShopName').value.trim();
+  if(!name){alert('請輸入商品名稱');return;}
+  gameData.shopItems.push({
+    id:uid(),name,description:document.getElementById('gmShopDesc').value.trim(),
+    price:Number(document.getElementById('gmShopPrice').value)||0,
+    dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit').value)||1),
+    active:true
+  });
+  saveGame();renderAll();
+}
+function deleteShopItem(id){if(confirm('刪除此商品？')){gameData.shopItems=gameData.shopItems.filter(x=>x.id!==id);saveGame();renderAll();}}
+function gmAddMonster(){
+  const name=document.getElementById('gmMonName').value.trim();
+  if(!name){alert('請輸入怪物名稱');return;}
+  gameData.monsters.push({
+    id:uid(),name,power:Number(document.getElementById('gmMonPower').value)||1,
+    rewardGold:Number(document.getElementById('gmMonGold').value)||0,
+    rewardExp:Number(document.getElementById('gmMonExp').value)||0,active:true
+  });
+  saveGame();renderAll();
+}
+function gmAddEvent(){
+  const date=document.getElementById('gmEventDate').value;
+  const type=document.getElementById('gmEventType').value;
+  let name=document.getElementById('gmEventName').value.trim();
+  if(!date){alert('請選日期');return;}
+  if(!name)name=type==='final'?'學期終焉之龍':'期中大魔王';
+  gameData.events.push({
+    id:uid(),date,type,name,
+    power:Number(document.getElementById('gmEventPower').value)||100,
+    rewardGold:Number(document.getElementById('gmEventGold').value)||0,
+    rewardExp:Number(document.getElementById('gmEventExp').value)||0,
+    active:true
+  });
+  if(date===today())gameData.dailyDungeon={date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+  saveGame();renderAll();
+}
+function deleteEvent(id){
+  if(confirm('刪除此考試事件？')){
+    gameData.events=gameData.events.filter(x=>x.id!==id);
+    if(gameData.dailyDungeon.eventId===id)gameData.dailyDungeon={date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+    saveGame();renderAll();
+  }
+}
+function gmAddGold(n){gameData.hero.gold+=n;saveGame();renderAll();}
+function gmAddLotteryCoin(n){gameData.hero.lotteryCoins+=n;saveGame();renderAll();}
+function resetAll(){
+  if(confirm('確定清除全部資料？此動作無法復原。')){
+    localStorage.removeItem(STORAGE_KEY);location.reload();
+  }
+}
+function renderAll(){renderHero();renderTasks();renderDungeon();renderShop();renderLottery();renderBag();renderGM();startLiveTimer();}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTasks();startLiveTimer();}});
+function boot(){
+  if(!gameData.hero.name){
+    document.getElementById('heroSetup').style.display='block';
+    document.getElementById('mainUI').style.display='none';
+  }else{
+    document.getElementById('heroSetup').style.display='none';
+    document.getElementById('mainUI').style.display='block';
+    ensureDailyDungeon();renderAll();
+  }
+}
+boot();
+</script>
+</body>
+</html>
