@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V6.2</title>
+<title>小學勇者大冒險 V6.3</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -414,11 +414,56 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   background-color:#203b52;
 }
 
+
+/* V6.3：改用真正的 <img> 圖層，不再依賴 CSS background-image */
+.hero-scene{
+  background:#203b52 !important;
+  animation:none !important;
+}
+.scene-bg-scroll{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  z-index:0;
+}
+.scene-bg-track{
+  position:absolute;
+  left:0;
+  top:0;
+  height:100%;
+  display:flex;
+  width:max-content;
+  animation:sceneBgMove 24s linear infinite;
+  will-change:transform;
+}
+.scene-bg-track img{
+  display:block;
+  height:100%;
+  width:auto;
+  max-width:none;
+  flex:none;
+  image-rendering:pixelated;
+}
+@keyframes sceneBgMove{
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
+.hero-scene .scene-hud,
+.hero-scene .warrior-wrap{
+  z-index:2;
+}
+.hero-scene > .sky-layer,
+.hero-scene > .mountain-layer,
+.hero-scene > .ground-layer,
+.hero-scene > .pixel-cloud{
+  display:none !important;
+}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V6.2</h1>
+  <h1>⚔️ 小學勇者大冒險 V6.3</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1158,6 +1203,13 @@ function renderHero(){
     </div>
 
     <div class="hero-scene" aria-label="勇者冒險場景">
+      <div class="scene-bg-scroll" aria-hidden="true">
+        <div class="scene-bg-track">
+          <img src="images/grassland_bg.png?v=63" alt="">
+          <img src="images/grassland_bg.png?v=63" alt="">
+          <img src="images/grassland_bg.png?v=63" alt="">
+        </div>
+      </div>
       <div class="sky-layer"></div>
       <div class="pixel-cloud c1"></div>
       <div class="pixel-cloud c2"></div>
