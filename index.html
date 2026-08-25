@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V3</title>
+<title>小學勇者大冒險 V4</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -137,6 +137,41 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   font-size:14px;font-weight:800
 }
 
+
+.status-clock{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  margin-bottom:10px;padding:10px 12px;border:1px solid #30363d;
+  border-radius:10px;background:#11161d
+}
+.status-date{font-size:14px;font-weight:800;color:#c9d1d9}
+.status-time{font-size:24px;font-weight:1000;color:#f0f6fc;letter-spacing:1px}
+.ability-btn{
+  width:100%;margin-top:10px;min-height:48px;font-size:16px;
+  background:#30363d;color:#f0f6fc;border:1px solid #59616d
+}
+.ability-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;
+  align-items:center;justify-content:center;padding:18px;z-index:9999
+}
+.ability-panel{
+  width:min(430px,100%);background:#161b22;border:2px solid #59616d;
+  border-radius:14px;padding:18px;box-shadow:0 18px 48px #000a
+}
+.ability-row{
+  display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  padding:11px 4px;border-bottom:1px solid #30363d;font-size:18px;font-weight:800
+}
+.stat-rise{color:#3fb950;font-size:13px;min-width:34px;text-align:right}
+.task-type-badge{
+  display:inline-block;font-size:12px;font-weight:900;padding:4px 8px;border-radius:999px;
+  background:#11161d;border:1px solid #3d444d;margin-bottom:6px
+}
+.quantity-box{
+  display:flex;gap:8px;align-items:center;margin-top:10px
+}
+.quantity-box input{margin:0;min-width:0}
+.gm-type-settings{padding:10px;background:#0d1117;border-radius:9px;margin:8px 0 12px}
+
 .parent-lock{max-width:420px;margin:18px auto;padding:18px;background:#11161d;border:2px solid #3d444d;border-radius:12px;text-align:center}
 .parent-lock input{font-size:22px;text-align:center;letter-spacing:5px}
 .timeline{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:10px 2px 4px}
@@ -225,7 +260,42 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   margin-top:12px;
 }
 @media(max-width:520px){
-  .parent-lock{max-width:420px;margin:18px auto;padding:18px;background:#11161d;border:2px solid #3d444d;border-radius:12px;text-align:center}
+  
+.status-clock{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  margin-bottom:10px;padding:10px 12px;border:1px solid #30363d;
+  border-radius:10px;background:#11161d
+}
+.status-date{font-size:14px;font-weight:800;color:#c9d1d9}
+.status-time{font-size:24px;font-weight:1000;color:#f0f6fc;letter-spacing:1px}
+.ability-btn{
+  width:100%;margin-top:10px;min-height:48px;font-size:16px;
+  background:#30363d;color:#f0f6fc;border:1px solid #59616d
+}
+.ability-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;
+  align-items:center;justify-content:center;padding:18px;z-index:9999
+}
+.ability-panel{
+  width:min(430px,100%);background:#161b22;border:2px solid #59616d;
+  border-radius:14px;padding:18px;box-shadow:0 18px 48px #000a
+}
+.ability-row{
+  display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  padding:11px 4px;border-bottom:1px solid #30363d;font-size:18px;font-weight:800
+}
+.stat-rise{color:#3fb950;font-size:13px;min-width:34px;text-align:right}
+.task-type-badge{
+  display:inline-block;font-size:12px;font-weight:900;padding:4px 8px;border-radius:999px;
+  background:#11161d;border:1px solid #3d444d;margin-bottom:6px
+}
+.quantity-box{
+  display:flex;gap:8px;align-items:center;margin-top:10px
+}
+.quantity-box input{margin:0;min-width:0}
+.gm-type-settings{padding:10px;background:#0d1117;border-radius:9px;margin:8px 0 12px}
+
+.parent-lock{max-width:420px;margin:18px auto;padding:18px;background:#11161d;border:2px solid #3d444d;border-radius:12px;text-align:center}
 .parent-lock input{font-size:22px;text-align:center;letter-spacing:5px}
 .timeline{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:10px 2px 4px}
 .timeline-node{min-width:92px;text-align:center;padding:8px;border-radius:9px;background:#11161d;border:1px solid #30363d}
@@ -252,7 +322,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V3</h1>
+  <h1>⚔️ 小學勇者大冒險 V4</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -360,6 +430,17 @@ function defaultData(){
 }
 let gameData=loadGame();
 let timerInterval=null;
+let clockInterval=null;
+
+// V4 相容舊存檔
+if(!gameData.hero.lastStatGains) gameData.hero.lastStatGains={};
+(gameData.tasks||[]).forEach(t=>{
+  if(!t.taskType) t.taskType='timer';
+  if(t.quantityTarget==null) t.quantityTarget=1;
+  if(!t.quantityUnit) t.quantityUnit='次';
+  if(!t.fixedStat) t.fixedStat='vit';
+  if(t.fixedStatValue==null) t.fixedStatValue=1;
+});
 
 function loadGame(){
   try{
@@ -455,6 +536,109 @@ function renderSemesterTimeline(){
   }</div></div>`;
 }
 
+
+function weekdayName(d){
+  return ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
+}
+function updateStatusClock(){
+  const d=new Date();
+  const dateEl=document.getElementById('statusDate');
+  const timeEl=document.getElementById('statusTime');
+  if(dateEl) dateEl.textContent=`${d.getFullYear()} / ${String(d.getMonth()+1).padStart(2,'0')} / ${String(d.getDate()).padStart(2,'0')}　${weekdayName(d)}`;
+  if(timeEl) timeEl.textContent=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function startStatusClock(){
+  if(clockInterval)clearInterval(clockInterval);
+  updateStatusClock();
+  clockInterval=setInterval(updateStatusClock,15000);
+}
+function showAbilityPanel(){
+  const h=gameData.hero,s=h.stats,g=h.lastStatGains||{};
+  const old=document.getElementById('abilityOverlay');
+  if(old)old.remove();
+  const div=document.createElement('div');
+  div.id='abilityOverlay';
+  div.className='ability-overlay';
+  div.innerHTML=`
+    <div class="ability-panel" role="dialog" aria-modal="true" aria-label="勇者能力">
+      <h2 style="text-align:center">📊 勇者能力</h2>
+      ${[
+        ['💪','力量','str'],['⚡','敏捷','agi'],['🧠','智力','int'],
+        ['❤️','體力','vit'],['🛡️','意志','will']
+      ].map(([icon,name,key])=>`
+        <div class="ability-row">
+          <span>${icon} ${name}</span>
+          <strong>${s[key]}</strong>
+          <span class="stat-rise">${g[key]?`+${g[key]} ↑`:''}</span>
+        </div>`).join('')}
+      <div class="ability-row"><span>⚔️ 戰鬥力</span><strong>${combatPower()}</strong><span></span></div>
+      <button class="btn gray big-battle-btn" onclick="closeAbilityPanel()">關閉</button>
+    </div>`;
+  div.addEventListener('click',e=>{if(e.target===div)closeAbilityPanel();});
+  document.body.appendChild(div);
+}
+function closeAbilityPanel(){
+  document.getElementById('abilityOverlay')?.remove();
+}
+function applyFixedStatReward(t){
+  const key=t.fixedStat||'vit';
+  const val=Number(t.fixedStatValue)||0;
+  if(val){
+    gameData.hero.stats[key]=(gameData.hero.stats[key]||0)+val;
+    gameData.hero.lastStatGains={[key]:val};
+    return {stat:key,value:val};
+  }
+  gameData.hero.lastStatGains={};
+  return null;
+}
+function finishCommonTask(t,extra={}){
+  gameData.hero.gold+=Number(t.goldReward)||0;
+  addExp(Number(t.expReward)||0);
+  const statGain=applyFixedStatReward(t);
+  gameData.taskRecords.push({
+    id:uid(),taskId:t.id,date:today(),status:'completed',
+    completedAt:new Date().toISOString(),taskType:t.taskType||'complete',
+    rewards:{gold:t.goldReward,exp:t.expReward,statGain},...extra
+  });
+  if(t.subject||t.progressType||t.progressValue){
+    gameData.learningProgress.push({
+      id:uid(),date:today(),subject:t.subject||'',
+      item:t.progressType||t.name,progress:t.progressValue||'完成'
+    });
+  }
+  saveGame();
+  return statGain;
+}
+function completeSimpleTask(taskId){
+  const t=gameData.tasks.find(x=>x.id===taskId);
+  if(!t)return;
+  if(completedCount(taskId)>=t.dailyLimit){alert('今天已完成了');return;}
+  const gain=finishCommonTask(t);
+  alert(`🎉 完成！\n💰 +${t.goldReward}\n⭐ +${t.expReward}`+(gain?`\n${statName(gain.stat)} +${gain.value}`:''));
+  renderAll();
+}
+function completeQuantityTask(taskId){
+  const t=gameData.tasks.find(x=>x.id===taskId);
+  if(!t)return;
+  if(completedCount(taskId)>=t.dailyLimit){alert('今天已完成了');return;}
+  const input=document.getElementById('qty_'+taskId);
+  const amount=Number(input?.value||0);
+  const target=Math.max(1,Number(t.quantityTarget)||1);
+  if(amount<target){alert(`還差一點！目標是 ${target} ${t.quantityUnit||'次'}`);return;}
+  const gain=finishCommonTask(t,{quantity:amount,quantityTarget:target,quantityUnit:t.quantityUnit||'次'});
+  alert(`🎉 達成 ${amount} ${t.quantityUnit||'次'}！\n💰 +${t.goldReward}\n⭐ +${t.expReward}`+(gain?`\n${statName(gain.stat)} +${gain.value}`:''));
+  renderAll();
+}
+function updateTaskTypeFields(){
+  const type=document.getElementById('gmTaskType')?.value||'timer';
+  const timer=document.getElementById('gmTimerSettings');
+  const fixed=document.getElementById('gmFixedSettings');
+  const qty=document.getElementById('gmQuantitySettings');
+  if(timer)timer.style.display=type==='timer'?'block':'none';
+  if(fixed)fixed.style.display=type==='timer'?'none':'block';
+  if(qty)qty.style.display=type==='quantity'?'block':'none';
+}
+
 function createHero(){
   const n=document.getElementById('setupName').value.trim();
   const c=document.getElementById('setupClass').value;
@@ -505,7 +689,12 @@ function finishTask(taskId){
   }
   gameData.hero.gold+=Number(t.goldReward)||0;
   addExp(Number(t.expReward)||0);
-  if(statGain)gameData.hero.stats[statGain.stat]+=Number(statGain.value)||0;
+  if(statGain){
+    gameData.hero.stats[statGain.stat]+=Number(statGain.value)||0;
+    gameData.hero.lastStatGains={[statGain.stat]:Number(statGain.value)||0};
+  }else{
+    gameData.hero.lastStatGains={};
+  }
 
   const record={
     id:uid(),taskId:t.id,date:today(),status:'completed',
@@ -686,6 +875,11 @@ function renderHero(){
   const h=gameData.hero;
   const xpPct=Math.min(100,h.exp/h.maxExp*100);
   document.getElementById('panel-hero').innerHTML=`
+    <div class="status-clock">
+      <div id="statusDate" class="status-date"></div>
+      <div id="statusTime" class="status-time"></div>
+    </div>
+
     <div class="hero-scene" aria-label="勇者冒險場景">
       <div class="sky-layer"></div>
       <div class="pixel-cloud c1"></div>
@@ -698,21 +892,10 @@ function renderHero(){
       </div>
       <div class="warrior-wrap" aria-label="點陣戰士">
         <div class="pixel-warrior">
-          <div class="px helm"></div>
-          <div class="px face"></div>
-          <div class="px eye"></div>
-          <div class="px body"></div>
-          <div class="px belt"></div>
-          <div class="px arm-l"></div>
-          <div class="px arm-r"></div>
-          <div class="px hand-l"></div>
-          <div class="px hand-r"></div>
-          <div class="px leg-l"></div>
-          <div class="px leg-r"></div>
-          <div class="px boot-l"></div>
-          <div class="px boot-r"></div>
-          <div class="px sword"></div>
-          <div class="px guard"></div>
+          <div class="px helm"></div><div class="px face"></div><div class="px eye"></div><div class="px body"></div>
+          <div class="px belt"></div><div class="px arm-l"></div><div class="px arm-r"></div><div class="px hand-l"></div>
+          <div class="px hand-r"></div><div class="px leg-l"></div><div class="px leg-r"></div><div class="px boot-l"></div>
+          <div class="px boot-r"></div><div class="px sword"></div><div class="px guard"></div>
         </div>
       </div>
     </div>
@@ -727,27 +910,50 @@ function renderHero(){
       <div class="kid-box">🪙 ${h.lotteryCoins}</div>
       <div class="kid-box">⚔️ ${combatPower()}</div>
     </div>
+
+    <button class="ability-btn" onclick="showAbilityPanel()">📊 能力</button>
     ${renderSemesterTimeline()}`;
+  startStatusClock();
 }
 function renderTasks(){
   let html='<h2>📚 今日任務</h2>';
   gameData.tasks.filter(t=>t.active).forEach(t=>{
-    const count=completedCount(t.id),start=gameData.activeTasks[t.id];
+    const type=t.taskType||'timer';
+    const count=completedCount(t.id);
+    const start=gameData.activeTasks[t.id];
+    const typeLabel=type==='timer'?'⏱ 計時':type==='quantity'?'🔢 數量':'✅ 完成';
+    let action='';
+
+    if(type==='timer'){
+      action=`
+        <div class="row" style="margin-top:10px">
+          <button class="btn blue" ${start||count>=t.dailyLimit?'disabled':''} onclick="startTask('${t.id}')">開始</button>
+          <button class="btn" ${!start?'disabled':''} onclick="finishTask('${t.id}')">完成</button>
+        </div>
+        ${start?`<div class="small good" data-task-timer="${t.id}">⏱ ${formatElapsed(Date.now()-start)}</div>`:''}`;
+    }else if(type==='quantity'){
+      action=`
+        <div class="quantity-box">
+          <input id="qty_${t.id}" type="number" inputmode="numeric" min="0" placeholder="${t.quantityTarget||1} ${t.quantityUnit||'次'}">
+          <button class="btn" ${count>=t.dailyLimit?'disabled':''} onclick="completeQuantityTask('${t.id}')">完成</button>
+        </div>`;
+    }else{
+      action=`<button class="btn big-battle-btn" ${count>=t.dailyLimit?'disabled':''} onclick="completeSimpleTask('${t.id}')">${count>=t.dailyLimit?'今天完成了':'完成！'}</button>`;
+    }
+
     html+=`<div class="card">
-      <strong>${t.name}</strong>
-      <div class="small">${t.description||''}</div>
-      <div class="small purple">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div>
+      <span class="task-type-badge">${typeLabel}</span><br>
+      <strong style="font-size:18px">${t.name}</strong>
+      <div class="small purple">${[t.subject,t.progressValue].filter(Boolean).join('｜')}</div>
       <div style="margin:8px 0">
-        <span class="pill">💰 ${t.goldReward} G</span>
-        <span class="pill">⭐ ${t.expReward} EXP</span>
-        <span class="pill">今日 ${count}/${t.dailyLimit}</span>
+        <span class="pill">💰 ${t.goldReward}</span>
+        <span class="pill">⭐ ${t.expReward}</span>
       </div>
-      <div class="small">${t.statRules.map(r=>`≤ ${r.maxMinutes} 分鐘：${statName(r.stat)} +${r.value}`).join(' ｜ ')}</div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn blue" ${start||count>=t.dailyLimit?'disabled':''} onclick="startTask('${t.id}')">開始任務</button>
-        <button class="btn" ${!start?'disabled':''} onclick="finishTask('${t.id}')">完成任務</button>
-      </div>
-      ${start?`<div class="small good">開始時間：${new Date(start).toLocaleTimeString()}</div><div class="small good" data-task-timer="${t.id}">⏱ 已進行 ${formatElapsed(Date.now()-start)}</div>`:''}
+      ${type==='timer'
+        ?`<div class="small">${(t.statRules||[]).map(r=>`≤${r.maxMinutes}分：${statName(r.stat)}+${r.value}`).join(' ｜ ')}</div>`
+        :`<div class="small">${statName(t.fixedStat||'vit')} +${t.fixedStatValue||0}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`
+      }
+      ${action}
     </div>`;
   });
   document.getElementById('panel-tasks').innerHTML=html;
@@ -840,7 +1046,11 @@ function renderGM(){
   if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
   if(!gameData.settings.parentPinHash){renderParentPinSetup();return;}
   if(sessionStorage.getItem('parentUnlocked')!=='1'){renderParentLock();return;}
-  const taskList=gameData.tasks.map(t=>`<div class="card"><strong>${t.name}</strong><div class="small">${t.subject}｜${t.progressType}｜${t.progressValue}</div><button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`).join('');
+  const taskList=gameData.tasks.map(t=>{
+    const type=t.taskType||'timer';
+    const label=type==='timer'?'⏱ 計時':type==='quantity'?'🔢 數量':'✅ 完成';
+    return `<div class="card"><strong>${label}｜${t.name}</strong><div class="small">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div><button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`;
+  }).join('');
   const shopList=gameData.shopItems.map(i=>`<div class="card"><strong>${i.name}</strong><div class="small">${i.price} G</div><button class="btn red" onclick="deleteShopItem('${i.id}')">刪除</button></div>`).join('');
   const reqList=gameData.couponRequests.filter(r=>r.status==='pending').map(r=>`<div class="card"><strong>${r.itemName}</strong><button class="btn" onclick="approveCoupon('${r.id}',true)">核准並核銷</button> <button class="btn red" onclick="approveCoupon('${r.id}',false)">退回</button></div>`).join('')||'<div class="small">目前沒有待審核兌換券。</div>';
   const eventList=gameData.events.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`<div class="card"><strong>${e.date}｜${e.name}</strong><div class="small">${e.type==='final'?'期末惡龍':'期中 Boss'}｜戰力 ${e.power}</div><button class="btn red" onclick="deleteEvent('${e.id}')">刪除</button></div>`).join('')||'<div class="small">尚未設定考試事件。</div>';
@@ -851,29 +1061,54 @@ function renderGM(){
     <div class="card">
       <h3>新增任務＋學習進度</h3>
       <label>任務名稱</label><input id="gmTaskName">
+      <label>任務類型</label>
+      <select id="gmTaskType" onchange="updateTaskTypeFields()">
+        <option value="timer">⏱ 計時任務（作業 / 複習）</option>
+        <option value="complete">✅ 完成任務（鋼琴 / 足球）</option>
+        <option value="quantity">🔢 數量任務（頁數 / 次數）</option>
+      </select>
       <label>任務說明</label><input id="gmTaskDesc">
       <div class="grid3">
-        <div><label>科目</label><input id="gmSubject" placeholder="國語"></div>
-        <div><label>學習項目</label><input id="gmProgressType" placeholder="生字練習 / 複習進度"></div>
-        <div><label>進度</label><input id="gmProgressValue" placeholder="第3課 / 第二單元"></div>
+        <div><label>科目</label><input id="gmSubject" placeholder="國語 / 鋼琴 / 足球"></div>
+        <div><label>學習項目</label><input id="gmProgressType" placeholder="生字練習 / 練琴"></div>
+        <div><label>進度</label><input id="gmProgressValue" placeholder="第3課 / 完成"></div>
       </div>
       <div class="grid3">
         <div><label>金幣</label><input id="gmTaskGold" type="number" value="20"></div>
         <div><label>EXP</label><input id="gmTaskExp" type="number" value="10"></div>
         <div><label>每日上限</label><input id="gmTaskLimit" type="number" value="1"></div>
       </div>
-      <h3>能力規則 1</h3>
-      <div class="grid3">
-        <div><label>幾分鐘內</label><input id="gmRule1Min" type="number" value="30"></div>
-        <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
-        <div><label>增加</label><input id="gmRule1Val" type="number" value="5"></div>
+
+      <div id="gmTimerSettings" class="gm-type-settings">
+        <h3>⏱ 時間獎勵</h3>
+        <div class="grid3">
+          <div><label>幾分鐘內</label><input id="gmRule1Min" type="number" value="30"></div>
+          <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
+          <div><label>增加</label><input id="gmRule1Val" type="number" value="5"></div>
+        </div>
+        <div class="grid3">
+          <div><label>幾分鐘內</label><input id="gmRule2Min" type="number" value="60"></div>
+          <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
+          <div><label>增加</label><input id="gmRule2Val" type="number" value="1"></div>
+        </div>
       </div>
-      <h3>能力規則 2</h3>
-      <div class="grid3">
-        <div><label>幾分鐘內</label><input id="gmRule2Min" type="number" value="60"></div>
-        <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
-        <div><label>增加</label><input id="gmRule2Val" type="number" value="1"></div>
+
+      <div id="gmFixedSettings" class="gm-type-settings" style="display:none">
+        <h3>✅ 完成後能力</h3>
+        <div class="grid2">
+          <div><label>能力</label><select id="gmFixedStat"><option value="vit">體力</option><option value="str">力量</option><option value="agi">敏捷</option><option value="int">智力</option><option value="will">意志</option></select></div>
+          <div><label>增加</label><input id="gmFixedStatValue" type="number" value="2"></div>
+        </div>
       </div>
+
+      <div id="gmQuantitySettings" class="gm-type-settings" style="display:none">
+        <h3>🔢 數量目標</h3>
+        <div class="grid2">
+          <div><label>目標數量</label><input id="gmQuantityTarget" type="number" value="20"></div>
+          <div><label>單位</label><input id="gmQuantityUnit" value="頁" placeholder="頁 / 次 / 下"></div>
+        </div>
+      </div>
+
       <button class="btn gold" onclick="gmAddTask()">新增任務</button>
     </div>
 
@@ -981,13 +1216,17 @@ function saveCloudConfig(){
 function gmAddTask(){
   const name=document.getElementById('gmTaskName').value.trim();
   if(!name){alert('請輸入任務名稱');return;}
-  const rules=[
-    {maxMinutes:Number(document.getElementById('gmRule1Min').value),stat:document.getElementById('gmRule1Stat').value,value:Number(document.getElementById('gmRule1Val').value)},
-    {maxMinutes:Number(document.getElementById('gmRule2Min').value),stat:document.getElementById('gmRule2Stat').value,value:Number(document.getElementById('gmRule2Val').value)}
-  ].filter(r=>r.maxMinutes>0&&r.value!==0);
+  const taskType=document.getElementById('gmTaskType').value;
+  let rules=[];
+  if(taskType==='timer'){
+    rules=[
+      {maxMinutes:Number(document.getElementById('gmRule1Min').value),stat:document.getElementById('gmRule1Stat').value,value:Number(document.getElementById('gmRule1Val').value)},
+      {maxMinutes:Number(document.getElementById('gmRule2Min').value),stat:document.getElementById('gmRule2Stat').value,value:Number(document.getElementById('gmRule2Val').value)}
+    ].filter(r=>r.maxMinutes>0&&r.value!==0);
+  }
 
   gameData.tasks.push({
-    id:uid(),name,
+    id:uid(),name,taskType,
     description:document.getElementById('gmTaskDesc').value.trim(),
     subject:document.getElementById('gmSubject').value.trim(),
     progressType:document.getElementById('gmProgressType').value.trim(),
@@ -995,7 +1234,11 @@ function gmAddTask(){
     goldReward:Number(document.getElementById('gmTaskGold').value)||0,
     expReward:Number(document.getElementById('gmTaskExp').value)||0,
     dailyLimit:Math.max(1,Number(document.getElementById('gmTaskLimit').value)||1),
-    active:true,statRules:rules
+    active:true,statRules:rules,
+    fixedStat:document.getElementById('gmFixedStat')?.value||'vit',
+    fixedStatValue:Number(document.getElementById('gmFixedStatValue')?.value)||0,
+    quantityTarget:Math.max(1,Number(document.getElementById('gmQuantityTarget')?.value)||1),
+    quantityUnit:(document.getElementById('gmQuantityUnit')?.value||'次').trim()
   });
   saveGame();renderAll();
 }
@@ -1052,7 +1295,7 @@ function resetAll(){
     localStorage.removeItem(STORAGE_KEY);location.reload();
   }
 }
-function renderAll(){renderHero();renderTasks();renderDungeon();renderShop();renderLottery();renderBag();renderGM();startLiveTimer();}
+function renderAll(){renderHero();renderTasks();renderDungeon();renderShop();renderLottery();renderBag();renderGM();startLiveTimer();startStatusClock();}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTasks();startLiveTimer();}});
 function boot(){
   if(!gameData.hero.name){
