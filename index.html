@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V4</title>
+<title>小學勇者大冒險 V5</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -138,6 +138,18 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 
+
+.balance-box{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;margin:10px 0}
+.balance-good{border-left:5px solid #3fb950}
+.balance-warn{border-left:5px solid #d29922}
+.balance-bad{border-left:5px solid #f85149}
+.balance-title{font-weight:900;font-size:15px;margin-bottom:5px}
+.balance-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:8px}
+.balance-cell{background:#161b22;border-radius:7px;padding:8px;font-size:12px}
+.gm-money-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gm-money-row button{min-height:44px}
+.audit-row{padding:8px 0;border-bottom:1px solid #30363d;font-size:12px}
+
 .status-clock{
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   margin-bottom:10px;padding:10px 12px;border:1px solid #30363d;
@@ -261,6 +273,18 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 @media(max-width:520px){
   
+
+.balance-box{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;margin:10px 0}
+.balance-good{border-left:5px solid #3fb950}
+.balance-warn{border-left:5px solid #d29922}
+.balance-bad{border-left:5px solid #f85149}
+.balance-title{font-weight:900;font-size:15px;margin-bottom:5px}
+.balance-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:8px}
+.balance-cell{background:#161b22;border-radius:7px;padding:8px;font-size:12px}
+.gm-money-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gm-money-row button{min-height:44px}
+.audit-row{padding:8px 0;border-bottom:1px solid #30363d;font-size:12px}
+
 .status-clock{
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   margin-bottom:10px;padding:10px 12px;border:1px solid #30363d;
@@ -322,7 +346,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V4</h1>
+  <h1>⚔️ 小學勇者大冒險 V5</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -442,6 +466,24 @@ if(!gameData.hero.lastStatGains) gameData.hero.lastStatGains={};
   if(t.fixedStatValue==null) t.fixedStatValue=1;
 });
 
+if(!gameData.gmAudit) gameData.gmAudit=[];
+
+const BALANCE_CONFIG={
+  semesterTargetLevel:22,
+  combatWeights:{str:2,agi:1.5,int:1.5,vit:2,will:1.5},
+  expectedCompletion:0.75,
+  taskExp:{greenMax:40,yellowMax:80},
+  taskGold:{greenMax:40,yellowMax:100},
+  taskStat:{greenMax:3,yellowMax:6},
+  dailyExp:{greenMax:160,yellowMax:260},
+  monsterRatio:{
+    normal:[0.80,0.95],
+    strong:[0.95,1.10],
+    elite:[1.10,1.25]
+  },
+  bossRatio:[1.05,1.22]
+};
+
 function loadGame(){
   try{
     const x=JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -536,6 +578,137 @@ function renderSemesterTimeline(){
   }</div></div>`;
 }
 
+
+
+function daysBetween(a,b){
+  const A=new Date(a+'T12:00:00'),B=new Date(b+'T12:00:00');
+  return Math.max(0,Math.ceil((B-A)/86400000));
+}
+function nextMajorEvent(){
+  const td=today();
+  return (gameData.events||[])
+    .filter(e=>e.active!==false && ['midterm','final'].includes(e.type) && e.date>=td)
+    .sort((a,b)=>a.date.localeCompare(b.date))[0]||null;
+}
+function taskDailyPotential(t){
+  const limit=Math.max(1,Number(t.dailyLimit)||1);
+  const stat = t.taskType==='timer'
+    ? Math.max(0,...(t.statRules||[]).map(r=>Number(r.value)||0))
+    : Number(t.fixedStatValue)||0;
+  return {
+    exp:(Number(t.expReward)||0)*limit,
+    gold:(Number(t.goldReward)||0)*limit,
+    stat:stat*limit
+  };
+}
+function dailyPotential(){
+  return (gameData.tasks||[]).filter(t=>t.active).reduce((a,t)=>{
+    const p=taskDailyPotential(t);
+    a.exp+=p.exp;a.gold+=p.gold;a.stat+=p.stat;return a;
+  },{exp:0,gold:0,stat:0});
+}
+function estimatePowerAt(date,rate=BALANCE_CONFIG.expectedCompletion){
+  const days=daysBetween(today(),date);
+  const active=(gameData.tasks||[]).filter(t=>t.active);
+  let power=combatPower();
+  active.forEach(t=>{
+    const limit=Math.max(1,Number(t.dailyLimit)||1);
+    let statKey='vit',statVal=0;
+    if((t.taskType||'timer')==='timer'){
+      const rules=[...(t.statRules||[])].sort((a,b)=>(Number(a.maxMinutes)||0)-(Number(b.maxMinutes)||0));
+      const r=rules[Math.min(1,rules.length-1)]||rules[0];
+      if(r){statKey=r.stat;statVal=Number(r.value)||0;}
+    }else{
+      statKey=t.fixedStat||'vit';statVal=Number(t.fixedStatValue)||0;
+    }
+    const weight=BALANCE_CONFIG.combatWeights[statKey]||1.5;
+    power += days*rate*limit*statVal*weight;
+  });
+  return Math.round(power);
+}
+function balanceLevel(value,greenMax,yellowMax){
+  value=Number(value)||0;
+  if(value<=greenMax)return {cls:'balance-good',icon:'🟢',text:'合理'};
+  if(value<=yellowMax)return {cls:'balance-warn',icon:'🟡',text:'偏高'};
+  return {cls:'balance-bad',icon:'🔴',text:'可能破壞平衡'};
+}
+function taskBalanceReport(exp,gold,stat){
+  const e=balanceLevel(exp,BALANCE_CONFIG.taskExp.greenMax,BALANCE_CONFIG.taskExp.yellowMax);
+  const g=balanceLevel(gold,BALANCE_CONFIG.taskGold.greenMax,BALANCE_CONFIG.taskGold.yellowMax);
+  const s=balanceLevel(stat,BALANCE_CONFIG.taskStat.greenMax,BALANCE_CONFIG.taskStat.yellowMax);
+  const worst=[e,g,s].sort((a,b)=>['balance-good','balance-warn','balance-bad'].indexOf(b.cls)-['balance-good','balance-warn','balance-bad'].indexOf(a.cls))[0];
+  return {worst,e,g,s};
+}
+function refreshTaskBalancePreview(){
+  const box=document.getElementById('taskBalancePreview'); if(!box)return;
+  const exp=Number(document.getElementById('gmTaskExp')?.value)||0;
+  const gold=Number(document.getElementById('gmTaskGold')?.value)||0;
+  const type=document.getElementById('gmTaskType')?.value||'timer';
+  let stat=0;
+  if(type==='timer'){
+    stat=Math.max(Number(document.getElementById('gmRule1Val')?.value)||0,Number(document.getElementById('gmRule2Val')?.value)||0);
+  }else stat=Number(document.getElementById('gmFixedStatValue')?.value)||0;
+  const r=taskBalanceReport(exp,gold,stat);
+  const existing=dailyPotential();
+  const projected=existing.exp+exp*Math.max(1,Number(document.getElementById('gmTaskLimit')?.value)||1);
+  const d=balanceLevel(projected,BALANCE_CONFIG.dailyExp.greenMax,BALANCE_CONFIG.dailyExp.yellowMax);
+  box.className='balance-box '+r.worst.cls;
+  box.innerHTML=`<div class="balance-title">${r.worst.icon} 任務數值評估：${r.worst.text}</div>
+    <div class="balance-grid">
+      <div class="balance-cell">${r.e.icon} EXP ${exp}<br><span class="small">建議單次 ≤ ${BALANCE_CONFIG.taskExp.greenMax}</span></div>
+      <div class="balance-cell">${r.g.icon} 金幣 ${gold}<br><span class="small">建議單次 ≤ ${BALANCE_CONFIG.taskGold.greenMax}</span></div>
+      <div class="balance-cell">${r.s.icon} 能力 +${stat}<br><span class="small">建議單次 ≤ ${BALANCE_CONFIG.taskStat.greenMax}</span></div>
+      <div class="balance-cell">${d.icon} 每日總 EXP ${projected}<br><span class="small">${d.text}</span></div>
+    </div>`;
+}
+function semesterBalanceHTML(){
+  const p=dailyPotential(),event=nextMajorEvent();
+  const d=balanceLevel(p.exp,BALANCE_CONFIG.dailyExp.greenMax,BALANCE_CONFIG.dailyExp.yellowMax);
+  let eventHtml='<div class="small">目前沒有未來的期中／期末 Boss。</div>';
+  if(event){
+    const low=estimatePowerAt(event.date,.5),mid=estimatePowerAt(event.date,.75),high=estimatePowerAt(event.date,1);
+    const bossMin=Math.round(mid*BALANCE_CONFIG.bossRatio[0]);
+    const bossMax=Math.round(mid*BALANCE_CONFIG.bossRatio[1]);
+    eventHtml=`<div class="balance-grid">
+      <div class="balance-cell">📅 ${event.date}<br>${event.name}</div>
+      <div class="balance-cell">距離 ${daysBetween(today(),event.date)} 天</div>
+      <div class="balance-cell">50% 完成率<br>⚔️ ${low}</div>
+      <div class="balance-cell">75% 完成率<br>⚔️ ${mid}</div>
+      <div class="balance-cell">100% 完成率<br>⚔️ ${high}</div>
+      <div class="balance-cell">👿 Boss 建議<br>⚔️ ${bossMin}～${bossMax}</div>
+    </div>`;
+  }
+  return `<div class="card"><h3>🧮 學期數值防呆</h3>
+    <div class="balance-box ${d.cls}">
+      <div class="balance-title">${d.icon} 每日任務總量：${d.text}</div>
+      <div>每日最高 EXP ${p.exp}｜金幣 ${p.gold}｜能力點約 ${p.stat}</div>
+    </div>${eventHtml}</div>`;
+}
+function bossBalanceHTML(power,date){
+  power=Number(power)||0;
+  const mid=estimatePowerAt(date,.75);
+  const min=Math.round(mid*BALANCE_CONFIG.bossRatio[0]),max=Math.round(mid*BALANCE_CONFIG.bossRatio[1]);
+  let cls='balance-good',icon='🟢',txt='合理';
+  if(power<min*.85){cls='balance-warn';icon='🟡';txt='可能太弱';}
+  if(power>max*1.15){cls='balance-bad';icon='🔴';txt='可能過強';}
+  return `<div class="balance-box ${cls}"><b>${icon} ${txt}</b><br>
+    75% 完成率預估 ⚔️ ${mid}｜Boss 建議 ⚔️ ${min}～${max}</div>`;
+}
+function adjustGold(direction){
+  const input=document.getElementById('gmGoldAmount');
+  const amount=Math.floor(Number(input?.value)||0);
+  if(amount<=0){alert('請輸入大於 0 的金幣數量');return;}
+  const delta=direction==='add'?amount:-amount;
+  if(gameData.hero.gold+delta<0){alert(`金幣不足，目前只有 ${gameData.hero.gold} G`);return;}
+  const before=gameData.hero.gold;
+  gameData.hero.gold+=delta;
+  gameData.gmAudit.unshift({
+    id:uid(),type:'gold',date:new Date().toISOString(),delta,before,after:gameData.hero.gold
+  });
+  gameData.gmAudit=gameData.gmAudit.slice(0,100);
+  saveGame();renderAll();
+  alert(`金幣 ${delta>0?'+':''}${delta} G`);
+}
 
 function weekdayName(d){
   return ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
@@ -1062,7 +1235,7 @@ function renderGM(){
       <h3>新增任務＋學習進度</h3>
       <label>任務名稱</label><input id="gmTaskName">
       <label>任務類型</label>
-      <select id="gmTaskType" onchange="updateTaskTypeFields()">
+      <select id="gmTaskType" onchange="updateTaskTypeFields();refreshTaskBalancePreview()">
         <option value="timer">⏱ 計時任務（作業 / 複習）</option>
         <option value="complete">✅ 完成任務（鋼琴 / 足球）</option>
         <option value="quantity">🔢 數量任務（頁數 / 次數）</option>
@@ -1074,9 +1247,9 @@ function renderGM(){
         <div><label>進度</label><input id="gmProgressValue" placeholder="第3課 / 完成"></div>
       </div>
       <div class="grid3">
-        <div><label>金幣</label><input id="gmTaskGold" type="number" value="20"></div>
-        <div><label>EXP</label><input id="gmTaskExp" type="number" value="10"></div>
-        <div><label>每日上限</label><input id="gmTaskLimit" type="number" value="1"></div>
+        <div><label>金幣</label><input id="gmTaskGold" oninput="refreshTaskBalancePreview()" type="number" value="20"></div>
+        <div><label>EXP</label><input id="gmTaskExp" oninput="refreshTaskBalancePreview()" type="number" value="10"></div>
+        <div><label>每日上限</label><input id="gmTaskLimit" oninput="refreshTaskBalancePreview()" type="number" value="1"></div>
       </div>
 
       <div id="gmTimerSettings" class="gm-type-settings">
@@ -1084,12 +1257,12 @@ function renderGM(){
         <div class="grid3">
           <div><label>幾分鐘內</label><input id="gmRule1Min" type="number" value="30"></div>
           <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
-          <div><label>增加</label><input id="gmRule1Val" type="number" value="5"></div>
+          <div><label>增加</label><input id="gmRule1Val" oninput="refreshTaskBalancePreview()" type="number" value="5"></div>
         </div>
         <div class="grid3">
           <div><label>幾分鐘內</label><input id="gmRule2Min" type="number" value="60"></div>
           <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
-          <div><label>增加</label><input id="gmRule2Val" type="number" value="1"></div>
+          <div><label>增加</label><input id="gmRule2Val" oninput="refreshTaskBalancePreview()" type="number" value="1"></div>
         </div>
       </div>
 
@@ -1097,7 +1270,7 @@ function renderGM(){
         <h3>✅ 完成後能力</h3>
         <div class="grid2">
           <div><label>能力</label><select id="gmFixedStat"><option value="vit">體力</option><option value="str">力量</option><option value="agi">敏捷</option><option value="int">智力</option><option value="will">意志</option></select></div>
-          <div><label>增加</label><input id="gmFixedStatValue" type="number" value="2"></div>
+          <div><label>增加</label><input id="gmFixedStatValue" oninput="refreshTaskBalancePreview()" type="number" value="2"></div>
         </div>
       </div>
 
@@ -1109,6 +1282,7 @@ function renderGM(){
         </div>
       </div>
 
+      <div id="taskBalancePreview" class="balance-box balance-good"></div>
       <button class="btn gold" onclick="gmAddTask()">新增任務</button>
     </div>
 
@@ -1163,10 +1337,27 @@ function renderGM(){
 
     <div class="card">
       <h3>快捷調整</h3>
-      <button class="btn" onclick="gmAddGold(100)">+100 金幣</button>
+      
       <button class="btn purple" onclick="gmAddLotteryCoin(1)">+1 抽獎金幣</button>
     </div>
 
+
+
+    ${semesterBalanceHTML()}
+
+    <div class="card">
+      <h3>💰 GM 金幣調整</h3>
+      <div class="small">目前：${gameData.hero.gold} G</div>
+      <label>調整數量</label>
+      <input id="gmGoldAmount" type="number" inputmode="numeric" min="1" placeholder="例如 50">
+      <div class="gm-money-row">
+        <button class="btn" onclick="adjustGold('add')">＋ 增加</button>
+        <button class="btn red" onclick="adjustGold('subtract')">－ 扣除</button>
+      </div>
+      <div class="small" style="margin-top:8px">人工調整會留下紀錄，不計入任務學習成果。</div>
+      ${(gameData.gmAudit||[]).slice(0,5).map(a=>`
+        <div class="audit-row">${new Date(a.date).toLocaleString('zh-TW')}｜${a.delta>0?'+':''}${a.delta} G｜${a.before} → ${a.after}</div>`).join('')}
+    </div>
 
     <div class="card">
       <h3>🔑 修改家長密碼</h3>
@@ -1201,6 +1392,8 @@ function renderGM(){
       <button class="btn red" onclick="resetAll()">清除全部資料</button>
     </div>`;
 }
+setTimeout(refreshTaskBalancePreview,0);
+
 function saveCloudConfig(){
   const c=gameData.settings.cloud||{};
   c.apiKey=document.getElementById('fbApiKey').value.trim();
@@ -1224,6 +1417,14 @@ function gmAddTask(){
       {maxMinutes:Number(document.getElementById('gmRule2Min').value),stat:document.getElementById('gmRule2Stat').value,value:Number(document.getElementById('gmRule2Val').value)}
     ].filter(r=>r.maxMinutes>0&&r.value!==0);
   }
+
+  const previewExp=Number(document.getElementById('gmTaskExp').value)||0;
+  const previewGold=Number(document.getElementById('gmTaskGold').value)||0;
+  const previewStat=taskType==='timer'
+    ?Math.max(0,...rules.map(r=>Number(r.value)||0))
+    :(Number(document.getElementById('gmFixedStatValue')?.value)||0);
+  const br=taskBalanceReport(previewExp,previewGold,previewStat);
+  if(br.worst.cls==='balance-bad' && !confirm('🔴 這組任務獎勵可能破壞目前的數值平衡。\n仍要建立嗎？')) return;
 
   gameData.tasks.push({
     id:uid(),name,taskType,
