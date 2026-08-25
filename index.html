@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V6</title>
+<title>小學勇者大冒險 V6.2</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -386,11 +386,39 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   animation:grasslandScroll 30s linear infinite !important;
 }
 
+
+/* V6.2 修正：舊 CSS 山景圖層會蓋住 PNG 背景，因此停用舊圖層 */
+.hero-scene{
+  background-image:url("images/grassland_bg.png") !important;
+  background-repeat:repeat-x !important;
+  background-size:auto 100% !important;
+  background-position:0 center !important;
+  animation:grasslandScrollV62 28s linear infinite !important;
+}
+
+/* 這四層原本是用 CSS 畫的天空、山、草地與雲，會整片蓋住新背景 */
+.hero-scene > .sky-layer,
+.hero-scene > .mountain-layer,
+.hero-scene > .ground-layer,
+.hero-scene > .pixel-cloud{
+  display:none !important;
+}
+
+@keyframes grasslandScrollV62{
+  from{background-position:0 center;}
+  to{background-position:-2048px center;}
+}
+
+/* 圖片載入失敗時至少保留深色底，不會整塊透明 */
+.hero-scene{
+  background-color:#203b52;
+}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V6</h1>
+  <h1>⚔️ 小學勇者大冒險 V6.2</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
