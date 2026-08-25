@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V6.3</title>
+<title>小學勇者大冒險 V6.4</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -459,11 +459,24 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   display:none !important;
 }
 
+
+/* V6.4：人物落地修正 */
+.hero-scene .warrior-wrap{
+  bottom:-28px !important;
+}
+
+/* 手機窄螢幕稍微往上，避免人物被裁掉 */
+@media(max-width:520px){
+  .hero-scene .warrior-wrap{
+    bottom:-20px !important;
+  }
+}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V6.3</h1>
+  <h1>⚔️ 小學勇者大冒險 V6.4</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
