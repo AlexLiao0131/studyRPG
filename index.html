@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V2.2</title>
+<title>小學勇者大冒險 V3</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -137,6 +137,14 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   font-size:14px;font-weight:800
 }
 
+.parent-lock{max-width:420px;margin:18px auto;padding:18px;background:#11161d;border:2px solid #3d444d;border-radius:12px;text-align:center}
+.parent-lock input{font-size:22px;text-align:center;letter-spacing:5px}
+.timeline{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:10px 2px 4px}
+.timeline-node{min-width:92px;text-align:center;padding:8px;border-radius:9px;background:#11161d;border:1px solid #30363d}
+.timeline-node.current{border-color:#f0883e;box-shadow:0 0 0 2px #f0883e33}
+.timeline-node .icon{font-size:28px}.timeline-node .date{font-size:11px;color:#8b949e}
+.timeline-line{height:3px;min-width:24px;background:#39414b;border-radius:999px}
+.cloud-status{padding:8px;border-radius:8px;background:#0d1117;border:1px solid #30363d;font-size:12px}
 .battle-stage{
   display:grid;
   grid-template-columns:1fr 86px 1fr;
@@ -217,7 +225,15 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   margin-top:12px;
 }
 @media(max-width:520px){
-  .battle-stage{grid-template-columns:1fr 64px 1fr;gap:6px}
+  .parent-lock{max-width:420px;margin:18px auto;padding:18px;background:#11161d;border:2px solid #3d444d;border-radius:12px;text-align:center}
+.parent-lock input{font-size:22px;text-align:center;letter-spacing:5px}
+.timeline{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:10px 2px 4px}
+.timeline-node{min-width:92px;text-align:center;padding:8px;border-radius:9px;background:#11161d;border:1px solid #30363d}
+.timeline-node.current{border-color:#f0883e;box-shadow:0 0 0 2px #f0883e33}
+.timeline-node .icon{font-size:28px}.timeline-node .date{font-size:11px;color:#8b949e}
+.timeline-line{height:3px;min-width:24px;background:#39414b;border-radius:999px}
+.cloud-status{padding:8px;border-radius:8px;background:#0d1117;border:1px solid #30363d;font-size:12px}
+.battle-stage{grid-template-columns:1fr 64px 1fr;gap:6px}
   .fighter-icon{height:78px;font-size:56px}
   .power-number{font-size:25px}
   .cross-swords{transform:scale(.82)}
@@ -236,7 +252,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V2.2</h1>
+  <h1>⚔️ 小學勇者大冒險 V3</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -317,7 +333,23 @@ function defaultData(){
     ],
     dailyDungeon:{date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''},
     battleRecords:[],
-    events:[],
+    events:[
+      {id:uid(),date:'2026-08-31',type:'start',name:'第一學期冒險開始',power:0,rewardGold:0,rewardExp:0,active:true},
+      {id:uid(),date:'2026-11-05',type:'midterm',name:'第一次定期評量・大魔王 I',power:220,rewardGold:100,rewardExp:120,active:true},
+      {id:uid(),date:'2026-11-06',type:'midterm',name:'第一次定期評量・大魔王 II',power:235,rewardGold:120,rewardExp:140,active:true},
+      {id:uid(),date:'2026-12-19',type:'special',name:'校慶特別活動',power:120,rewardGold:80,rewardExp:80,active:true},
+      {id:uid(),date:'2027-01-13',type:'final',name:'期末惡龍・第一戰',power:320,rewardGold:180,rewardExp:200,active:true},
+      {id:uid(),date:'2027-01-14',type:'final',name:'期末惡龍・最終戰',power:350,rewardGold:220,rewardExp:240,active:true},
+      {id:uid(),date:'2027-01-20',type:'end',name:'第一學期結算',power:0,rewardGold:0,rewardExp:0,active:true},
+      {id:uid(),date:'2027-02-11',type:'start',name:'第二學期開始',power:0,rewardGold:0,rewardExp:0,active:true}
+    ],
+    settings:{
+      parentPinHash:'',
+      cloud:{
+        enabled:false,apiKey:'',authDomain:'',projectId:'',
+        storageBucket:'',messagingSenderId:'',appId:'',email:''
+      }
+    },
     lotteryPool:[
       {id:uid(),type:'gold',label:'金幣 +30',value:30,weight:50},
       {id:uid(),type:'gold',label:'金幣 +60',value:60,weight:25},
@@ -335,7 +367,10 @@ function loadGame(){
     return x||defaultData();
   }catch(e){return defaultData();}
 }
-function saveGame(){localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));}
+function saveGame(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));
+  if(window.cloudSaveGame) window.cloudSaveGame(gameData);
+}
 function statName(s){return {str:'力量',agi:'敏捷',int:'智力',vit:'體力',will:'意志'}[s]||s;}
 function combatPower(){
   const s=gameData.hero.stats;
@@ -358,6 +393,68 @@ function startLiveTimer(){
     });
   },1000);
 }
+
+async function sha256Text(s){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function parentUnlock(){
+  const pin=(document.getElementById('parentPinInput')?.value||'').trim();
+  if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
+  if(!gameData.settings.parentPinHash){renderParentPinSetup();return;}
+  if(await sha256Text(pin)===gameData.settings.parentPinHash){
+    sessionStorage.setItem('parentUnlocked','1');renderGM();
+  }else alert('密碼錯誤');
+}
+async function setParentPin(){
+  const a=(document.getElementById('newParentPin')?.value||'').trim();
+  const b=(document.getElementById('newParentPin2')?.value||'').trim();
+  if(a.length<4){alert('密碼至少 4 位');return;}
+  if(a!==b){alert('兩次密碼不同');return;}
+  gameData.settings.parentPinHash=await sha256Text(a);
+  sessionStorage.setItem('parentUnlocked','1');
+  saveGame();renderGM();alert('家長密碼已設定');
+}
+async function changeParentPin(){
+  const oldPin=(document.getElementById('oldParentPin')?.value||'').trim();
+  const n1=(document.getElementById('changeParentPin1')?.value||'').trim();
+  const n2=(document.getElementById('changeParentPin2')?.value||'').trim();
+  if(await sha256Text(oldPin)!==gameData.settings.parentPinHash){alert('目前密碼錯誤');return;}
+  if(n1.length<4||n1!==n2){alert('新密碼至少 4 位，且兩次要相同');return;}
+  gameData.settings.parentPinHash=await sha256Text(n1);
+  saveGame();alert('密碼已修改');
+}
+function lockParent(){sessionStorage.removeItem('parentUnlocked');renderGM();}
+function renderParentPinSetup(){
+  document.getElementById('panel-gm').innerHTML=`
+    <div class="parent-lock"><div style="font-size:42px">🔐</div><h2>設定家長密碼</h2>
+    <input id="newParentPin" type="password" inputmode="numeric" placeholder="至少 4 位">
+    <input id="newParentPin2" type="password" inputmode="numeric" placeholder="再輸入一次">
+    <button class="btn gold" onclick="setParentPin()">設定密碼</button></div>`;
+}
+function renderParentLock(){
+  document.getElementById('panel-gm').innerHTML=`
+    <div class="parent-lock"><div style="font-size:42px">🔐</div><h2>家長專區</h2>
+    <input id="parentPinInput" type="password" inputmode="numeric" placeholder="••••">
+    <button class="btn gold big-battle-btn" onclick="parentUnlock()">解鎖</button></div>`;
+}
+function getSemesterMilestones(){
+  return gameData.events.filter(e=>['start','midterm','special','final','end'].includes(e.type))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+function renderSemesterTimeline(){
+  const list=getSemesterMilestones(),td=today();
+  const idx=list.findIndex(e=>e.date>=td);
+  if(!list.length)return '';
+  return `<div class="card"><h3>🗺️ 學期冒險</h3><div class="timeline">${
+    list.map((e,i)=>{
+      const icon=e.type==='midterm'?'👿':e.type==='final'?'🐉':e.type==='special'?'🎪':e.type==='end'?'🏆':'🌱';
+      const short=e.type==='midterm'?'期中魔王':e.type==='final'?'期末惡龍':e.type==='special'?'校慶':e.type==='end'?'學期結算':'開學';
+      return `${i?'<div class="timeline-line"></div>':''}<div class="timeline-node ${i===idx?'current':''}"><div class="icon">${icon}</div><div>${short}</div><div class="date">${e.date.slice(5).replace('-','/')}</div></div>`;
+    }).join('')
+  }</div></div>`;
+}
+
 function createHero(){
   const n=document.getElementById('setupName').value.trim();
   const c=document.getElementById('setupClass').value;
@@ -629,7 +726,8 @@ function renderHero(){
       <div class="kid-box">💰 ${h.gold}</div>
       <div class="kid-box">🪙 ${h.lotteryCoins}</div>
       <div class="kid-box">⚔️ ${combatPower()}</div>
-    </div>`;
+    </div>
+    ${renderSemesterTimeline()}`;
 }
 function renderTasks(){
   let html='<h2>📚 今日任務</h2>';
@@ -739,6 +837,9 @@ function renderBag(){
   document.getElementById('panel-bag').innerHTML=html;
 }
 function renderGM(){
+  if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
+  if(!gameData.settings.parentPinHash){renderParentPinSetup();return;}
+  if(sessionStorage.getItem('parentUnlocked')!=='1'){renderParentLock();return;}
   const taskList=gameData.tasks.map(t=>`<div class="card"><strong>${t.name}</strong><div class="small">${t.subject}｜${t.progressType}｜${t.progressValue}</div><button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`).join('');
   const shopList=gameData.shopItems.map(i=>`<div class="card"><strong>${i.name}</strong><div class="small">${i.price} G</div><button class="btn red" onclick="deleteShopItem('${i.id}')">刪除</button></div>`).join('');
   const reqList=gameData.couponRequests.filter(r=>r.status==='pending').map(r=>`<div class="card"><strong>${r.itemName}</strong><button class="btn" onclick="approveCoupon('${r.id}',true)">核准並核銷</button> <button class="btn red" onclick="approveCoupon('${r.id}',false)">退回</button></div>`).join('')||'<div class="small">目前沒有待審核兌換券。</div>';
@@ -831,10 +932,51 @@ function renderGM(){
       <button class="btn purple" onclick="gmAddLotteryCoin(1)">+1 抽獎金幣</button>
     </div>
 
+
+    <div class="card">
+      <h3>🔑 修改家長密碼</h3>
+      <label>目前密碼</label><input id="oldParentPin" type="password" inputmode="numeric">
+      <label>新密碼</label><input id="changeParentPin1" type="password" inputmode="numeric">
+      <label>再輸入一次</label><input id="changeParentPin2" type="password" inputmode="numeric">
+      <button class="btn blue" onclick="changeParentPin()">修改密碼</button>
+      <button class="btn gray" onclick="lockParent()">鎖定後台</button>
+    </div>
+
+    <div class="card">
+      <h3>☁️ 雲端同步（Firebase）</h3>
+      <div id="cloudStatus" class="cloud-status">目前：${gameData.settings.cloud?.enabled?'已設定':'尚未設定'}</div>
+      <div class="small" style="margin:8px 0">設定完成後，爸爸手機與小孩 iPad 使用同一份存檔。</div>
+      <label>API Key</label><input id="fbApiKey" value="${gameData.settings.cloud?.apiKey||''}">
+      <label>Auth Domain</label><input id="fbAuthDomain" value="${gameData.settings.cloud?.authDomain||''}">
+      <label>Project ID</label><input id="fbProjectId" value="${gameData.settings.cloud?.projectId||''}">
+      <label>Storage Bucket</label><input id="fbStorageBucket" value="${gameData.settings.cloud?.storageBucket||''}">
+      <label>Messaging Sender ID</label><input id="fbSenderId" value="${gameData.settings.cloud?.messagingSenderId||''}">
+      <label>App ID</label><input id="fbAppId" value="${gameData.settings.cloud?.appId||''}">
+      <label>家長 Email</label><input id="fbEmail" type="email" value="${gameData.settings.cloud?.email||''}">
+      <label>Firebase 帳號密碼</label><input id="fbPassword" type="password">
+      <div class="row">
+        <button class="btn purple" onclick="saveCloudConfig()">儲存設定</button>
+        <button class="btn blue" onclick="window.firebaseLogin&&window.firebaseLogin()">登入同步</button>
+      </div>
+      <div class="small">密碼不會寫入遊戲存檔。</div>
+    </div>
+
     <div class="card">
       <h3 class="bad">危險操作</h3>
       <button class="btn red" onclick="resetAll()">清除全部資料</button>
     </div>`;
+}
+function saveCloudConfig(){
+  const c=gameData.settings.cloud||{};
+  c.apiKey=document.getElementById('fbApiKey').value.trim();
+  c.authDomain=document.getElementById('fbAuthDomain').value.trim();
+  c.projectId=document.getElementById('fbProjectId').value.trim();
+  c.storageBucket=document.getElementById('fbStorageBucket').value.trim();
+  c.messagingSenderId=document.getElementById('fbSenderId').value.trim();
+  c.appId=document.getElementById('fbAppId').value.trim();
+  c.email=document.getElementById('fbEmail').value.trim();
+  c.enabled=!!(c.apiKey&&c.authDomain&&c.projectId&&c.appId);
+  gameData.settings.cloud=c;saveGame();alert('雲端設定已儲存');renderGM();
 }
 function gmAddTask(){
   const name=document.getElementById('gmTaskName').value.trim();
@@ -924,5 +1066,76 @@ function boot(){
 }
 boot();
 </script>
+
+<script type="module">
+let fb=null,auth=null,db=null,currentUser=null,saving=false;
+
+async function initFirebase(){
+  const c=gameData.settings?.cloud;
+  if(!c?.enabled)return false;
+  try{
+    const appMod=await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js');
+    const authMod=await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');
+    const fsMod=await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
+    fb={appMod,authMod,fsMod};
+    const app=appMod.initializeApp({
+      apiKey:c.apiKey,authDomain:c.authDomain,projectId:c.projectId,
+      storageBucket:c.storageBucket,messagingSenderId:c.messagingSenderId,appId:c.appId
+    });
+    auth=authMod.getAuth(app); db=fsMod.getFirestore(app);
+    authMod.onAuthStateChanged(auth,async user=>{
+      currentUser=user;
+      if(user){
+        const s=document.getElementById('cloudStatus');
+        if(s)s.textContent='☁️ 已登入：'+user.email;
+        await pullCloud();
+      }
+    });
+    return true;
+  }catch(e){console.error(e);alert('Firebase 初始化失敗：'+e.message);return false;}
+}
+async function pullCloud(){
+  if(!currentUser||!db)return;
+  const {doc,getDoc}=fb.fsMod;
+  const ref=doc(db,'users',currentUser.uid,'game','main');
+  const snap=await getDoc(ref);
+  if(snap.exists()){
+    const cloud=snap.data()?.gameData;
+    if(cloud){
+      const localCfg=gameData.settings?.cloud;
+      gameData=cloud;
+      if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
+      gameData.settings.cloud=localCfg||gameData.settings.cloud||{};
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));
+      renderAll();
+    }
+  }else await pushCloud();
+}
+async function pushCloud(){
+  if(!currentUser||!db||saving)return;
+  saving=true;
+  try{
+    const {doc,setDoc,serverTimestamp}=fb.fsMod;
+    const clone=JSON.parse(JSON.stringify(gameData));
+    await setDoc(doc(db,'users',currentUser.uid,'game','main'),{gameData:clone,updatedAt:serverTimestamp()},{merge:true});
+  }catch(e){console.error(e);}
+  finally{saving=false;}
+}
+window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
+window.firebaseLogin=async()=>{
+  if(!fb){const ok=await initFirebase();if(!ok)return;}
+  const email=document.getElementById('fbEmail')?.value.trim()||gameData.settings.cloud.email;
+  const password=document.getElementById('fbPassword')?.value||'';
+  if(!email||!password){alert('請輸入 Firebase Email 與密碼');return;}
+  try{
+    await fb.authMod.signInWithEmailAndPassword(auth,email,password);
+    gameData.settings.cloud.email=email;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));
+    alert('雲端登入成功');
+  }catch(e){alert('登入失敗：'+e.message);}
+};
+if(gameData.settings?.cloud?.enabled)initFirebase();
+</script>
+
 </body>
 </html>
