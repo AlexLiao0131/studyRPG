@@ -353,6 +353,39 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .nav{grid-template-columns:repeat(4,1fr)}
   .grid2,.grid3{grid-template-columns:1fr}
 }
+
+/* V6.1 正式草原橫向捲動背景 */
+.adventure-stage{
+  position:relative;
+  overflow:hidden;
+  background-image:url("images/grassland_bg.png") !important;
+  background-repeat:repeat-x !important;
+  background-size:auto 100% !important;
+  background-position:0 center !important;
+  animation:grasslandScroll 30s linear infinite !important;
+}
+@keyframes grasslandScroll{
+  from{background-position:0 center;}
+  to{background-position:-1536px center;}
+}
+
+
+.scene{
+  background-image:url("images/grassland_bg.png") !important;
+  background-repeat:repeat-x !important;
+  background-size:auto 100% !important;
+  background-position:0 center !important;
+  animation:grasslandScroll 30s linear infinite !important;
+}
+
+.hero-scene{
+  background-image:url("images/grassland_bg.png") !important;
+  background-repeat:repeat-x !important;
+  background-size:auto 100% !important;
+  background-position:0 center !important;
+  animation:grasslandScroll 30s linear infinite !important;
+}
+
 </style>
 </head>
 <body>
