@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V5</title>
+<title>小學勇者大冒險 V6</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -92,6 +92,17 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .pixel-warrior{
   position:relative;width:96px;height:142px;
   image-rendering:pixelated;
+}
+
+.hero-sprite{
+  display:block;
+  width:160px;
+  height:160px;
+  object-fit:contain;
+  image-rendering:pixelated;
+  user-select:none;
+  -webkit-user-drag:none;
+  pointer-events:none;
 }
 .px{position:absolute;background:#999}
 .helm{left:30px;top:6px;width:42px;height:12px;background:#aeb6bf;box-shadow:6px -6px 0 #c6ced7,-6px 6px 0 #818b96,36px 8px 0 #707a86}
@@ -346,7 +357,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V5</h1>
+  <h1>⚔️ 小學勇者大冒險 V6</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -455,6 +466,38 @@ function defaultData(){
 let gameData=loadGame();
 let timerInterval=null;
 let clockInterval=null;
+let heroIdleInterval=null;
+const HERO_IDLE_FRAMES=[
+  'images/hero_idle_1.png',
+  'images/hero_idle_2.png',
+  'images/hero_idle_3.png',
+  'images/hero_idle_4.png'
+];
+
+function startHeroIdleAnimation(){
+  if(heroIdleInterval) clearInterval(heroIdleInterval);
+  let frame=0;
+  const img=document.getElementById('heroSprite');
+  if(!img)return;
+
+  // 預載四張圖，避免 Safari 第一次切換時閃爍
+  HERO_IDLE_FRAMES.forEach(src=>{
+    const preload=new Image();
+    preload.src=src;
+  });
+
+  img.src=HERO_IDLE_FRAMES[0];
+  heroIdleInterval=setInterval(()=>{
+    const current=document.getElementById('heroSprite');
+    if(!current){
+      clearInterval(heroIdleInterval);
+      heroIdleInterval=null;
+      return;
+    }
+    frame=(frame+1)%HERO_IDLE_FRAMES.length;
+    current.src=HERO_IDLE_FRAMES[frame];
+  },300);
+}
 
 // V4 相容舊存檔
 if(!gameData.hero.lastStatGains) gameData.hero.lastStatGains={};
@@ -1063,13 +1106,12 @@ function renderHero(){
         <div class="hud-chip">Lv.${h.level}</div>
         <div class="hud-chip">⚔️ ${combatPower()}</div>
       </div>
-      <div class="warrior-wrap" aria-label="點陣戰士">
-        <div class="pixel-warrior">
-          <div class="px helm"></div><div class="px face"></div><div class="px eye"></div><div class="px body"></div>
-          <div class="px belt"></div><div class="px arm-l"></div><div class="px arm-r"></div><div class="px hand-l"></div>
-          <div class="px hand-r"></div><div class="px leg-l"></div><div class="px leg-r"></div><div class="px boot-l"></div>
-          <div class="px boot-r"></div><div class="px sword"></div><div class="px guard"></div>
-        </div>
+      <div class="warrior-wrap" aria-label="勇者">
+        <img id="heroSprite"
+             class="hero-sprite"
+             src="images/hero_idle_1.png"
+             alt="勇者"
+             draggable="false">
       </div>
     </div>
 
@@ -1087,6 +1129,7 @@ function renderHero(){
     <button class="ability-btn" onclick="showAbilityPanel()">📊 能力</button>
     ${renderSemesterTimeline()}`;
   startStatusClock();
+  startHeroIdleAnimation();
 }
 function renderTasks(){
   let html='<h2>📚 今日任務</h2>';
