@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.1</title>
+<title>小學勇者大冒險 V10.2</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -581,7 +581,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .status-token{display:inline-block;margin:2px;padding:3px 6px;border:1px solid #555;border-radius:999px;background:#10151c;font-size:11px}
 .battle-arena{height:310px}
 .battle-round-banner{position:absolute;left:50%;top:7%;transform:translateX(-50%);z-index:7;background:#090d13d9;border:1px solid #59616d;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:900}
-.battle-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
+.battle-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
 .battle-action-btn{min-height:54px;font-size:16px}
 .battle-action-btn small{display:block;font-size:10px;font-weight:600;opacity:.75;margin-top:2px}
 .battle-action-btn:disabled{opacity:.35}
@@ -598,11 +598,17 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .battle-submenu{grid-template-columns:1fr}
 }
 
+
+/* V10.2 */
+.effect-buff{border-color:#58a6ff;background:#0b2841}.effect-debuff{border-color:#bc8cff;background:#29163e}
+.battle-debug-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.battle-debug-card{background:#0b1017;border:1px solid #30363d;border-radius:10px;padding:9px;font-size:12px;line-height:1.65}
+@media(max-width:600px){.battle-debug-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.1</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.2</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1768,7 +1774,10 @@ const BEGINNER_SKILLS=[
   {
     id:'ember',name:'火花術',icon:'🔥',cost:35,type:'fire',
     description:'以智力造成火元素傷害。'
-  }
+  },
+  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:10,type:'buff',
+   description:'受到傷害 -35%、格擋率 +15%，持續2回合。',
+   effect:{effectType:'buff',turns:2,mods:{damageTaken:-.35,block:.15}}}
 ];
 
 function clampBattle(v,min,max){return Math.max(min,Math.min(max,v));}
@@ -1869,16 +1878,19 @@ function addStatus(target,status){
   }else target.statuses.push({...status});
 }
 function statusLabel(s){
-  return {
-    poison:'☠️ 中毒',burn:'🔥 燃燒',bleed:'🩸 流血',curse:'🌀 詛咒',
-    paralysis:'⚡ 麻痺',freeze:'❄️ 冰凍',stun:'😵 暈眩'
-  }[s.type]||s.type;
+  if(s.effectType==='buff')return '🔵 '+(s.name||'強化');
+  if(s.effectType==='debuff')return '🟣 '+(s.name||'弱化');
+  return {poison:'☠️ 中毒',burn:'🔥 燃燒',bleed:'🩸 流血',curse:'🌀 詛咒',
+    paralysis:'⚡ 麻痺',freeze:'❄️ 冰凍',stun:'😵 暈眩'}[s.type]||s.type;
 }
+function effectMod(unit,key){return (unit.statuses||[]).reduce((a,s)=>a+Number(s.mods?.[key]||0),0);}
+function effectiveBattleValue(unit,key){return Math.max(0,Number(unit[key]||0)+effectMod(unit,key));}
+function addTimedEffect(target,effect){target.statuses.push({type:'effect_'+Date.now()+'_'+Math.random(),name:effect.name||'效果',effectType:effect.effectType||'buff',turns:Number(effect.turns)||1,mods:{...(effect.mods||{})}});}
 function updateBattleStatuses(){
   if(!battleStateV10)return;
   const paint=(side,unit)=>{
     const el=document.getElementById('battleStatus_'+side);
-    if(el)el.innerHTML=unit.statuses.map(s=>`<span class="status-token">${statusLabel(s)} ${s.turns}</span>`).join('');
+    if(el)el.innerHTML=unit.statuses.map(s=>`<span class="status-token ${s.effectType==='buff'?'effect-buff':s.effectType==='debuff'?'effect-debuff':''}">${statusLabel(s)} ${s.turns}</span>`).join('');
   };
   paint('hero',battleStateV10.hero);
   paint('enemy',battleStateV10.enemy);
@@ -1939,27 +1951,27 @@ function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
   const canDodge=action.canDodge!==false;
   const hit=clampBattle(BATTLE_CONFIG.baseHit+(attacker.speed-defender.speed)*.001,.82,.99);
   if(Math.random()>hit)return {type:'miss',damage:0,damageType};
-  if(canDodge && Math.random()<(defender.evade||0))return {type:'dodge',damage:0,damageType};
-  if(isPhysical && action.canParry!==false && Math.random()<(defender.parry||0))return {type:'parry',damage:0,damageType};
+  if(canDodge && Math.random()<effectiveBattleValue(defender,'evade'))return {type:'dodge',damage:0,damageType};
+  if(isPhysical && action.canParry!==false && Math.random()<effectiveBattleValue(defender,'parry'))return {type:'parry',damage:0,damageType};
 
-  const crit=Math.random()<(attacker.crit||0);
+  const crit=Math.random()<effectiveBattleValue(attacker,'crit');
   const variance=.90+Math.random()*.20;
-  let raw=(isPhysical?attacker.attack:attacker.magicAttack)*(action.multiplier||1)*variance;
+  let raw=(isPhysical?effectiveBattleValue(attacker,'attack'):effectiveBattleValue(attacker,'magicAttack'))*(action.multiplier||1)*variance;
   let weak=false,resisted=false;
 
   if(damageType==='holy'){
     // 神聖傷害：不吃 DEF / 元素抗性
   }else if(isPhysical){
-    raw*=1-defenseReduction(defender.defense||0);
+    raw*=1-defenseReduction(effectiveBattleValue(defender,'defense'));
   }else{
     const res=totalElementRes(defender,damageType);
     raw*=1-res;
     weak=res<-.05;resisted=res>.10;
   }
 
-  if(defender.guarding)raw*=.65;
+  raw*=Math.max(.10,1+effectMod(defender,'damageTaken'));
   let blocked=false;
-  if(isPhysical && action.canBlock!==false && Math.random()<(defender.block||0)){
+  if(isPhysical && action.canBlock!==false && Math.random()<effectiveBattleValue(defender,'block')){
     raw*=BATTLE_CONFIG.blockReduction;blocked=true;
   }
   if(crit)raw*=BATTLE_CONFIG.critDamage;
@@ -2076,6 +2088,11 @@ async function performAction(side,action){
     if(getUnitEnergy(side)<action.cost){addBattleLog(`⚡ ${unit.name}能量不足！`);return;}
     addBattleLog(`${action.icon||'✨'} ${unit.name}使用「${action.name}」！`);
     applyEnergyForAction(side,action);
+    if(action.effect){
+      addTimedEffect(unit,{...action.effect,name:action.name});
+      addBattleLog(`${action.icon||'✨'} ${action.name}生效，持續 ${action.effect.turns} 回合。`);
+      updateBattleStatuses();await battleSleep(300);return;
+    }
     const res=await executeAttack(side,action);
     if(side==='hero' && action.id==='ember' && res.damage>0 && Math.random()<statusChance(.25,battleStateV10.enemy,'burn')){
       addStatus(battleStateV10.enemy,{type:'burn',turns:3,power:Math.max(4,battleStateV10.hero.magicAttack*.12)});
@@ -2124,7 +2141,7 @@ function showBattleSkills(){
   if(!battleStateV10||battleStateV10.busy)return;
   const box=document.getElementById('battleSubmenu');
   box.innerHTML=BEGINNER_SKILLS.map(s=>`
-    <button class="battle-choice" onclick='battlePlayerAction(${JSON.stringify(s)})'>
+    <button class="battle-choice" onclick='battlePlayerAction(${JSON.stringify({...s,kind:"skill"})})'>
       <strong>${s.icon} ${s.name}　⚡${s.cost}</strong>
       <span>${s.description}</span>
     </button>`).join('');
@@ -2185,14 +2202,13 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div id="battleArena" class="battle-arena">
       <div class="battle-bg"></div><div class="battle-floor"></div>
       <div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div>
-      <div id="battleChar_hero" class="battle-hero"><img src="images/hero_idle_1.png?v=10" alt="勇者"></div>
+      <div id="battleChar_hero" class="battle-hero"><img src="images/hero_idle_1.png?v=10.2" alt="勇者"></div>
       <div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div>
     </div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！選擇行動。</div></div>
     <div id="battleActions" class="battle-actions">
       <button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button>
-      <button class="btn blue battle-action-btn" onclick="battlePlayerAction({kind:'defend',name:'防禦'})">🛡️ 防禦<small>回復 20 能量</small></button>
-      <button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>消耗能量</small></button>
+      <button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button>
       <button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button>
     </div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div>
@@ -2770,6 +2786,17 @@ function renderGM(){
 
 
 
+
+    <div class="card">
+      <h3>🧪 戰鬥測試工具</h3>
+      <div class="small">測試用；不改正式每日一次規則。</div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn red" onclick="gmResetDungeonChallenge()">🔄 重置今日副本挑戰</button>
+        <button class="btn blue" onclick="gmShowBattleDebug()">📊 檢視戰鬥數值</button>
+      </div>
+      <div id="gmBattleDebug"></div>
+    </div>
+
     ${semesterBalanceHTML()}
 
     <div class="card">
@@ -2913,6 +2940,22 @@ function gmAddShopItem(){
   saveGame();renderAll();
 }
 function deleteShopItem(id){if(confirm('刪除此商品？')){gameData.shopItems=gameData.shopItems.filter(x=>x.id!==id);saveGame();renderAll();}}
+
+function gmResetDungeonChallenge(){
+  ensureDailyDungeon();gameData.dailyDungeon.challenged=false;gameData.dailyDungeon.result=null;gameData.dailyDungeon.drop=null;
+  saveGame();renderAll();renderGM();alert('已重置今日副本挑戰，可以再次測試。');
+}
+function pct(v){return (Number(v||0)*100).toFixed(1)+'%';}
+function battleDebugCard(title,u){return `<div class="battle-debug-card"><b>${title}</b><br>HP ${u.maxHp}　Energy ${u.maxEnergy}<br>ATK ${u.attack.toFixed(1)}　MATK ${u.magicAttack.toFixed(1)}<br>DEF ${u.defense.toFixed(1)}　SPD ${u.speed.toFixed(1)}<br>CRIT ${pct(u.crit)}　EVA ${pct(u.evade)}<br>PARRY ${pct(u.parry)}　BLOCK ${pct(u.block)}<br>Status RES ${pct(u.statusRes)}　Base Element RES ${pct(u.elementalBaseRes)}<br>🔥 ${pct(totalElementRes(u,'fire'))}　❄️ ${pct(totalElementRes(u,'ice'))}　⚡ ${pct(totalElementRes(u,'lightning'))}　🌪️ ${pct(totalElementRes(u,'wind'))}<br>☠️毒特殊抗性 ${pct(u.resist?.poison||0)}　🌀詛咒特殊抗性 ${pct(u.resist?.curse||0)}</div>`;}
+function gmShowBattleDebug(){
+  ensureDailyDungeon();
+  const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
+  const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal'}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
+  const name=evt?evt.name:(monster?.name||'怪物'),power=resolvedDungeonPower(evt,monster);
+  const h=makeHeroBattleStats(),e=deriveEnemyStats(power,name,evt?.type||'daily'),box=document.getElementById('gmBattleDebug');
+  if(box)box.innerHTML=`<div class="battle-debug-grid">${battleDebugCard('🧒 '+gameData.hero.name,h)}${battleDebugCard('👹 '+name,e)}</div>`;
+}
+
 function gmAddMonster(){
   const name=document.getElementById('gmMonName').value.trim();
   if(!name){alert('請輸入怪物名稱');return;}
