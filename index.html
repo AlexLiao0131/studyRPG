@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.3</title>
+<title>小學勇者大冒險 V10.3.1</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -627,7 +627,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.3</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.3.1</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -2518,7 +2518,9 @@ function renderDungeon(){
   const m=!evt?(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal'}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId)):null;
   const enemy=evt||m;
   const cp=combatPower();
-  const power=resolvedDungeonPower(evt,m);
+  const basePower=resolvedDungeonPower(evt,m);
+  const testMultiplier=currentBattleTestMultiplier();
+  const power=Math.round(basePower*testMultiplier);
   const cls=evt?.type==='final'?'dragon':evt?'boss':'';
   const enemyIcon=evt?.type==='final'?'🐉':evt?.type==='midterm'?'👿':'👹';
   const ready=cp>=power;
@@ -2541,6 +2543,7 @@ function renderDungeon(){
           <div class="fighter-icon">${enemyIcon}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
+          ${testMultiplier!==1?`<div class="small">基準 ${basePower} × ${Math.round(testMultiplier*100)}%</div>`:''}
         </div>
       </div>
 
@@ -2857,7 +2860,7 @@ function renderGM(){
       <div class="test-multiplier-row">
         ${[.5,1,1.5,2,3].map(v=>`<button class="btn gray ${(gameData.settings?.battleTestMultiplier||1)===v?'active':''}" onclick="gmSetBattleTestMultiplier(${v})">${Math.round(v*100)}%</button>`).join('')}
       </div>
-      <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。只影響你手動開始的測試戰鬥；正式使用請設回100%。</div>
+      <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。副本頁顯示與實際戰鬥都會同步套用；正式使用請設回100%。</div>
       <div id="gmBattleDebug"></div>
     </div>
 
@@ -3008,7 +3011,8 @@ function deleteShopItem(id){if(confirm('刪除此商品？')){gameData.shopItems
 
 function gmSetBattleTestMultiplier(v){
   gameData.settings.battleTestMultiplier=Number(v)||1;
-  saveGame();renderGM();
+  saveGame();
+  renderAll();
 }
 function currentBattleTestMultiplier(){
   return Number(gameData.settings?.battleTestMultiplier)||1;
