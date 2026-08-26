@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V6.4</title>
+<title>小學勇者大冒險 V8.1</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -81,10 +81,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 @keyframes scrollGround{from{background-position:0 0}to{background-position:-104px 0}}
 @keyframes cloudMove{from{transform:translateX(0)}to{transform:translateX(1100px)}}
 .warrior-wrap{
-  position:absolute;
-  left:50%;
-  bottom:-60px;
-  transform:translateX(-50%);
+  position:absolute;left:50%;bottom:42px;transform:translateX(-50%);
   animation:warriorBob .58s steps(2,end) infinite;
   filter:drop-shadow(0 8px 0 rgba(0,0,0,.28));
 }
@@ -475,24 +472,76 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   }
 }
 
+
+.hero-scene .warrior-wrap{bottom:-60px !important;}
+.battle-overlay{position:fixed;inset:0;z-index:12000;background:rgba(4,8,14,.94);display:flex;align-items:center;justify-content:center;padding:12px}
+.battle-window{width:min(900px,100%);max-height:96vh;overflow:auto;background:#10151c;border:3px solid #59616d;border-radius:14px;padding:12px}
+.battle-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+.battle-unit{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px}
+.battle-unit.enemy{text-align:right}.battle-name{font-weight:1000;font-size:17px;color:#f0f6fc;margin-bottom:5px}
+.hp-bar{height:18px;border:2px solid #59616d;background:#0b0f14;border-radius:4px;overflow:hidden}
+.hp-fill{height:100%;background:linear-gradient(#45c968,#238636);transition:width .35s ease}
+.hp-fill.low{background:linear-gradient(#ffb347,#d29922)}.hp-fill.critical{background:linear-gradient(#ff7b72,#da3633)}
+.hp-text{margin-top:4px;font-size:12px;color:#8b949e}
+.battle-arena{position:relative;height:300px;overflow:hidden;border:2px solid #30363d;border-radius:10px;background:#203b52}
+.battle-bg{position:absolute;inset:0;background:url("images/grassland_bg.png?v=7") center/cover no-repeat;filter:saturate(.95) brightness(.86)}
+.battle-floor{position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(transparent,#102018aa)}
+.battle-hero,.battle-enemy{position:absolute;bottom:18px;width:190px;height:190px;display:flex;align-items:flex-end;justify-content:center;transition:transform .22s ease,filter .18s ease}
+.battle-hero{left:8%}.battle-enemy{right:8%}.battle-hero img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
+.enemy-glyph{font-size:118px;line-height:1;filter:drop-shadow(0 8px 0 #0005)}
+.battle-hero.attack{transform:translateX(80px) scale(1.04)}.battle-enemy.attack{transform:translateX(-80px) scale(1.05)}
+.battle-hero.hurt,.battle-enemy.hurt{animation:battleShake .22s linear 2;filter:brightness(1.8) saturate(.6)}
+.battle-hero.dodge{transform:translateX(-45px)}.battle-enemy.dodge{transform:translateX(45px)}
+.battle-hero.parry,.battle-enemy.parry{filter:drop-shadow(0 0 12px #e6edf3)}
+.battle-hero.block,.battle-enemy.block{filter:drop-shadow(0 0 14px #58a6ff)}
+@keyframes battleShake{0%{margin-left:0}25%{margin-left:-8px}50%{margin-left:8px}75%{margin-left:-5px}100%{margin-left:0}}
+.damage-float{position:absolute;z-index:5;font-size:30px;font-weight:1000;text-shadow:2px 2px #000;animation:floatDamage .8s ease forwards;pointer-events:none}
+.damage-float.hero-side{left:26%;top:38%}.damage-float.enemy-side{right:26%;top:38%}
+@keyframes floatDamage{0%{opacity:0;transform:translateY(12px) scale(.8)}20%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-42px) scale(1)}}
+.battle-event-word{position:absolute;left:50%;top:22%;transform:translateX(-50%);z-index:6;font-size:34px;font-weight:1000;color:#f0f6fc;text-shadow:3px 3px #000;white-space:nowrap;animation:eventPop .75s ease forwards}
+@keyframes eventPop{0%{opacity:0;transform:translateX(-50%) scale(.6)}20%{opacity:1;transform:translateX(-50%) scale(1.15)}100%{opacity:0;transform:translateX(-50%) scale(1)}}
+.battle-log{margin-top:10px;min-height:94px;background:#070b10;border:2px solid #30363d;border-radius:9px;padding:10px 12px;font-size:17px;font-weight:800;line-height:1.55}
+.battle-result{margin-top:10px;text-align:center;background:#161b22;border:2px solid #30363d;border-radius:10px;padding:14px}
+.battle-result-icon{font-size:54px}.battle-close{width:100%;min-height:54px;font-size:19px;margin-top:10px}
+@media(max-width:600px){.battle-window{padding:8px}.battle-arena{height:260px}.battle-hero,.battle-enemy{width:145px;height:145px;bottom:14px}.battle-hero{left:1%}.battle-enemy{right:1%}.enemy-glyph{font-size:92px}.battle-log{font-size:15px}.battle-event-word{font-size:28px}}
+
+
+/* V8 家庭/角色/自動養成 */
+.profile-strip{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 8px}
+.gender-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gender-btn.selected{outline:3px solid #f0f6fc;transform:translateY(-1px)}
+.profile-overlay{position:fixed;inset:0;z-index:13000;background:#05080de8;display:flex;align-items:center;justify-content:center;padding:14px}
+.profile-box{width:min(560px,100%);background:#161b22;border:2px solid #30363d;border-radius:14px;padding:14px}
+.profile-card{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;margin:8px 0}
+.job-badge{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid #8957e5;background:#21163a;color:#d8c3ff;font-size:12px;font-weight:900}
+.auto-reward-box{background:#0d1117;border:1px solid #3fb950;border-radius:8px;padding:10px;margin:8px 0}
+.virtue{color:#ffd866}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V6.4</h1>
+  <h1>⚔️ 小學勇者大冒險 V8.1</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
     <label>勇者名稱</label>
     <input id="setupName" placeholder="例如：熙熙">
-    <label>職業</label>
-    <select id="setupClass">
-      <option>戰士</option><option>法師</option><option>遊俠</option>
-    </select>
+    <label>性別</label>
+    <div class="gender-choice">
+      <button type="button" id="genderMale" class="btn blue gender-btn selected" onclick="selectGender('male')">👦 男</button>
+      <button type="button" id="genderFemale" class="btn purple gender-btn" onclick="selectGender('female')">👧 女</button>
+    </div>
+    <input type="hidden" id="setupGender" value="male">
+    <div class="card small" style="margin-top:10px">🌱 一開始都是「見習勇者」。職業會依完成任務後的能力成長自然覺醒。</div>
     <button class="btn gold" onclick="createHero()">開始冒險</button>
   </div>
 
   <div id="mainUI" style="display:none">
+    <div class="profile-strip">
+      <button class="btn gray" onclick="showProfileSwitcher()">⇄ 切換勇者</button>
+      <span id="activeProfileLabel" class="small"></span>
+    </div>
     <div class="nav">
       <button class="tab active" onclick="switchTab('hero',this)">狀態</button>
       <button class="tab" onclick="switchTab('tasks',this)">任務</button>
@@ -527,7 +576,7 @@ function nowLocalTime(){
 function defaultData(){
   return {
     hero:{
-      name:'',heroClass:'',level:1,exp:0,maxExp:100,gold:0,lotteryCoins:0,
+      name:'',gender:'male',heroClass:'見習勇者',jobAwakened:false,jobScores:{},skills:[],level:1,exp:0,maxExp:100,gold:0,lotteryCoins:0,virtue:0,
       stats:{str:10,agi:10,int:10,vit:10,will:10}
     },
     tasks:[
@@ -585,16 +634,68 @@ function defaultData(){
     ]
   };
 }
-let gameData=loadGame();
+const FAMILY_KEY='heroRPG_FAMILY_V8';
+let familyData=loadFamilyData();
+let activeProfileId=sessionStorage.getItem('activeHeroProfile')||familyData.activeProfileId||familyData.profiles[0].id;
+let gameData=getActiveProfile().data;
+
+function loadFamilyData(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(FAMILY_KEY));
+    if(saved?.profiles?.length)return saved;
+  }catch(e){}
+  // 自動把舊版單一角色存檔搬進 V8，不清除舊資料
+  const legacy=loadGame();
+  return {version:8,activeProfileId:'hero_1',profiles:[{id:'hero_1',label:legacy.hero?.name||'勇者 1',data:legacy}]};
+}
+function getActiveProfile(){
+  let p=familyData.profiles.find(x=>x.id===activeProfileId);
+  if(!p){p=familyData.profiles[0];activeProfileId=p.id;}
+  return p;
+}
+function persistFamily(){
+  familyData.activeProfileId=activeProfileId;
+  const p=getActiveProfile(); p.data=gameData; p.label=gameData.hero?.name||p.label;
+  localStorage.setItem(FAMILY_KEY,JSON.stringify(familyData));
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData)); // 保留舊版相容備份
+}
+function switchProfile(id){
+  const p=familyData.profiles.find(x=>x.id===id); if(!p)return;
+  persistFamily(); activeProfileId=id; sessionStorage.setItem('activeHeroProfile',id);
+  gameData=p.data; migrateProfileData(gameData);
+  document.getElementById('profileOverlay')?.remove();
+  boot();
+}
+function addHeroProfile(){
+  persistFamily();
+  const id='hero_'+uid();
+  const d=defaultData();
+  familyData.profiles.push({id,label:'新勇者',data:d});
+  activeProfileId=id; sessionStorage.setItem('activeHeroProfile',id); gameData=d;
+  localStorage.setItem(FAMILY_KEY,JSON.stringify(familyData));
+  document.getElementById('profileOverlay')?.remove(); boot();
+}
+function showProfileSwitcher(){
+  persistFamily();
+  document.getElementById('profileOverlay')?.remove();
+  const o=document.createElement('div');o.id='profileOverlay';o.className='profile-overlay';
+  o.innerHTML=`<div class="profile-box"><h2>今天是誰要冒險？</h2>
+    ${familyData.profiles.map(p=>`<div class="profile-card"><div><strong>${p.data.hero?.gender==='female'?'👧':'👦'} ${p.data.hero?.name||'尚未建立'}</strong><div class="small">Lv.${p.data.hero?.level||1}｜${p.data.hero?.jobAwakened?p.data.hero.heroClass:'見習勇者'}</div></div><button class="btn ${p.id===activeProfileId?'gold':'blue'}" onclick="switchProfile('${p.id}')">${p.id===activeProfileId?'使用中':'切換'}</button></div>`).join('')}
+    <button class="btn purple" style="width:100%;margin-top:8px" onclick="addHeroProfile()">＋ 新增孩子角色</button>
+    <button class="btn gray" style="width:100%;margin-top:8px" onclick="document.getElementById('profileOverlay').remove()">關閉</button>
+  </div>`;
+  document.body.appendChild(o);
+}
 let timerInterval=null;
 let clockInterval=null;
 let heroIdleInterval=null;
-const HERO_IDLE_FRAMES=[
-  'images/hero_idle_1.png',
-  'images/hero_idle_2.png',
-  'images/hero_idle_3.png',
-  'images/hero_idle_4.png'
-];
+const HERO_IDLE_FRAMES=[1,2,3,4].map(n=>`images/hero_idle_${n}.png`);
+
+function heroIdleFrame(n=1){
+  // 女勇者素材日後放入 images/hero_female_idle_1~4.png 即可切換。
+  // 目前未提供女勇者圖檔時沿用現有勇者素材，避免破圖。
+  return `images/hero_idle_${n}.png`;
+}
 
 function startHeroIdleAnimation(){
   if(heroIdleInterval) clearInterval(heroIdleInterval);
@@ -621,15 +722,30 @@ function startHeroIdleAnimation(){
   },300);
 }
 
-// V4 相容舊存檔
-if(!gameData.hero.lastStatGains) gameData.hero.lastStatGains={};
-(gameData.tasks||[]).forEach(t=>{
-  if(!t.taskType) t.taskType='timer';
-  if(t.quantityTarget==null) t.quantityTarget=1;
-  if(!t.quantityUnit) t.quantityUnit='次';
-  if(!t.fixedStat) t.fixedStat='vit';
-  if(t.fixedStatValue==null) t.fixedStatValue=1;
-});
+// V8 相容舊存檔
+function migrateProfileData(d){
+  if(!d.hero.gender)d.hero.gender='male';
+  if(d.hero.virtue==null)d.hero.virtue=0;
+  if(!d.hero.heroClass)d.hero.heroClass='見習勇者';
+  if(d.hero.jobAwakened==null)d.hero.jobAwakened=!['','見習勇者','戰士','法師','遊俠'].includes(d.hero.heroClass)?true:false;
+  if(!d.hero.jobScores)d.hero.jobScores={};
+  if(!d.hero.skills)d.hero.skills=[];
+  if(!d.hero.lastStatGains)d.hero.lastStatGains={};
+  (d.tasks||[]).forEach(t=>{
+    if(!t.taskType)t.taskType='timer';
+    if(t.quantityTarget==null)t.quantityTarget=1;
+    if(!t.quantityUnit)t.quantityUnit='次';
+    if(!t.fixedStat)t.fixedStat='vit';
+    if(t.fixedStatValue==null)t.fixedStatValue=1;
+    if(!t.rewardMode)t.rewardMode='manual'; // 舊任務維持原獎勵，不偷偷改數值
+    if(!t.category)t.category='custom';
+    if(!t.difficulty)t.difficulty='normal';
+    
+  });
+  (d.monsters||[]).forEach(m=>{if(!m.difficulty)m.difficulty='normal';});
+  if(!d.gmAudit)d.gmAudit=[];
+}
+migrateProfileData(gameData);
 
 if(!gameData.gmAudit) gameData.gmAudit=[];
 
@@ -656,14 +772,81 @@ function loadGame(){
   }catch(e){return defaultData();}
 }
 function saveGame(){
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));
-  if(window.cloudSaveGame) window.cloudSaveGame(gameData);
+  persistFamily();
+  evaluateHiddenJob(false);
+  if(window.cloudSaveGame) window.cloudSaveGame(familyData);
 }
-function statName(s){return {str:'力量',agi:'敏捷',int:'智力',vit:'體力',will:'意志'}[s]||s;}
+function statName(s){return {str:'力量',agi:'敏捷',int:'智力',vit:'體力',will:'意志',virtue:'美德'}[s]||s;}
 function combatPower(){
   const s=gameData.hero.stats;
   return Math.floor(s.str*1.2+s.agi*1.1+s.int+s.vit*1.2+s.will*.8);
 }
+
+const AUTO_TASK_RULES={
+  study:{label:'📚 功課／預習複習',weights:{int:.67,will:.33}},
+  sport:{label:'⚽ 運動',weights:{str:.55,agi:.45}},
+  music:{label:'🎹 才藝／音樂',weights:{agi:.45,int:.35,will:.20}},
+  chore:{label:'🧹 家事',weights:{virtue:.70,will:.30}},
+  selfcare:{label:'🧼 自理',weights:{virtue:.55,will:.45}},
+  reading:{label:'📖 閱讀',weights:{int:.60,will:.40}},
+  custom:{label:'⚙️ 自訂',weights:{will:1}}
+};
+const DIFFICULTY_POINTS={easy:1,normal:3,hard:4,challenge:5};
+function autoTaskRewards(category,difficulty,taskType){
+  const rule=AUTO_TASK_RULES[category]||AUTO_TASK_RULES.custom;
+  const budget=DIFFICULTY_POINTS[difficulty]||3;
+  const entries=Object.entries(rule.weights).sort((a,b)=>b[1]-a[1]);
+  const rewards={}; let used=0;
+  entries.forEach(([k,w],i)=>{
+    let v=i===entries.length-1?budget-used:Math.max(0,Math.round(budget*w));
+    used+=v;if(v)rewards[k]=(rewards[k]||0)+v;
+  });
+  return rewards;
+}
+function applyRewardMap(map){
+  const gains={};
+  Object.entries(map||{}).forEach(([k,v])=>{
+    v=Number(v)||0;if(!v)return;
+    if(k==='virtue')gameData.hero.virtue=(gameData.hero.virtue||0)+v;
+    else gameData.hero.stats[k]=(gameData.hero.stats[k]||0)+v;
+    gains[k]=(gains[k]||0)+v;
+  });
+  gameData.hero.lastStatGains=gains;
+  return gains;
+}
+function rewardText(map){
+  return Object.entries(map||{}).filter(([,v])=>v).map(([k,v])=>`${statName(k)} +${v}`).join('、');
+}
+function taskAutoRewardMap(t,minutes=null){
+  const base=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType);
+  // 有計時的任務才產生效率敏捷補正；不計時的足球/鋼琴不受影響
+  if(t.taskType==='timer' && minutes!=null){
+    const fast=Number(t.fastMinutes)||30, standard=Number(t.standardMinutes)||60;
+    if(minutes<=fast)base.agi=(base.agi||0)+2;
+    else if(minutes<=standard)base.agi=(base.agi||0)+1;
+  }
+  return base;
+}
+const JOB_RULES=[
+  {name:'法師',score:s=>s.int*1.0+s.will*.45+s.agi*.10,skills:['火球術','魔力護盾']},
+  {name:'戰士',score:s=>s.str*.90+s.vit*.65+s.will*.15,skills:['重擊','防禦姿態']},
+  {name:'遊俠',score:s=>s.agi*1.0+s.str*.35+s.int*.20,skills:['連擊','疾走']},
+  {name:'聖騎士',score:(s,v)=>s.will*.70+s.vit*.45+v*.75,skills:['守護','聖盾']},
+  {name:'魔法劍士',score:s=>s.int*.60+s.agi*.55+s.str*.35,skills:['魔力斬','迅捷施法']}
+];
+function evaluateHiddenJob(showNotice=true){
+  const h=gameData.hero;if(!h||h.jobAwakened)return;
+  const count=(gameData.taskRecords||[]).length;
+  if(h.level<5 || count<10){h.heroClass='見習勇者';return;}
+  const scored=JOB_RULES.map(j=>({j,score:j.score(h.stats,h.virtue||0)})).sort((a,b)=>b.score-a.score);
+  h.jobScores=Object.fromEntries(scored.map(x=>[x.j.name,Math.round(x.score*10)/10]));
+  // 必須明顯領先，避免差 1 點就被鎖職
+  if(scored[0].score < scored[1].score*1.12)return;
+  h.heroClass=scored[0].j.name;h.jobAwakened=true;
+  h.skills=[...(h.skills||[])]; // 技能效果引擎接口，先不直接送技能
+  if(showNotice)alert(`✨ 職業覺醒！\\n${h.name} 成為【${h.heroClass}】！`);
+}
+
 function formatElapsed(ms){
   const total=Math.max(0,Math.floor(ms/1000));
   const h=String(Math.floor(total/3600)).padStart(2,'0');
@@ -909,6 +1092,8 @@ function showAbilityPanel(){
           <strong>${s[key]}</strong>
           <span class="stat-rise">${g[key]?`+${g[key]} ↑`:''}</span>
         </div>`).join('')}
+      <div class="ability-row"><span>🌟 美德</span><strong>${h.virtue||0}</strong><span class="stat-rise">${g.virtue?`+${g.virtue} ↑`:''}</span></div>
+      <div class="ability-row"><span>🧭 職業</span><strong>${h.jobAwakened?h.heroClass:'？？？'}</strong><span>${h.jobAwakened?'已覺醒':'成長中'}</span></div>
       <div class="ability-row"><span>⚔️ 戰鬥力</span><strong>${combatPower()}</strong><span></span></div>
       <button class="btn gray big-battle-btn" onclick="closeAbilityPanel()">關閉</button>
     </div>`;
@@ -919,15 +1104,17 @@ function closeAbilityPanel(){
   document.getElementById('abilityOverlay')?.remove();
 }
 function applyFixedStatReward(t){
-  const key=t.fixedStat||'vit';
-  const val=Number(t.fixedStatValue)||0;
+  if(t.rewardMode==='auto'){
+    const gains=applyRewardMap(taskAutoRewardMap(t,null));
+    return {multi:true,gains};
+  }
+  const key=t.fixedStat||'vit',val=Number(t.fixedStatValue)||0;
   if(val){
     gameData.hero.stats[key]=(gameData.hero.stats[key]||0)+val;
     gameData.hero.lastStatGains={[key]:val};
     return {stat:key,value:val};
   }
-  gameData.hero.lastStatGains={};
-  return null;
+  gameData.hero.lastStatGains={};return null;
 }
 function finishCommonTask(t,extra={}){
   gameData.hero.gold+=Number(t.goldReward)||0;
@@ -944,7 +1131,7 @@ function finishCommonTask(t,extra={}){
       item:t.progressType||t.name,progress:t.progressValue||'完成'
     });
   }
-  saveGame();
+  evaluateHiddenJob(true);saveGame();
   return statGain;
 }
 function completeSimpleTask(taskId){
@@ -952,7 +1139,7 @@ function completeSimpleTask(taskId){
   if(!t)return;
   if(completedCount(taskId)>=t.dailyLimit){alert('今天已完成了');return;}
   const gain=finishCommonTask(t);
-  alert(`🎉 完成！\n💰 +${t.goldReward}\n⭐ +${t.expReward}`+(gain?`\n${statName(gain.stat)} +${gain.value}`:''));
+  alert(`🎉 完成！\n💰 +${t.goldReward}\n⭐ +${t.expReward}`+(gain?.multi?`\n${rewardText(gain.gains)}`:gain?`\n${statName(gain.stat)} +${gain.value}`:''));
   renderAll();
 }
 function completeQuantityTask(taskId){
@@ -964,7 +1151,7 @@ function completeQuantityTask(taskId){
   const target=Math.max(1,Number(t.quantityTarget)||1);
   if(amount<target){alert(`還差一點！目標是 ${target} ${t.quantityUnit||'次'}`);return;}
   const gain=finishCommonTask(t,{quantity:amount,quantityTarget:target,quantityUnit:t.quantityUnit||'次'});
-  alert(`🎉 達成 ${amount} ${t.quantityUnit||'次'}！\n💰 +${t.goldReward}\n⭐ +${t.expReward}`+(gain?`\n${statName(gain.stat)} +${gain.value}`:''));
+  alert(`🎉 達成 ${amount} ${t.quantityUnit||'次'}！\n💰 +${t.goldReward}\n⭐ +${t.expReward}`+(gain?.multi?`\n${rewardText(gain.gains)}`:gain?`\n${statName(gain.stat)} +${gain.value}`:''));
   renderAll();
 }
 function updateTaskTypeFields(){
@@ -977,14 +1164,18 @@ function updateTaskTypeFields(){
   if(qty)qty.style.display=type==='quantity'?'block':'none';
 }
 
+function selectGender(g){
+  document.getElementById('setupGender').value=g;
+  document.getElementById('genderMale')?.classList.toggle('selected',g==='male');
+  document.getElementById('genderFemale')?.classList.toggle('selected',g==='female');
+}
 function createHero(){
   const n=document.getElementById('setupName').value.trim();
-  const c=document.getElementById('setupClass').value;
+  const gender=document.getElementById('setupGender')?.value||'male';
   if(!n){alert('請輸入勇者名稱');return;}
-  gameData.hero.name=n;gameData.hero.heroClass=c;
-  if(c==='戰士')gameData.hero.stats.str+=5;
-  if(c==='法師')gameData.hero.stats.int+=5;
-  if(c==='遊俠')gameData.hero.stats.agi+=5;
+  gameData.hero.name=n;gameData.hero.gender=gender;
+  gameData.hero.heroClass='見習勇者';gameData.hero.jobAwakened=false;
+  getActiveProfile().label=n;
   saveGame();boot();
 }
 function switchTab(name,btn){
@@ -1022,16 +1213,19 @@ function finishTask(taskId){
   delete gameData.activeTasks[taskId];
 
   let statGain=null;
-  for(const r of [...t.statRules].sort((a,b)=>a.maxMinutes-b.maxMinutes)){
-    if(minutes<=r.maxMinutes){statGain=r;break;}
-  }
   gameData.hero.gold+=Number(t.goldReward)||0;
   addExp(Number(t.expReward)||0);
-  if(statGain){
-    gameData.hero.stats[statGain.stat]+=Number(statGain.value)||0;
-    gameData.hero.lastStatGains={[statGain.stat]:Number(statGain.value)||0};
+  if(t.rewardMode==='auto'){
+    const gains=applyRewardMap(taskAutoRewardMap(t,minutes));
+    statGain={multi:true,gains};
   }else{
-    gameData.hero.lastStatGains={};
+    for(const r of [...(t.statRules||[])].sort((a,b)=>a.maxMinutes-b.maxMinutes)){
+      if(minutes<=r.maxMinutes){statGain=r;break;}
+    }
+    if(statGain){
+      gameData.hero.stats[statGain.stat]+=Number(statGain.value)||0;
+      gameData.hero.lastStatGains={[statGain.stat]:Number(statGain.value)||0};
+    }else gameData.hero.lastStatGains={};
   }
 
   const record={
@@ -1049,8 +1243,8 @@ function finishTask(taskId){
       progress:t.progressValue||'完成'
     });
   }
-  saveGame();
-  alert(`完成【${t.name}】\n耗時 ${minutes.toFixed(1)} 分鐘\n金幣 +${t.goldReward}\nEXP +${t.expReward}`+(statGain?`\n${statName(statGain.stat)} +${statGain.value}`:''));
+  evaluateHiddenJob(true);saveGame();
+  alert(`完成【${t.name}】\n耗時 ${minutes.toFixed(1)} 分鐘\n金幣 +${t.goldReward}\nEXP +${t.expReward}`+(statGain?.multi?`\n${rewardText(statGain.gains)}`:statGain?`\n${statName(statGain.stat)} +${statGain.value}`:''));
   renderAll();
 }
 function buyItem(itemId){
@@ -1134,42 +1328,251 @@ function rollDungeonDrop(){
   gameData.hero.lotteryCoins+=1;
   return {type:'lottery',label:'抽獎金幣 ×1',value:1};
 }
+
+
+/* =========================
+   V8.1 學期每日怪物成長引擎
+   核心：怪物依「學期預期成長」而非玩家即時戰力生成。
+   75% 正常任務完成率為預設平衡點。
+   ========================= */
+const SEMESTER_BALANCE = {
+  targetCompletion: .75,
+  dailyVariance: .035,
+  difficultyMultipliers: {easy:.88, normal:.94, hard:1.02, elite:1.08},
+  eventMultipliers: {daily:1.00, midterm:1.08, final:1.12},
+  minPower: 70
+};
+
+function dateOnlyBattle(s){ return s ? new Date(s+'T00:00:00') : null; }
+function daysBetweenBattle(a,b){
+  if(!a||!b)return 0;
+  return Math.max(0,Math.floor((b-a)/86400000));
+}
+function semesterProgressInfo(){
+  const sem=gameData.semester||{};
+  const start=dateOnlyBattle(sem.startDate), end=dateOnlyBattle(sem.endDate), now=dateOnlyBattle(today());
+  if(!start||!end||end<=start) return {valid:false,day:1,totalDays:120,progress:0};
+  const total=Math.max(1,daysBetweenBattle(start,end)+1);
+  const day=Math.min(total,Math.max(1,daysBetweenBattle(start,now)+1));
+  return {valid:true,day,totalDays:total,progress:(day-1)/Math.max(1,total-1)};
+}
+
+function expectedDailyStatBudget(){
+  // 只採「系統自動換算」任務建立基準；手動任務不拿來把世界難度灌爆。
+  const active=(gameData.tasks||[]).filter(t=>t.active!==false && t.rewardMode==='auto');
+  if(!active.length) return 3.0;
+  let sum=0;
+  active.forEach(t=>{
+    const map=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType||'simple');
+    sum += Object.values(map).reduce((a,b)=>a+(Number(b)||0),0);
+  });
+  // dailyLimit 避免重複任務造成怪物無限膨脹；以每天每類正常完成一次估算。
+  return clampBattle(sum,2,18);
+}
+
+function expectedSemesterPower(){
+  const info=semesterProgressInfo();
+  const baseStats={str:10,agi:10,int:10,vit:10,will:10};
+  const budget=expectedDailyStatBudget()*SEMESTER_BALANCE.targetCompletion;
+  // 依目前家庭任務結構估計五戰鬥能力的平均成長。
+  const active=(gameData.tasks||[]).filter(t=>t.active!==false && t.rewardMode==='auto');
+  let weights={str:0,agi:0,int:0,vit:0,will:0}, total=0;
+  active.forEach(t=>{
+    const map=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType||'simple');
+    Object.entries(map).forEach(([k,v])=>{
+      if(k!=='virtue'){weights[k]=(weights[k]||0)+(Number(v)||0); total+=Number(v)||0;}
+    });
+  });
+  if(total<=0){weights={str:.2,agi:.2,int:.2,vit:.2,will:.2};total=1;}
+  const elapsed=Math.max(0,info.day-1);
+  Object.keys(baseStats).forEach(k=>{
+    baseStats[k]+=elapsed*budget*((weights[k]||0)/total);
+  });
+  // 與 combatPower() 同尺度的簡化預期值。
+  return Math.round(
+    baseStats.str*2.2 + baseStats.agi*2.0 + baseStats.int*1.8 +
+    baseStats.vit*2.0 + baseStats.will*1.7
+  );
+}
+
+function deterministicDailyVariance(){
+  const s=today().replaceAll('-','');
+  let n=0; for(const ch of s)n=(n*31+ch.charCodeAt(0))%997;
+  return ((n/996)*2-1)*SEMESTER_BALANCE.dailyVariance;
+}
+
+function generatedMonsterPower(kind='daily',difficulty='normal'){
+  const expected=Math.max(SEMESTER_BALANCE.minPower,expectedSemesterPower());
+  const diff=SEMESTER_BALANCE.difficultyMultipliers[difficulty]||SEMESTER_BALANCE.difficultyMultipliers.normal;
+  const evt=SEMESTER_BALANCE.eventMultipliers[kind]||1;
+  return Math.max(SEMESTER_BALANCE.minPower,Math.round(expected*diff*evt*(1+deterministicDailyVariance())));
+}
+
+function actualVsExpectedStatus(monsterPower){
+  const ratio=combatPower()/Math.max(1,monsterPower);
+  if(ratio>=1.15)return {label:'🟢 優勢戰',cls:'good'};
+  if(ratio>=1.00)return {label:'🟢 正常戰',cls:'good'};
+  if(ratio>=.90)return {label:'🟡 苦戰',cls:'warn'};
+  if(ratio>=.80)return {label:'🟠 強敵',cls:'warn'};
+  return {label:'🔴 危險',cls:'bad'};
+}
+
+function resolvedDungeonPower(evt,monster){
+  // Boss 若家長明確手動指定 power，仍尊重手動值；一般每日怪物採自動曲線。
+  if(evt && Number(evt.power)>0 && evt.manualPower===true) return Number(evt.power);
+  const kind=evt?.type==='midterm'?'midterm':evt?.type==='final'?'final':'daily';
+  const difficulty=monster?.difficulty||'normal';
+  return generatedMonsterPower(kind,difficulty);
+}
+
+const BATTLE_CONFIG={maxRounds:30,delay:650,blockReduction:.60};
+function clampBattle(v,min,max){return Math.max(min,Math.min(max,v));}
+function battleSleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function deriveEnemyStats(power){
+  const base=Math.max(8,Math.round(power/8));
+  return {str:Math.round(base*1.05),agi:Math.round(base*.95),int:Math.round(base*.8),vit:Math.round(base*1.1),will:Math.round(base*.9)};
+}
+function makeHeroBattleStats(){
+  const s=gameData.hero.stats;
+  return {...s,maxHp:100+s.vit*9,attack:8+s.str*1.55};
+}
+function makeEnemyBattleStats(power){
+  const s=deriveEnemyStats(power);
+  return {...s,maxHp:90+s.vit*8,attack:7+s.str*1.35};
+}
+function defenseRates(def,atk){
+  return {
+    dodge:clampBattle(.05+(def.agi-atk.agi)*.004,.03,.18),
+    parry:clampBattle(.03+((def.str+def.agi)-(atk.str+atk.agi))*.0015,.03,.14),
+    block:clampBattle(.07+((def.vit+def.will)-(atk.str+atk.int))*.0015,.05,.22)
+  };
+}
+function resolveAttack(attacker,defender){
+  const miss=clampBattle(.05+(defender.agi-attacker.agi)*.002,.02,.13);
+  if(Math.random()<miss)return {type:'miss',damage:0};
+  const r=defenseRates(defender,attacker);
+  if(Math.random()<r.dodge)return {type:'dodge',damage:0};
+  if(Math.random()<r.parry)return {type:'parry',damage:0};
+  let damage=Math.max(1,Math.round(attacker.attack*(.88+Math.random()*.24)-(defender.vit*.20+defender.will*.10)));
+  if(Math.random()<r.block){
+    damage=Math.max(1,Math.round(damage*(1-BATTLE_CONFIG.blockReduction)));
+    return {type:'block',damage};
+  }
+  return {type:'hit',damage};
+}
+function battleIconForEnemy(evt,monster){
+  if(evt?.type==='final')return '🐉';
+  if(evt?.type==='midterm')return '👿';
+  const n=monster?.name||'';
+  if(n.includes('狼'))return '🐺';
+  if(n.includes('史萊姆'))return '🟢';
+  if(n.includes('骷髏'))return '💀';
+  if(n.includes('騎士'))return '🛡️';
+  return '👹';
+}
+function hpClassBattle(pct){return pct<=25?'critical':pct<=50?'low':'';}
+function updateBattleHp(side,hp,maxHp){
+  const pct=Math.max(0,Math.round(hp/maxHp*100));
+  const fill=document.getElementById('battleHp_'+side);
+  const txt=document.getElementById('battleHpText_'+side);
+  if(fill){fill.style.width=pct+'%';fill.className='hp-fill '+hpClassBattle(pct);}
+  if(txt)txt.textContent=`${Math.max(0,hp)} / ${maxHp}`;
+}
+function addBattleLog(msg){
+  const log=document.getElementById('battleLog');if(!log)return;
+  const d=document.createElement('div');d.textContent=msg;log.appendChild(d);
+  while(log.children.length>4)log.removeChild(log.firstChild);
+}
+function showBattleWord(text){
+  const arena=document.getElementById('battleArena');if(!arena)return;
+  const e=document.createElement('div');e.className='battle-event-word';e.textContent=text;arena.appendChild(e);
+  setTimeout(()=>e.remove(),780);
+}
+function showDamage(side,text){
+  const arena=document.getElementById('battleArena');if(!arena)return;
+  const e=document.createElement('div');e.className='damage-float '+(side==='hero'?'hero-side':'enemy-side');e.textContent=text;arena.appendChild(e);
+  setTimeout(()=>e.remove(),820);
+}
+async function animateBattleAction(attackerSide,result){
+  const attacker=document.getElementById('battleChar_'+attackerSide);
+  const defenderSide=attackerSide==='hero'?'enemy':'hero';
+  const defender=document.getElementById('battleChar_'+defenderSide);
+  attacker?.classList.add('attack');await battleSleep(180);attacker?.classList.remove('attack');
+  if(result.type==='miss')showBattleWord('MISS!');
+  else if(result.type==='dodge'){defender?.classList.add('dodge');showBattleWord('⚡ 閃避！');}
+  else if(result.type==='parry'){defender?.classList.add('parry');showBattleWord('⚔️ 招架！');}
+  else if(result.type==='block'){defender?.classList.add('block');showBattleWord('🛡️ 格擋！');showDamage(defenderSide,'-'+result.damage);}
+  else{defender?.classList.add('hurt');showDamage(defenderSide,'-'+result.damage);}
+  await battleSleep(300);defender?.classList.remove('dodge','parry','block','hurt');
+}
+function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
+  document.getElementById('battleOverlay')?.remove();
+  const o=document.createElement('div');o.id='battleOverlay';o.className='battle-overlay';
+  o.innerHTML=`<div class="battle-window" role="dialog" aria-modal="true">
+    <div class="battle-top">
+      <div class="battle-unit"><div class="battle-name">${gameData.hero.name}　Lv.${gameData.hero.level}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text">${heroStats.maxHp} / ${heroStats.maxHp}</div></div>
+      <div class="battle-unit enemy"><div class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text">${enemyStats.maxHp} / ${enemyStats.maxHp}</div></div>
+    </div>
+    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div>
+      <div id="battleChar_hero" class="battle-hero"><img src="images/hero_idle_1.png?v=7" alt="勇者"></div>
+      <div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div>
+    </div>
+    <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！</div></div>
+    <div id="battleResult"></div>
+  </div>`;
+  document.body.appendChild(o);
+}
+async function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType){
+  const hero=makeHeroBattleStats(),enemy=makeEnemyBattleStats(enemyPower);
+  let heroHp=hero.maxHp,enemyHp=enemy.maxHp,heroTurn=hero.agi>=enemy.agi,rounds=0;
+  createBattleOverlay(enemyName,enemyIcon,hero,enemy);
+  const battleState=actualVsExpectedStatus(enemyPower);
+  addBattleLog(`${battleState.label}｜你的戰力 ${combatPower()} / 怪物 ${enemyPower}`);
+  await battleSleep(700);
+  while(heroHp>0&&enemyHp>0&&rounds<BATTLE_CONFIG.maxRounds){
+    rounds++;
+    if(heroTurn){
+      addBattleLog(`⚔️ ${gameData.hero.name} 攻擊！`);
+      const r=resolveAttack(hero,enemy);await animateBattleAction('hero',r);
+      if(r.damage)enemyHp=Math.max(0,enemyHp-r.damage);updateBattleHp('enemy',enemyHp,enemy.maxHp);
+      if(r.type==='miss')addBattleLog('💨 攻擊落空！');
+      if(r.type==='dodge')addBattleLog(`⚡ ${enemyName} 閃開了！`);
+      if(r.type==='parry')addBattleLog(`⚔️ ${enemyName} 招架成功！`);
+      if(r.type==='block')addBattleLog(`🛡️ ${enemyName} 格擋，只受到 ${r.damage} 點傷害。`);
+      if(r.type==='hit')addBattleLog(`💥 ${enemyName} 受到 ${r.damage} 點傷害！`);
+    }else{
+      addBattleLog(`👹 ${enemyName} 攻擊！`);
+      const r=resolveAttack(enemy,hero);await animateBattleAction('enemy',r);
+      if(r.damage)heroHp=Math.max(0,heroHp-r.damage);updateBattleHp('hero',heroHp,hero.maxHp);
+      if(r.type==='miss')addBattleLog('MISS！敵人的攻擊落空！');
+      if(r.type==='dodge')addBattleLog(`⚡ ${gameData.hero.name} 閃避！`);
+      if(r.type==='parry')addBattleLog(`⚔️ ${gameData.hero.name} 招架！`);
+      if(r.type==='block')addBattleLog(`🛡️ ${gameData.hero.name} 格擋，只受到 ${r.damage} 點傷害。`);
+      if(r.type==='hit')addBattleLog(`❤️ ${gameData.hero.name} 受到 ${r.damage} 點傷害！`);
+    }
+    heroTurn=!heroTurn;await battleSleep(BATTLE_CONFIG.delay);
+  }
+  const win=enemyHp<=0&&heroHp>0;
+  let drop=null;
+  if(win){gameData.hero.gold+=baseGold;addExp(baseExp);drop=rollDungeonDrop();}
+  gameData.dailyDungeon.challenged=true;gameData.dailyDungeon.result=win?'win':'lose';gameData.dailyDungeon.drop=drop;
+  gameData.battleRecords.push({id:uid(),date:today(),enemyName,power:combatPower(),enemyPower,result:win?'win':'lose',eventType,drop,rounds});
+  saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
+  document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div>⭐ EXP +${baseExp}　💰 +${baseGold} G</div><div style="margin-top:8px">🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">今天是場苦戰！失敗不扣 EXP、金幣或能力值。繼續完成任務，角色自然會變強。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
+}
+function closeBattleOverlay(){document.getElementById('battleOverlay')?.remove();renderAll();}
+
 function challengeDungeon(){
   ensureDailyDungeon();
   if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
-
   const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
   const monster=evt?null:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId);
-  const enemyPower=evt?Number(evt.power):Number(monster?.power||0);
+  const enemyPower=resolvedDungeonPower(evt,monster);
   const enemyName=evt?evt.name:monster?.name;
   if(!enemyName){alert('今天沒有敵人');return;}
-
-  const cp=combatPower();
-  const win=cp>=enemyPower;
-  gameData.dailyDungeon.challenged=true;
-  gameData.dailyDungeon.result=win?'win':'lose';
-
-  let baseGold=evt?Number(evt.rewardGold||0):Number(monster.rewardGold||0);
-  let baseExp=evt?Number(evt.rewardExp||0):Number(monster.rewardExp||0);
-  let drop=null;
-
-  if(win){
-    gameData.hero.gold+=baseGold;
-    addExp(baseExp);
-    drop=rollDungeonDrop();
-    gameData.dailyDungeon.drop=drop;
-  }
-
-  gameData.battleRecords.push({
-    id:uid(),date:today(),enemyName,power:cp,enemyPower,result:win?'win':'lose',eventType:evt?.type||'daily',drop
-  });
-
-  saveGame();
-  alert(win
-    ? `⚔️ 勝利！\n基礎獎勵：${baseGold} G、${baseExp} EXP\n🎁 隨機掉落：${drop?.label||'無'}`
-    : `💀 戰敗！\n你的戰鬥力 ${cp}\n敵方戰鬥力 ${enemyPower}`
-  );
-  renderAll();
+  const baseGold=evt?Number(evt.rewardGold||0):Number(monster.rewardGold||0);
+  const baseExp=evt?Number(evt.rewardExp||0):Number(monster.rewardExp||0);
+  runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily');
 }
 function drawLottery(){
   if(gameData.hero.lotteryCoins<1){alert('沒有抽獎金幣');return;}
@@ -1212,6 +1615,8 @@ function exportLearningCSV(){
 function renderHero(){
   const h=gameData.hero;
   const xpPct=Math.min(100,h.exp/h.maxExp*100);
+  const profileLabel=document.getElementById('activeProfileLabel');
+  if(profileLabel)profileLabel.textContent=`${h.gender==='female'?'👧':'👦'} ${h.name}｜${h.jobAwakened?h.heroClass:'見習勇者'}`;
   document.getElementById('panel-hero').innerHTML=`
     <div class="status-clock">
       <div id="statusDate" class="status-date"></div>
@@ -1295,8 +1700,12 @@ function renderTasks(){
         <span class="pill">⭐ ${t.expReward}</span>
       </div>
       ${type==='timer'
-        ?`<div class="small">${(t.statRules||[]).map(r=>`≤${r.maxMinutes}分：${statName(r.stat)}+${r.value}`).join(' ｜ ')}</div>`
-        :`<div class="small">${statName(t.fixedStat||'vit')} +${t.fixedStatValue||0}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`
+        ?(t.rewardMode==='auto'
+          ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}｜快速完成再加敏捷</div>`
+          :`<div class="small">${(t.statRules||[]).map(r=>`≤${r.maxMinutes}分：${statName(r.stat)}+${r.value}`).join(' ｜ ')}</div>`)
+        :(t.rewardMode==='auto'
+          ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`
+          :`<div class="small">${statName(t.fixedStat||'vit')} +${t.fixedStatValue||0}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`)
       }
       ${action}
     </div>`;
@@ -1394,7 +1803,8 @@ function renderGM(){
   const taskList=gameData.tasks.map(t=>{
     const type=t.taskType||'timer';
     const label=type==='timer'?'⏱ 計時':type==='quantity'?'🔢 數量':'✅ 完成';
-    return `<div class="card"><strong>${label}｜${t.name}</strong><div class="small">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div><button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`;
+    const auto=t.rewardMode==='auto'?`<div class="small good">🛡️ 自動養成｜${AUTO_TASK_RULES[t.category]?.label||'自訂'}｜${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}</div>`:'<div class="small warn">⚙️ 手動能力獎勵</div>';
+    return `<div class="card"><strong>${label}｜${t.name}</strong><div class="small">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div>${auto}<button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`;
   }).join('');
   const shopList=gameData.shopItems.map(i=>`<div class="card"><strong>${i.name}</strong><div class="small">${i.price} G</div><button class="btn red" onclick="deleteShopItem('${i.id}')">刪除</button></div>`).join('');
   const reqList=gameData.couponRequests.filter(r=>r.status==='pending').map(r=>`<div class="card"><strong>${r.itemName}</strong><button class="btn" onclick="approveCoupon('${r.id}',true)">核准並核銷</button> <button class="btn red" onclick="approveCoupon('${r.id}',false)">退回</button></div>`).join('')||'<div class="small">目前沒有待審核兌換券。</div>';
@@ -1402,6 +1812,30 @@ function renderGM(){
 
   document.getElementById('panel-gm').innerHTML=`
     <h2>🛠️ 家長控制後台</h2>
+
+    <div class="card">
+      <h3>📈 每日怪物自動平衡</h3>
+      <div class="small">
+        怪物不追著孩子的即時戰力變強，而是依「學期天數 × 任務預期成長 × 75%完成率」建立世界難度。
+        正常完成任務時應大多可勝；少做一些會進入苦戰區，但仍保留 MISS、閃避、招架、格擋造成的勝負變化。
+      </div>
+      <div style="margin-top:8px">
+        今日預期戰力：<b>${expectedSemesterPower()}</b>｜
+        普通怪：<b>${generatedMonsterPower('daily','normal')}</b>｜
+        期中 Boss：<b>${generatedMonsterPower('midterm','normal')}</b>｜
+        期末 Boss：<b>${generatedMonsterPower('final','normal')}</b>
+      </div>
+      <div class="small" style="margin-top:6px">
+        🌱 平衡基準：正常任務完成約 75% 即可穩定推進；失敗不扣能力、EXP、金幣或裝備。
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>👨‍👩‍👧‍👦 孩子角色</h3>
+      <div class="small">目前管理：<b>${gameData.hero.name||'尚未建立'}</b>｜${gameData.hero.jobAwakened?gameData.hero.heroClass:'見習勇者'}</div>
+      <button class="btn blue" onclick="showProfileSwitcher()">切換管理角色</button>
+      <button class="btn purple" onclick="addHeroProfile()">＋ 新增孩子角色</button>
+    </div>
 
     <div class="card">
       <h3>新增任務＋學習進度</h3>
@@ -1412,6 +1846,25 @@ function renderGM(){
         <option value="complete">✅ 完成任務（鋼琴 / 足球）</option>
         <option value="quantity">🔢 數量任務（頁數 / 次數）</option>
       </select>
+      <div class="grid2">
+        <div><label>任務分類</label><select id="gmTaskCategory" onchange="refreshAutoRewardPreview()">
+          <option value="study">📚 功課／預習複習</option>
+          <option value="reading">📖 閱讀</option>
+          <option value="sport">⚽ 運動</option>
+          <option value="music">🎹 才藝／音樂</option>
+          <option value="chore">🧹 家事</option>
+          <option value="selfcare">🧼 自理</option>
+          <option value="custom">⚙️ 自訂</option>
+        </select></div>
+        <div><label>難度</label><select id="gmTaskDifficulty" onchange="refreshAutoRewardPreview()">
+          <option value="easy">簡單</option><option value="normal" selected>普通</option><option value="hard">困難</option><option value="challenge">挑戰</option>
+        </select></div>
+      </div>
+      <label>能力獎勵</label><select id="gmRewardMode" onchange="toggleRewardMode();refreshAutoRewardPreview()">
+        <option value="auto" selected>🛡️ 自動換算（建議）</option><option value="manual">⚙️ 手動設定（進階）</option>
+      </select>
+      <div id="autoRewardPreview" class="auto-reward-box"></div>
+      <label><input id="gmAssignAll" type="checkbox" style="width:auto"> 同時指派給所有孩子</label>
       <label>任務說明</label><input id="gmTaskDesc">
       <div class="grid3">
         <div><label>科目</label><input id="gmSubject" placeholder="國語 / 鋼琴 / 足球"></div>
@@ -1576,30 +2029,41 @@ function saveCloudConfig(){
   c.appId=document.getElementById('fbAppId').value.trim();
   c.email=document.getElementById('fbEmail').value.trim();
   c.enabled=!!(c.apiKey&&c.authDomain&&c.projectId&&c.appId);
+  familyData.profiles.forEach(p=>{if(!p.data.settings)p.data.settings={parentPinHash:'',cloud:{}};p.data.settings.cloud={...c};});
   gameData.settings.cloud=c;saveGame();alert('雲端設定已儲存');renderGM();
 }
+
+function refreshAutoRewardPreview(){
+  const c=document.getElementById('gmTaskCategory')?.value||'study';
+  const d=document.getElementById('gmTaskDifficulty')?.value||'normal';
+  const type=document.getElementById('gmTaskType')?.value||'timer';
+  const map=autoTaskRewards(c,d,type);
+  const el=document.getElementById('autoRewardPreview');
+  if(el)el.innerHTML=`<b>系統建議：</b>${rewardText(map)||'無'}${type==='timer'?'<br><span class="small">⏱ 計時任務：快速完成會再額外增加敏捷。</span>':''}`;
+}
+function toggleRewardMode(){
+  const auto=(document.getElementById('gmRewardMode')?.value||'auto')==='auto';
+  const timer=document.getElementById('gmTimerSettings'),fixed=document.getElementById('gmFixedSettings');
+  if(timer)timer.style.opacity=auto?'.45':'1';
+  if(fixed)fixed.style.opacity=auto?'.45':'1';
+}
+
 function gmAddTask(){
   const name=document.getElementById('gmTaskName').value.trim();
   if(!name){alert('請輸入任務名稱');return;}
   const taskType=document.getElementById('gmTaskType').value;
+  const rewardMode=document.getElementById('gmRewardMode')?.value||'auto';
+  const category=document.getElementById('gmTaskCategory')?.value||'study';
+  const difficulty=document.getElementById('gmTaskDifficulty')?.value||'normal';
   let rules=[];
-  if(taskType==='timer'){
+  if(taskType==='timer'&&rewardMode==='manual'){
     rules=[
       {maxMinutes:Number(document.getElementById('gmRule1Min').value),stat:document.getElementById('gmRule1Stat').value,value:Number(document.getElementById('gmRule1Val').value)},
       {maxMinutes:Number(document.getElementById('gmRule2Min').value),stat:document.getElementById('gmRule2Stat').value,value:Number(document.getElementById('gmRule2Val').value)}
     ].filter(r=>r.maxMinutes>0&&r.value!==0);
   }
-
-  const previewExp=Number(document.getElementById('gmTaskExp').value)||0;
-  const previewGold=Number(document.getElementById('gmTaskGold').value)||0;
-  const previewStat=taskType==='timer'
-    ?Math.max(0,...rules.map(r=>Number(r.value)||0))
-    :(Number(document.getElementById('gmFixedStatValue')?.value)||0);
-  const br=taskBalanceReport(previewExp,previewGold,previewStat);
-  if(br.worst.cls==='balance-bad' && !confirm('🔴 這組任務獎勵可能破壞目前的數值平衡。\n仍要建立嗎？')) return;
-
-  gameData.tasks.push({
-    id:uid(),name,taskType,
+  const task={
+    id:uid(),name,taskType,rewardMode,category,difficulty,
     description:document.getElementById('gmTaskDesc').value.trim(),
     subject:document.getElementById('gmSubject').value.trim(),
     progressType:document.getElementById('gmProgressType').value.trim(),
@@ -1609,10 +2073,26 @@ function gmAddTask(){
     dailyLimit:Math.max(1,Number(document.getElementById('gmTaskLimit').value)||1),
     active:true,statRules:rules,
     fixedStat:document.getElementById('gmFixedStat')?.value||'vit',
-    fixedStatValue:Number(document.getElementById('gmFixedStatValue')?.value)||0,
+    fixedStatValue:rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue')?.value)||0):0,
+    fastMinutes:Number(document.getElementById('gmRule1Min')?.value)||30,
+    standardMinutes:Number(document.getElementById('gmRule2Min')?.value)||60,
     quantityTarget:Math.max(1,Number(document.getElementById('gmQuantityTarget')?.value)||1),
     quantityUnit:(document.getElementById('gmQuantityUnit')?.value||'次').trim()
-  });
+  };
+  if(rewardMode==='manual'){
+    const previewStat=taskType==='timer'?Math.max(0,...rules.map(r=>Number(r.value)||0)):task.fixedStatValue;
+    const br=taskBalanceReport(task.expReward,task.goldReward,previewStat);
+    if(br.worst.cls==='balance-bad'&&!confirm('🔴 這組手動獎勵可能破壞數值平衡。仍要建立嗎？'))return;
+  }
+  gameData.tasks.push(task);
+  if(document.getElementById('gmAssignAll')?.checked){
+    persistFamily();
+    familyData.profiles.forEach(p=>{
+      if(p.id===activeProfileId)return;
+      migrateProfileData(p.data);
+      p.data.tasks.push({...JSON.parse(JSON.stringify(task)),id:uid()});
+    });
+  }
   saveGame();renderAll();
 }
 function deleteTask(id){if(confirm('刪除此任務？')){gameData.tasks=gameData.tasks.filter(x=>x.id!==id);saveGame();renderAll();}}
@@ -1665,7 +2145,7 @@ function gmAddGold(n){gameData.hero.gold+=n;saveGame();renderAll();}
 function gmAddLotteryCoin(n){gameData.hero.lotteryCoins+=n;saveGame();renderAll();}
 function resetAll(){
   if(confirm('確定清除全部資料？此動作無法復原。')){
-    localStorage.removeItem(STORAGE_KEY);location.reload();
+    localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(FAMILY_KEY);sessionStorage.removeItem('activeHeroProfile');location.reload();
   }
 }
 function renderAll(){renderHero();renderTasks();renderDungeon();renderShop();renderLottery();renderBag();renderGM();startLiveTimer();startStatusClock();}
@@ -1677,7 +2157,7 @@ function boot(){
   }else{
     document.getElementById('heroSetup').style.display='none';
     document.getElementById('mainUI').style.display='block';
-    ensureDailyDungeon();renderAll();
+    ensureDailyDungeon();renderAll();setTimeout(()=>{refreshAutoRewardPreview();toggleRewardMode();},0);
   }
 }
 boot();
@@ -1716,14 +2196,21 @@ async function pullCloud(){
   const ref=doc(db,'users',currentUser.uid,'game','main');
   const snap=await getDoc(ref);
   if(snap.exists()){
-    const cloud=snap.data()?.gameData;
-    if(cloud){
-      const localCfg=gameData.settings?.cloud;
-      gameData=cloud;
+    const payload=snap.data();
+    const localCfg=gameData.settings?.cloud;
+    if(payload?.familyData?.profiles?.length){
+      familyData=payload.familyData;
+      activeProfileId=familyData.profiles.some(p=>p.id===activeProfileId)?activeProfileId:(familyData.activeProfileId||familyData.profiles[0].id);
+      gameData=getActiveProfile().data;migrateProfileData(gameData);
+    }else if(payload?.gameData){
+      gameData=payload.gameData;migrateProfileData(gameData);
+      familyData={version:8,activeProfileId:'hero_1',profiles:[{id:'hero_1',label:gameData.hero.name||'勇者 1',data:gameData}]};
+      activeProfileId='hero_1';
+    }
+    if(payload?.familyData||payload?.gameData){
       if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
       gameData.settings.cloud=localCfg||gameData.settings.cloud||{};
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));
-      renderAll();
+      persistFamily();boot();
     }
   }else await pushCloud();
 }
@@ -1732,8 +2219,9 @@ async function pushCloud(){
   saving=true;
   try{
     const {doc,setDoc,serverTimestamp}=fb.fsMod;
-    const clone=JSON.parse(JSON.stringify(gameData));
-    await setDoc(doc(db,'users',currentUser.uid,'game','main'),{gameData:clone,updatedAt:serverTimestamp()},{merge:true});
+    persistFamily();
+    const clone=JSON.parse(JSON.stringify(familyData));
+    await setDoc(doc(db,'users',currentUser.uid,'game','main'),{familyData:clone,updatedAt:serverTimestamp()},{merge:true});
   }catch(e){console.error(e);}
   finally{saving=false;}
 }
