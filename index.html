@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.2</title>
+<title>小學勇者大冒險 V10.3</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -604,11 +604,30 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .battle-debug-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
 .battle-debug-card{background:#0b1017;border:1px solid #30363d;border-radius:10px;padding:9px;font-size:12px;line-height:1.65}
 @media(max-width:600px){.battle-debug-grid{grid-template-columns:1fr}}
+
+/* V10.3：戰鬥角色落地、攻擊動畫、測試倍率 */
+.battle-hero img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+  transform:translateY(18px);
+  transform-origin:center bottom;
+}
+@media(max-width:600px){
+  .battle-hero img{transform:translateY(14px)}
+}
+.test-multiplier-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.test-multiplier-row button{min-height:42px}
+.test-multiplier-row button.active{outline:2px solid #f0f6fc;background:#8957e5}
+@media(max-width:600px){.test-multiplier-row{grid-template-columns:repeat(3,1fr)}}
+.item-count{display:inline-block;min-width:30px;text-align:center;padding:2px 7px;border-radius:999px;background:#0d1117;border:1px solid #59616d;margin-left:4px}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.2</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.3</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -784,6 +803,7 @@ function showProfileSwitcher(){
     <button class="btn gray" style="width:100%;margin-top:8px" onclick="document.getElementById('profileOverlay').remove()">關閉</button>
   </div>`;
   document.body.appendChild(o);
+  preloadBattleHeroFrames();
 }
 let timerInterval=null;
 let clockInterval=null;
@@ -864,6 +884,8 @@ function migrateProfileData(d){
   if(!d.shopItems.some(x=>x.name==='初級毒藥')){
     d.shopItems.push({id:uid(),name:'初級毒藥',price:45,description:'戰鬥用毒藥（正式消耗品系統預留）',dailyLimit:2,active:true,battleConsumable:true});
   }
+  if(!d.settings)d.settings={parentPinHash:'',cloud:{}};
+  if(!d.settings.battleTestMultiplier)d.settings.battleTestMultiplier=1;
   if(!d.gmAudit)d.gmAudit=[];
 }
 migrateProfileData(gameData);
@@ -1433,6 +1455,22 @@ function applyGoldWithDebt(amount){
   return {gross:amount,paid,net:amount-paid};
 }
 
+
+function isBattleConsumableInventory(inv){
+  const shop=gameData.shopItems.find(x=>x.id===inv.itemId);
+  return !!shop?.battleConsumable;
+}
+function battleConsumableCount(name){
+  return gameData.inventory.filter(inv=>inv.name===name && inv.status==='unused' && isBattleConsumableInventory(inv)).length;
+}
+function consumeBattleConsumable(name){
+  const idx=gameData.inventory.findIndex(inv=>inv.name===name && inv.status==='unused' && isBattleConsumableInventory(inv));
+  if(idx<0)return false;
+  gameData.inventory.splice(idx,1);
+  saveGame();
+  return true;
+}
+
 function buyItem(itemId){
   const item=gameData.shopItems.find(x=>x.id===itemId);
   if(!item)return;
@@ -1927,11 +1965,27 @@ function showDamage(side,text,extraClass=''){
   e.className='damage-float '+(side==='hero'?'hero-side':'enemy-side')+' '+extraClass;
   e.textContent=text;arena.appendChild(e);setTimeout(()=>e.remove(),820);
 }
+
+const HERO_ATTACK_FRAMES=[1,2,3,4].map(n=>`images/hero_attack_${n}.png?v=10.3`);
+function preloadBattleHeroFrames(){
+  HERO_ATTACK_FRAMES.forEach(src=>{const i=new Image();i.src=src;});
+}
+async function playHeroAttackFrames(){
+  const img=document.getElementById('battleHeroSprite');if(!img)return;
+  for(const src of HERO_ATTACK_FRAMES){
+    img.src=src;
+    await battleSleep(85);
+  }
+  img.src=HERO_ATTACK_FRAMES[0];
+}
+
 async function animateBattleAction(attackerSide,result){
   const attacker=document.getElementById('battleChar_'+attackerSide);
   const defenderSide=attackerSide==='hero'?'enemy':'hero';
   const defender=document.getElementById('battleChar_'+defenderSide);
-  attacker?.classList.add('attack');await battleSleep(150);attacker?.classList.remove('attack');
+  attacker?.classList.add('attack');
+  if(attackerSide==='hero')await playHeroAttackFrames(); else await battleSleep(150);
+  attacker?.classList.remove('attack');
   if(result.type==='miss')showBattleWord('MISS!');
   else if(result.type==='dodge'){defender?.classList.add('dodge');showBattleWord('💨 閃避！');}
   else if(result.type==='parry'){defender?.classList.add('parry');showBattleWord('⚔️ 招架！');}
@@ -2150,10 +2204,11 @@ function showBattleSkills(){
 function showBattleItems(){
   if(!battleStateV10||battleStateV10.busy)return;
   const box=document.getElementById('battleSubmenu');
+  const poisonCount=battleConsumableCount('初級毒藥');
   box.innerHTML=`
-    <button class="battle-choice" onclick="battleUsePoison()">
-      <strong>🧪 初級毒藥</strong>
-      <span>測試版戰鬥道具：讓敵人有機率中毒3回合。</span>
+    <button class="battle-choice" ${poisonCount<1?'disabled':''} onclick="battleUsePoison()">
+      <strong>🧪 初級毒藥 <span class="item-count">×${poisonCount}</span></strong>
+      <span>${poisonCount>0?'使敵人有高機率中毒3回合；使用後消耗1瓶。':'背包裡沒有初級毒藥。請先從商店購買。'}</span>
     </button>`;
   box.style.display='grid';
 }
@@ -2162,8 +2217,11 @@ function hideBattleSubmenu(){
 }
 async function battleUsePoison(){
   if(!battleStateV10||battleStateV10.busy)return;
+  if(battleConsumableCount('初級毒藥')<1){addBattleLog('🎒 沒有初級毒藥。');hideBattleSubmenu();return;}
+  if(!consumeBattleConsumable('初級毒藥'))return;
   battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();
   battleStateV10.round++;
+  addBattleLog('🧪 使用初級毒藥，剩餘 '+battleConsumableCount('初級毒藥')+' 瓶。');
   const chance=statusChance(.75,battleStateV10.enemy,'poison');
   if(Math.random()<chance){
     addStatus(battleStateV10.enemy,{type:'poison',turns:3,power:Math.max(5,battleStateV10.hero.int*.12)});
@@ -2202,7 +2260,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div id="battleArena" class="battle-arena">
       <div class="battle-bg"></div><div class="battle-floor"></div>
       <div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div>
-      <div id="battleChar_hero" class="battle-hero"><img src="images/hero_idle_1.png?v=10.2" alt="勇者"></div>
+      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="images/hero_attack_1.png?v=10.3" alt="勇者"></div>
       <div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div>
     </div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！選擇行動。</div></div>
@@ -2246,7 +2304,7 @@ async function finishBattleV10(win){
     <div class="battle-result-icon">${win?'🏆':'💀'}</div>
     <h2>${win?'勝利！':'戰敗！'}</h2>
     ${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div>
-      <div>${rating===3?'完美勝利':rating===2?'漂亮勝利':'苦戰勝利'}</div>
+      <div>${rating===3?'完美勝利':rating===2?'漂亮勝利':'苦戰勝利'}</div><div class="small">評級依剩餘HP與戰鬥回合判定；角色夠強而輕鬆取勝不會被扣分。</div>
       <div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div>
       <div style="margin-top:8px">🎁 ${drop?.label||'沒有額外掉落'}</div>`
       :`<div class="small">💀 戰敗：沒有掉落，但不扣 EXP、金幣或能力值。</div>`}
@@ -2269,7 +2327,7 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   updateBattleResource('enemy',battleStateV10.enemyEnergy,enemy.maxEnergy);
   updateBattleStatuses();
   const battleState=actualVsExpectedStatus(enemyPower);
-  addBattleLog(`${battleState.label}｜你的戰力 ${combatPower()} / 怪物 ${enemyPower}`);
+  addBattleLog(`${battleState.label}｜你的戰力 ${combatPower()} / 怪物 ${enemyPower}｜測試倍率 ${Math.round(currentBattleTestMultiplier()*100)}%`);
   addBattleLog(`⚡ 速度：${Math.round(hero.speed)} vs ${Math.round(enemy.speed)}｜較快者本回合先行動。`);
 }
 function closeBattleOverlay(){
@@ -2300,7 +2358,7 @@ function challengeDungeon(){
     const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'
       ?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15}
       :gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
-    const enemyPower=resolvedDungeonPower(evt,monster);
+    const enemyPower=Math.round(resolvedDungeonPower(evt,monster)*currentBattleTestMultiplier());
     const enemyName=evt?evt.name:monster?.name;
     if(!enemyName){alert('今天沒有敵人');return;}
     const baseGold=evt?Number(evt.rewardGold||0):Number(monster?.rewardGold||0);
@@ -2533,7 +2591,8 @@ function renderBag(){
       <strong>${inv.name}</strong>
       <div class="small">來源：${inv.source==='dungeon'?'副本掉落':inv.source==='lottery'?'抽獎':'商店'}</div>
       <div class="small">狀態：${inv.status==='unused'?'未使用':inv.status==='pending'?'等待家長核准':'已核銷'}</div>
-      ${inv.status==='unused'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}
+      ${inv.status==='unused' && !isBattleConsumableInventory(inv)?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}
+      ${inv.status==='unused' && isBattleConsumableInventory(inv)?`<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>`:''}
     </div>`;
   });
   document.getElementById('panel-bag').innerHTML=html;
@@ -2794,6 +2853,11 @@ function renderGM(){
         <button class="btn red" onclick="gmResetDungeonChallenge()">🔄 重置今日副本挑戰</button>
         <button class="btn blue" onclick="gmShowBattleDebug()">📊 檢視戰鬥數值</button>
       </div>
+      <label>敵人測試強度倍率</label>
+      <div class="test-multiplier-row">
+        ${[.5,1,1.5,2,3].map(v=>`<button class="btn gray ${(gameData.settings?.battleTestMultiplier||1)===v?'active':''}" onclick="gmSetBattleTestMultiplier(${v})">${Math.round(v*100)}%</button>`).join('')}
+      </div>
+      <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。只影響你手動開始的測試戰鬥；正式使用請設回100%。</div>
       <div id="gmBattleDebug"></div>
     </div>
 
@@ -2941,6 +3005,15 @@ function gmAddShopItem(){
 }
 function deleteShopItem(id){if(confirm('刪除此商品？')){gameData.shopItems=gameData.shopItems.filter(x=>x.id!==id);saveGame();renderAll();}}
 
+
+function gmSetBattleTestMultiplier(v){
+  gameData.settings.battleTestMultiplier=Number(v)||1;
+  saveGame();renderGM();
+}
+function currentBattleTestMultiplier(){
+  return Number(gameData.settings?.battleTestMultiplier)||1;
+}
+
 function gmResetDungeonChallenge(){
   ensureDailyDungeon();gameData.dailyDungeon.challenged=false;gameData.dailyDungeon.result=null;gameData.dailyDungeon.drop=null;
   saveGame();renderAll();renderGM();alert('已重置今日副本挑戰，可以再次測試。');
@@ -2951,7 +3024,7 @@ function gmShowBattleDebug(){
   ensureDailyDungeon();
   const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
   const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal'}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
-  const name=evt?evt.name:(monster?.name||'怪物'),power=resolvedDungeonPower(evt,monster);
+  const name=evt?evt.name:(monster?.name||'怪物'),power=Math.round(resolvedDungeonPower(evt,monster)*currentBattleTestMultiplier());
   const h=makeHeroBattleStats(),e=deriveEnemyStats(power,name,evt?.type||'daily'),box=document.getElementById('gmBattleDebug');
   if(box)box.innerHTML=`<div class="battle-debug-grid">${battleDebugCard('🧒 '+gameData.hero.name,h)}${battleDebugCard('👹 '+name,e)}</div>`;
 }
