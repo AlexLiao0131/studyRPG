@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V9.1</title>
+<title>小學勇者大冒險 V9.3</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -535,11 +535,25 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .world-preview .card{text-align:center}
 @media(max-width:600px){.calendar-grid,.world-preview{grid-template-columns:1fr}.weekday-grid{grid-template-columns:repeat(4,1fr)}}
 
+
+/* V9.2：勇者座標修正，避免角色被場景底部裁切 */
+.hero-scene .warrior-wrap{
+  bottom:0px !important;
+}
+@media(max-width:520px){
+  .hero-scene .warrior-wrap{
+    bottom:0px !important;
+  }
+}
+
+
+.timer-bonus-note{margin-top:6px;padding:7px 9px;border-radius:8px;background:#152238;border:1px solid #2f81f7;font-size:12px}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V9.1</h1>
+  <h1>⚔️ 小學勇者大冒險 V9.3</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -774,10 +788,12 @@ function migrateProfileData(d){
     if(t.fixedStatValue==null)t.fixedStatValue=1;
     if(!t.rewardMode)t.rewardMode='manual'; // 舊任務維持原獎勵，不偷偷改數值
     if(!t.category)t.category='custom';
+    if(t.category==='reading')t.category='extra_reading';
     if(!t.difficulty)t.difficulty='normal';
     if(!t.weekdays)t.weekdays=[1,2,3,4,5,6,0];
     if(!t.activeFrom)t.activeFrom=d.semester?.startDate||today();
     if(t.activeUntil===undefined)t.activeUntil='';
+    if(t.countForBossOnNonSchoolDay===undefined)t.countForBossOnNonSchoolDay=false;
     
   });
   (d.taskRecords||[]).forEach(r=>{if(!r.approvalStatus)r.approvalStatus='approved';});
@@ -827,7 +843,8 @@ const AUTO_TASK_RULES={
   music:{label:'🎹 才藝／音樂',weights:{agi:.45,int:.35,will:.20}},
   chore:{label:'🧹 家事',weights:{virtue:.70,will:.30}},
   selfcare:{label:'🧼 自理',weights:{virtue:.55,will:.45}},
-  reading:{label:'📖 閱讀',weights:{int:.60,will:.40}},
+  school_reading:{label:'📘 課內／指定閱讀',weights:{int:.60,will:.40}},
+  extra_reading:{label:'📕 課外閱讀',weights:{int:.60,will:.40}},
   custom:{label:'⚙️ 自訂',weights:{will:1}}
 };
 const DIFFICULTY_POINTS={easy:1,normal:3,hard:4,challenge:5};
@@ -856,13 +873,34 @@ function applyRewardMap(map){
 function rewardText(map){
   return Object.entries(map||{}).filter(([,v])=>v).map(([k,v])=>`${statName(k)} +${v}`).join('、');
 }
+
+function timerRewardTier(t,minutes){
+  const a=Number(t.fastMinutes)||30;
+  const b=Number(t.standardMinutes)||60;
+  const fast=Math.min(a,b),standard=Math.max(a,b);
+  if(minutes<=fast){
+    return {key:'excellent',label:'🌟 優秀完成',goldMultiplier:1.5,expMultiplier:1.5,agiBonus:2};
+  }
+  if(minutes<=standard){
+    return {key:'good',label:'✨ 快速完成',goldMultiplier:1.2,expMultiplier:1.2,agiBonus:1};
+  }
+  return {key:'normal',label:'✅ 完成',goldMultiplier:1,expMultiplier:1,agiBonus:0};
+}
+function calculateTimedRewards(t,minutes){
+  const tier=timerRewardTier(t,minutes);
+  return {
+    tier,
+    gold:Math.round((Number(t.goldReward)||0)*tier.goldMultiplier),
+    exp:Math.round((Number(t.expReward)||0)*tier.expMultiplier)
+  };
+}
+
 function taskAutoRewardMap(t,minutes=null){
   const base=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType);
   // 有計時的任務才產生效率敏捷補正；不計時的足球/鋼琴不受影響
   if(t.taskType==='timer' && minutes!=null){
-    const fast=Number(t.fastMinutes)||30, standard=Number(t.standardMinutes)||60;
-    if(minutes<=fast)base.agi=(base.agi||0)+2;
-    else if(minutes<=standard)base.agi=(base.agi||0)+1;
+    const tier=timerRewardTier(t,minutes);
+    if(tier.agiBonus)base.agi=(base.agi||0)+tier.agiBonus;
   }
   return base;
 }
@@ -1253,8 +1291,9 @@ function finishTask(taskId){
   delete gameData.activeTasks[taskId];
 
   let statGain=null;
-  applyGoldWithDebt(Number(t.goldReward)||0);
-  addExp(Number(t.expReward)||0);
+  const timedReward=calculateTimedRewards(t,minutes);
+  applyGoldWithDebt(timedReward.gold);
+  addExp(timedReward.exp);
   if(t.rewardMode==='auto'){
     const gains=applyRewardMap(taskAutoRewardMap(t,minutes));
     statGain={multi:true,gains};
@@ -1271,8 +1310,10 @@ function finishTask(taskId){
   const record={
     id:uid(),taskId:t.id,date:today(),status:'completed',
     startedAt:new Date(start).toISOString(),completedAt:new Date().toISOString(),
-    durationMinutes:minutes,rewards:{gold:t.goldReward,exp:t.expReward,statGain},approvalStatus:'pending',
-    rollback:{gold:Number(t.goldReward)||0,exp:Number(t.expReward)||0,statGain:statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{})}
+    durationMinutes:minutes,
+    rewards:{gold:timedReward.gold,exp:timedReward.exp,baseGold:Number(t.goldReward)||0,baseExp:Number(t.expReward)||0,timerTier:timedReward.tier.key,statGain},
+    approvalStatus:'pending',
+    rollback:{gold:timedReward.gold,exp:timedReward.exp,statGain:statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{})}
   };
   gameData.taskRecords.push(record);
 
@@ -1285,7 +1326,8 @@ function finishTask(taskId){
     });
   }
   evaluateHiddenJob(true);saveGame();
-  alert(`完成【${t.name}】\n耗時 ${minutes.toFixed(1)} 分鐘\n金幣 +${t.goldReward}\nEXP +${t.expReward}`+(statGain?.multi?`\n${rewardText(statGain.gains)}`:statGain?`\n${statName(statGain.stat)} +${statGain.value}`:''));
+  const bonusText=timedReward.tier.key==='normal'?'':`\n${timedReward.tier.label}！獎勵 ×${timedReward.tier.goldMultiplier}`;
+  alert(`完成【${t.name}】\n耗時 ${minutes.toFixed(1)} 分鐘${bonusText}\n💰 金幣 +${timedReward.gold}\n⭐ EXP +${timedReward.exp}`+(statGain?.multi?`\n${rewardText(statGain.gains)}`:statGain?`\n${statName(statGain.stat)} +${statGain.value}`:''));
   renderAll();
 }
 
@@ -1474,22 +1516,36 @@ function taskIsEffectiveOn(t,dateStr){
   const until=t.activeUntil||'9999-12-31';
   return dateStr>=from && dateStr<=until;
 }
+
+function isConfiguredSchoolDay(dateStr){
+  const wd=weekdayNumberFor(dateStr);
+  return (gameData.semester?.schoolWeekdays||[1,2,3,4,5]).includes(wd);
+}
+function isBossLearningCategory(t){
+  return ['study','school_reading'].includes(t?.category);
+}
+function taskCountsTowardBossOn(t,dateStr){
+  if(!isBossLearningCategory(t))return false;
+  if(!taskIsEffectiveOn(t,dateStr))return false;
+  if(!isTaskScheduledToday(t,dateStr))return false;
+  if(isNoStudyCalendarDay(dateStr))return false;
+  if(isConfiguredSchoolDay(dateStr))return true;
+  return t.countForBossOnNonSchoolDay===true;
+}
+
 function theoreticalLearningRequirement(kind='midterm'){
   const sem=gameData.semester||{};
   const events=(sem.events||[]).filter(e=>e.type===kind).sort((a,b)=>a.date.localeCompare(b.date));
   const cutoff=events[0]?.date || (kind==='final'?sem.endDate:today());
   const start=sem.startDate||today();
-  const learningCats=new Set(['study','reading']);
-  let expected=0, scheduledCount=0, excludedDays=0;
-  const d0=new Date(start+'T12:00:00'), d1=new Date(cutoff+'T12:00:00');
+  let expected=0,scheduledCount=0,excludedDays=0;
+  const d0=new Date(start+'T12:00:00'),d1=new Date(cutoff+'T12:00:00');
   for(let d=new Date(d0);d<=d1;d.setDate(d.getDate()+1)){
     const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     if(isNoStudyCalendarDay(ds)){excludedDays++;continue;}
     (gameData.tasks||[]).forEach(t=>{
-      if(!learningCats.has(t.category))return;
-      if(!taskIsEffectiveOn(t,ds))return;
-      if(!isTaskScheduledToday(t,ds))return;
-      expected += (DIFFICULTY_POINTS[t.difficulty]||3);
+      if(!taskCountsTowardBossOn(t,ds))return;
+      expected+=(DIFFICULTY_POINTS[t.difficulty]||3);
       scheduledCount++;
     });
   }
@@ -1498,11 +1554,10 @@ function theoreticalLearningRequirement(kind='midterm'){
 
 function learningCompletionRatio(kind='midterm'){
   const req=theoreticalLearningRequirement(kind);
-  const learningCats=new Set(['study','reading']);
   const records=(gameData.taskRecords||[]).filter(r=>{
-    if(r.date<req.start || r.date>req.cutoff || r.approvalStatus!=='approved')return false;
+    if(r.date<req.start||r.date>req.cutoff||r.approvalStatus!=='approved')return false;
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
-    return !!t && learningCats.has(t.category);
+    return !!t && taskCountsTowardBossOn(t,r.date);
   });
   const approvedPoints=records.reduce((sum,r)=>{
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
@@ -1513,12 +1568,11 @@ function learningCompletionRatio(kind='midterm'){
 
 function bossLearningReport(kind='midterm'){
   const req=theoreticalLearningRequirement(kind);
-  const learningCats=new Set(['study','reading']);
   let approved=0;
   (gameData.taskRecords||[]).forEach(r=>{
     if(r.date<req.start||r.date>req.cutoff||r.approvalStatus!=='approved')return;
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
-    if(t&&learningCats.has(t.category))approved+=(DIFFICULTY_POINTS[t.difficulty]||3);
+    if(t&&taskCountsTowardBossOn(t,r.date))approved+=(DIFFICULTY_POINTS[t.difficulty]||3);
   });
   const ratio=req.expected?approved/req.expected:1;
   return {required:req.expected,approved,ratio,excludedDays:req.excludedDays,cutoff:req.cutoff};
@@ -1919,7 +1973,7 @@ function renderTasks(){
       </div>
       ${type==='timer'
         ?(t.rewardMode==='auto'
-          ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}｜快速完成再加敏捷</div>`
+          ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}｜🌟 ≤${t.fastMinutes||30}分：金幣/EXP ×1.5＋敏捷+2｜✨ ≤${t.standardMinutes||60}分：×1.2＋敏捷+1</div>`
           :`<div class="small">${(t.statRules||[]).map(r=>`≤${r.maxMinutes}分：${statName(r.stat)}+${r.value}`).join(' ｜ ')}</div>`)
         :(t.rewardMode==='auto'
           ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`
@@ -2092,7 +2146,7 @@ function renderGM(){
         const pct=x=>Math.round(x*100);
         return `<div><b>期中：</b>${mid.approved} / ${mid.required} 點（${pct(mid.ratio)}%）｜截止 ${mid.cutoff}</div>
         <div><b>期末：</b>${fin.approved} / ${fin.required} 點（${pct(fin.ratio)}%）｜截止 ${fin.cutoff}</div>
-        <div class="small" style="margin-top:6px">只計功課／預習複習與閱讀；只採家長核定紀錄。新任務從建立日起才開始增加需求；放假與特殊活動日不列入理論需求。</div>`;
+        <div class="small" style="margin-top:6px">只計功課／預習複習與「課內／指定閱讀」；課外閱讀不計入 Boss 學業完成率。只採家長核定紀錄。新任務從建立日起才開始增加需求；週末、國定假日、放假與特殊活動日預設不列入理論需求。</div>`;
       })()}
     </div>
 
@@ -2130,7 +2184,8 @@ function renderGM(){
       <div class="grid2">
         <div><label>任務分類</label><select id="gmTaskCategory" onchange="refreshAutoRewardPreview()">
           <option value="study">📚 功課／預習複習</option>
-          <option value="reading">📖 閱讀</option>
+          <option value="school_reading">📘 課內／指定閱讀</option>
+          <option value="extra_reading">📕 課外閱讀</option>
           <option value="sport">⚽ 運動</option>
           <option value="music">🎹 才藝／音樂</option>
           <option value="chore">🧹 家事</option>
@@ -2156,6 +2211,8 @@ function renderGM(){
         <label><input type="checkbox" class="gmWeekday" value="6">六</label>
         <label><input type="checkbox" class="gmWeekday" value="0">日</label>
       </div>
+      <label><input id="gmBossNonSchool" type="checkbox" style="width:auto"> 週末／非上課日也計入 Boss 學習量</label>
+      <div class="small">預設不勾。一般週末、國定假日不會增加 Boss 理論需求。</div>
       <label>任務說明</label><input id="gmTaskDesc">
       <div class="grid3">
         <div><label>科目</label><input id="gmSubject" placeholder="國語 / 鋼琴 / 足球"></div>
@@ -2330,7 +2387,7 @@ function refreshAutoRewardPreview(){
   const type=document.getElementById('gmTaskType')?.value||'timer';
   const map=autoTaskRewards(c,d,type);
   const el=document.getElementById('autoRewardPreview');
-  if(el)el.innerHTML=`<b>系統建議：</b>${rewardText(map)||'無'}${type==='timer'?'<br><span class="small">⏱ 計時任務：快速完成會再額外增加敏捷。</span>':''}`;
+  if(el)el.innerHTML=`<b>系統建議：</b>${rewardText(map)||'無'}${type==='timer'?`<br><span class="small">⏱ 計時加成：≤ 第一門檻 → 🌟 金幣/EXP ×1.5＋敏捷 +2；≤ 第二門檻 → ✨ 金幣/EXP ×1.2＋敏捷 +1；超過門檻仍可拿完整基礎獎勵。</span>`:''}`;
 }
 function toggleRewardMode(){
   const auto=(document.getElementById('gmRewardMode')?.value||'auto')==='auto';
@@ -2364,6 +2421,7 @@ function gmAddTask(){
     dailyLimit:Math.max(1,Number(document.getElementById('gmTaskLimit').value)||1),
     active:true,
     createdDate:today(),activeFrom:today(),activeUntil:'',
+    countForBossOnNonSchoolDay:document.getElementById('gmBossNonSchool')?.checked||false,
     weekdays:[...document.querySelectorAll('.gmWeekday:checked')].map(x=>Number(x.value)),statRules:rules,
     fixedStat:document.getElementById('gmFixedStat')?.value||'vit',
     fixedStatValue:rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue')?.value)||0):0,
