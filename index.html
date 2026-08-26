@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V8.1</title>
+<title>小學勇者大冒險 V9.1</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -517,11 +517,29 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .auto-reward-box{background:#0d1117;border:1px solid #3fb950;border-radius:8px;padding:10px;margin:8px 0}
 .virtue{color:#ffd866}
 
+
+/* =========================
+   V9 學期世界系統
+   ========================= */
+.calendar-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.weekday-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.weekday-grid label{background:#0d1117;border:1px solid #30363d;border-radius:7px;padding:8px 4px;text-align:center}
+.weekday-grid input{width:auto;margin:0 4px 0 0}
+.review-pending{border-left:5px solid #d29922}
+.review-approved{border-left:5px solid #3fb950}
+.review-rejected{border-left:5px solid #f85149;opacity:.8}
+.rating-stars{font-size:28px;letter-spacing:3px}
+.world-chip{display:inline-block;padding:5px 8px;border-radius:999px;background:#11161d;border:1px solid #30363d;margin:2px;font-size:12px;font-weight:900}
+.story-box{background:#140f0b;border:1px solid #7d3a19;border-radius:10px;padding:12px;margin:10px 0}
+.world-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.world-preview .card{text-align:center}
+@media(max-width:600px){.calendar-grid,.world-preview{grid-template-columns:1fr}.weekday-grid{grid-template-columns:repeat(4,1fr)}}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V8.1</h1>
+  <h1>⚔️ 小學勇者大冒險 V9.1</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -578,6 +596,18 @@ function defaultData(){
     hero:{
       name:'',gender:'male',heroClass:'見習勇者',jobAwakened:false,jobScores:{},skills:[],level:1,exp:0,maxExp:100,gold:0,lotteryCoins:0,virtue:0,
       stats:{str:10,agi:10,int:10,vit:10,will:10}
+    },
+    semester:{
+      startDate:'2026-08-31',
+      endDate:'2027-01-20',
+      schoolWeekdays:[1,2,3,4,5],
+      events:[
+        {id:uid(),date:'2026-11-05',type:'midterm',name:'期中考 Day 1'},
+        {id:uid(),date:'2026-11-06',type:'midterm',name:'期中考 Day 2'},
+        {id:uid(),date:'2027-01-13',type:'final',name:'期末考 Day 1'},
+        {id:uid(),date:'2027-01-14',type:'final',name:'期末考 Day 2'}
+      ],
+      worldState:'normal'
     },
     tasks:[
       {
@@ -730,6 +760,11 @@ function migrateProfileData(d){
   if(d.hero.jobAwakened==null)d.hero.jobAwakened=!['','見習勇者','戰士','法師','遊俠'].includes(d.hero.heroClass)?true:false;
   if(!d.hero.jobScores)d.hero.jobScores={};
   if(!d.hero.skills)d.hero.skills=[];
+  if(d.hero.pendingGoldDebt==null)d.hero.pendingGoldDebt=0;
+  if(!d.semester)d.semester={startDate:'2026-08-31',endDate:'2027-01-20',schoolWeekdays:[1,2,3,4,5],events:[],worldState:'normal'};
+  if(!d.semester.schoolWeekdays)d.semester.schoolWeekdays=[1,2,3,4,5];
+  if(!d.semester.events)d.semester.events=[];
+  if(!d.semester.worldState)d.semester.worldState='normal';
   if(!d.hero.lastStatGains)d.hero.lastStatGains={};
   (d.tasks||[]).forEach(t=>{
     if(!t.taskType)t.taskType='timer';
@@ -740,8 +775,12 @@ function migrateProfileData(d){
     if(!t.rewardMode)t.rewardMode='manual'; // 舊任務維持原獎勵，不偷偷改數值
     if(!t.category)t.category='custom';
     if(!t.difficulty)t.difficulty='normal';
+    if(!t.weekdays)t.weekdays=[1,2,3,4,5,6,0];
+    if(!t.activeFrom)t.activeFrom=d.semester?.startDate||today();
+    if(t.activeUntil===undefined)t.activeUntil='';
     
   });
+  (d.taskRecords||[]).forEach(r=>{if(!r.approvalStatus)r.approvalStatus='approved';});
   (d.monsters||[]).forEach(m=>{if(!m.difficulty)m.difficulty='normal';});
   if(!d.gmAudit)d.gmAudit=[];
 }
@@ -1117,13 +1156,14 @@ function applyFixedStatReward(t){
   gameData.hero.lastStatGains={};return null;
 }
 function finishCommonTask(t,extra={}){
-  gameData.hero.gold+=Number(t.goldReward)||0;
+  applyGoldWithDebt(Number(t.goldReward)||0);
   addExp(Number(t.expReward)||0);
   const statGain=applyFixedStatReward(t);
   gameData.taskRecords.push({
     id:uid(),taskId:t.id,date:today(),status:'completed',
     completedAt:new Date().toISOString(),taskType:t.taskType||'complete',
-    rewards:{gold:t.goldReward,exp:t.expReward,statGain},...extra
+    rewards:{gold:t.goldReward,exp:t.expReward,statGain},approvalStatus:'pending',
+    rollback:{gold:Number(t.goldReward)||0,exp:Number(t.expReward)||0,statGain:statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{})},...extra
   });
   if(t.subject||t.progressType||t.progressValue){
     gameData.learningProgress.push({
@@ -1213,7 +1253,7 @@ function finishTask(taskId){
   delete gameData.activeTasks[taskId];
 
   let statGain=null;
-  gameData.hero.gold+=Number(t.goldReward)||0;
+  applyGoldWithDebt(Number(t.goldReward)||0);
   addExp(Number(t.expReward)||0);
   if(t.rewardMode==='auto'){
     const gains=applyRewardMap(taskAutoRewardMap(t,minutes));
@@ -1231,7 +1271,8 @@ function finishTask(taskId){
   const record={
     id:uid(),taskId:t.id,date:today(),status:'completed',
     startedAt:new Date(start).toISOString(),completedAt:new Date().toISOString(),
-    durationMinutes:minutes,rewards:{gold:t.goldReward,exp:t.expReward,statGain}
+    durationMinutes:minutes,rewards:{gold:t.goldReward,exp:t.expReward,statGain},approvalStatus:'pending',
+    rollback:{gold:Number(t.goldReward)||0,exp:Number(t.expReward)||0,statGain:statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{})}
   };
   gameData.taskRecords.push(record);
 
@@ -1247,6 +1288,44 @@ function finishTask(taskId){
   alert(`完成【${t.name}】\n耗時 ${minutes.toFixed(1)} 分鐘\n金幣 +${t.goldReward}\nEXP +${t.expReward}`+(statGain?.multi?`\n${rewardText(statGain.gains)}`:statGain?`\n${statName(statGain.stat)} +${statGain.value}`:''));
   renderAll();
 }
+
+function reverseExp(amount){
+  let remain=Number(amount)||0;
+  gameData.hero.exp-=remain;
+  while(gameData.hero.exp<0 && gameData.hero.level>1){
+    gameData.hero.level--;
+    gameData.hero.maxExp=Math.max(100,Math.floor(gameData.hero.maxExp/1.2));
+    gameData.hero.exp+=gameData.hero.maxExp;
+  }
+  if(gameData.hero.exp<0)gameData.hero.exp=0;
+}
+function reviewTaskRecord(recordId,approved){
+  const r=(gameData.taskRecords||[]).find(x=>x.id===recordId);
+  if(!r||r.approvalStatus!=='pending')return;
+  if(approved){r.approvalStatus='approved';saveGame();renderGM();return;}
+  const rb=r.rollback||{};
+  const statMap=rb.statGain||{};
+  Object.entries(statMap).forEach(([k,v])=>{
+    if(k==='virtue')gameData.hero.virtue=Math.max(0,(gameData.hero.virtue||0)-(Number(v)||0));
+    else gameData.hero.stats[k]=Math.max(0,(gameData.hero.stats[k]||0)-(Number(v)||0));
+  });
+  reverseExp(rb.exp||0);
+  let need=Math.max(0,Number(rb.gold)||0);
+  const take=Math.min(gameData.hero.gold,need);
+  gameData.hero.gold-=take;need-=take;
+  if(need>0)gameData.hero.pendingGoldDebt=(gameData.hero.pendingGoldDebt||0)+need;
+  r.approvalStatus='rejected';r.rejectedAt=new Date().toISOString();
+  saveGame();renderAll();
+}
+function applyGoldWithDebt(amount){
+  amount=Number(amount)||0;
+  const debt=gameData.hero.pendingGoldDebt||0;
+  const paid=Math.min(amount,debt);
+  gameData.hero.pendingGoldDebt=debt-paid;
+  gameData.hero.gold+=amount-paid;
+  return {gross:amount,paid,net:amount-paid};
+}
+
 function buyItem(itemId){
   const item=gameData.shopItems.find(x=>x.id===itemId);
   if(!item)return;
@@ -1280,15 +1359,10 @@ function ensureDailyDungeon(){
   if(gameData.dailyDungeon.date===today())return;
   const evt=getTodayEvent();
   if(evt){
-    gameData.dailyDungeon={date:today(),monsterId:'',challenged:false,result:'',drop:null,eventId:evt.id};
+    gameData.dailyDungeon={date:today(),monsterId:'',challenged:false,result:'',drop:null,eventId:evt.id,generatedName:evt.name};
   }else{
-    const list=gameData.monsters.filter(x=>x.active);
-    if(!list.length){
-      gameData.dailyDungeon={date:today(),monsterId:'',challenged:false,result:'',drop:null,eventId:''};
-    }else{
-      const idx=Math.floor(new Date(today()).getTime()/86400000)%list.length;
-      gameData.dailyDungeon={date:today(),monsterId:list[idx].id,challenged:false,result:'',drop:null,eventId:''};
-    }
+    const name=generatedMonsterName();
+    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:false,result:'',drop:null,eventId:'',generatedName:name};
   }
   saveGame();
 }
@@ -1302,31 +1376,36 @@ function weightedPick(items){
   }
   return items[items.length-1];
 }
-function rollDungeonDrop(){
-  const choices=[
-    {type:'gold',weight:60},
-    {type:'coupon',weight:25},
-    {type:'lottery',weight:15}
-  ];
-  const p=weightedPick(choices);
+function rollDungeonDrop(rating=1){
+  const pools={
+    3:[{type:'coupon',weight:45},{type:'lottery',weight:35},{type:'gold',weight:20}],
+    2:[{type:'coupon',weight:25},{type:'lottery',weight:25},{type:'gold',weight:50}],
+    1:[{type:'lottery',weight:12},{type:'gold',weight:88}]
+  };
+  const p=weightedPick(pools[rating]||pools[1]);
   if(!p)return null;
   if(p.type==='gold'){
-    const amount=10+Math.floor(Math.random()*21);
+    const base=rating===3?35:rating===2?25:15;
+    const amount=base+Math.floor(Math.random()*(rating===3?41:21));
     gameData.hero.gold+=amount;
     return {type:'gold',label:`金幣 +${amount} G`,value:amount};
   }
   if(p.type==='coupon'){
     const available=gameData.shopItems.filter(x=>x.active);
-    if(!available.length){
-      gameData.hero.gold+=20;
-      return {type:'gold',label:'金幣 +20 G',value:20};
-    }
+    if(!available.length){gameData.hero.gold+=30;return {type:'gold',label:'金幣 +30 G',value:30};}
     const item=available[Math.floor(Math.random()*available.length)];
     gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});
     return {type:'coupon',label:item.name,value:item.id};
   }
   gameData.hero.lotteryCoins+=1;
   return {type:'lottery',label:'抽獎金幣 ×1',value:1};
+}
+function calculateBattleRating(win,heroHp,heroMaxHp,rounds){
+  if(!win)return 0;
+  const hpPct=heroHp/Math.max(1,heroMaxHp);
+  if(hpPct>=.70 && rounds<=12)return 3;
+  if(hpPct>=.40)return 2;
+  return 1;
 }
 
 
@@ -1335,6 +1414,134 @@ function rollDungeonDrop(){
    核心：怪物依「學期預期成長」而非玩家即時戰力生成。
    75% 正常任務完成率為預設平衡點。
    ========================= */
+
+function weekdayNumberFor(dateStr=today()){
+  return new Date(dateStr+'T12:00:00').getDay();
+}
+function isTaskScheduledToday(t,dateStr=today()){
+  const wd=weekdayNumberFor(dateStr);
+  const arr=t.weekdays||[1,2,3,4,5,6,0];
+  return arr.includes(wd);
+}
+function effectiveSchoolDaysUntil(dateStr){
+  const sem=gameData.semester||{}, start=new Date((sem.startDate||today())+'T12:00:00'), end=new Date(dateStr+'T12:00:00');
+  const allowed=new Set(sem.schoolWeekdays||[1,2,3,4,5]);
+  let count=0, d=new Date(start);
+  while(d<=end){
+    const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const special=(sem.events||[]).find(e=>e.date===ds);
+    if(allowed.has(d.getDay()) && special?.type!=='holiday')count++;
+    d.setDate(d.getDate()+1);
+  }
+  return count;
+}
+function semesterWeekIndex(){
+  const start=new Date((gameData.semester?.startDate||today())+'T12:00:00');
+  const now=new Date(today()+'T12:00:00');
+  return Math.max(1,Math.floor((now-start)/604800000)+1);
+}
+const WORLD_CHAPTERS=[
+  {week:1,family:'史萊姆',normal:['綠色史萊姆','藍色史萊姆','跳跳史萊姆'],boss:'巨大史萊姆'},
+  {week:2,family:'哥布林',normal:['哥布林斥候','哥布林戰士','哥布林投石手'],boss:'哥布林王'},
+  {week:3,family:'獸人',normal:['獸人斥候','獸人戰士','狂暴獸人'],boss:'獸人將軍'},
+  {week:4,family:'骷髏',normal:['骷髏兵','骷髏弓手','骷髏法師'],boss:'骷髏騎士'},
+  {week:5,family:'魔獸',normal:['魔狼','岩甲獸','暗影豹'],boss:'魔獸王'},
+  {week:6,family:'黑騎士',normal:['黑騎士侍從','黑騎士','黑騎士槍兵'],boss:'黑騎士隊長'}
+];
+function worldChapterForToday(){
+  const wk=semesterWeekIndex();
+  return WORLD_CHAPTERS[(wk-1)%WORLD_CHAPTERS.length];
+}
+function generatedMonsterName(){
+  const c=worldChapterForToday();
+  const sunday=weekdayNumberFor()===0;
+  if(sunday)return c.boss;
+  const seed=Number(today().replaceAll('-',''))||1;
+  return c.normal[seed%c.normal.length];
+}
+
+function semesterEventOn(dateStr){
+  return (gameData.semester?.events||[]).filter(e=>e.date===dateStr);
+}
+function isNoStudyCalendarDay(dateStr){
+  const events=semesterEventOn(dateStr);
+  // holiday = 放假；special 預設視為不要求一般學習任務（家長仍可另外派當日任務）
+  return events.some(e=>e.type==='holiday' || e.type==='special');
+}
+function taskIsEffectiveOn(t,dateStr){
+  if(t.active===false)return false;
+  const from=t.activeFrom||t.createdDate||gameData.semester?.startDate||dateStr;
+  const until=t.activeUntil||'9999-12-31';
+  return dateStr>=from && dateStr<=until;
+}
+function theoreticalLearningRequirement(kind='midterm'){
+  const sem=gameData.semester||{};
+  const events=(sem.events||[]).filter(e=>e.type===kind).sort((a,b)=>a.date.localeCompare(b.date));
+  const cutoff=events[0]?.date || (kind==='final'?sem.endDate:today());
+  const start=sem.startDate||today();
+  const learningCats=new Set(['study','reading']);
+  let expected=0, scheduledCount=0, excludedDays=0;
+  const d0=new Date(start+'T12:00:00'), d1=new Date(cutoff+'T12:00:00');
+  for(let d=new Date(d0);d<=d1;d.setDate(d.getDate()+1)){
+    const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if(isNoStudyCalendarDay(ds)){excludedDays++;continue;}
+    (gameData.tasks||[]).forEach(t=>{
+      if(!learningCats.has(t.category))return;
+      if(!taskIsEffectiveOn(t,ds))return;
+      if(!isTaskScheduledToday(t,ds))return;
+      expected += (DIFFICULTY_POINTS[t.difficulty]||3);
+      scheduledCount++;
+    });
+  }
+  return {expected,scheduledCount,excludedDays,start,cutoff};
+}
+
+function learningCompletionRatio(kind='midterm'){
+  const req=theoreticalLearningRequirement(kind);
+  const learningCats=new Set(['study','reading']);
+  const records=(gameData.taskRecords||[]).filter(r=>{
+    if(r.date<req.start || r.date>req.cutoff || r.approvalStatus!=='approved')return false;
+    const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
+    return !!t && learningCats.has(t.category);
+  });
+  const approvedPoints=records.reduce((sum,r)=>{
+    const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
+    return sum+(DIFFICULTY_POINTS[t?.difficulty]||3);
+  },0);
+  return req.expected>0?Math.min(1.2,approvedPoints/req.expected):1;
+}
+
+function bossLearningReport(kind='midterm'){
+  const req=theoreticalLearningRequirement(kind);
+  const learningCats=new Set(['study','reading']);
+  let approved=0;
+  (gameData.taskRecords||[]).forEach(r=>{
+    if(r.date<req.start||r.date>req.cutoff||r.approvalStatus!=='approved')return;
+    const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
+    if(t&&learningCats.has(t.category))approved+=(DIFFICULTY_POINTS[t.difficulty]||3);
+  });
+  const ratio=req.expected?approved/req.expected:1;
+  return {required:req.expected,approved,ratio,excludedDays:req.excludedDays,cutoff:req.cutoff};
+}
+
+function bossDifficultyMultiplier(kind){
+  const ratio=learningCompletionRatio(kind);
+  if(ratio>=.9)return .88;
+  if(ratio>=.75)return .97;
+  if(ratio>=.60)return 1.06;
+  if(ratio>=.50)return 1.14;
+  if(ratio>=.35)return 1.28;
+  return 1.45;
+}
+function setWorldAfterMidterm(win){
+  gameData.semester.worldState='ruined';
+  gameData.semester.midtermResult=win?'win':'lose';
+}
+function currentWorldBackground(){
+  return gameData.semester?.worldState==='ruined'
+    ? 'images/grassland_bg.png'
+    : 'images/grassland_bg.png';
+}
 const SEMESTER_BALANCE = {
   targetCompletion: .75,
   dailyVariance: .035,
@@ -1418,11 +1625,15 @@ function actualVsExpectedStatus(monsterPower){
 }
 
 function resolvedDungeonPower(evt,monster){
-  // Boss 若家長明確手動指定 power，仍尊重手動值；一般每日怪物採自動曲線。
   if(evt && Number(evt.power)>0 && evt.manualPower===true) return Number(evt.power);
-  const kind=evt?.type==='midterm'?'midterm':evt?.type==='final'?'final':'daily';
+  if(evt?.type==='midterm'){
+    return Math.round(generatedMonsterPower('midterm','normal')*bossDifficultyMultiplier('midterm'));
+  }
+  if(evt?.type==='final'){
+    return Math.round(generatedMonsterPower('final','normal')*bossDifficultyMultiplier('final'));
+  }
   const difficulty=monster?.difficulty||'normal';
-  return generatedMonsterPower(kind,difficulty);
+  return generatedMonsterPower('daily',difficulty);
 }
 
 const BATTLE_CONFIG={maxRounds:30,delay:650,blockReduction:.60};
@@ -1553,12 +1764,14 @@ async function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp
     heroTurn=!heroTurn;await battleSleep(BATTLE_CONFIG.delay);
   }
   const win=enemyHp<=0&&heroHp>0;
+  const rating=calculateBattleRating(win,heroHp,hero.maxHp,rounds);
   let drop=null;
-  if(win){gameData.hero.gold+=baseGold;addExp(baseExp);drop=rollDungeonDrop();}
+  if(win){gameData.hero.gold+=baseGold;addExp(baseExp);drop=rollDungeonDrop(rating);}
+  if(eventType==='midterm')setWorldAfterMidterm(win);
   gameData.dailyDungeon.challenged=true;gameData.dailyDungeon.result=win?'win':'lose';gameData.dailyDungeon.drop=drop;
-  gameData.battleRecords.push({id:uid(),date:today(),enemyName,power:combatPower(),enemyPower,result:win?'win':'lose',eventType,drop,rounds});
+  gameData.battleRecords.push({id:uid(),date:today(),enemyName,power:combatPower(),enemyPower,result:win?'win':'lose',eventType,drop,rounds,rating});
   saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
-  document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div>⭐ EXP +${baseExp}　💰 +${baseGold} G</div><div style="margin-top:8px">🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">今天是場苦戰！失敗不扣 EXP、金幣或能力值。繼續完成任務，角色自然會變強。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
+  document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div><div>${rating===3?'完美勝利':rating===2?'漂亮勝利':'苦戰勝利'}</div><div>⭐ EXP +${baseExp}　💰 +${baseGold} G</div><div style="margin-top:8px">🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">💀 戰敗：沒有掉落，但不扣 EXP、金幣或能力值。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
 }
 function closeBattleOverlay(){document.getElementById('battleOverlay')?.remove();renderAll();}
 
@@ -1566,7 +1779,7 @@ function challengeDungeon(){
   ensureDailyDungeon();
   if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
   const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
-  const monster=evt?null:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId);
+  const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
   const enemyPower=resolvedDungeonPower(evt,monster);
   const enemyName=evt?evt.name:monster?.name;
   if(!enemyName){alert('今天沒有敵人');return;}
@@ -1622,6 +1835,11 @@ function renderHero(){
       <div id="statusDate" class="status-date"></div>
       <div id="statusTime" class="status-time"></div>
     </div>
+    <div style="margin-bottom:8px">
+      <span class="world-chip">第 ${semesterWeekIndex()} 週</span>
+      <span class="world-chip">${worldChapterForToday().family}</span>
+      ${gameData.semester?.worldState==='ruined'?'<span class="world-chip">🔥 毀壞世界</span>':''}
+    </div>
 
     <div class="hero-scene" aria-label="勇者冒險場景">
       <div class="scene-bg-scroll" aria-hidden="true">
@@ -1667,7 +1885,7 @@ function renderHero(){
 }
 function renderTasks(){
   let html='<h2>📚 今日任務</h2>';
-  gameData.tasks.filter(t=>t.active).forEach(t=>{
+  gameData.tasks.filter(t=>t.active && isTaskScheduledToday(t)).forEach(t=>{
     const type=t.taskType||'timer';
     const count=completedCount(t.id);
     const start=gameData.activeTasks[t.id];
@@ -1715,10 +1933,10 @@ function renderTasks(){
 function renderDungeon(){
   ensureDailyDungeon();
   const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
-  const m=!evt?gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId):null;
+  const m=!evt?(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal'}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId)):null;
   const enemy=evt||m;
   const cp=combatPower();
-  const power=Number(enemy?.power||0);
+  const power=resolvedDungeonPower(evt,m);
   const cls=evt?.type==='final'?'dragon':evt?'boss':'';
   const enemyIcon=evt?.type==='final'?'🐉':evt?.type==='midterm'?'👿':'👹';
   const ready=cp>=power;
@@ -1796,6 +2014,26 @@ function renderBag(){
   });
   document.getElementById('panel-bag').innerHTML=html;
 }
+
+function saveSemesterSettings(){
+  gameData.semester.startDate=document.getElementById('gmSemStart').value||gameData.semester.startDate;
+  gameData.semester.endDate=document.getElementById('gmSemEnd').value||gameData.semester.endDate;
+  gameData.semester.schoolWeekdays=[...document.querySelectorAll('.gmSchoolDay:checked')].map(x=>Number(x.value));
+  saveGame();renderGM();
+}
+function addSemesterEvent(){
+  const date=document.getElementById('gmSemEventDate').value;
+  if(!date){alert('請先選日期');return;}
+  const type=document.getElementById('gmSemEventType').value;
+  const name=document.getElementById('gmSemEventName').value.trim()||type;
+  gameData.semester.events.push({id:uid(),date,type,name});
+  // 同步既有 events，Boss 仍沿用現有事件系統
+  if(['midterm','final'].includes(type) && !gameData.events.some(e=>e.date===date&&e.type===type)){
+    gameData.events.push({id:uid(),date,type,name,power:0,rewardGold:type==='final'?200:120,rewardExp:type==='final'?220:140,active:true});
+  }
+  saveGame();renderGM();
+}
+
 function renderGM(){
   if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
   if(!gameData.settings.parentPinHash){renderParentPinSetup();return;}
@@ -1814,6 +2052,27 @@ function renderGM(){
     <h2>🛠️ 家長控制後台</h2>
 
     <div class="card">
+      <h3>📅 學期行事曆</h3>
+      <div class="calendar-grid">
+        <div><label>學期開始</label><input id="gmSemStart" type="date" value="${gameData.semester?.startDate||''}"></div>
+        <div><label>學期結束</label><input id="gmSemEnd" type="date" value="${gameData.semester?.endDate||''}"></div>
+      </div>
+      <label>有效上課日</label>
+      <div class="weekday-grid">
+        ${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" class="gmSchoolDay" value="${d}" ${(gameData.semester?.schoolWeekdays||[1,2,3,4,5]).includes(d)?'checked':''}>${['日','一','二','三','四','五','六'][d]}</label>`).join('')}
+      </div>
+      <div class="grid3">
+        <div><label>事件日期</label><input id="gmSemEventDate" type="date"></div>
+        <div><label>事件類型</label><select id="gmSemEventType"><option value="holiday">放假</option><option value="midterm">期中考</option><option value="final">期末考</option><option value="special">特殊活動</option></select></div>
+        <div><label>事件名稱</label><input id="gmSemEventName" placeholder="例如：校慶"></div>
+      </div>
+      <button class="btn blue" onclick="saveSemesterSettings()">儲存學期設定</button>
+      <button class="btn purple" onclick="addSemesterEvent()">＋ 新增事件</button>
+      <div class="small" style="margin-top:8px">${(gameData.semester?.events||[]).sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`${e.date}｜${e.name||e.type}`).join('<br>')||'尚未新增事件'}</div>
+    </div>
+
+
+    <div class="card">
       <h3>📈 每日怪物自動平衡</h3>
       <div class="small">
         怪物不追著孩子的即時戰力變強，而是依「學期天數 × 任務預期成長 × 75%完成率」建立世界難度。
@@ -1825,6 +2084,18 @@ function renderGM(){
         期中 Boss：<b>${generatedMonsterPower('midterm','normal')}</b>｜
         期末 Boss：<b>${generatedMonsterPower('final','normal')}</b>
       </div>
+
+    <div class="card">
+      <h3>👿 Boss 有效學習量</h3>
+      ${(()=>{
+        const mid=bossLearningReport('midterm'), fin=bossLearningReport('final');
+        const pct=x=>Math.round(x*100);
+        return `<div><b>期中：</b>${mid.approved} / ${mid.required} 點（${pct(mid.ratio)}%）｜截止 ${mid.cutoff}</div>
+        <div><b>期末：</b>${fin.approved} / ${fin.required} 點（${pct(fin.ratio)}%）｜截止 ${fin.cutoff}</div>
+        <div class="small" style="margin-top:6px">只計功課／預習複習與閱讀；只採家長核定紀錄。新任務從建立日起才開始增加需求；放假與特殊活動日不列入理論需求。</div>`;
+      })()}
+    </div>
+
       <div class="small" style="margin-top:6px">
         🌱 平衡基準：正常任務完成約 75% 即可穩定推進；失敗不扣能力、EXP、金幣或裝備。
       </div>
@@ -1836,6 +2107,16 @@ function renderGM(){
       <button class="btn blue" onclick="showProfileSwitcher()">切換管理角色</button>
       <button class="btn purple" onclick="addHeroProfile()">＋ 新增孩子角色</button>
     </div>
+
+    <div class="card">
+      <h3>📝 任務核定</h3>
+      ${((gameData.taskRecords||[]).filter(r=>r.approvalStatus==='pending').slice().reverse().map(r=>{
+        const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
+        return `<div class="card review-pending"><strong>${r.date}｜${t?.name||'任務'}</strong><div class="small">獎勵已先發放，請檢查後核定。</div><button class="btn" onclick="reviewTaskRecord('${r.id}',true)">✅ 通過</button> <button class="btn red" onclick="reviewTaskRecord('${r.id}',false)">❌ 退回</button></div>`;
+      }).join(''))||'<div class="small">目前沒有待核定任務。</div>'}
+      ${gameData.hero.pendingGoldDebt?`<div class="small bad">待回收金幣：${gameData.hero.pendingGoldDebt} G（之後任務金幣會先抵扣）</div>`:''}
+    </div>
+
 
     <div class="card">
       <h3>新增任務＋學習進度</h3>
@@ -1865,6 +2146,16 @@ function renderGM(){
       </select>
       <div id="autoRewardPreview" class="auto-reward-box"></div>
       <label><input id="gmAssignAll" type="checkbox" style="width:auto"> 同時指派給所有孩子</label>
+      <label>每週出現日</label>
+      <div class="weekday-grid">
+        <label><input type="checkbox" class="gmWeekday" value="1" checked>一</label>
+        <label><input type="checkbox" class="gmWeekday" value="2" checked>二</label>
+        <label><input type="checkbox" class="gmWeekday" value="3" checked>三</label>
+        <label><input type="checkbox" class="gmWeekday" value="4" checked>四</label>
+        <label><input type="checkbox" class="gmWeekday" value="5" checked>五</label>
+        <label><input type="checkbox" class="gmWeekday" value="6">六</label>
+        <label><input type="checkbox" class="gmWeekday" value="0">日</label>
+      </div>
       <label>任務說明</label><input id="gmTaskDesc">
       <div class="grid3">
         <div><label>科目</label><input id="gmSubject" placeholder="國語 / 鋼琴 / 足球"></div>
@@ -2071,7 +2362,9 @@ function gmAddTask(){
     goldReward:Number(document.getElementById('gmTaskGold').value)||0,
     expReward:Number(document.getElementById('gmTaskExp').value)||0,
     dailyLimit:Math.max(1,Number(document.getElementById('gmTaskLimit').value)||1),
-    active:true,statRules:rules,
+    active:true,
+    createdDate:today(),activeFrom:today(),activeUntil:'',
+    weekdays:[...document.querySelectorAll('.gmWeekday:checked')].map(x=>Number(x.value)),statRules:rules,
     fixedStat:document.getElementById('gmFixedStat')?.value||'vit',
     fixedStatValue:rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue')?.value)||0):0,
     fastMinutes:Number(document.getElementById('gmRule1Min')?.value)||30,
