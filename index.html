@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.4</title>
+<title>小學勇者大冒險 V10.5</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -627,7 +627,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.4</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.5</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -990,22 +990,17 @@ function taskAutoRewardMap(t,minutes=null){
   return base;
 }
 const JOB_RULES=[
-  {name:'戰士',core:'str',secondary:'int',score:(s,v)=>s.str*1.00+s.int*.25+s.will*.15,
-    skills:['heavy_strike','defense_stance']},
-  {name:'法師',core:'int',secondary:'will',score:(s,v)=>s.int*1.00+s.will*.30+s.agi*.10,
-    skills:['fireball','mana_guard']},
-  {name:'遊俠',core:'agi',secondary:'int',score:(s,v)=>s.agi*1.00+s.int*.25+s.str*.15,
-    skills:['double_strike','quickstep']},
-  {name:'聖騎士',core:'will',secondary:'virtue',score:(s,v)=>s.will*.95+v*.80+s.str*.15,
-    skills:['holy_slash','guardian_stance']},
-  {name:'魔法劍士',core:'int',secondary:'str',score:(s,v)=>s.int*.65+s.str*.55+s.agi*.20,
-    skills:['magic_slash','arcane_guard']}
+  {name:'戰士',kind:'single',core:'str',secondary:'int',skills:['heavy_strike','defense_stance']},
+  {name:'法師',kind:'single',core:'int',secondary:'will',skills:['fireball','mana_guard']},
+  {name:'遊俠',kind:'single',core:'agi',secondary:'int',skills:['double_strike','quickstep']},
+  {name:'聖騎士',kind:'dual',cores:['str','virtue'],secondary:'will',skills:['holy_slash','guardian_stance']},
+  {name:'魔法劍士',kind:'dual',cores:['str','int'],secondary:'agi',skills:['magic_slash','arcane_guard']}
 ];
 const JOB_AWAKEN_CONFIG={
-  minLevel:5,
-  minTaskRecords:10,
-  leadRatio:1.12,
+  minLevel:5,minTaskRecords:10,leadRatio:1.12,
   minCoreGrowthShare:.32,
+  dualMinEachShare:.20,
+  dualBalanceRatio:.70,
   combatCoreThreshold:55,
   overThresholdEfficiency:.40,
   secondaryCompensation:.35
@@ -1018,13 +1013,43 @@ function jobGrowthValue(key){
   const base=key==='virtue'?0:10;
   return Math.max(0,rawJobStat(key)-base);
 }
+function totalJobGrowth(){
+  return ['str','int','agi','will','virtue'].reduce((a,k)=>a+jobGrowthValue(k),0);
+}
+function growthShare(key){
+  const total=totalJobGrowth();
+  return total>0?jobGrowthValue(key)/total:0;
+}
+function dualJobQualified(rule){
+  if(rule.kind!=='dual')return true;
+  const [a,b]=rule.cores;
+  const sa=growthShare(a),sb=growthShare(b);
+  const va=jobGrowthValue(a),vb=jobGrowthValue(b);
+  const balance=Math.max(va,vb)>0?Math.min(va,vb)/Math.max(va,vb):0;
+  return sa>=JOB_AWAKEN_CONFIG.dualMinEachShare &&
+         sb>=JOB_AWAKEN_CONFIG.dualMinEachShare &&
+         balance>=JOB_AWAKEN_CONFIG.dualBalanceRatio;
+}
 function jobCoreShare(rule){
-  const keys=['str','int','agi','will','virtue'];
-  const total=keys.reduce((a,k)=>a+jobGrowthValue(k),0);
-  return total>0?jobGrowthValue(rule.core)/total:0;
+  if(rule.kind==='dual')return Math.min(...rule.cores.map(growthShare));
+  return growthShare(rule.core);
+}
+function jobScore(rule){
+  if(rule.kind==='dual'){
+    if(!dualJobQualified(rule))return -1;
+    const [a,b]=rule.cores.map(jobGrowthValue);
+    // Harmonic-style score rewards balance and prevents one huge stat carrying the hybrid job.
+    const balanced=(2*a*b)/(a+b||1);
+    return balanced*1.35 + Math.min(a,b)*.25;
+  }
+  const core=jobGrowthValue(rule.core);
+  const second=jobGrowthValue(rule.secondary);
+  return core + second*.12;
 }
 function jobEffectiveCoreValue(rule){
-  const core=effectiveStat(rawJobStat(rule.core));
+  const keys=rule.kind==='dual'?rule.cores:[rule.core];
+  const vals=keys.map(k=>effectiveStat(rawJobStat(k)));
+  const core=rule.kind==='dual'?Math.min(...vals):vals[0];
   const second=effectiveStat(rawJobStat(rule.secondary));
   const t=JOB_AWAKEN_CONFIG.combatCoreThreshold;
   const effectiveCore=core<=t?core:t+(core-t)*JOB_AWAKEN_CONFIG.overThresholdEfficiency;
@@ -1042,12 +1067,15 @@ function evaluateHiddenJob(showNotice=true){
   if(h.level<JOB_AWAKEN_CONFIG.minLevel || count<JOB_AWAKEN_CONFIG.minTaskRecords){
     h.heroClass='見習勇者';return;
   }
-  const scored=JOB_RULES.map(j=>({j,score:j.score(h.stats,h.virtue||0),coreShare:jobCoreShare(j)}))
-    .sort((a,b)=>b.score-a.score);
-  h.jobScores=Object.fromEntries(scored.map(x=>[x.j.name,Math.round(x.score*10)/10]));
-  if(scored[0].score < scored[1].score*JOB_AWAKEN_CONFIG.leadRatio)return;
-  if(scored[0].coreShare < JOB_AWAKEN_CONFIG.minCoreGrowthShare)return;
-  h.heroClass=scored[0].j.name;h.jobAwakened=true;
+  const scored=JOB_RULES.map(j=>({j,score:jobScore(j),coreShare:jobCoreShare(j),qualified:j.kind==='dual'?dualJobQualified(j):true}))
+    .filter(x=>x.score>=0).sort((a,b)=>b.score-a.score);
+  h.jobScores=Object.fromEntries(JOB_RULES.map(j=>[j.name,Math.round(Math.max(0,jobScore(j))*10)/10]));
+  if(scored.length<2)return;
+  const winner=scored[0];
+  if(winner.score < scored[1].score*JOB_AWAKEN_CONFIG.leadRatio)return;
+  if(winner.j.kind==='single' && winner.coreShare < JOB_AWAKEN_CONFIG.minCoreGrowthShare)return;
+  if(winner.j.kind==='dual' && !winner.qualified)return;
+  h.heroClass=winner.j.name;h.jobAwakened=true;
   unlockAwakenedJobSkills();
   if(showNotice)alert(`✨ 職業覺醒！\n${h.name} 成為【${h.heroClass}】！\n已解鎖新的職業技能。`);
 }
@@ -2038,7 +2066,7 @@ function showDamage(side,text,extraClass=''){
   e.textContent=text;arena.appendChild(e);setTimeout(()=>e.remove(),820);
 }
 
-const HERO_ATTACK_FRAMES=[1,2,3,4].map(n=>`images/hero_attack_${n}.png?v=10.4`);
+const HERO_ATTACK_FRAMES=[1,2,3,4].map(n=>`images/hero_attack_${n}.png?v=10.5`);
 let heroAttackFramesReady=false;
 async function preloadBattleHeroFrames(){
   const jobs=HERO_ATTACK_FRAMES.map(src=>new Promise(resolve=>{
@@ -2057,11 +2085,12 @@ function nextPaint(){
 async function playHeroAttackFrames(){
   const img=document.getElementById('battleHeroSprite');if(!img)return;
   if(!heroAttackFramesReady)await preloadBattleHeroFrames();
-  for(const src of HERO_ATTACK_FRAMES){
-    img.src=src;
+  const timings=[155,95,105,175];
+  for(let i=0;i<HERO_ATTACK_FRAMES.length;i++){
+    img.src=HERO_ATTACK_FRAMES[i];
     try{if(img.decode)await img.decode();}catch(e){}
     await nextPaint();
-    await battleSleep(135);
+    await battleSleep(timings[i]);
   }
   img.src=HERO_ATTACK_FRAMES[0];
   await nextPaint();
@@ -2071,21 +2100,24 @@ async function animateBattleAction(attackerSide,result){
   const attacker=document.getElementById('battleChar_'+attackerSide);
   const defenderSide=attackerSide==='hero'?'enemy':'hero';
   const defender=document.getElementById('battleChar_'+defenderSide);
-  attacker?.classList.add('attack');
-  if(attackerSide==='hero')await playHeroAttackFrames(); else await battleSleep(150);
-  attacker?.classList.remove('attack');
-  if(result.type==='miss')showBattleWord('MISS!');
-  else if(result.type==='dodge'){defender?.classList.add('dodge');showBattleWord('💨 閃避！');}
-  else if(result.type==='parry'){defender?.classList.add('parry');showBattleWord('⚔️ 招架！');}
-  else if(result.type==='block'){defender?.classList.add('block');showBattleWord('🛡️ 格擋！');showDamage(defenderSide,'-'+result.damage);}
-  else{
-    defender?.classList.add('hurt');
-    if(result.crit)showBattleWord('💥 致命一擊！');
-    if(result.weak)showBattleWord('WEAK!','weak-float');
-    showDamage(defenderSide,'-'+result.damage,result.crit?'crit-float':result.damageType==='holy'?'holy-float':'');
+  if(!attacker||!defender)return;
+  attacker.classList.remove('attack');defender.classList.remove('hit','dodge');
+  void attacker.offsetWidth;
+  attacker.classList.add('attack');
+  try{
+    if(attackerSide==='hero')await playHeroAttackFrames(); else await battleSleep(180);
+    if(result.type==='dodge')defender.classList.add('dodge');
+    else if(result.damage>0)defender.classList.add('hit');
+    await battleSleep(220);
+  }finally{
+    attacker.classList.remove('attack');
+    defender.classList.remove('hit','dodge');
+    // Never leave inline transforms behind after long battles.
+    attacker.style.transform='';
+    defender.style.transform='';
+    const sprite=document.getElementById('battleHeroSprite');
+    if(sprite)sprite.src=HERO_ATTACK_FRAMES[0];
   }
-  await battleSleep(260);
-  defender?.classList.remove('dodge','parry','block','hurt','guard','status-hit');
 }
 function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
   const damageType=action.type||'physical';
@@ -2349,7 +2381,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div id="battleArena" class="battle-arena">
       <div class="battle-bg"></div><div class="battle-floor"></div>
       <div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div>
-      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="images/hero_attack_1.png?v=10.4" alt="勇者"></div>
+      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="images/hero_attack_1.png?v=10.5" alt="勇者"></div>
       <div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div>
     </div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！選擇行動。</div></div>
@@ -2953,7 +2985,7 @@ function renderGM(){
       <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。副本頁顯示與實際戰鬥都會同步套用；正式使用請設回100%。</div>
       <div id="gmBattleDebug"></div>
       <div id="gmJobDebug" class="small" style="margin-top:10px"></div>
-      <button class="btn purple" onclick="gmShowJobDebug()">🧭 檢視轉職判定</button>
+      <button class="btn purple" onclick="gmShowJobDebug()">🧭 檢視轉職判定（V10.5）</button>
     </div>
 
     ${semesterBalanceHTML()}
@@ -3119,11 +3151,17 @@ function battleDebugCard(title,u){return `<div class="battle-debug-card"><b>${ti
 
 function gmShowJobDebug(){
   const box=document.getElementById('gmJobDebug');if(!box)return;
-  const scored=JOB_RULES.map(j=>({j,score:j.score(gameData.hero.stats,gameData.hero.virtue||0),share:jobCoreShare(j)}))
+  const scored=JOB_RULES.map(j=>({j,score:jobScore(j),share:jobCoreShare(j),qualified:j.kind==='dual'?dualJobQualified(j):true}))
     .sort((a,b)=>b.score-a.score);
   box.innerHTML=`<div class="battle-debug-card"><b>目前職業：${gameData.hero.jobAwakened?gameData.hero.heroClass:'見習勇者'}</b><br>
-  覺醒條件：Lv.${JOB_AWAKEN_CONFIG.minLevel}+、任務紀錄 ${JOB_AWAKEN_CONFIG.minTaskRecords}+、第一名領先第二名12%、核心成長占比至少32%。<br>
-  ${scored.map((x,i)=>`${i+1}. ${x.j.name}｜分數 ${x.score.toFixed(1)}｜核心 ${statName(x.j.core)}｜核心占比 ${(x.share*100).toFixed(1)}%`).join('<br>')}</div>`;
+  基本覺醒：Lv.${JOB_AWAKEN_CONFIG.minLevel}+、任務紀錄 ${JOB_AWAKEN_CONFIG.minTaskRecords}+、第一名領先第二名12%。<br>
+  單核心：核心成長占比至少32%。<br>
+  雙核心：兩項各至少20%，且較低核心至少為較高核心的70%。<br>
+  ${scored.map((x,i)=>{
+    const coreText=x.j.kind==='dual'?x.j.cores.map(statName).join('＋'):statName(x.j.core);
+    const q=x.j.kind==='dual'?(x.qualified?'✅雙核心成立':'❌雙核心未成立'):`核心占比 ${(x.share*100).toFixed(1)}%`;
+    return `${i+1}. ${x.j.name}｜分數 ${Math.max(0,x.score).toFixed(1)}｜${coreText}｜${q}`;
+  }).join('<br>')}</div>`;
 }
 
 function gmShowBattleDebug(){
