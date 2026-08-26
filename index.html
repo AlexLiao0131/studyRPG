@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V9.4</title>
+<title>小學勇者大冒險 V10</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -566,11 +566,43 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   }
 }
 
+
+/* =========================
+   V10 回合制戰鬥系統
+   ========================= */
+.battle-overlay{background:rgba(3,6,11,.96)}
+.battle-window{width:min(930px,100%);padding:12px}
+.battle-top{grid-template-columns:1fr 1fr}
+.battle-unit{position:relative}
+.resource-bar{height:12px;background:#07111d;border:1px solid #35506c;border-radius:999px;overflow:hidden;margin-top:5px}
+.resource-fill{height:100%;background:linear-gradient(#58a6ff,#1f6feb);transition:width .3s ease}
+.resource-text{font-size:11px;color:#79c0ff;margin-top:3px}
+.battle-status-line{min-height:24px;margin-top:6px;font-size:12px}
+.status-token{display:inline-block;margin:2px;padding:3px 6px;border:1px solid #555;border-radius:999px;background:#10151c;font-size:11px}
+.battle-arena{height:310px}
+.battle-round-banner{position:absolute;left:50%;top:7%;transform:translateX(-50%);z-index:7;background:#090d13d9;border:1px solid #59616d;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:900}
+.battle-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
+.battle-action-btn{min-height:54px;font-size:16px}
+.battle-action-btn small{display:block;font-size:10px;font-weight:600;opacity:.75;margin-top:2px}
+.battle-action-btn:disabled{opacity:.35}
+.battle-submenu{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:8px}
+.battle-choice{background:#11161d;border:1px solid #3d444d;color:#f0f6fc;text-align:left;min-height:58px}
+.battle-choice strong{display:block}.battle-choice span{font-size:11px;color:#8b949e}
+.battle-log{min-height:118px;max-height:150px;overflow:auto}
+.crit-float{color:#ffd866}.weak-float{color:#ff9b71}.holy-float{color:#e6ddff}
+.battle-hero.guard,.battle-enemy.guard{filter:drop-shadow(0 0 14px #58a6ff)}
+.battle-hero.status-hit,.battle-enemy.status-hit{filter:drop-shadow(0 0 14px #bc8cff)}
+@media(max-width:600px){
+  .battle-arena{height:270px}
+  .battle-actions{grid-template-columns:repeat(2,1fr)}
+  .battle-submenu{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V9.4</h1>
+  <h1>⚔️ 小學勇者大冒險 V10</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -815,6 +847,9 @@ function migrateProfileData(d){
   });
   (d.taskRecords||[]).forEach(r=>{if(!r.approvalStatus)r.approvalStatus='approved';});
   (d.monsters||[]).forEach(m=>{if(!m.difficulty)m.difficulty='normal';});
+  if(!d.shopItems.some(x=>x.name==='初級毒藥')){
+    d.shopItems.push({id:uid(),name:'初級毒藥',price:45,description:'戰鬥用毒藥（正式消耗品系統預留）',dailyLimit:2,active:true,battleConsumable:true});
+  }
   if(!d.gmAudit)d.gmAudit=[];
 }
 migrateProfileData(gameData);
@@ -1707,50 +1742,146 @@ function resolvedDungeonPower(evt,monster){
   return generatedMonsterPower('daily',difficulty);
 }
 
-const BATTLE_CONFIG={maxRounds:30,delay:650,blockReduction:.60};
+
+const BATTLE_CONFIG={
+  maxRounds:30,
+  delay:520,
+  statScale:100,
+  baseHit:.95,
+  blockReduction:.50,
+  critDamage:1.50
+};
+let battleStateV10=null;
+
+const BEGINNER_SKILLS=[
+  {
+    id:'power_strike',name:'全力一擊',icon:'💥',cost:30,type:'physical',
+    description:'140% 物理傷害。'
+  },
+  {
+    id:'ember',name:'火花術',icon:'🔥',cost:35,type:'fire',
+    description:'以智力造成火元素傷害。'
+  }
+];
+
 function clampBattle(v,min,max){return Math.max(min,Math.min(max,v));}
 function battleSleep(ms){return new Promise(r=>setTimeout(r,ms));}
-function deriveEnemyStats(power){
-  const base=Math.max(8,Math.round(power/8));
-  return {str:Math.round(base*1.05),agi:Math.round(base*.95),int:Math.round(base*.8),vit:Math.round(base*1.1),will:Math.round(base*.9)};
+function effectiveStat(raw){
+  raw=Math.max(0,Number(raw)||0);
+  return BATTLE_CONFIG.statScale*(1-Math.exp(-raw/BATTLE_CONFIG.statScale));
 }
-function makeHeroBattleStats(){
-  const s=gameData.hero.stats;
-  return {...s,maxHp:100+s.vit*9,attack:8+s.str*1.55};
-}
-function makeEnemyBattleStats(power){
-  const s=deriveEnemyStats(power);
-  return {...s,maxHp:90+s.vit*8,attack:7+s.str*1.35};
-}
-function defenseRates(def,atk){
+function normalizeHeroStats(){
+  const s=gameData.hero.stats||{};
   return {
-    dodge:clampBattle(.05+(def.agi-atk.agi)*.004,.03,.18),
-    parry:clampBattle(.03+((def.str+def.agi)-(atk.str+atk.agi))*.0015,.03,.14),
-    block:clampBattle(.07+((def.vit+def.will)-(atk.str+atk.int))*.0015,.05,.22)
+    str:effectiveStat(s.str),
+    int:effectiveStat(s.int),
+    agi:effectiveStat(s.agi),
+    will:effectiveStat(s.will),
+    virtue:effectiveStat(gameData.hero.virtue||0)
   };
 }
-function resolveAttack(attacker,defender){
-  const miss=clampBattle(.05+(defender.agi-attacker.agi)*.002,.02,.13);
-  if(Math.random()<miss)return {type:'miss',damage:0};
-  const r=defenseRates(defender,attacker);
-  if(Math.random()<r.dodge)return {type:'dodge',damage:0};
-  if(Math.random()<r.parry)return {type:'parry',damage:0};
-  let damage=Math.max(1,Math.round(attacker.attack*(.88+Math.random()*.24)-(defender.vit*.20+defender.will*.10)));
-  if(Math.random()<r.block){
-    damage=Math.max(1,Math.round(damage*(1-BATTLE_CONFIG.blockReduction)));
-    return {type:'block',damage};
-  }
-  return {type:'hit',damage};
+function makeHeroBattleStats(){
+  const e=normalizeHeroStats(),lv=Number(gameData.hero.level)||1;
+  const maxHp=Math.round(100+lv*10+e.will*3+e.str);
+  const maxEnergy=Math.round(50+e.int*.5+e.will*.3);
+  return {
+    side:'hero',name:gameData.hero.name,
+    ...e,
+    maxHp,maxEnergy,
+    attack:10+e.str*1.25,
+    magicAttack:8+e.int*1.25,
+    defense:10+e.will*.8,
+    speed:e.agi,
+    crit:clampBattle(.05+.25*(e.agi/(e.agi+100)),.05,.30),
+    evade:clampBattle(.02+.20*(e.agi/(e.agi+100)),.02,.22),
+    parry:clampBattle(.03+.08*(e.will/(e.will+100)),.03,.11),
+    block:clampBattle(.05+.14*(e.will/(e.will+100)),.05,.19),
+    statusRes:clampBattle(.05+.25*(e.will/(e.will+100)),.05,.30),
+    elementalBaseRes:clampBattle(.15*(e.will/(e.will+100)),0,.15),
+    resist:{fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0},
+    statuses:[],guarding:false
+  };
 }
-function battleIconForEnemy(evt,monster){
-  if(evt?.type==='final')return '🐉';
-  if(evt?.type==='midterm')return '👿';
-  const n=monster?.name||'';
-  if(n.includes('狼'))return '🐺';
-  if(n.includes('史萊姆'))return '🟢';
-  if(n.includes('骷髏'))return '💀';
-  if(n.includes('騎士'))return '🛡️';
-  return '👹';
+function deriveEnemyStats(power,name='怪物',eventType='daily'){
+  const boss=eventType==='midterm'||eventType==='final';
+  const rawBase=Math.max(8,Number(power||70)/5);
+  const variance=(label)=>{
+    if(name.includes('史萊姆'))return label==='will'?.85:label==='agi'?.8:1;
+    if(name.includes('哥布林'))return label==='agi'?1.25:label==='will'?.8:1;
+    if(name.includes('獸人'))return label==='str'?1.3:label==='agi'?.8:1;
+    if(name.includes('骷髏'))return label==='int'?1.25:label==='str'?.85:1;
+    if(name.includes('騎士'))return label==='will'?1.3:label==='agi'?.8:1;
+    return 1;
+  };
+  const e={
+    str:effectiveStat(rawBase*variance('str')),
+    int:effectiveStat(rawBase*.9*variance('int')),
+    agi:effectiveStat(rawBase*.9*variance('agi')),
+    will:effectiveStat(rawBase*variance('will')),
+    virtue:0
+  };
+  const maxHp=Math.round((boss?150:80)+(boss?5.2:3.2)*e.will+1.0*e.str);
+  const maxEnergy=Math.round(45+e.int*.45+e.will*.25);
+  const resist={fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0};
+  if(name.includes('史萊姆')){resist.fire=-.15;resist.ice=.10;}
+  if(name.includes('獸人')){resist.fire=.15;resist.ice=-.20;}
+  if(name.includes('骷髏')){resist.poison=.85;resist.curse=.25;resist.fire=-.10;}
+  if(name.includes('騎士')){resist.fire=.10;resist.ice=.10;resist.lightning=.10;resist.wind=.10;}
+  return {
+    side:'enemy',name,...e,maxHp,maxEnergy,
+    attack:9+e.str*1.15,
+    magicAttack:7+e.int*1.15,
+    defense:8+e.will*.75,
+    speed:e.agi,
+    crit:clampBattle(.04+.20*(e.agi/(e.agi+100)),.04,.24),
+    evade:clampBattle(.02+.16*(e.agi/(e.agi+100)),.02,.18),
+    parry:clampBattle(.02+.07*(e.will/(e.will+100)),.02,.09),
+    block:clampBattle(.04+.12*(e.will/(e.will+100)),.04,.16),
+    statusRes:clampBattle(.04+.22*(e.will/(e.will+100)),.04,.26),
+    elementalBaseRes:clampBattle(.12*(e.will/(e.will+100)),0,.12),
+    resist,statuses:[],guarding:false,boss
+  };
+}
+function defenseReduction(def){
+  return def/(def+100);
+}
+function totalElementRes(defender,type){
+  const special=Number(defender.resist?.[type]||0);
+  const base=type==='poison'||type==='curse'?0:(defender.elementalBaseRes||0);
+  return clampBattle(base+special,-.50,.75);
+}
+function statusChance(base,defender,statusType){
+  const special=Number(defender.resist?.[statusType]||0);
+  return clampBattle(base*(1-(defender.statusRes||0))*(1-special),0,.95);
+}
+function addStatus(target,status){
+  const existing=target.statuses.find(s=>s.type===status.type);
+  if(existing){
+    existing.turns=Math.max(existing.turns,status.turns);
+    existing.power=Math.max(existing.power||0,status.power||0);
+  }else target.statuses.push({...status});
+}
+function statusLabel(s){
+  return {
+    poison:'☠️ 中毒',burn:'🔥 燃燒',bleed:'🩸 流血',curse:'🌀 詛咒',
+    paralysis:'⚡ 麻痺',freeze:'❄️ 冰凍',stun:'😵 暈眩'
+  }[s.type]||s.type;
+}
+function updateBattleStatuses(){
+  if(!battleStateV10)return;
+  const paint=(side,unit)=>{
+    const el=document.getElementById('battleStatus_'+side);
+    if(el)el.innerHTML=unit.statuses.map(s=>`<span class="status-token">${statusLabel(s)} ${s.turns}</span>`).join('');
+  };
+  paint('hero',battleStateV10.hero);
+  paint('enemy',battleStateV10.enemy);
+}
+function updateBattleResource(side,val,max){
+  const pct=Math.max(0,Math.round(val/max*100));
+  const fill=document.getElementById('battleEnergy_'+side);
+  const txt=document.getElementById('battleEnergyText_'+side);
+  if(fill)fill.style.width=pct+'%';
+  if(txt)txt.textContent=`⚡ ${Math.max(0,Math.round(val))} / ${max}`;
 }
 function hpClassBattle(pct){return pct<=25?'critical':pct<=50?'low':'';}
 function updateBattleHp(side,hp,maxHp){
@@ -1758,93 +1889,371 @@ function updateBattleHp(side,hp,maxHp){
   const fill=document.getElementById('battleHp_'+side);
   const txt=document.getElementById('battleHpText_'+side);
   if(fill){fill.style.width=pct+'%';fill.className='hp-fill '+hpClassBattle(pct);}
-  if(txt)txt.textContent=`${Math.max(0,hp)} / ${maxHp}`;
+  if(txt)txt.textContent=`❤️ ${Math.max(0,Math.round(hp))} / ${maxHp}`;
 }
 function addBattleLog(msg){
   const log=document.getElementById('battleLog');if(!log)return;
   const d=document.createElement('div');d.textContent=msg;log.appendChild(d);
-  while(log.children.length>4)log.removeChild(log.firstChild);
+  log.scrollTop=log.scrollHeight;
+  while(log.children.length>8)log.removeChild(log.firstChild);
 }
-function showBattleWord(text){
+function showBattleWord(text,extraClass=''){
   const arena=document.getElementById('battleArena');if(!arena)return;
-  const e=document.createElement('div');e.className='battle-event-word';e.textContent=text;arena.appendChild(e);
+  const e=document.createElement('div');e.className='battle-event-word '+extraClass;e.textContent=text;arena.appendChild(e);
   setTimeout(()=>e.remove(),780);
 }
-function showDamage(side,text){
+function showDamage(side,text,extraClass=''){
   const arena=document.getElementById('battleArena');if(!arena)return;
-  const e=document.createElement('div');e.className='damage-float '+(side==='hero'?'hero-side':'enemy-side');e.textContent=text;arena.appendChild(e);
-  setTimeout(()=>e.remove(),820);
+  const e=document.createElement('div');
+  e.className='damage-float '+(side==='hero'?'hero-side':'enemy-side')+' '+extraClass;
+  e.textContent=text;arena.appendChild(e);setTimeout(()=>e.remove(),820);
 }
 async function animateBattleAction(attackerSide,result){
   const attacker=document.getElementById('battleChar_'+attackerSide);
   const defenderSide=attackerSide==='hero'?'enemy':'hero';
   const defender=document.getElementById('battleChar_'+defenderSide);
-  attacker?.classList.add('attack');await battleSleep(180);attacker?.classList.remove('attack');
+  attacker?.classList.add('attack');await battleSleep(150);attacker?.classList.remove('attack');
   if(result.type==='miss')showBattleWord('MISS!');
-  else if(result.type==='dodge'){defender?.classList.add('dodge');showBattleWord('⚡ 閃避！');}
+  else if(result.type==='dodge'){defender?.classList.add('dodge');showBattleWord('💨 閃避！');}
   else if(result.type==='parry'){defender?.classList.add('parry');showBattleWord('⚔️ 招架！');}
   else if(result.type==='block'){defender?.classList.add('block');showBattleWord('🛡️ 格擋！');showDamage(defenderSide,'-'+result.damage);}
-  else{defender?.classList.add('hurt');showDamage(defenderSide,'-'+result.damage);}
-  await battleSleep(300);defender?.classList.remove('dodge','parry','block','hurt');
+  else{
+    defender?.classList.add('hurt');
+    if(result.crit)showBattleWord('💥 致命一擊！');
+    if(result.weak)showBattleWord('WEAK!','weak-float');
+    showDamage(defenderSide,'-'+result.damage,result.crit?'crit-float':result.damageType==='holy'?'holy-float':'');
+  }
+  await battleSleep(260);
+  defender?.classList.remove('dodge','parry','block','hurt','guard','status-hit');
+}
+function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
+  const damageType=action.type||'physical';
+  const isPhysical=damageType==='physical';
+  const canDodge=action.canDodge!==false;
+  const hit=clampBattle(BATTLE_CONFIG.baseHit+(attacker.speed-defender.speed)*.001,.82,.99);
+  if(Math.random()>hit)return {type:'miss',damage:0,damageType};
+  if(canDodge && Math.random()<(defender.evade||0))return {type:'dodge',damage:0,damageType};
+  if(isPhysical && action.canParry!==false && Math.random()<(defender.parry||0))return {type:'parry',damage:0,damageType};
+
+  const crit=Math.random()<(attacker.crit||0);
+  const variance=.90+Math.random()*.20;
+  let raw=(isPhysical?attacker.attack:attacker.magicAttack)*(action.multiplier||1)*variance;
+  let weak=false,resisted=false;
+
+  if(damageType==='holy'){
+    // 神聖傷害：不吃 DEF / 元素抗性
+  }else if(isPhysical){
+    raw*=1-defenseReduction(defender.defense||0);
+  }else{
+    const res=totalElementRes(defender,damageType);
+    raw*=1-res;
+    weak=res<-.05;resisted=res>.10;
+  }
+
+  if(defender.guarding)raw*=.65;
+  let blocked=false;
+  if(isPhysical && action.canBlock!==false && Math.random()<(defender.block||0)){
+    raw*=BATTLE_CONFIG.blockReduction;blocked=true;
+  }
+  if(crit)raw*=BATTLE_CONFIG.critDamage;
+
+  const damage=Math.max(1,Math.round(raw));
+  return {type:blocked?'block':'hit',damage,damageType,crit,weak,resisted};
+}
+function getUnitHp(side){return side==='hero'?battleStateV10.heroHp:battleStateV10.enemyHp;}
+function setUnitHp(side,val){
+  if(side==='hero')battleStateV10.heroHp=Math.max(0,val);
+  else battleStateV10.enemyHp=Math.max(0,val);
+  const unit=side==='hero'?battleStateV10.hero:battleStateV10.enemy;
+  updateBattleHp(side,getUnitHp(side),unit.maxHp);
+}
+function getUnitEnergy(side){return side==='hero'?battleStateV10.heroEnergy:battleStateV10.enemyEnergy;}
+function setUnitEnergy(side,val){
+  const unit=side==='hero'?battleStateV10.hero:battleStateV10.enemy;
+  val=clampBattle(val,0,unit.maxEnergy);
+  if(side==='hero')battleStateV10.heroEnergy=val;else battleStateV10.enemyEnergy=val;
+  updateBattleResource(side,val,unit.maxEnergy);
+}
+async function processStatusTick(side){
+  const unit=side==='hero'?battleStateV10.hero:battleStateV10.enemy;
+  let hp=getUnitHp(side),skip=false;
+  for(const s of [...unit.statuses]){
+    if(s.type==='poison'){
+      const dmg=Math.max(1,Math.round(s.power||6));hp-=dmg;
+      addBattleLog(`☠️ ${unit.name}受到 ${dmg} 點毒素傷害。`);showDamage(side,'-'+dmg);
+    }else if(s.type==='burn'){
+      const dmg=Math.max(1,Math.round(s.power||5));hp-=dmg;
+      addBattleLog(`🔥 ${unit.name}受到 ${dmg} 點燃燒傷害。`);showDamage(side,'-'+dmg);
+    }else if(s.type==='bleed'){
+      const dmg=Math.max(1,Math.round(s.power||5));hp-=dmg;
+      addBattleLog(`🩸 ${unit.name}流血，受到 ${dmg} 點傷害。`);showDamage(side,'-'+dmg);
+    }else if(s.type==='curse' && s.mode==='delayed'){
+      s.countdown=(s.countdown??s.turns)-1;
+      if(s.countdown<=0){
+        const dmg=Math.max(1,Math.round(s.power||25));hp-=dmg;
+        addBattleLog(`💀 死亡印記爆發！${unit.name}受到 ${dmg} 點詛咒傷害！`);
+        showDamage(side,'-'+dmg,'holy-float');s.turns=0;
+      }else addBattleLog(`🌀 ${unit.name}的死亡印記：${s.countdown}`);
+    }else if(['stun','freeze'].includes(s.type)){
+      if(Math.random()<.85){skip=true;addBattleLog(`${statusLabel(s)}！${unit.name}無法行動。`);}
+    }else if(s.type==='paralysis'){
+      if(Math.random()<.35){skip=true;addBattleLog(`⚡ 麻痺發作！${unit.name}無法行動。`);}
+    }
+    s.turns--;
+  }
+  unit.statuses=unit.statuses.filter(s=>s.turns>0);
+  setUnitHp(side,hp);updateBattleStatuses();
+  await battleSleep(250);
+  return skip;
+}
+function maybeApplyEnemyStatus(attacker,defender,result){
+  if(result.damage<=0)return;
+  const name=attacker.name||'';
+  if(name.includes('骷髏法師') && Math.random()<statusChance(.28,defender,'curse')){
+    addStatus(defender,{type:'curse',mode:'delayed',turns:4,countdown:3,power:Math.max(18,attacker.magicAttack*.8)});
+    addBattleLog(`🌀 ${defender.name}中了「死亡印記」！`);
+  }else if((name.includes('魔獸')||name.includes('暗影豹')) && Math.random()<statusChance(.22,defender,'poison')){
+    addStatus(defender,{type:'poison',turns:3,power:Math.max(4,attacker.attack*.15)});
+    addBattleLog(`☠️ ${defender.name}中毒了！`);
+  }
+}
+function actionSummary(result,targetName){
+  if(result.type==='miss')return '💨 攻擊落空！';
+  if(result.type==='dodge')return `💨 ${targetName}閃避成功！`;
+  if(result.type==='parry')return `⚔️ ${targetName}招架成功！`;
+  if(result.type==='block')return `🛡️ ${targetName}格擋，只受到 ${result.damage} 點傷害。`;
+  let tags='';
+  if(result.crit)tags+='💥 致命一擊！';
+  if(result.weak)tags+=' WEAK！';
+  if(result.resisted)tags+=' 抵抗！';
+  return `${tags} ${targetName}受到 ${result.damage} 點傷害！`;
+}
+async function executeAttack(attackerSide,action){
+  const defenderSide=attackerSide==='hero'?'enemy':'hero';
+  const attacker=attackerSide==='hero'?battleStateV10.hero:battleStateV10.enemy;
+  const defender=defenderSide==='hero'?battleStateV10.hero:battleStateV10.enemy;
+  const result=resolveAttack(attacker,defender,action);
+  await animateBattleAction(attackerSide,result);
+  if(result.damage)setUnitHp(defenderSide,getUnitHp(defenderSide)-result.damage);
+  addBattleLog(actionSummary(result,defender.name));
+  if(attackerSide==='enemy')maybeApplyEnemyStatus(attacker,defender,result);
+  updateBattleStatuses();
+  return result;
+}
+function enemyChooseAction(){
+  const e=battleStateV10.enemy;
+  const energy=battleStateV10.enemyEnergy;
+  if(energy>=30 && e.int>e.str*.9 && Math.random()<.35){
+    return {kind:'skill',name:'暗影彈',cost:30,type:'wind',multiplier:1.15};
+  }
+  if(getUnitHp('enemy')/e.maxHp<.35 && Math.random()<.22)return {kind:'defend',name:'防禦'};
+  return {kind:'attack',name:'攻擊',type:'physical',multiplier:1};
+}
+function applyEnergyForAction(side,action){
+  let energy=getUnitEnergy(side);
+  if(action.kind==='attack')energy+=10;
+  if(action.kind==='defend')energy+=20;
+  if(action.kind==='skill')energy-=Number(action.cost)||0;
+  setUnitEnergy(side,energy);
+}
+async function performAction(side,action){
+  const unit=side==='hero'?battleStateV10.hero:battleStateV10.enemy;
+  unit.guarding=false;
+  if(action.kind==='defend'){
+    unit.guarding=true;
+    document.getElementById('battleChar_'+side)?.classList.add('guard');
+    addBattleLog(`🛡️ ${unit.name}採取防禦姿態！本回合傷害降低。`);
+    applyEnergyForAction(side,action);await battleSleep(300);return;
+  }
+  if(action.kind==='skill'){
+    if(getUnitEnergy(side)<action.cost){addBattleLog(`⚡ ${unit.name}能量不足！`);return;}
+    addBattleLog(`${action.icon||'✨'} ${unit.name}使用「${action.name}」！`);
+    applyEnergyForAction(side,action);
+    const res=await executeAttack(side,action);
+    if(side==='hero' && action.id==='ember' && res.damage>0 && Math.random()<statusChance(.25,battleStateV10.enemy,'burn')){
+      addStatus(battleStateV10.enemy,{type:'burn',turns:3,power:Math.max(4,battleStateV10.hero.magicAttack*.12)});
+      addBattleLog(`🔥 ${battleStateV10.enemy.name}燃燒了！`);
+    }
+    return;
+  }
+  addBattleLog(`⚔️ ${unit.name}攻擊！`);
+  applyEnergyForAction(side,action);
+  await executeAttack(side,action);
+}
+function setBattleControls(enabled){
+  document.querySelectorAll('.battle-action-btn,.battle-choice').forEach(b=>b.disabled=!enabled);
+}
+async function battlePlayerAction(action){
+  if(!battleStateV10||battleStateV10.busy||battleStateV10.ended)return;
+  if(action.kind==='skill' && battleStateV10.heroEnergy<action.cost){
+    addBattleLog('⚡ 能量不足！');return;
+  }
+  battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();
+  battleStateV10.round++;
+  const banner=document.getElementById('battleRoundBanner');
+  if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
+
+  // 每回合先處理雙方異常狀態
+  const heroSkip=await processStatusTick('hero');
+  if(await checkBattleEnd())return;
+  const enemySkip=await processStatusTick('enemy');
+  if(await checkBattleEnd())return;
+
+  const enemyAction=enemyChooseAction();
+  const order=(battleStateV10.hero.speed>=battleStateV10.enemy.speed)
+    ?[['hero',action,heroSkip],['enemy',enemyAction,enemySkip]]
+    :[['enemy',enemyAction,enemySkip],['hero',action,heroSkip]];
+
+  for(const [side,act,skip] of order){
+    if(skip)continue;
+    await performAction(side,act);
+    if(await checkBattleEnd())return;
+    await battleSleep(BATTLE_CONFIG.delay);
+  }
+  battleStateV10.hero.guarding=false;battleStateV10.enemy.guarding=false;
+  battleStateV10.busy=false;setBattleControls(true);
+}
+function showBattleSkills(){
+  if(!battleStateV10||battleStateV10.busy)return;
+  const box=document.getElementById('battleSubmenu');
+  box.innerHTML=BEGINNER_SKILLS.map(s=>`
+    <button class="battle-choice" onclick='battlePlayerAction(${JSON.stringify(s)})'>
+      <strong>${s.icon} ${s.name}　⚡${s.cost}</strong>
+      <span>${s.description}</span>
+    </button>`).join('');
+  box.style.display='grid';
+}
+function showBattleItems(){
+  if(!battleStateV10||battleStateV10.busy)return;
+  const box=document.getElementById('battleSubmenu');
+  box.innerHTML=`
+    <button class="battle-choice" onclick="battleUsePoison()">
+      <strong>🧪 初級毒藥</strong>
+      <span>測試版戰鬥道具：讓敵人有機率中毒3回合。</span>
+    </button>`;
+  box.style.display='grid';
+}
+function hideBattleSubmenu(){
+  const box=document.getElementById('battleSubmenu');if(box)box.style.display='none';
+}
+async function battleUsePoison(){
+  if(!battleStateV10||battleStateV10.busy)return;
+  battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();
+  battleStateV10.round++;
+  const chance=statusChance(.75,battleStateV10.enemy,'poison');
+  if(Math.random()<chance){
+    addStatus(battleStateV10.enemy,{type:'poison',turns:3,power:Math.max(5,battleStateV10.hero.int*.12)});
+    addBattleLog(`🧪 毒藥生效！${battleStateV10.enemy.name}中毒了。`);
+  }else addBattleLog(`🧪 ${battleStateV10.enemy.name}抵抗了毒藥！`);
+  updateBattleStatuses();
+  await battleSleep(300);
+  const enemySkip=await processStatusTick('enemy');
+  if(await checkBattleEnd())return;
+  if(!enemySkip)await performAction('enemy',enemyChooseAction());
+  if(await checkBattleEnd())return;
+  battleStateV10.busy=false;setBattleControls(true);
 }
 function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
   document.getElementById('battleOverlay')?.remove();
   const o=document.createElement('div');o.id='battleOverlay';o.className='battle-overlay';
   o.innerHTML=`<div class="battle-window" role="dialog" aria-modal="true">
     <div class="battle-top">
-      <div class="battle-unit"><div class="battle-name">${gameData.hero.name}　Lv.${gameData.hero.level}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text">${heroStats.maxHp} / ${heroStats.maxHp}</div></div>
-      <div class="battle-unit enemy"><div class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text">${enemyStats.maxHp} / ${enemyStats.maxHp}</div></div>
+      <div class="battle-unit">
+        <div class="battle-name">${gameData.hero.name}　Lv.${gameData.hero.level}</div>
+        <div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div>
+        <div id="battleHpText_hero" class="hp-text">❤️ ${heroStats.maxHp} / ${heroStats.maxHp}</div>
+        <div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill" style="width:50%"></div></div>
+        <div id="battleEnergyText_hero" class="resource-text"></div>
+        <div id="battleStatus_hero" class="battle-status-line"></div>
+      </div>
+      <div class="battle-unit enemy">
+        <div class="battle-name">${enemyName}</div>
+        <div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div>
+        <div id="battleHpText_enemy" class="hp-text">❤️ ${enemyStats.maxHp} / ${enemyStats.maxHp}</div>
+        <div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill" style="width:50%"></div></div>
+        <div id="battleEnergyText_enemy" class="resource-text"></div>
+        <div id="battleStatus_enemy" class="battle-status-line"></div>
+      </div>
     </div>
-    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div>
-      <div id="battleChar_hero" class="battle-hero"><img src="images/hero_idle_1.png?v=7" alt="勇者"></div>
+    <div id="battleArena" class="battle-arena">
+      <div class="battle-bg"></div><div class="battle-floor"></div>
+      <div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div>
+      <div id="battleChar_hero" class="battle-hero"><img src="images/hero_idle_1.png?v=10" alt="勇者"></div>
       <div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div>
     </div>
-    <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！</div></div>
+    <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！選擇行動。</div></div>
+    <div id="battleActions" class="battle-actions">
+      <button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button>
+      <button class="btn blue battle-action-btn" onclick="battlePlayerAction({kind:'defend',name:'防禦'})">🛡️ 防禦<small>回復 20 能量</small></button>
+      <button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>消耗能量</small></button>
+      <button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button>
+    </div>
+    <div id="battleSubmenu" class="battle-submenu" style="display:none"></div>
     <div id="battleResult"></div>
   </div>`;
   document.body.appendChild(o);
 }
-async function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType){
-  const hero=makeHeroBattleStats(),enemy=makeEnemyBattleStats(enemyPower);
-  let heroHp=hero.maxHp,enemyHp=enemy.maxHp,heroTurn=hero.agi>=enemy.agi,rounds=0;
+async function checkBattleEnd(){
+  if(!battleStateV10)return false;
+  const heroDead=battleStateV10.heroHp<=0,enemyDead=battleStateV10.enemyHp<=0;
+  if(!heroDead&&!enemyDead&&battleStateV10.round<BATTLE_CONFIG.maxRounds)return false;
+  battleStateV10.ended=true;battleStateV10.busy=true;setBattleControls(false);
+  const win=enemyDead&&!heroDead;
+  await finishBattleV10(win);
+  return true;
+}
+async function finishBattleV10(win){
+  const s=battleStateV10;
+  const rating=calculateBattleRating(win,s.heroHp,s.hero.maxHp,s.round);
+  let drop=null;
+  if(win){gameData.hero.gold+=s.baseGold;addExp(s.baseExp);drop=rollDungeonDrop(rating);}
+  if(s.eventType==='midterm')setWorldAfterMidterm(win);
+  gameData.dailyDungeon.challenged=true;
+  gameData.dailyDungeon.result=win?'win':'lose';
+  gameData.dailyDungeon.drop=drop;
+  gameData.battleRecords.push({
+    id:uid(),date:today(),enemyName:s.enemyName,power:combatPower(),enemyPower:s.enemyPower,
+    result:win?'win':'lose',eventType:s.eventType,drop,rounds:s.round,rating,
+    battleV10:{heroHp:Math.max(0,s.heroHp),heroMaxHp:s.hero.maxHp,enemyHp:Math.max(0,s.enemyHp),enemyMaxHp:s.enemy.maxHp}
+  });
+  saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
+  document.getElementById('battleActions').style.display='none';
+  document.getElementById('battleSubmenu').style.display='none';
+  document.getElementById('battleResult').innerHTML=`<div class="battle-result">
+    <div class="battle-result-icon">${win?'🏆':'💀'}</div>
+    <h2>${win?'勝利！':'戰敗！'}</h2>
+    ${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div>
+      <div>${rating===3?'完美勝利':rating===2?'漂亮勝利':'苦戰勝利'}</div>
+      <div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div>
+      <div style="margin-top:8px">🎁 ${drop?.label||'沒有額外掉落'}</div>`
+      :`<div class="small">💀 戰敗：沒有掉落，但不扣 EXP、金幣或能力值。</div>`}
+    <button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button>
+  </div>`;
+}
+function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType){
+  const hero=makeHeroBattleStats(),enemy=deriveEnemyStats(enemyPower,enemyName,eventType);
+  battleStateV10={
+    hero,enemy,enemyName,enemyPower,baseGold,baseExp,eventType,
+    heroHp:hero.maxHp,enemyHp:enemy.maxHp,
+    heroEnergy:Math.round(hero.maxEnergy*.50),
+    enemyEnergy:Math.round(enemy.maxEnergy*.50),
+    round:0,busy:false,ended:false
+  };
   createBattleOverlay(enemyName,enemyIcon,hero,enemy);
+  updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);
+  updateBattleHp('enemy',battleStateV10.enemyHp,enemy.maxHp);
+  updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);
+  updateBattleResource('enemy',battleStateV10.enemyEnergy,enemy.maxEnergy);
+  updateBattleStatuses();
   const battleState=actualVsExpectedStatus(enemyPower);
   addBattleLog(`${battleState.label}｜你的戰力 ${combatPower()} / 怪物 ${enemyPower}`);
-  await battleSleep(700);
-  while(heroHp>0&&enemyHp>0&&rounds<BATTLE_CONFIG.maxRounds){
-    rounds++;
-    if(heroTurn){
-      addBattleLog(`⚔️ ${gameData.hero.name} 攻擊！`);
-      const r=resolveAttack(hero,enemy);await animateBattleAction('hero',r);
-      if(r.damage)enemyHp=Math.max(0,enemyHp-r.damage);updateBattleHp('enemy',enemyHp,enemy.maxHp);
-      if(r.type==='miss')addBattleLog('💨 攻擊落空！');
-      if(r.type==='dodge')addBattleLog(`⚡ ${enemyName} 閃開了！`);
-      if(r.type==='parry')addBattleLog(`⚔️ ${enemyName} 招架成功！`);
-      if(r.type==='block')addBattleLog(`🛡️ ${enemyName} 格擋，只受到 ${r.damage} 點傷害。`);
-      if(r.type==='hit')addBattleLog(`💥 ${enemyName} 受到 ${r.damage} 點傷害！`);
-    }else{
-      addBattleLog(`👹 ${enemyName} 攻擊！`);
-      const r=resolveAttack(enemy,hero);await animateBattleAction('enemy',r);
-      if(r.damage)heroHp=Math.max(0,heroHp-r.damage);updateBattleHp('hero',heroHp,hero.maxHp);
-      if(r.type==='miss')addBattleLog('MISS！敵人的攻擊落空！');
-      if(r.type==='dodge')addBattleLog(`⚡ ${gameData.hero.name} 閃避！`);
-      if(r.type==='parry')addBattleLog(`⚔️ ${gameData.hero.name} 招架！`);
-      if(r.type==='block')addBattleLog(`🛡️ ${gameData.hero.name} 格擋，只受到 ${r.damage} 點傷害。`);
-      if(r.type==='hit')addBattleLog(`❤️ ${gameData.hero.name} 受到 ${r.damage} 點傷害！`);
-    }
-    heroTurn=!heroTurn;await battleSleep(BATTLE_CONFIG.delay);
-  }
-  const win=enemyHp<=0&&heroHp>0;
-  const rating=calculateBattleRating(win,heroHp,hero.maxHp,rounds);
-  let drop=null;
-  if(win){gameData.hero.gold+=baseGold;addExp(baseExp);drop=rollDungeonDrop(rating);}
-  if(eventType==='midterm')setWorldAfterMidterm(win);
-  gameData.dailyDungeon.challenged=true;gameData.dailyDungeon.result=win?'win':'lose';gameData.dailyDungeon.drop=drop;
-  gameData.battleRecords.push({id:uid(),date:today(),enemyName,power:combatPower(),enemyPower,result:win?'win':'lose',eventType,drop,rounds,rating});
-  saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
-  document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div><div>${rating===3?'完美勝利':rating===2?'漂亮勝利':'苦戰勝利'}</div><div>⭐ EXP +${baseExp}　💰 +${baseGold} G</div><div style="margin-top:8px">🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">💀 戰敗：沒有掉落，但不扣 EXP、金幣或能力值。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
+  addBattleLog(`⚡ 速度：${Math.round(hero.speed)} vs ${Math.round(enemy.speed)}｜較快者本回合先行動。`);
 }
-function closeBattleOverlay(){document.getElementById('battleOverlay')?.remove();renderAll();}
+function closeBattleOverlay(){
+  battleStateV10=null;
+  document.getElementById('battleOverlay')?.remove();renderAll();
+}
+
 
 function challengeDungeon(){
   ensureDailyDungeon();
