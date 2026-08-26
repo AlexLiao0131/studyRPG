@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10</title>
+<title>小學勇者大冒險 V10.1</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -602,7 +602,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.1</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -658,7 +658,7 @@ function defaultData(){
   return {
     hero:{
       name:'',gender:'male',heroClass:'見習勇者',jobAwakened:false,jobScores:{},skills:[],level:1,exp:0,maxExp:100,gold:0,lotteryCoins:0,virtue:0,
-      stats:{str:10,agi:10,int:10,vit:10,will:10}
+      stats:{str:10,agi:10,int:10,will:10}
     },
     semester:{
       startDate:'2026-08-31',
@@ -817,6 +817,12 @@ function startHeroIdleAnimation(){
 
 // V8 相容舊存檔
 function migrateProfileData(d){
+  if(d.hero?.stats && d.hero.stats.vit!==undefined){
+    const oldVit=Number(d.hero.stats.vit)||0;
+    d.hero.legacyVit=oldVit;
+    d.hero.stats.will=(Number(d.hero.stats.will)||10)+Math.max(0,oldVit-10);
+    delete d.hero.stats.vit;
+  }
   if(!d.hero.gender)d.hero.gender='male';
   if(d.hero.virtue==null)d.hero.virtue=0;
   if(!d.hero.heroClass)d.hero.heroClass='見習勇者';
@@ -833,7 +839,9 @@ function migrateProfileData(d){
     if(!t.taskType)t.taskType='timer';
     if(t.quantityTarget==null)t.quantityTarget=1;
     if(!t.quantityUnit)t.quantityUnit='次';
-    if(!t.fixedStat)t.fixedStat='vit';
+    if(!t.fixedStat)t.fixedStat='will';
+    if(t.fixedStat==='vit')t.fixedStat='will';
+    (t.statRules||[]).forEach(r=>{if(r.stat==='vit')r.stat='will';});
     if(t.fixedStatValue==null)t.fixedStatValue=1;
     if(!t.rewardMode)t.rewardMode='manual'; // 舊任務維持原獎勵，不偷偷改數值
     if(!t.category)t.category='custom';
@@ -858,7 +866,7 @@ if(!gameData.gmAudit) gameData.gmAudit=[];
 
 const BALANCE_CONFIG={
   semesterTargetLevel:22,
-  combatWeights:{str:2,agi:1.5,int:1.5,vit:2,will:1.5},
+  combatWeights:{str:2,agi:1.5,int:1.5,will:1.5,virtue:0},
   expectedCompletion:0.75,
   taskExp:{greenMax:40,yellowMax:80},
   taskGold:{greenMax:40,yellowMax:100},
@@ -883,11 +891,8 @@ function saveGame(){
   evaluateHiddenJob(false);
   if(window.cloudSaveGame) window.cloudSaveGame(familyData);
 }
-function statName(s){return {str:'力量',agi:'敏捷',int:'智力',vit:'體力',will:'意志',virtue:'美德'}[s]||s;}
-function combatPower(){
-  const s=gameData.hero.stats;
-  return Math.floor(s.str*1.2+s.agi*1.1+s.int+s.vit*1.2+s.will*.8);
-}
+function statName(s){return {str:'力量',agi:'敏捷',int:'智力',will:'意志',virtue:'美德'}[s]||s;}
+function combatPower(){const s=gameData.hero.stats;return Math.floor((s.str||0)*1.2+(s.agi||0)*1.1+(s.int||0)+(s.will||0)*.8);}
 
 const AUTO_TASK_RULES={
   study:{label:'📚 功課／預習複習',weights:{int:.67,will:.33}},
@@ -958,9 +963,9 @@ function taskAutoRewardMap(t,minutes=null){
 }
 const JOB_RULES=[
   {name:'法師',score:s=>s.int*1.0+s.will*.45+s.agi*.10,skills:['火球術','魔力護盾']},
-  {name:'戰士',score:s=>s.str*.90+s.vit*.65+s.will*.15,skills:['重擊','防禦姿態']},
+  {name:'戰士',score:s=>s.str*1.00+s.will*.20+s.int*.10,skills:['重擊','防禦姿態']},
   {name:'遊俠',score:s=>s.agi*1.0+s.str*.35+s.int*.20,skills:['連擊','疾走']},
-  {name:'聖騎士',score:(s,v)=>s.will*.70+s.vit*.45+v*.75,skills:['守護','聖盾']},
+  {name:'聖騎士',score:(s,v)=>s.will*.90+v*.75+s.str*.20,skills:['守護','聖盾']},
   {name:'魔法劍士',score:s=>s.int*.60+s.agi*.55+s.str*.35,skills:['魔力斬','迅捷施法']}
 ];
 function evaluateHiddenJob(showNotice=true){
@@ -1090,13 +1095,13 @@ function estimatePowerAt(date,rate=BALANCE_CONFIG.expectedCompletion){
   let power=combatPower();
   active.forEach(t=>{
     const limit=Math.max(1,Number(t.dailyLimit)||1);
-    let statKey='vit',statVal=0;
+    let statKey='will',statVal=0;
     if((t.taskType||'timer')==='timer'){
       const rules=[...(t.statRules||[])].sort((a,b)=>(Number(a.maxMinutes)||0)-(Number(b.maxMinutes)||0));
       const r=rules[Math.min(1,rules.length-1)]||rules[0];
       if(r){statKey=r.stat;statVal=Number(r.value)||0;}
     }else{
-      statKey=t.fixedStat||'vit';statVal=Number(t.fixedStatValue)||0;
+      statKey=t.fixedStat||'will';statVal=Number(t.fixedStatValue)||0;
     }
     const weight=BALANCE_CONFIG.combatWeights[statKey]||1.5;
     power += days*rate*limit*statVal*weight;
@@ -1213,8 +1218,7 @@ function showAbilityPanel(){
     <div class="ability-panel" role="dialog" aria-modal="true" aria-label="勇者能力">
       <h2 style="text-align:center">📊 勇者能力</h2>
       ${[
-        ['💪','力量','str'],['⚡','敏捷','agi'],['🧠','智力','int'],
-        ['❤️','體力','vit'],['🛡️','意志','will']
+        ['💪','力量','str'],['⚡','敏捷','agi'],['🧠','智力','int'],['🛡️','意志','will']
       ].map(([icon,name,key])=>`
         <div class="ability-row">
           <span>${icon} ${name}</span>
@@ -1237,9 +1241,10 @@ function applyFixedStatReward(t){
     const gains=applyRewardMap(taskAutoRewardMap(t,null));
     return {multi:true,gains};
   }
-  const key=t.fixedStat||'vit',val=Number(t.fixedStatValue)||0;
+  const key=t.fixedStat||'will',val=Number(t.fixedStatValue)||0;
   if(val){
-    gameData.hero.stats[key]=(gameData.hero.stats[key]||0)+val;
+    if(key==='virtue')gameData.hero.virtue=(gameData.hero.virtue||0)+val;
+    else gameData.hero.stats[key]=(gameData.hero.stats[key]||0)+val;
     gameData.hero.lastStatGains={[key]:val};
     return {stat:key,value:val};
   }
@@ -1354,8 +1359,10 @@ function finishTask(taskId){
       if(minutes<=r.maxMinutes){statGain=r;break;}
     }
     if(statGain){
-      gameData.hero.stats[statGain.stat]+=Number(statGain.value)||0;
-      gameData.hero.lastStatGains={[statGain.stat]:Number(statGain.value)||0};
+      const val=Number(statGain.value)||0;
+      if(statGain.stat==='virtue')gameData.hero.virtue=(gameData.hero.virtue||0)+val;
+      else gameData.hero.stats[statGain.stat]=(gameData.hero.stats[statGain.stat]||0)+val;
+      gameData.hero.lastStatGains={[statGain.stat]:val};
     }else gameData.hero.lastStatGains={};
   }
 
@@ -1685,18 +1692,18 @@ function expectedDailyStatBudget(){
 
 function expectedSemesterPower(){
   const info=semesterProgressInfo();
-  const baseStats={str:10,agi:10,int:10,vit:10,will:10};
+  const baseStats={str:10,agi:10,int:10,will:10};
   const budget=expectedDailyStatBudget()*SEMESTER_BALANCE.targetCompletion;
   // 依目前家庭任務結構估計五戰鬥能力的平均成長。
   const active=(gameData.tasks||[]).filter(t=>t.active!==false && t.rewardMode==='auto');
-  let weights={str:0,agi:0,int:0,vit:0,will:0}, total=0;
+  let weights={str:0,agi:0,int:0,will:0}, total=0;
   active.forEach(t=>{
     const map=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType||'simple');
     Object.entries(map).forEach(([k,v])=>{
       if(k!=='virtue'){weights[k]=(weights[k]||0)+(Number(v)||0); total+=Number(v)||0;}
     });
   });
-  if(total<=0){weights={str:.2,agi:.2,int:.2,vit:.2,will:.2};total=1;}
+  if(total<=0){weights={str:.25,agi:.25,int:.25,will:.25};total=1;}
   const elapsed=Math.max(0,info.day-1);
   Object.keys(baseStats).forEach(k=>{
     baseStats[k]+=elapsed*budget*((weights[k]||0)/total);
@@ -1704,7 +1711,7 @@ function expectedSemesterPower(){
   // 與 combatPower() 同尺度的簡化預期值。
   return Math.round(
     baseStats.str*2.2 + baseStats.agi*2.0 + baseStats.int*1.8 +
-    baseStats.vit*2.0 + baseStats.will*1.7
+    baseStats.will*1.9
   );
 }
 
@@ -2255,17 +2262,38 @@ function closeBattleOverlay(){
 }
 
 
+
+function battleIconForEnemy(evt,monster){
+  if(evt?.type==='final')return '🐉';
+  if(evt?.type==='midterm')return '👿';
+  const n=(monster?.name||'').toLowerCase();
+  if(n.includes('史萊姆'))return '🟢';
+  if(n.includes('哥布林'))return '👺';
+  if(n.includes('獸人'))return '👹';
+  if(n.includes('骷髏'))return '💀';
+  if(n.includes('狼')||n.includes('魔獸')||n.includes('豹'))return '🐺';
+  if(n.includes('騎士'))return '🛡️';
+  return '👹';
+}
+
 function challengeDungeon(){
-  ensureDailyDungeon();
-  if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
-  const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
-  const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
-  const enemyPower=resolvedDungeonPower(evt,monster);
-  const enemyName=evt?evt.name:monster?.name;
-  if(!enemyName){alert('今天沒有敵人');return;}
-  const baseGold=evt?Number(evt.rewardGold||0):Number(monster.rewardGold||0);
-  const baseExp=evt?Number(evt.rewardExp||0):Number(monster.rewardExp||0);
-  runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily');
+  try{
+    ensureDailyDungeon();
+    if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
+    const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
+    const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'
+      ?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15}
+      :gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
+    const enemyPower=resolvedDungeonPower(evt,monster);
+    const enemyName=evt?evt.name:monster?.name;
+    if(!enemyName){alert('今天沒有敵人');return;}
+    const baseGold=evt?Number(evt.rewardGold||0):Number(monster?.rewardGold||0);
+    const baseExp=evt?Number(evt.rewardExp||0):Number(monster?.rewardExp||0);
+    runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily');
+  }catch(err){
+    console.error('challengeDungeon failed:',err);
+    alert('戰鬥啟動失敗：'+(err?.message||err));
+  }
 }
 function drawLottery(){
   if(gameData.hero.lotteryCoins<1){alert('沒有抽獎金幣');return;}
@@ -2403,7 +2431,7 @@ function renderTasks(){
           :`<div class="small">${(t.statRules||[]).map(r=>`≤${r.maxMinutes}分：${statName(r.stat)}+${r.value}`).join(' ｜ ')}</div>`)
         :(t.rewardMode==='auto'
           ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`
-          :`<div class="small">${statName(t.fixedStat||'vit')} +${t.fixedStatValue||0}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`)
+          :`<div class="small">${statName(t.fixedStat||'will')} +${t.fixedStatValue||0}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`)
       }
       ${action}
     </div>`;
@@ -2655,12 +2683,12 @@ function renderGM(){
         <h3>⏱ 時間獎勵</h3>
         <div class="grid3">
           <div><label>幾分鐘內</label><input id="gmRule1Min" type="number" value="30"></div>
-          <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
+          <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="will">意志</option><option value="virtue">美德</option></select></div>
           <div><label>增加</label><input id="gmRule1Val" oninput="refreshTaskBalancePreview()" type="number" value="5"></div>
         </div>
         <div class="grid3">
           <div><label>幾分鐘內</label><input id="gmRule2Min" type="number" value="60"></div>
-          <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="vit">體力</option><option value="will">意志</option></select></div>
+          <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="will">意志</option><option value="virtue">美德</option></select></div>
           <div><label>增加</label><input id="gmRule2Val" oninput="refreshTaskBalancePreview()" type="number" value="1"></div>
         </div>
       </div>
@@ -2668,7 +2696,7 @@ function renderGM(){
       <div id="gmFixedSettings" class="gm-type-settings" style="display:none">
         <h3>✅ 完成後能力</h3>
         <div class="grid2">
-          <div><label>能力</label><select id="gmFixedStat"><option value="vit">體力</option><option value="str">力量</option><option value="agi">敏捷</option><option value="int">智力</option><option value="will">意志</option></select></div>
+          <div><label>能力</label><select id="gmFixedStat"><option value="will">意志</option><option value="str">力量</option><option value="agi">敏捷</option><option value="int">智力</option><option value="virtue">美德</option></select></div>
           <div><label>增加</label><input id="gmFixedStatValue" oninput="refreshTaskBalancePreview()" type="number" value="2"></div>
         </div>
       </div>
@@ -2849,7 +2877,7 @@ function gmAddTask(){
     createdDate:today(),activeFrom:today(),activeUntil:'',
     countForBossOnNonSchoolDay:document.getElementById('gmBossNonSchool')?.checked||false,
     weekdays:[...document.querySelectorAll('.gmWeekday:checked')].map(x=>Number(x.value)),statRules:rules,
-    fixedStat:document.getElementById('gmFixedStat')?.value||'vit',
+    fixedStat:document.getElementById('gmFixedStat')?.value||'will',
     fixedStatValue:rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue')?.value)||0):0,
     fastMinutes:Number(document.getElementById('gmRule1Min')?.value)||30,
     standardMinutes:Number(document.getElementById('gmRule2Min')?.value)||60,
