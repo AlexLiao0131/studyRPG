@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.5</title>
+<title>小學勇者大冒險 V10.10.6</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -634,7 +634,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.5</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10.6</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -2995,6 +2995,8 @@ function startDungeonIdleAnimation(monster,evt){
 
 function renderDungeon(){
   ensureDailyDungeon();
+  const el=document.getElementById('panel-dungeon');
+  if(!el)return;
   const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
   const m=!evt?(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal'}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId)):null;
   const enemy=evt||m;
@@ -3006,7 +3008,7 @@ function renderDungeon(){
   const enemyIcon=evt?.type==='final'?'🐉':evt?.type==='midterm'?'👿':'👹';
   const ready=cp>=power;
 
-  document.getElementById('panel-dungeon').innerHTML=`
+  el.innerHTML=`
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card">
