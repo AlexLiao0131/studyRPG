@@ -703,8 +703,8 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[gameData?.hero?.heroClass||'見習勇者']||'novice';
 }
 function heroIdleFrames(){
-  const key=heroAssetKey();
-  return [1,2,3,4].map(n=>asset(`images/${key}_idle_${n}.png`));
+  // V10.10 測試素材固定使用 hero_*；正式職業素材齊全後再切回 HERO_ASSET_MAP。
+  return [1,2,3,4].map(n=>asset(`images/hero_idle_${n}.png`));
 }
 
 function loadSpriteWithFallback(img,primary,fallback){
@@ -716,8 +716,8 @@ function loadSpriteWithFallback(img,primary,fallback){
 }
 
 function heroAttackFrames(){
-  const key=heroAssetKey();
-  return [1,2,3,4].map(n=>asset(`images/${key}_attack_${n}.png`));
+  // V10.10 測試素材固定使用 hero_*，避免見習勇者去讀尚不存在的 novice_*。
+  return [1,2,3,4].map(n=>asset(`images/hero_attack_${n}.png`));
 }
 
 
@@ -894,7 +894,7 @@ function showProfileSwitcher(){
 let timerInterval=null;
 let clockInterval=null;
 let heroIdleInterval=null;
-const HERO_IDLE_FRAMES=[1,2,3,4].map(n=>`images/hero_idle_${n}.png`);
+const HERO_IDLE_FRAMES=heroIdleFrames();
 
 function heroIdleFrame(n=1){
   // 女勇者素材日後放入 images/hero_female_idle_1~4.png 即可切換。
@@ -2700,7 +2700,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div id="battleArena" class="battle-arena">
       <div class="battle-bg"></div><div class="battle-floor"></div>
       <div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div>
-      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${heroAttackFrames()[0]}" onerror="this.onerror=null;this.src=asset('images/hero_attack_1.png')" alt="勇者"></div>
+      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${HERO_ATTACK_FRAMES[0]}" alt="勇者"></div>
       <div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div>
     </div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！選擇行動。</div></div>
