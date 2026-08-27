@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.7</title>
+<title>小學勇者大冒險 V10.10.9</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -634,7 +634,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.7</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10.9</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -973,6 +973,9 @@ function migrateProfileData(d){
   if(!d.settings.familyAccess)d.settings.familyAccess={enabled:true};
   (d.tasks||[]).forEach(t=>{if(!t.timerMode)t.timerMode='deadline';});
   if(!d.hero.knownSkills)d.hero.knownSkills=['power_strike','ember','defense_stance','focus'];
+  ['power_strike','ember','defense_stance','focus'].forEach(id=>{if(!d.hero.knownSkills.includes(id))d.hero.knownSkills.push(id);});
+  if(!d.hero.skillUsage)d.hero.skillUsage={};
+  if(!d.hero.skillUsageByDate)d.hero.skillUsageByDate={};
   if(!d.hero.equippedSkills)d.hero.equippedSkills=['power_strike','ember','defense_stance','focus'];
   if(!d.hero.jobPassive)d.hero.jobPassive='';
   if(!d.hero.ultimateSkill)d.hero.ultimateSkill='';
@@ -1125,6 +1128,39 @@ function dualJobQualified(rule){
   return sa>=JOB_AWAKEN_CONFIG.dualMinEachShare&&sb>=JOB_AWAKEN_CONFIG.dualMinEachShare&&balance>=JOB_AWAKEN_CONFIG.dualBalanceRatio;
 }
 function jobCoreShare(rule){return rule.kind==='dual'?Math.min(...rule.cores.map(growthShare)):growthShare(rule.core);}
+const BEGINNER_SKILL_JOB_WEIGHTS={
+  power_strike:{'戰士':1.00,'盜賊':.65,'聖騎士':.65,'魔劍士':.60},
+  ember:{'法師':1.00,'魔劍士':.85,'獵人':.55},
+  defense_stance:{'聖騎士':1.00,'戰士':.65,'牧師':.60},
+  focus:{'獵人':1.00,'盜賊':.85,'法師':.35,'牧師':.35}
+};
+function recordSkillUsage(skillId){
+  if(!BEGINNER_SKILL_JOB_WEIGHTS[skillId])return;
+  const h=gameData.hero;
+  h.skillUsage=h.skillUsage||{};
+  h.skillUsage[skillId]=(Number(h.skillUsage[skillId])||0)+1;
+  h.skillUsageByDate=h.skillUsageByDate||{};
+  const d=h.skillUsageByDate[today()]||(h.skillUsageByDate[today()]={});
+  d[skillId]=(Number(d[skillId])||0)+1;
+}
+function beginnerSkillAffinity(jobName){
+  const usage=gameData.hero.skillUsage||{};
+  const ids=Object.keys(BEGINNER_SKILL_JOB_WEIGHTS);
+  const total=ids.reduce((s,id)=>s+(Number(usage[id])||0),0);
+  if(total<=0)return 0;
+  return ids.reduce((s,id)=>{
+    const share=(Number(usage[id])||0)/total;
+    return s+share*(BEGINNER_SKILL_JOB_WEIGHTS[id][jobName]||0);
+  },0);
+}
+function blendedJobScore(rule){
+  const reality=Math.max(0,jobScore(rule));
+  // 技能只影響合格職業之間的排序，不繞過能力值/雙核心資格門檻。
+  // 75% 現實成長 + 25% 戰鬥偏好；沒有技能紀錄時完全沿用原本判定。
+  const affinity=beginnerSkillAffinity(rule.name);
+  if(!Object.values(gameData.hero.skillUsage||{}).some(v=>Number(v)>0))return reality;
+  return reality*(.75+.25*affinity);
+}
 function jobScore(rule){
   if(rule.kind==='dual'){
     if(!dualJobQualified(rule))return -1;
@@ -1135,12 +1171,12 @@ function jobScore(rule){
 }
 function currentJobCandidate(){
   // 複合職優先：符合資格的複合職先競爭；若皆不成立才判純職。
-  const dual=JOB_RULES.filter(j=>j.kind==='dual'&&dualJobQualified(j)).map(j=>({j,score:jobScore(j)})).sort((a,b)=>b.score-a.score);
+  const dual=JOB_RULES.filter(j=>j.kind==='dual'&&dualJobQualified(j)).map(j=>({j,score:blendedJobScore(j)})).sort((a,b)=>b.score-a.score);
   if(dual.length){
     if(dual.length===1||dual[0].score>=dual[1].score*JOB_AWAKEN_CONFIG.leadRatio)return dual[0].j;
   }
   const single=JOB_RULES.filter(j=>j.kind==='single'&&jobCoreShare(j)>=JOB_AWAKEN_CONFIG.minCoreGrowthShare)
-    .map(j=>({j,score:jobScore(j)})).sort((a,b)=>b.score-a.score);
+    .map(j=>({j,score:blendedJobScore(j)})).sort((a,b)=>b.score-a.score);
   if(!single.length)return null;
   if(single.length===1||single[0].score>=single[1].score*JOB_AWAKEN_CONFIG.leadRatio)return single[0].j;
   return null;
@@ -2107,10 +2143,10 @@ let battleStateV10=null;
 
 
 const BEGINNER_SKILLS=[
-  {id:'power_strike',name:'全力一擊',icon:'💥',cost:30,type:'physical',multiplier:1.40,description:'140%物理傷害。'},
-  {id:'ember',name:'火花術',icon:'🔥',cost:30,type:'fire',multiplier:1.20,description:'基礎火元素法術。'},
-  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:10,type:'buff',description:'承傷-35%、格擋+15%，2回合。',effect:{effectType:'buff',turns:2,mods:{damageTaken:-.35,block:.15}}},
-  {id:'focus',name:'集中',icon:'🎯',cost:15,type:'buff',description:'暴擊率+10%，3回合。',effect:{effectType:'buff',turns:3,mods:{crit:.10}}}
+  {id:'power_strike',name:'奮力一擊',icon:'💥',cost:20,type:'physical',multiplier:1.60,description:'ATK×1.60－敵DEF×0.5 的強力近戰攻擊。'},
+  {id:'ember',name:'魔力彈',icon:'🔮',cost:18,type:'arcane',multiplier:1.45,description:'MATK×1.45－敵MDEF×0.5 的祕法遠程攻擊；不受元素弱點／抗性影響。'},
+  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:0,energyGain:8,type:'buff',description:'本回合承受傷害減半，並回復8能量。',effect:{effectType:'buff',turns:1,mods:{damageTaken:-.50}}},
+  {id:'focus',name:'專注',icon:'🎯',cost:10,type:'buff',description:'下一次造成傷害的攻擊×1.40；命中後消耗。',effect:{effectType:'buff',turns:99,mods:{nextAttackMultiplier:.40}}}
 ];
 const JOB_SKILL_LIBRARY={
   heavy_strike:{id:'heavy_strike',name:'重擊',icon:'💢',cost:35,type:'physical',multiplier:1.65,description:'戰士高威力一擊。'},
@@ -2264,6 +2300,7 @@ function makeHeroBattleStats(){
     attack:(10+e.str*1.25)*(1+masteryBonus)*pm.attack,
     magicAttack:(8+e.int*1.25)*(1+masteryBonus)*pm.magic,
     defense:(10+e.will*.8)*(1+masteryBonus*.6)*pm.defense,
+    magicDefense:(8+e.will*.75)*(1+masteryBonus*.6)*pm.defense,
     speed:e.agi,
     crit:clampBattle(.05+.25*(e.agi/(e.agi+100))+pm.crit,.05,.35),
     evade:clampBattle(.02+.20*(e.agi/(e.agi+100))+pm.evade,.02,.30),
@@ -2305,6 +2342,7 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
     attack:9+e.str*1.15,
     magicAttack:7+e.int*1.15,
     defense:8+e.will*.75,
+    magicDefense:7+e.will*.70,
     speed:e.agi,
     crit:clampBattle(.04+.20*(e.agi/(e.agi+100)),.04,.24),
     evade:clampBattle(.02+.16*(e.agi/(e.agi+100)),.02,.18),
@@ -2484,19 +2522,28 @@ function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
 
   const crit=Math.random()<effectiveBattleValue(attacker,'crit');
   const variance=.90+Math.random()*.20;
-  let raw=(isPhysical?effectiveBattleValue(attacker,'attack'):effectiveBattleValue(attacker,'magicAttack'))*(action.multiplier||1)*variance;
+  const attackValue=isPhysical?effectiveBattleValue(attacker,'attack'):effectiveBattleValue(attacker,'magicAttack');
+  const defenseValue=isPhysical?effectiveBattleValue(defender,'defense'):effectiveBattleValue(defender,'magicDefense');
+  let raw=Math.max(1,attackValue*(action.multiplier||1)-defenseValue*.50);
   let weak=false,resisted=false;
 
   if(damageType==='holy'){
-    // 神聖傷害：不吃 DEF / 元素抗性
-  }else if(isPhysical){
-    raw*=1-defenseReduction(effectiveBattleValue(defender,'defense'));
-  }else{
+    // 神聖傷害：不吃元素抗性，但仍使用 MDEF 基礎減傷。
+  }else if(damageType==='arcane'){
+    // 祕法：純魔法基準屬性，只吃 MDEF，不進元素弱點/抗性表。
+  }else if(!isPhysical){
     const res=totalElementRes(defender,damageType);
     raw*=1-res;
     weak=res<-.05;resisted=res>.10;
   }
 
+  // 專注：下一次真正命中的傷害型攻擊 +40%，命中後即消耗。
+  const focus=attacker.statuses?.find(s=>Number(s.mods?.nextAttackMultiplier||0)>0);
+  if(focus){
+    raw*=1+Number(focus.mods.nextAttackMultiplier||0);
+    focus.turns=0;
+  }
+  raw*=variance;
   raw*=Math.max(.10,1+effectMod(defender,'damageTaken'));
   let blocked=false;
   if(isPhysical && action.canBlock!==false && Math.random()<effectiveBattleValue(defender,'block')){
@@ -2600,7 +2647,7 @@ function applyEnergyForAction(side,action){
   let energy=getUnitEnergy(side);
   if(action.kind==='attack')energy+=10;
   if(action.kind==='defend')energy+=20;
-  if(action.kind==='skill')energy-=Number(action.cost)||0;
+  if(action.kind==='skill'){energy-=Number(action.cost)||0;energy+=Number(action.energyGain)||0;}
   setUnitEnergy(side,energy);
 }
 async function performAction(side,action){
@@ -2616,16 +2663,13 @@ async function performAction(side,action){
     if(getUnitEnergy(side)<action.cost){addBattleLog(`⚡ ${unit.name}能量不足！`);return;}
     addBattleLog(`${action.icon||'✨'} ${unit.name}使用「${action.name}」！`);
     applyEnergyForAction(side,action);
+    if(side==='hero')recordSkillUsage(action.id);
     if(action.effect){
       addTimedEffect(unit,{...action.effect,name:action.name});
       addBattleLog(`${action.icon||'✨'} ${action.name}生效，持續 ${action.effect.turns} 回合。`);
       updateBattleStatuses();await battleSleep(300);return;
     }
     const res=await executeAttack(side,action);
-    if(side==='hero' && action.id==='ember' && res.damage>0 && Math.random()<statusChance(.25,battleStateV10.enemy,'burn')){
-      addStatus(battleStateV10.enemy,{type:'burn',turns:3,power:Math.max(4,battleStateV10.hero.magicAttack*.12)});
-      addBattleLog(`🔥 ${battleStateV10.enemy.name}燃燒了！`);
-    }
     return;
   }
   addBattleLog(`⚔️ ${unit.name}攻擊！`);
@@ -3615,7 +3659,7 @@ function gmResetDungeonChallenge(){
   saveGame();renderAll();renderGM();alert('已重置今日副本挑戰，可以再次測試。');
 }
 function pct(v){return (Number(v||0)*100).toFixed(1)+'%';}
-function battleDebugCard(title,u){return `<div class="battle-debug-card"><b>${title}</b><br>HP ${u.maxHp}　Energy ${u.maxEnergy}<br>ATK ${u.attack.toFixed(1)}　MATK ${u.magicAttack.toFixed(1)}<br>DEF ${u.defense.toFixed(1)}　SPD ${u.speed.toFixed(1)}<br>CRIT ${pct(u.crit)}　EVA ${pct(u.evade)}<br>PARRY ${pct(u.parry)}　BLOCK ${pct(u.block)}<br>Status RES ${pct(u.statusRes)}　Base Element RES ${pct(u.elementalBaseRes)}<br>🔥 ${pct(totalElementRes(u,'fire'))}　❄️ ${pct(totalElementRes(u,'ice'))}　⚡ ${pct(totalElementRes(u,'lightning'))}　🌪️ ${pct(totalElementRes(u,'wind'))}<br>☠️毒特殊抗性 ${pct(u.resist?.poison||0)}　🌀詛咒特殊抗性 ${pct(u.resist?.curse||0)}</div>`;}
+function battleDebugCard(title,u){return `<div class="battle-debug-card"><b>${title}</b><br>HP ${u.maxHp}　Energy ${u.maxEnergy}<br>ATK ${u.attack.toFixed(1)}　MATK ${u.magicAttack.toFixed(1)}<br>DEF ${u.defense.toFixed(1)}　MDEF ${(u.magicDefense||0).toFixed(1)}　SPD ${u.speed.toFixed(1)}<br>CRIT ${pct(u.crit)}　EVA ${pct(u.evade)}<br>PARRY ${pct(u.parry)}　BLOCK ${pct(u.block)}<br>Status RES ${pct(u.statusRes)}　Base Element RES ${pct(u.elementalBaseRes)}<br>🔥 ${pct(totalElementRes(u,'fire'))}　❄️ ${pct(totalElementRes(u,'ice'))}　⚡ ${pct(totalElementRes(u,'lightning'))}　🌪️ ${pct(totalElementRes(u,'wind'))}<br>☠️毒特殊抗性 ${pct(u.resist?.poison||0)}　🌀詛咒特殊抗性 ${pct(u.resist?.curse||0)}</div>`;}
 
 function gmShowJobDebug(){
   const box=document.getElementById('gmJobDebug');if(!box)return;
@@ -3624,7 +3668,8 @@ function gmShowJobDebug(){
   觀察期：至少 ${JOB_AWAKEN_CONFIG.observationDays} 天＋${JOB_AWAKEN_CONFIG.minTaskRecords} 筆任務。<br>
   複合職優先；雙核心各至少20%，平衡度70%。純職核心占比至少32%。<br>
   目前候選：${c?.name||'尚未形成'}｜穩定 ${weeks}/${JOB_AWAKEN_CONFIG.stableWeeks} 週<br>
-  七職：戰士（力）／法師（智）／牧師（美德）／獵人（敏+智）／盜賊（敏+力）／聖騎士（力+美德）／魔劍士（力+智）</div>`;
+  七職：戰士（力）／法師（智）／牧師（美德）／獵人（敏+智）／盜賊（敏+力）／聖騎士（力+美德）／魔劍士（力+智）<br>
+  技能偏好（最終排序25%）：奮力一擊 ${gameData.hero.skillUsage?.power_strike||0}｜魔力彈 ${gameData.hero.skillUsage?.ember||0}｜防禦姿態 ${gameData.hero.skillUsage?.defense_stance||0}｜專注 ${gameData.hero.skillUsage?.focus||0}</div>`;
 }
 
 function gmShowGrowthCurve(){
