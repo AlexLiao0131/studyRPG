@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.2</title>
+<title>小學勇者大冒險 V10.10.3</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -634,7 +634,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.2</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10.3</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1544,7 +1544,7 @@ function switchTab(name,btn){
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.getElementById('panel-'+name).classList.add('active');
-  btn.classList.add('active');renderAll();
+  if(btn)btn.classList.add('active');renderAll();
 }
 function addExp(v){
   gameData.hero.exp+=v;
@@ -1667,7 +1667,8 @@ function applyGoldWithDebt(amount){
 
 
 function isBattleConsumableInventory(inv){
-  const shop=gameData.shopItems.find(x=>x.id===inv.itemId);
+  repairRuntimeData();
+  const shop=gameData.shopItems.find(x=>x.id===inv?.itemId);
   return !!shop?.battleConsumable;
 }
 function battleConsumableCount(name){
@@ -3044,7 +3045,50 @@ function renderDungeon(){
   el.insertAdjacentHTML('beforeend',skillLoadoutHTML());
   setTimeout(()=>startDungeonIdleAnimation(m,evt),0);
 }
+
+function repairRuntimeData(){
+  if(!gameData||typeof gameData!=='object')gameData=defaultData();
+  if(!gameData.hero)gameData.hero=defaultData().hero;
+  if(!gameData.hero.stats)gameData.hero.stats={str:10,agi:10,int:10,will:10};
+  if(gameData.hero.gold==null)gameData.hero.gold=0;
+  if(gameData.hero.lotteryCoins==null)gameData.hero.lotteryCoins=0;
+
+  if(!Array.isArray(gameData.shopItems))gameData.shopItems=[];
+  if(!Array.isArray(gameData.inventory))gameData.inventory=[];
+  if(!Array.isArray(gameData.couponRequests))gameData.couponRequests=[];
+  if(!Array.isArray(gameData.lotteryPool))gameData.lotteryPool=[];
+  if(!Array.isArray(gameData.events))gameData.events=[];
+  if(!Array.isArray(gameData.tasks))gameData.tasks=[];
+  if(!Array.isArray(gameData.taskRecords))gameData.taskRecords=[];
+  if(!Array.isArray(gameData.monsters))gameData.monsters=[];
+  if(!Array.isArray(gameData.battleRecords))gameData.battleRecords=[];
+  if(!Array.isArray(gameData.learningProgress))gameData.learningProgress=[];
+
+  if(!gameData.settings)gameData.settings={};
+  if(!gameData.settings.cloud)gameData.settings.cloud={
+    enabled:false,apiKey:'',authDomain:'',projectId:'',
+    storageBucket:'',messagingSenderId:'',appId:''
+  };
+  if(!gameData.settings.familyAccess)gameData.settings.familyAccess={enabled:true};
+  if(!gameData.settings.holidayTower)gameData.settings.holidayTower={dailyLimit:3};
+
+  if(!gameData.skillBookOffers||typeof gameData.skillBookOffers!=='object')
+    gameData.skillBookOffers={date:'',items:[]};
+  if(!Array.isArray(gameData.skillBookOffers.items))gameData.skillBookOffers.items=[];
+
+  // 若舊測試檔沒有正式抽獎池，補預設池。
+  if(!gameData.lotteryPool.length){
+    gameData.lotteryPool=[
+      {id:uid(),label:'🍦 吃冰淇淋',weight:35,stock:0,active:true},
+      {id:uid(),label:'🎮 NS 1小時',weight:30,stock:0,active:true},
+      {id:uid(),label:'🥩 吃牛排',weight:15,stock:1,active:true},
+      {id:uid(),label:'🛍️ 逛 LaLaport',weight:10,stock:1,active:true}
+    ];
+  }
+}
+
 function renderShop(){
+  repairRuntimeData();
   let html='<h2>🏪 兌換商店</h2>';
   ensureDailySkillBookOffers();
   gameData.shopItems.filter(i=>i.active).forEach(i=>{
@@ -3062,6 +3106,7 @@ function renderShop(){
   document.getElementById('panel-shop').innerHTML=html;
 }
 function renderLottery(){
+  repairRuntimeData();
   document.getElementById('panel-lottery').innerHTML=`
     <h2>🎰 勇者抽獎機</h2>
     <div class="card">
@@ -3075,6 +3120,7 @@ function renderLottery(){
     </div>`;
 }
 function renderBag(){
+  repairRuntimeData();
   let html='<h2>🎒 背包</h2>';
   if(!gameData.inventory.length)html+='<div class="card small">背包目前是空的。</div>';
   gameData.inventory.forEach(inv=>{
@@ -3109,6 +3155,7 @@ function addSemesterEvent(){
 }
 
 function renderGM(){
+  repairRuntimeData();
   if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
   if(!gameData.settings.parentPinHash){renderParentPinSetup();return;}
   if(sessionStorage.getItem('parentUnlocked')!=='1'){renderParentLock();return;}
@@ -3124,6 +3171,7 @@ function renderGM(){
 
   document.getElementById('panel-gm').innerHTML=`
     <h2>🛠️ 家長控制後台</h2>
+    <div class="card small">🔧 V10.10.3 資料保護：舊測試存檔缺少商店／背包／抽獎欄位時會自動補齊；單一頁面錯誤不再拖垮其他分頁。</div>
     <div class="card"><strong>📅 2026 秋季正式學期</strong>
       <div class="small">正式上線：2026/08/31｜Season：2026_FALL｜AUTO怪物週數從 8/31 起算。</div>
       <div class="small">8/31 第一次開啟會捨棄本機測試角色與測試經濟；雲端也使用新的 Season 路徑，不會讀回測試檔。</div>
@@ -3628,7 +3676,23 @@ function resetAll(){
     localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(FAMILY_KEY);sessionStorage.removeItem('activeHeroProfile');location.reload();
   }
 }
-function renderAll(){renderHero();renderTasks();renderDungeon();renderShop();renderLottery();renderBag();renderGM();startLiveTimer();startStatusClock();}
+function renderAll(){
+  repairRuntimeData();
+  const jobs=[
+    ['狀態',renderHero],['任務',renderTasks],['副本',renderDungeon],
+    ['商店',renderShop],['抽獎',renderLottery],['背包',renderBag],['家長後台',renderGM]
+  ];
+  for(const [name,fn] of jobs){
+    try{fn();}
+    catch(e){
+      console.error(`Render ${name} failed`,e);
+      const panelMap={'狀態':'hero','任務':'tasks','副本':'dungeon','商店':'shop','抽獎':'lottery','背包':'bag','家長後台':'gm'};
+      const el=document.getElementById('panel-'+panelMap[name]);
+      if(el)el.innerHTML=`<div class="card bad"><strong>⚠️ ${name}載入失敗</strong><div class="small">${String(e?.message||e)}</div></div>`;
+    }
+  }
+  startLiveTimer();startStatusClock();
+}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTasks();startLiveTimer();}});
 function ensureHolidayTower(){
   if(!gameData.holidayTower)gameData.holidayTower={date:today(),runsUsed:0,bestFloor:0};
