@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.6</title>
+<title>小學勇者大冒險 V10.10.7</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -634,7 +634,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.6</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10.7</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1842,13 +1842,23 @@ function taskCountsTowardBossOn(t,dateStr){
   return t.countForBossOnNonSchoolDay===true;
 }
 
+function bossCutoffDate(kind='midterm'){
+  const sem=gameData.semester||{};
+  const dates=[
+    ...(sem.events||[]).filter(e=>e.type===kind).map(e=>e.date),
+    ...(gameData.events||[]).filter(e=>e.type===kind&&e.active!==false).map(e=>e.date)
+  ].filter(Boolean).sort();
+  if(dates.length)return dates[dates.length-1];
+  return kind==='final'?(sem.endDate||'2027-01-14'):'2026-11-06';
+}
 function theoreticalLearningRequirement(kind='midterm'){
   const sem=gameData.semester||{};
-  const events=(sem.events||[]).filter(e=>e.type===kind).sort((a,b)=>a.date.localeCompare(b.date));
-  const cutoff=events[0]?.date || (kind==='final'?sem.endDate:today());
-  const start=sem.startDate||today();
+  const cutoff=bossCutoffDate(kind);
+  const start=sem.startDate||OFFICIAL_LAUNCH_DATE;
   let expected=0,scheduledCount=0,excludedDays=0;
   const d0=new Date(start+'T12:00:00'),d1=new Date(cutoff+'T12:00:00');
+  if(!Number.isFinite(d0.getTime())||!Number.isFinite(d1.getTime())||d1<d0)
+    return {expected:0,scheduledCount:0,excludedDays:0,start,cutoff};
   for(let d=new Date(d0);d<=d1;d.setDate(d.getDate()+1)){
     const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     if(isNoStudyCalendarDay(ds)){excludedDays++;continue;}
@@ -1872,7 +1882,7 @@ function learningCompletionRatio(kind='midterm'){
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
     return sum+(DIFFICULTY_POINTS[t?.difficulty]||3);
   },0);
-  return req.expected>0?Math.min(1.2,approvedPoints/req.expected):1;
+  return req.expected>0?Math.min(1.2,approvedPoints/req.expected):0;
 }
 
 function bossLearningReport(kind='midterm'){
@@ -1883,7 +1893,7 @@ function bossLearningReport(kind='midterm'){
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
     if(t&&taskCountsTowardBossOn(t,r.date))approved+=(DIFFICULTY_POINTS[t.difficulty]||3);
   });
-  const ratio=req.expected?approved/req.expected:1;
+  const ratio=req.expected?approved/req.expected:0;
   return {required:req.expected,approved,ratio,excludedDays:req.excludedDays,cutoff:req.cutoff};
 }
 
@@ -1909,7 +1919,7 @@ const SEMESTER_BALANCE = {
   targetCompletion: .75,
   dailyVariance: .035,
   difficultyMultipliers: {easy:.88, normal:.94, hard:1.02, elite:1.08},
-  eventMultipliers: {daily:1.00, midterm:1.08, final:1.12},
+  eventMultipliers: {daily:1.00, midterm:1.18, final:1.30},
   minPower: 70
 };
 
@@ -1940,30 +1950,29 @@ function expectedDailyStatBudget(){
   return clampBattle(sum,2,18);
 }
 
-function expectedSemesterPower(){
-  const info=semesterProgressInfo();
+function expectedSemesterPowerAt(dateStr=today()){
+  const sem=gameData.semester||{};
+  const start=dateOnlyBattle(sem.startDate||OFFICIAL_LAUNCH_DATE);
+  const target=dateOnlyBattle(dateStr);
   const baseStats={str:10,agi:10,int:10,will:10};
+  if(!start||!target)return 79;
   const budget=expectedDailyStatBudget()*SEMESTER_BALANCE.targetCompletion;
-  // 依目前家庭任務結構估計五戰鬥能力的平均成長。
   const active=(gameData.tasks||[]).filter(t=>t.active!==false && t.rewardMode==='auto');
   let weights={str:0,agi:0,int:0,will:0}, total=0;
   active.forEach(t=>{
     const map=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType||'simple');
     Object.entries(map).forEach(([k,v])=>{
-      if(k!=='virtue'){weights[k]=(weights[k]||0)+(Number(v)||0); total+=Number(v)||0;}
+      if(k!=='virtue'){weights[k]=(weights[k]||0)+(Number(v)||0);total+=Number(v)||0;}
     });
   });
   if(total<=0){weights={str:.25,agi:.25,int:.25,will:.25};total=1;}
-  const elapsed=Math.max(0,info.day-1);
+  const elapsed=Math.max(0,daysBetweenBattle(start,target));
   Object.keys(baseStats).forEach(k=>{
     baseStats[k]+=elapsed*budget*((weights[k]||0)/total);
   });
-  // 與 combatPower() 同尺度的簡化預期值。
-  return Math.round(
-    baseStats.str*2.2 + baseStats.agi*2.0 + baseStats.int*1.8 +
-    baseStats.will*1.9
-  );
+  return Math.round(baseStats.str*2.2+baseStats.agi*2.0+baseStats.int*1.8+baseStats.will*1.9);
 }
+function expectedSemesterPower(){return expectedSemesterPowerAt(today());}
 
 function deterministicDailyVariance(){
   const s=today().replaceAll('-','');
@@ -1972,12 +1981,16 @@ function deterministicDailyVariance(){
 }
 
 function generatedMonsterPower(kind='daily',difficulty='normal'){
-  const expected=Math.max(SEMESTER_BALANCE.minPower,expectedSemesterPower());
+  const targetDate=kind==='midterm'?bossCutoffDate('midterm'):kind==='final'?bossCutoffDate('final'):today();
+  const expected=Math.max(SEMESTER_BALANCE.minPower,expectedSemesterPowerAt(targetDate));
   const diff=SEMESTER_BALANCE.difficultyMultipliers[difficulty]||SEMESTER_BALANCE.difficultyMultipliers.normal;
   const evt=SEMESTER_BALANCE.eventMultipliers[kind]||1;
   return Math.max(SEMESTER_BALANCE.minPower,Math.round(expected*diff*evt*(1+deterministicDailyVariance())));
 }
 
+function eventSuggestedPower(type='midterm'){
+  return generatedMonsterPower(type==='final'?'final':'midterm','normal');
+}
 function actualVsExpectedStatus(monsterPower){
   const ratio=combatPower()/Math.max(1,monsterPower);
   if(ratio>=1.15)return {label:'🟢 優勢戰',cls:'good'};
@@ -3209,8 +3222,8 @@ function renderGM(){
       <div style="margin-top:8px">
         今日預期戰力：<b>${expectedSemesterPower()}</b>｜
         普通怪：<b>${generatedMonsterPower('daily','normal')}</b>｜
-        期中 Boss：<b>${generatedMonsterPower('midterm','normal')}</b>｜
-        期末 Boss：<b>${generatedMonsterPower('final','normal')}</b>
+        期中 Boss 預估：<b>${generatedMonsterPower('midterm','normal')}</b>｜
+        期末 Boss 預估：<b>${generatedMonsterPower('final','normal')}</b>
       </div>
 
     <div class="card">
