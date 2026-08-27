@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.6</title>
+<title>小學勇者大冒險 V10.10</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -634,7 +634,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.6</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -676,8 +676,50 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </div>
 
 <script>
+const OFFICIAL_LAUNCH_DATE='2026-08-31';
+const CURRENT_SEASON_ID='2026_FALL';
+const OFFICIAL_SEASON_MARKER='studyRPG_official_2026_fall';
+function isOfficialSeasonStarted(){ return today()>=OFFICIAL_LAUNCH_DATE; }
+function officialSeasonWeek(){
+  const a=new Date(OFFICIAL_LAUNCH_DATE+'T12:00:00');
+  const b=new Date(today()+'T12:00:00');
+  return Math.max(1,Math.floor((b-a)/604800000)+1);
+}
+
 const ASSET_VERSION='20260826_1';
 function asset(path){return `${path}?v=${ASSET_VERSION}`;}
+
+const HERO_ASSET_MAP={
+  '見習勇者':'novice',
+  '戰士':'warrior',
+  '法師':'mage',
+  '牧師':'priest',
+  '獵人':'hunter',
+  '盜賊':'rogue',
+  '聖騎士':'paladin',
+  '魔劍士':'spellblade'
+};
+function heroAssetKey(){
+  return HERO_ASSET_MAP[gameData?.hero?.heroClass||'見習勇者']||'novice';
+}
+function heroIdleFrames(){
+  const key=heroAssetKey();
+  return [1,2,3,4].map(n=>asset(`images/${key}_idle_${n}.png`));
+}
+
+function loadSpriteWithFallback(img,primary,fallback){
+  img.onerror=()=>{
+    img.onerror=null;
+    img.src=fallback;
+  };
+  img.src=primary;
+}
+
+function heroAttackFrames(){
+  const key=heroAssetKey();
+  return [1,2,3,4].map(n=>asset(`images/${key}_attack_${n}.png`));
+}
+
 
 const STORAGE_KEY='heroRPG_V2';
 
@@ -711,13 +753,13 @@ function defaultData(){
       {
         id:uid(),name:'國語生字練習',description:'完成今日生字練習',
         subject:'國語',progressType:'生字練習',progressValue:'第1課',
-        goldReward:20,expReward:10,dailyLimit:1,active:true,
+        goldReward:2,expReward:10,dailyLimit:1,active:true,
         statRules:[{maxMinutes:30,stat:'agi',value:5},{maxMinutes:60,stat:'agi',value:1}]
       },
       {
         id:uid(),name:'數學複習',description:'完成今天的數學複習',
         subject:'數學',progressType:'複習進度',progressValue:'第一單元',
-        goldReward:20,expReward:12,dailyLimit:1,active:true,
+        goldReward:2,expReward:12,dailyLimit:1,active:true,
         statRules:[{maxMinutes:45,stat:'int',value:3},{maxMinutes:90,stat:'int',value:1}]
       }
     ],
@@ -725,25 +767,25 @@ function defaultData(){
     taskRecords:[],
     learningProgress:[],
     shopItems:[
-      {id:uid(),name:'NS 30分鐘兌換券',price:100,description:'Nintendo Switch 30 分鐘',dailyLimit:1,active:true},
-      {id:uid(),name:'電視 30分鐘兌換券',price:80,description:'看電視 30 分鐘',dailyLimit:1,active:true}
+      {id:uid(),name:'NS 30分鐘兌換券',price:20,description:'Nintendo Switch 30 分鐘',dailyLimit:1,active:true},
+      {id:uid(),name:'電視 30分鐘兌換券',price:16,description:'看電視 30 分鐘',dailyLimit:1,active:true}
     ],
     inventory:[],
     couponRequests:[],
     monsters:[
-      {id:uid(),name:'哥布林隊長',power:65,rewardGold:15,rewardExp:15,active:true},
-      {id:uid(),name:'獸人戰士',power:80,rewardGold:20,rewardExp:20,active:true},
-      {id:uid(),name:'黑暗騎士',power:100,rewardGold:25,rewardExp:25,active:true}
+      {id:uid(),name:'哥布林隊長',power:65,rewardGold:3,rewardExp:15,active:true},
+      {id:uid(),name:'獸人戰士',power:80,rewardGold:4,rewardExp:20,active:true},
+      {id:uid(),name:'黑暗騎士',power:100,rewardGold:5,rewardExp:25,active:true}
     ],
     dailyDungeon:{date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''},
     battleRecords:[],
     events:[
       {id:uid(),date:'2026-08-31',type:'start',name:'第一學期冒險開始',power:0,rewardGold:0,rewardExp:0,active:true},
-      {id:uid(),date:'2026-11-05',type:'midterm',name:'第一次定期評量・大魔王 I',power:220,rewardGold:100,rewardExp:120,active:true},
-      {id:uid(),date:'2026-11-06',type:'midterm',name:'第一次定期評量・大魔王 II',power:235,rewardGold:120,rewardExp:140,active:true},
-      {id:uid(),date:'2026-12-19',type:'special',name:'校慶特別活動',power:120,rewardGold:80,rewardExp:80,active:true},
-      {id:uid(),date:'2027-01-13',type:'final',name:'期末惡龍・第一戰',power:320,rewardGold:180,rewardExp:200,active:true},
-      {id:uid(),date:'2027-01-14',type:'final',name:'期末惡龍・最終戰',power:350,rewardGold:220,rewardExp:240,active:true},
+      {id:uid(),date:'2026-11-05',type:'midterm',name:'第一次定期評量・大魔王 I',power:220,rewardGold:10,rewardExp:120,active:true},
+      {id:uid(),date:'2026-11-06',type:'midterm',name:'第一次定期評量・大魔王 II',power:235,rewardGold:12,rewardExp:140,active:true},
+      {id:uid(),date:'2026-12-19',type:'special',name:'校慶特別活動',power:120,rewardGold:8,rewardExp:80,active:true},
+      {id:uid(),date:'2027-01-13',type:'final',name:'期末惡龍・第一戰',power:320,rewardGold:18,rewardExp:200,active:true},
+      {id:uid(),date:'2027-01-14',type:'final',name:'期末惡龍・最終戰',power:350,rewardGold:22,rewardExp:240,active:true},
       {id:uid(),date:'2027-01-20',type:'end',name:'第一學期結算',power:0,rewardGold:0,rewardExp:0,active:true},
       {id:uid(),date:'2027-02-11',type:'start',name:'第二學期開始',power:0,rewardGold:0,rewardExp:0,active:true}
     ],
@@ -755,17 +797,51 @@ function defaultData(){
       }
     },
     lotteryPool:[
-      {id:uid(),type:'gold',label:'金幣 +30',value:30,weight:50},
-      {id:uid(),type:'gold',label:'金幣 +60',value:60,weight:25},
-      {id:uid(),type:'shop',label:'隨機商店兌換券',value:'random',weight:20},
-      {id:uid(),type:'gold',label:'金幣 +150',value:150,weight:5}
+      {id:uid(),label:'🍦 吃冰淇淋',weight:35,stock:0,active:true},
+      {id:uid(),label:'🎮 NS 1小時',weight:30,stock:0,active:true},
+      {id:uid(),label:'🥩 吃牛排',weight:15,stock:1,active:true},
+      {id:uid(),label:'🛍️ 逛 LaLaport',weight:10,stock:1,active:true}
     ]
   };
 }
 const FAMILY_KEY='heroRPG_FAMILY_V8';
-let familyData=loadFamilyData();
+
+function makeFreshOfficialFamily(){
+  const d=defaultData();
+  d.season={id:CURRENT_SEASON_ID,launchDate:OFFICIAL_LAUNCH_DATE,official:true};
+  d.hero.gold=0; d.hero.lotteryCoins=0;
+  migrateProfileData(d);
+  return {version:10,seasonId:CURRENT_SEASON_ID,activeProfileId:'hero_1',
+    profiles:[{id:'hero_1',label:'新勇者',data:d}],
+    access:{ownerUid:'',members:{}}};
+}
+function applyOfficialFreshStartIfNeeded(){
+  if(!isOfficialSeasonStarted())return null;
+  if(localStorage.getItem(OFFICIAL_SEASON_MARKER)===CURRENT_SEASON_ID)return null;
+  localStorage.removeItem(FAMILY_KEY);
+  localStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem('activeHeroProfile');
+  localStorage.setItem(OFFICIAL_SEASON_MARKER,CURRENT_SEASON_ID);
+  return makeFreshOfficialFamily();
+}
+const __officialFreshFamily=applyOfficialFreshStartIfNeeded();
+
+let familyData=__officialFreshFamily||loadFamilyData();
 let activeProfileId=sessionStorage.getItem('activeHeroProfile')||familyData.activeProfileId||familyData.profiles[0].id;
 let gameData=getActiveProfile().data;
+
+
+function ensureFamilyAccessModel(){
+  familyData.access=familyData.access||{ownerUid:'',members:{}};
+  return familyData.access;
+}
+function familyRole(uid){
+  const a=ensureFamilyAccessModel();
+  return a.members?.[uid]?.role||(a.ownerUid===uid?'owner':'');
+}
+function canFamilyManage(uid){
+  return ['owner','parent'].includes(familyRole(uid));
+}
 
 function loadFamilyData(){
   try{
@@ -782,7 +858,7 @@ function getActiveProfile(){
   return p;
 }
 function persistFamily(){
-  familyData.activeProfileId=activeProfileId;
+  familyData.version=Math.max(10,Number(familyData.version)||0);familyData.seasonId=CURRENT_SEASON_ID;familyData.activeProfileId=activeProfileId;
   const p=getActiveProfile(); p.data=gameData; p.label=gameData.hero?.name||p.label;
   localStorage.setItem(FAMILY_KEY,JSON.stringify(familyData));
   localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData)); // 保留舊版相容備份
@@ -892,10 +968,31 @@ function migrateProfileData(d){
   (d.taskRecords||[]).forEach(r=>{if(!r.approvalStatus)r.approvalStatus='approved';});
   (d.monsters||[]).forEach(m=>{if(!m.difficulty)m.difficulty='normal';});
   if(!d.shopItems.some(x=>x.name==='初級毒藥')){
-    d.shopItems.push({id:uid(),name:'初級毒藥',price:45,description:'戰鬥用毒藥（正式消耗品系統預留）',dailyLimit:2,active:true,battleConsumable:true});
+    d.shopItems.push({id:uid(),name:'初級毒藥',price:8,description:'戰鬥用毒藥（正式消耗品系統預留）',dailyLimit:2,active:true,battleConsumable:true});
   }
   if(!d.settings)d.settings={parentPinHash:'',cloud:{}};
   if(!d.settings.battleTestMultiplier)d.settings.battleTestMultiplier=1;
+  if(!d.season)d.season={id:CURRENT_SEASON_ID,launchDate:OFFICIAL_LAUNCH_DATE,official:isOfficialSeasonStarted()};
+  if(!d.settings.familyAccess)d.settings.familyAccess={enabled:true};
+  (d.tasks||[]).forEach(t=>{if(!t.timerMode)t.timerMode='deadline';});
+  if(!d.hero.knownSkills)d.hero.knownSkills=['power_strike','ember','defense_stance','focus'];
+  if(!d.hero.equippedSkills)d.hero.equippedSkills=['power_strike','ember','defense_stance','focus'];
+  if(!d.hero.jobPassive)d.hero.jobPassive='';
+  if(!d.hero.ultimateSkill)d.hero.ultimateSkill='';
+  if(!d.hero.jobCandidateHistory)d.hero.jobCandidateHistory=[];
+  if(!d.skillBookOffers)d.skillBookOffers={date:'',items:[]};
+  if(!d.settings.holidayTower)d.settings.holidayTower={dailyLimit:3};
+  if((d.lotteryPool||[]).some(x=>x.type==='gold')||(d.lotteryPool||[]).some(x=>String(x.label||'').includes('金幣 +')))d.lotteryPool=[];
+  if(!d.lotteryPool||!d.lotteryPool.length)d.lotteryPool=[
+    {id:uid(),label:'🍦 吃冰淇淋',weight:35,stock:0,active:true},
+    {id:uid(),label:'🎮 NS 1小時',weight:30,stock:0,active:true},
+    {id:uid(),label:'🥩 吃牛排',weight:15,stock:1,active:true},
+    {id:uid(),label:'🛍️ 逛 LaLaport',weight:10,stock:1,active:true}
+  ];
+  d.lotteryPool=d.lotteryPool.map(x=>({
+    id:x.id||uid(),label:x.label||'神秘獎勵',weight:Math.max(1,Number(x.weight)||1),
+    stock:x.stock===undefined?0:Math.max(0,Number(x.stock)||0),active:x.active!==false
+  }));
   if(!d.gmAudit)d.gmAudit=[];
 }
 migrateProfileData(gameData);
@@ -907,7 +1004,7 @@ const BALANCE_CONFIG={
   combatWeights:{str:2,agi:1.5,int:1.5,will:1.5,virtue:0},
   expectedCompletion:0.75,
   taskExp:{greenMax:40,yellowMax:80},
-  taskGold:{greenMax:40,yellowMax:100},
+  taskGold:{greenMax:5,yellowMax:10},
   taskStat:{greenMax:3,yellowMax:6},
   dailyExp:{greenMax:160,yellowMax:260},
   monsterRatio:{
@@ -972,13 +1069,15 @@ function rewardText(map){
 function timerRewardTier(t,minutes){
   const a=Number(t.fastMinutes)||30;
   const b=Number(t.standardMinutes)||60;
-  const fast=Math.min(a,b),standard=Math.max(a,b);
-  if(minutes<=fast){
-    return {key:'excellent',label:'🌟 優秀完成',goldMultiplier:1.5,expMultiplier:1.5,agiBonus:2};
+  const low=Math.min(a,b),high=Math.max(a,b);
+  const mode=t.timerMode||'deadline';
+  if(mode==='duration'){
+    if(minutes>=high)return {key:'excellent',label:'🌟 深度投入',goldMultiplier:1.5,expMultiplier:1.5,agiBonus:0};
+    if(minutes>=low)return {key:'good',label:'✨ 達成練習時間',goldMultiplier:1.2,expMultiplier:1.2,agiBonus:0};
+    return {key:'normal',label:'✅ 完成',goldMultiplier:1,expMultiplier:1,agiBonus:0};
   }
-  if(minutes<=standard){
-    return {key:'good',label:'✨ 快速完成',goldMultiplier:1.2,expMultiplier:1.2,agiBonus:1};
-  }
+  if(minutes<=low)return {key:'excellent',label:'🌟 優秀完成',goldMultiplier:1.5,expMultiplier:1.5,agiBonus:2};
+  if(minutes<=high)return {key:'good',label:'✨ 快速完成',goldMultiplier:1.2,expMultiplier:1.2,agiBonus:1};
   return {key:'normal',label:'✅ 完成',goldMultiplier:1,expMultiplier:1,agiBonus:0};
 }
 function calculateTimedRewards(t,minutes){
@@ -1000,94 +1099,117 @@ function taskAutoRewardMap(t,minutes=null){
   return base;
 }
 const JOB_RULES=[
-  {name:'戰士',kind:'single',core:'str',secondary:'int',skills:['heavy_strike','defense_stance']},
-  {name:'法師',kind:'single',core:'int',secondary:'will',skills:['fireball','mana_guard']},
-  {name:'遊俠',kind:'single',core:'agi',secondary:'int',skills:['double_strike','quickstep']},
-  {name:'聖騎士',kind:'dual',cores:['str','virtue'],secondary:'will',skills:['holy_slash','guardian_stance']},
-  {name:'魔法劍士',kind:'dual',cores:['str','int'],secondary:'agi',skills:['magic_slash','arcane_guard']}
+  {name:'戰士',kind:'single',core:'str',secondary:'int',passive:'warrior_grit',skills:['heavy_strike','guard_break','battle_cry','iron_stance'],ultimate:'limit_break'},
+  {name:'法師',kind:'single',core:'int',secondary:'will',passive:'mana_echo',skills:['fireball','ice_lance','thunderbolt','mana_guard'],ultimate:'meteor'},
+  {name:'牧師',kind:'single',core:'virtue',secondary:'will',passive:'blessing',skills:['holy_light','heal_prayer','purify','sanctuary'],ultimate:'miracle'},
+  {name:'獵人',kind:'dual',cores:['agi','int'],secondary:'will',passive:'hunter_instinct',skills:['aimed_shot','poison_arrow','trap','eagle_eye'],ultimate:'arrow_storm'},
+  {name:'盜賊',kind:'dual',cores:['agi','str'],secondary:'int',passive:'shadow_step',skills:['backstab','venom_blade','bleed_cut','smoke_step'],ultimate:'assassinate'},
+  {name:'聖騎士',kind:'dual',cores:['str','virtue'],secondary:'will',passive:'holy_guard',skills:['holy_slash','guardian_stance','lay_on_hands','judgment'],ultimate:'divine_verdict'},
+  {name:'魔劍士',kind:'dual',cores:['str','int'],secondary:'agi',passive:'spellblade',skills:['magic_slash','flame_edge','frost_edge','arcane_guard'],ultimate:'elemental_break'}
 ];
 const JOB_AWAKEN_CONFIG={
-  minLevel:5,minTaskRecords:10,leadRatio:1.12,
-  minCoreGrowthShare:.32,
-  dualMinEachShare:.20,
-  dualBalanceRatio:.70,
-  combatCoreThreshold:55,
-  overThresholdEfficiency:.40,
-  secondaryCompensation:.35
+  observationDays:28,minTaskRecords:20,stableWeeks:2,leadRatio:1.10,
+  minCoreGrowthShare:.32,dualMinEachShare:.20,dualBalanceRatio:.70,
+  combatCoreThreshold:55,overThresholdEfficiency:.40,secondaryCompensation:.35
 };
 function rawJobStat(key){
   if(key==='virtue')return Number(gameData.hero.virtue)||0;
   return Number(gameData.hero.stats?.[key])||0;
 }
 function jobGrowthValue(key){
-  const base=key==='virtue'?0:10;
-  return Math.max(0,rawJobStat(key)-base);
+  const base=key==='virtue'?0:10; return Math.max(0,rawJobStat(key)-base);
 }
-function totalJobGrowth(){
-  return ['str','int','agi','will','virtue'].reduce((a,k)=>a+jobGrowthValue(k),0);
-}
-function growthShare(key){
-  const total=totalJobGrowth();
-  return total>0?jobGrowthValue(key)/total:0;
-}
+function totalJobGrowth(){return ['str','int','agi','will','virtue'].reduce((a,k)=>a+jobGrowthValue(k),0);}
+function growthShare(key){const t=totalJobGrowth();return t>0?jobGrowthValue(key)/t:0;}
 function dualJobQualified(rule){
   if(rule.kind!=='dual')return true;
-  const [a,b]=rule.cores;
-  const sa=growthShare(a),sb=growthShare(b);
-  const va=jobGrowthValue(a),vb=jobGrowthValue(b);
+  const [a,b]=rule.cores,sa=growthShare(a),sb=growthShare(b),va=jobGrowthValue(a),vb=jobGrowthValue(b);
   const balance=Math.max(va,vb)>0?Math.min(va,vb)/Math.max(va,vb):0;
-  return sa>=JOB_AWAKEN_CONFIG.dualMinEachShare &&
-         sb>=JOB_AWAKEN_CONFIG.dualMinEachShare &&
-         balance>=JOB_AWAKEN_CONFIG.dualBalanceRatio;
+  return sa>=JOB_AWAKEN_CONFIG.dualMinEachShare&&sb>=JOB_AWAKEN_CONFIG.dualMinEachShare&&balance>=JOB_AWAKEN_CONFIG.dualBalanceRatio;
 }
-function jobCoreShare(rule){
-  if(rule.kind==='dual')return Math.min(...rule.cores.map(growthShare));
-  return growthShare(rule.core);
-}
+function jobCoreShare(rule){return rule.kind==='dual'?Math.min(...rule.cores.map(growthShare)):growthShare(rule.core);}
 function jobScore(rule){
   if(rule.kind==='dual'){
     if(!dualJobQualified(rule))return -1;
-    const [a,b]=rule.cores.map(jobGrowthValue);
-    // Harmonic-style score rewards balance and prevents one huge stat carrying the hybrid job.
-    const balanced=(2*a*b)/(a+b||1);
-    return balanced*1.35 + Math.min(a,b)*.25;
+    const [a,b]=rule.cores.map(jobGrowthValue),balanced=(2*a*b)/(a+b||1);
+    return balanced*1.45+Math.min(a,b)*.20;
   }
-  const core=jobGrowthValue(rule.core);
-  const second=jobGrowthValue(rule.secondary);
-  return core + second*.12;
+  return jobGrowthValue(rule.core)+jobGrowthValue(rule.secondary)*.10;
+}
+function currentJobCandidate(){
+  // 複合職優先：符合資格的複合職先競爭；若皆不成立才判純職。
+  const dual=JOB_RULES.filter(j=>j.kind==='dual'&&dualJobQualified(j)).map(j=>({j,score:jobScore(j)})).sort((a,b)=>b.score-a.score);
+  if(dual.length){
+    if(dual.length===1||dual[0].score>=dual[1].score*JOB_AWAKEN_CONFIG.leadRatio)return dual[0].j;
+  }
+  const single=JOB_RULES.filter(j=>j.kind==='single'&&jobCoreShare(j)>=JOB_AWAKEN_CONFIG.minCoreGrowthShare)
+    .map(j=>({j,score:jobScore(j)})).sort((a,b)=>b.score-a.score);
+  if(!single.length)return null;
+  if(single.length===1||single[0].score>=single[1].score*JOB_AWAKEN_CONFIG.leadRatio)return single[0].j;
+  return null;
+}
+function daysSinceSemesterStart(){
+  const a=new Date((gameData.semester?.startDate||today())+'T12:00:00'),b=new Date(today()+'T12:00:00');
+  return Math.max(0,Math.floor((b-a)/86400000));
+}
+function recordJobCandidateSnapshot(){
+  const c=currentJobCandidate(),week=semesterWeekIndex();
+  if(!c)return null;
+  const h=gameData.hero.jobCandidateHistory||(gameData.hero.jobCandidateHistory=[]);
+  const found=h.find(x=>x.week===week);
+  if(found){found.job=c.name;found.date=today();} else h.push({week,job:c.name,date:today()});
+  return c;
+}
+function stableCandidateWeeks(name){
+  const h=[...(gameData.hero.jobCandidateHistory||[])].sort((a,b)=>b.week-a.week);
+  let count=0,last=null;
+  for(const x of h){
+    if(x.job!==name)break;
+    if(last!==null&&x.week!==last-1)break;
+    count++;last=x.week;
+  }
+  return count;
 }
 function jobEffectiveCoreValue(rule){
-  const keys=rule.kind==='dual'?rule.cores:[rule.core];
-  const vals=keys.map(k=>effectiveStat(rawJobStat(k)));
-  const core=rule.kind==='dual'?Math.min(...vals):vals[0];
-  const second=effectiveStat(rawJobStat(rule.secondary));
+  const keys=rule.kind==='dual'?rule.cores:[rule.core],vals=keys.map(k=>effectiveStat(rawJobStat(k)));
+  const core=rule.kind==='dual'?Math.min(...vals):vals[0],second=effectiveStat(rawJobStat(rule.secondary));
   const t=JOB_AWAKEN_CONFIG.combatCoreThreshold;
-  const effectiveCore=core<=t?core:t+(core-t)*JOB_AWAKEN_CONFIG.overThresholdEfficiency;
-  return effectiveCore+second*JOB_AWAKEN_CONFIG.secondaryCompensation;
-}
-function unlockAwakenedJobSkills(){
-  const h=gameData.hero;
-  const rule=JOB_RULES.find(j=>j.name===h.heroClass);
-  if(!rule)return;
-  h.skills=[...new Set([...(h.skills||[]),...rule.skills])];
+  return (core<=t?core:t+(core-t)*JOB_AWAKEN_CONFIG.overThresholdEfficiency)+second*JOB_AWAKEN_CONFIG.secondaryCompensation;
 }
 function evaluateHiddenJob(showNotice=true){
   const h=gameData.hero;if(!h||h.jobAwakened)return;
-  const count=(gameData.taskRecords||[]).length;
-  if(h.level<JOB_AWAKEN_CONFIG.minLevel || count<JOB_AWAKEN_CONFIG.minTaskRecords){
-    h.heroClass='見習勇者';return;
-  }
-  const scored=JOB_RULES.map(j=>({j,score:jobScore(j),coreShare:jobCoreShare(j),qualified:j.kind==='dual'?dualJobQualified(j):true}))
-    .filter(x=>x.score>=0).sort((a,b)=>b.score-a.score);
-  h.jobScores=Object.fromEntries(JOB_RULES.map(j=>[j.name,Math.round(Math.max(0,jobScore(j))*10)/10]));
-  if(scored.length<2)return;
-  const winner=scored[0];
-  if(winner.score < scored[1].score*JOB_AWAKEN_CONFIG.leadRatio)return;
-  if(winner.j.kind==='single' && winner.coreShare < JOB_AWAKEN_CONFIG.minCoreGrowthShare)return;
-  if(winner.j.kind==='dual' && !winner.qualified)return;
-  h.heroClass=winner.j.name;h.jobAwakened=true;
-  unlockAwakenedJobSkills();
-  if(showNotice)alert(`✨ 職業覺醒！\n${h.name} 成為【${h.heroClass}】！\n已解鎖新的職業技能。`);
+  h.heroClass='見習勇者';
+  if(daysSinceSemesterStart()<JOB_AWAKEN_CONFIG.observationDays||(gameData.taskRecords||[]).length<JOB_AWAKEN_CONFIG.minTaskRecords)return;
+  const candidate=recordJobCandidateSnapshot(); if(!candidate)return;
+  if(stableCandidateWeeks(candidate.name)<JOB_AWAKEN_CONFIG.stableWeeks)return;
+  h.heroClass=candidate.name;h.jobAwakened=true;h.jobPassive=candidate.passive;
+  h.skills=[...(h.skills||[])]; // 舊欄位保留相容性；職業主動技能改由技能書學習
+  if(showNotice)alert(`✨ 職業覺醒！\n${h.name} 成為【${h.heroClass}】！\n獲得常駐被動技能；職業技能書已加入掉落池。`);
+}
+
+function examEventsOfType(type){
+  return (gameData.events||[]).filter(e=>e.type===type).slice().sort((a,b)=>a.date.localeCompare(b.date));
+}
+function examDayNumber(type,date=today()){
+  const arr=examEventsOfType(type);const i=arr.findIndex(e=>e.date===date);
+  return i<0?0:i+1;
+}
+function isFinalExamDay(type,date=today()){
+  const arr=examEventsOfType(type);return arr.length>0&&arr[arr.length-1].date===date;
+}
+function examPhaseLabel(type,date=today()){
+  const n=examDayNumber(type,date);if(!n)return '';
+  return isFinalExamDay(type,date)?`Day ${n}・決戰`:`Day ${n}・前半戰`;
+}
+
+function maybeUnlockUltimate(){
+  const h=gameData.hero;if(!h.jobAwakened||h.ultimateSkill)return;
+  const mids=examEventsOfType('midterm');if(!mids.length)return;
+  const lastDate=mids[mids.length-1].date;
+  const midDone=(gameData.battleRecords||[]).some(r=>r.eventType==='midterm'&&r.date===lastDate&&r.result==='win');
+  if(!midDone)return;
+  const rule=JOB_RULES.find(j=>j.name===h.heroClass);if(!rule)return;
+  h.ultimateSkill=rule.ultimate;
 }
 
 function formatElapsed(ms){
@@ -1464,8 +1586,11 @@ function finishTask(taskId){
     const gains=applyRewardMap(taskAutoRewardMap(t,minutes));
     statGain={multi:true,gains};
   }else{
-    for(const r of [...(t.statRules||[])].sort((a,b)=>a.maxMinutes-b.maxMinutes)){
-      if(minutes<=r.maxMinutes){statGain=r;break;}
+    const ordered=[...(t.statRules||[])].sort((a,b)=>a.maxMinutes-b.maxMinutes);
+    if((t.timerMode||'deadline')==='duration'){
+      for(const r of ordered.slice().reverse()){if(minutes>=r.maxMinutes){statGain=r;break;}}
+    }else{
+      for(const r of ordered){if(minutes<=r.maxMinutes){statGain=r;break;}}
     }
     if(statGain){
       const val=Number(statGain.value)||0;
@@ -1512,7 +1637,15 @@ function reverseExp(amount){
 function reviewTaskRecord(recordId,approved){
   const r=(gameData.taskRecords||[]).find(x=>x.id===recordId);
   if(!r||r.approvalStatus!=='pending')return;
-  if(approved){r.approvalStatus='approved';saveGame();renderGM();return;}
+  if(approved){
+    r.approvalStatus='approved';
+    const excellent=r.rewards?.timerTier==='excellent';
+    if(excellent){
+      if(Math.random()<.08)gameData.hero.lotteryCoins+=1;
+      maybeDropSkillBook(.06,'優秀任務獎勵');
+    }
+    saveGame();renderAll();return;
+  }
   const rb=r.rollback||{};
   const statMap=rb.statGain||{};
   Object.entries(statMap).forEach(([k,v])=>{
@@ -1603,28 +1736,22 @@ function weightedPick(items){
   return items[items.length-1];
 }
 function rollDungeonDrop(rating=1){
-  const pools={
-    3:[{type:'coupon',weight:45},{type:'lottery',weight:35},{type:'gold',weight:20}],
-    2:[{type:'coupon',weight:25},{type:'lottery',weight:25},{type:'gold',weight:50}],
-    1:[{type:'lottery',weight:12},{type:'gold',weight:88}]
-  };
-  const p=weightedPick(pools[rating]||pools[1]);
-  if(!p)return null;
-  if(p.type==='gold'){
-    const base=rating===3?35:rating===2?25:15;
-    const amount=base+Math.floor(Math.random()*(rating===3?41:21));
-    gameData.hero.gold+=amount;
-    return {type:'gold',label:`金幣 +${amount} G`,value:amount};
+  // 技能書是獨立稀有掉落；S評級較高，且只掉尚未學會的職業技能。
+  const book=maybeDropSkillBook(rating===3?.14:rating===2?.06:.02,'每日戰鬥掉落');
+  if(book)return book;
+  // 抽獎幣不是爛獎：只有優秀表現才有低機率出現。
+  if(rating===3&&Math.random()<.10){gameData.hero.lotteryCoins+=1;return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};}
+  const couponChance=rating===3?.45:rating===2?.25:.10;
+  if(Math.random()<couponChance){
+    const available=gameData.shopItems.filter(x=>x.active&&!x.battleConsumable);
+    if(available.length){
+      const item=available[Math.floor(Math.random()*available.length)];
+      gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});
+      return {type:'coupon',label:item.name,value:item.id};
+    }
   }
-  if(p.type==='coupon'){
-    const available=gameData.shopItems.filter(x=>x.active);
-    if(!available.length){gameData.hero.gold+=30;return {type:'gold',label:'金幣 +30 G',value:30};}
-    const item=available[Math.floor(Math.random()*available.length)];
-    gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});
-    return {type:'coupon',label:item.name,value:item.id};
-  }
-  gameData.hero.lotteryCoins+=1;
-  return {type:'lottery',label:'抽獎金幣 ×1',value:1};
+  const amount=rating===3?5+Math.floor(Math.random()*6):rating===2?3+Math.floor(Math.random()*3):1+Math.floor(Math.random()*3);
+  gameData.hero.gold+=amount;return {type:'gold',label:`金幣 +${amount} G`,value:amount};
 }
 function calculateBattleRating(win,heroHp,heroMaxHp,rounds){
   if(!win)return 0;
@@ -1863,17 +1990,99 @@ function actualVsExpectedStatus(monsterPower){
 }
 
 function resolvedDungeonPower(evt,monster){
-  if(evt && Number(evt.power)>0 && evt.manualPower===true) return Number(evt.power);
-  if(evt?.type==='midterm'){
-    return Math.round(generatedMonsterPower('midterm','normal')*bossDifficultyMultiplier('midterm'));
-  }
-  if(evt?.type==='final'){
-    return Math.round(generatedMonsterPower('final','normal')*bossDifficultyMultiplier('final'));
-  }
-  const difficulty=monster?.difficulty||'normal';
-  return generatedMonsterPower('daily',difficulty);
+  if(evt)return Math.max(1,Number(evt.power)||eventSuggestedPower(evt.type||'midterm'));
+  if(gameData.dailyDungeon?.monsterId==='AUTO')return calibratedDailyMonsterPower();
+  if(monster?.power!==undefined)return Math.max(1,Number(monster.power)||1);
+  // 自訂怪物若沒有明確 power，也回到校正版每日曲線。
+  return calibratedDailyMonsterPower();
 }
 
+
+
+// 每日怪設計原則：
+ // 1. 長期：學期週數提供基準曲線
+ // 2. 短期：當日有效任務內容/獎勵量決定當日負荷
+ // 3. 假日與標記國定假日不套平日強度
+ // 4. 計時任務的「優秀完成加成」不預先灌進怪物，讓優秀表現形成實際優勢
+ // 5. 角色戰力只小幅安全修正，避免怪物完全追蹤玩家
+const DUNGEON_GROWTH_CONFIG={
+  // 初始勇者約 41 戰力。第一週普通怪以 40 左右起跑。
+  firstWeekBase:40,
+  weeklyGrowth:0.16,        // 每週約 +16%
+  sundayBossBonus:1.28,    // 保留給獨立週Boss事件使用；每日AUTO怪不直接套用
+  minPower:32,
+  learningInfluence:.35    // 學習量影響，但不讓怪完全追著角色膨脹
+};
+function semesterProgressWeek(){
+  const configured=gameData.semester?.startDate;
+  const start=(!configured||configured<OFFICIAL_LAUNCH_DATE)?OFFICIAL_LAUNCH_DATE:configured;
+  const a=new Date(start+'T12:00:00'),b=new Date(today()+'T12:00:00');
+  return Math.max(1,Math.floor((b-a)/604800000)+1);
+}
+function todayEffectiveTaskLoad(){
+  const t=today();
+  const tasks=(gameData.tasks||[]).filter(x=>{
+    if(x.active===false)return false;
+    // 有日期的任務只算今天；無日期的固定/每日任務維持相容。
+    if(x.date&&x.date!==t)return false;
+    return true;
+  });
+
+  let load=0;
+  for(const task of tasks){
+    // 優先使用任務本身的能力獎勵總量，這最接近孩子今天完成後實際會得到的成長。
+    const rewards=task.rewards||task.statRewards||{};
+    const statGain=['str','int','agi','will','virtue'].reduce((s,k)=>s+(Number(rewards[k])||0),0);
+
+    // 若舊任務沒有能力獎勵資料，才依難度回推負荷。
+    const difficultyFallback={
+      easy:1,normal:3,medium:3,hard:4,challenge:5
+    }[String(task.difficulty||'normal').toLowerCase()]||3;
+
+    let taskLoad=statGain>0?statGain:difficultyFallback;
+
+    // 計時任務只反映「預期工作量」，不預先把優秀完成加成算進怪物。
+    // 優秀加成是孩子完成後的額外優勢，不能被怪物提前吃掉。
+    if(task.timerEnabled||task.timeLimit||task.timerMinutes)taskLoad*=1.05;
+
+    load+=taskLoad;
+  }
+  return {count:tasks.length,load:Math.round(load*100)/100};
+}
+function isNonSchoolDay(){
+  const d=new Date(today()+'T12:00:00'),day=d.getDay();
+  // 週六、週日不列入平日學習強度統計。
+  // 國定假日若由資料/後台標記 holiday=true，也同樣排除平日基準。
+  const holidayMarked=(gameData.calendarDays||[]).some(x=>x.date===today()&&x.holiday===true);
+  return day===0||day===6||holidayMarked;
+}
+function calibratedDailyMonsterPower(){
+  const week=semesterProgressWeek();
+  const cfg=DUNGEON_GROWTH_CONFIG;
+
+  // 學期週數只提供長期底盤，不直接決定今天一定多難。
+  const weeklyBase=cfg.firstWeekBase*Math.pow(1+cfg.weeklyGrowth,week-1);
+
+  // 今日任務是每日怪強度的主要短期依據。
+  const taskInfo=todayEffectiveTaskLoad();
+  // 約以「普通一天 4 個普通任務 ≈ load 12」為中性值。
+  // 少任務會下降，多任務會提高；限制上下界避免極端排程炸掉難度。
+  const neutralLoad=12;
+  const taskRatio=taskInfo.load>0?taskInfo.load/neutralLoad:.70;
+  const taskFactor=Math.max(.72,Math.min(1.38,.72+taskRatio*.28));
+
+  // 假日/國定假日不使用平日強度要求；若仍有自訂任務，只溫和反映其負荷。
+  const calendarFactor=isNonSchoolDay() ? .88 : 1.0;
+
+  // 角色成長只做很小的安全修正，避免「孩子變強，怪同步變強」。
+  const cp=Math.max(1,combatPower());
+  const growthFactor=1+(Math.max(0,cp-41)/100)*cfg.learningInfluence;
+
+  return Math.max(
+    cfg.minPower,
+    Math.round(weeklyBase*taskFactor*calendarFactor*growthFactor)
+  );
+}
 
 const BATTLE_CONFIG={
   maxRounds:30,
@@ -1886,44 +2095,121 @@ const BATTLE_CONFIG={
 let battleStateV10=null;
 
 
-const JOB_SKILL_LIBRARY={
-  heavy_strike:{id:'heavy_strike',name:'重擊',icon:'💢',cost:35,type:'physical',multiplier:1.65,description:'戰士重擊。高倍率物理傷害。'},
-  defense_stance:{id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:10,type:'buff',
-    description:'受到傷害 -35%、格擋率 +15%，持續2回合。',effect:{effectType:'buff',turns:2,mods:{damageTaken:-.35,block:.15}}},
-  fireball:{id:'fireball',name:'火球術',icon:'🔥',cost:35,type:'fire',multiplier:1.65,description:'法師的火元素主力法術。'},
-  mana_guard:{id:'mana_guard',name:'魔力護盾',icon:'🔷',cost:20,type:'buff',
-    description:'受到傷害 -25%，持續3回合。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.25}}},
-  double_strike:{id:'double_strike',name:'連擊',icon:'🏹',cost:30,type:'physical',multiplier:1.45,description:'遊俠高速攻擊。'},
-  quickstep:{id:'quickstep',name:'疾走',icon:'💨',cost:20,type:'buff',
-    description:'閃避率 +12%，持續3回合。',effect:{effectType:'buff',turns:3,mods:{evade:.12}}},
-  holy_slash:{id:'holy_slash',name:'聖光斬',icon:'✨',cost:35,type:'holy',multiplier:1.30,description:'不受 DEF 與元素抗性減免的神聖傷害。'},
-  guardian_stance:{id:'guardian_stance',name:'守護',icon:'🛡️',cost:20,type:'buff',
-    description:'受到傷害 -30%、格擋率 +12%，持續3回合。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.30,block:.12}}},
-  magic_slash:{id:'magic_slash',name:'魔力斬',icon:'🌀',cost:35,type:'wind',multiplier:1.50,description:'魔法劍士的混合戰技。'},
-  arcane_guard:{id:'arcane_guard',name:'奧術防護',icon:'🔮',cost:20,type:'buff',
-    description:'受到傷害 -20%、暴擊率 +8%，持續3回合。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.20,crit:.08}}}
-};
-function availableBattleSkills(){
-  const base=[...BEGINNER_SKILLS];
-  const unlocked=(gameData.hero.skills||[]).map(id=>JOB_SKILL_LIBRARY[id]).filter(Boolean);
-  const byId=new Map();
-  [...base,...unlocked].forEach(s=>byId.set(s.id,s));
-  return [...byId.values()];
-}
-
 const BEGINNER_SKILLS=[
-  {
-    id:'power_strike',name:'全力一擊',icon:'💥',cost:30,type:'physical',
-    description:'140% 物理傷害。'
-  },
-  {
-    id:'ember',name:'火花術',icon:'🔥',cost:35,type:'fire',
-    description:'以智力造成火元素傷害。'
-  },
-  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:10,type:'buff',
-   description:'受到傷害 -35%、格擋率 +15%，持續2回合。',
-   effect:{effectType:'buff',turns:2,mods:{damageTaken:-.35,block:.15}}}
+  {id:'power_strike',name:'全力一擊',icon:'💥',cost:30,type:'physical',multiplier:1.40,description:'140%物理傷害。'},
+  {id:'ember',name:'火花術',icon:'🔥',cost:30,type:'fire',multiplier:1.20,description:'基礎火元素法術。'},
+  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:10,type:'buff',description:'承傷-35%、格擋+15%，2回合。',effect:{effectType:'buff',turns:2,mods:{damageTaken:-.35,block:.15}}},
+  {id:'focus',name:'集中',icon:'🎯',cost:15,type:'buff',description:'暴擊率+10%，3回合。',effect:{effectType:'buff',turns:3,mods:{crit:.10}}}
 ];
+const JOB_SKILL_LIBRARY={
+  heavy_strike:{id:'heavy_strike',name:'重擊',icon:'💢',cost:35,type:'physical',multiplier:1.65,description:'戰士高威力一擊。'},
+  guard_break:{id:'guard_break',name:'破甲斬',icon:'🪓',cost:30,type:'physical',multiplier:1.25,description:'傷害並削弱敵方防禦。'},
+  battle_cry:{id:'battle_cry',name:'戰吼',icon:'📣',cost:20,type:'buff',description:'攻擊提升3回合。',effect:{effectType:'buff',turns:3,mods:{attack:8}}},
+  iron_stance:{id:'iron_stance',name:'鋼鐵架勢',icon:'🛡️',cost:20,type:'buff',description:'承傷降低、格擋提高。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.25,block:.12}}},
+  fireball:{id:'fireball',name:'火球術',icon:'🔥',cost:35,type:'fire',multiplier:1.60,description:'強力火元素法術。'},
+  ice_lance:{id:'ice_lance',name:'冰槍術',icon:'❄️',cost:35,type:'ice',multiplier:1.55,description:'冰元素法術。'},
+  thunderbolt:{id:'thunderbolt',name:'雷擊術',icon:'⚡',cost:40,type:'lightning',multiplier:1.70,description:'高威力雷元素法術。'},
+  mana_guard:{id:'mana_guard',name:'魔力護盾',icon:'🔷',cost:20,type:'buff',description:'承傷降低3回合。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.25}}},
+  holy_light:{id:'holy_light',name:'聖光',icon:'✨',cost:35,type:'holy',multiplier:1.25,description:'無抗性的神聖傷害。'},
+  heal_prayer:{id:'heal_prayer',name:'治癒祈禱',icon:'💚',cost:30,type:'buff',description:'提高生存能力。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.20}}},
+  purify:{id:'purify',name:'淨化',icon:'🕊️',cost:20,type:'buff',description:'提高狀態抗性。',effect:{effectType:'buff',turns:3,mods:{statusRes:.20}}},
+  sanctuary:{id:'sanctuary',name:'聖域',icon:'⛪',cost:35,type:'buff',description:'大幅降低承傷2回合。',effect:{effectType:'buff',turns:2,mods:{damageTaken:-.35}}},
+  aimed_shot:{id:'aimed_shot',name:'瞄準射擊',icon:'🏹',cost:30,type:'physical',multiplier:1.45,description:'精準遠程攻擊。'},
+  poison_arrow:{id:'poison_arrow',name:'毒箭',icon:'☠️',cost:30,type:'physical',multiplier:1.15,description:'獵人的DOT技能。'},
+  trap:{id:'trap',name:'陷阱',icon:'🪤',cost:25,type:'physical',multiplier:1.10,description:'戰術型傷害技能。'},
+  eagle_eye:{id:'eagle_eye',name:'鷹眼',icon:'👁️',cost:20,type:'buff',description:'暴擊與命中思路強化。',effect:{effectType:'buff',turns:3,mods:{crit:.12}}},
+  backstab:{id:'backstab',name:'背刺',icon:'🗡️',cost:30,type:'physical',multiplier:1.55,description:'盜賊爆發傷害。'},
+  venom_blade:{id:'venom_blade',name:'毒刃',icon:'☠️',cost:30,type:'physical',multiplier:1.20,description:'毒系近戰技能。'},
+  bleed_cut:{id:'bleed_cut',name:'割裂',icon:'🩸',cost:30,type:'physical',multiplier:1.25,description:'流血系技能。'},
+  smoke_step:{id:'smoke_step',name:'煙霧步',icon:'💨',cost:20,type:'buff',description:'閃避率提升。',effect:{effectType:'buff',turns:3,mods:{evade:.15}}},
+  holy_slash:{id:'holy_slash',name:'聖光斬',icon:'✨',cost:35,type:'holy',multiplier:1.30,description:'神聖近戰。'},
+  guardian_stance:{id:'guardian_stance',name:'守護',icon:'🛡️',cost:20,type:'buff',description:'承傷降低、格擋提高。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.30,block:.12}}},
+  lay_on_hands:{id:'lay_on_hands',name:'聖療',icon:'🙏',cost:30,type:'buff',description:'提高生存能力。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.22}}},
+  judgment:{id:'judgment',name:'審判',icon:'⚖️',cost:40,type:'holy',multiplier:1.50,description:'高倍率神聖傷害。'},
+  magic_slash:{id:'magic_slash',name:'魔力斬',icon:'🌀',cost:35,type:'wind',multiplier:1.45,description:'物魔混合戰技。'},
+  flame_edge:{id:'flame_edge',name:'炎刃',icon:'🔥',cost:35,type:'fire',multiplier:1.45,description:'火元素劍技。'},
+  frost_edge:{id:'frost_edge',name:'冰刃',icon:'❄️',cost:35,type:'ice',multiplier:1.45,description:'冰元素劍技。'},
+  arcane_guard:{id:'arcane_guard',name:'奧術防護',icon:'🔮',cost:20,type:'buff',description:'承傷降低、暴擊提高。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.20,crit:.08}}}
+};
+const JOB_PASSIVES={
+  warrior_grit:'堅韌：戰士的物理生存能力常駐提升。',
+  mana_echo:'魔力共鳴：法術循環更有效率。',
+  blessing:'祝福：提高神聖與狀態抗性相關表現。',
+  hunter_instinct:'獵殺本能：擅長針對弱點與DOT。',
+  shadow_step:'暗影步：提高閃避與爆發特性。',
+  holy_guard:'聖護：神聖防禦能力常駐。',
+  spellblade:'魔力武裝：物理與元素攻擊協同。'
+};
+const ULTIMATE_SKILLS={
+  limit_break:'極限突破',meteor:'隕石術',miracle:'奇蹟',
+  arrow_storm:'箭雨',assassinate:'暗殺',divine_verdict:'神聖裁決',elemental_break:'元素破斬'
+};
+function knownSkillIds(){
+  const h=gameData.hero;
+  return [...new Set([...(h.knownSkills||[]),...(h.skills||[])])];
+}
+function availableBattleSkills(){
+  const known=new Set(knownSkillIds());
+  let ids=(gameData.hero.equippedSkills||[]).filter(id=>known.has(id)).slice(0,4);
+  if(!ids.length)ids=BEGINNER_SKILLS.map(x=>x.id);
+  const all=new Map([...BEGINNER_SKILLS,...Object.values(JOB_SKILL_LIBRARY)].map(s=>[s.id,s]));
+  return ids.map(id=>all.get(id)).filter(Boolean);
+}
+function classSkillIds(){
+  const r=JOB_RULES.find(j=>j.name===gameData.hero.heroClass);return r?.skills||[];
+}
+function missingClassSkillIds(){const known=new Set(knownSkillIds());return classSkillIds().filter(id=>!known.has(id));}
+function learnSkillBook(skillId,source='技能書'){
+  if(!JOB_SKILL_LIBRARY[skillId])return false;
+  const h=gameData.hero;h.knownSkills=h.knownSkills||[];
+  if(h.knownSkills.includes(skillId))return false;
+  h.knownSkills.push(skillId);
+  if((h.equippedSkills||[]).length<4)h.equippedSkills.push(skillId);
+  alert(`📘 學會新技能：${JOB_SKILL_LIBRARY[skillId].name}\n來源：${source}`);
+  return true;
+}
+function toggleEquippedSkill(skillId){
+  const h=gameData.hero,known=new Set(knownSkillIds());if(!known.has(skillId))return;
+  h.equippedSkills=h.equippedSkills||[];
+  if(h.equippedSkills.includes(skillId))h.equippedSkills=h.equippedSkills.filter(x=>x!==skillId);
+  else{
+    if(h.equippedSkills.length>=4){alert('最多只能裝備4個主動技能');return;}
+    h.equippedSkills.push(skillId);
+  }
+  saveGame();renderAll();
+}
+function skillLoadoutHTML(){
+  const all=[...BEGINNER_SKILLS,...Object.values(JOB_SKILL_LIBRARY)],known=new Set(knownSkillIds()),eq=new Set(gameData.hero.equippedSkills||[]);
+  return `<div class="card"><h3>✨ 戰前技能配置（4槽）</h3>
+    <div class="small">已裝備 ${eq.size}/4｜職業被動：${gameData.hero.jobPassive?(JOB_PASSIVES[gameData.hero.jobPassive]||gameData.hero.jobPassive):'尚未覺醒'}</div>
+    ${all.filter(s=>known.has(s.id)).map(s=>`<button class="btn ${eq.has(s.id)?'purple':'gray'}" style="margin:4px" onclick="toggleEquippedSkill('${s.id}')">${eq.has(s.id)?'✓ ':''}${s.icon} ${s.name}</button>`).join('')}
+    ${gameData.hero.ultimateSkill?`<div class="small good" style="margin-top:8px">🌟 奧義：${ULTIMATE_SKILLS[gameData.hero.ultimateSkill]||gameData.hero.ultimateSkill}</div>`:''}
+  </div>`;
+}
+function ensureDailySkillBookOffers(){
+  if(!gameData.hero.jobAwakened)return;
+  if(gameData.skillBookOffers?.date===today())return;
+  gameData.skillBookOffers={date:today(),items:[]};
+  const missing=missingClassSkillIds();
+  if(missing.length&&Math.random()<.40){
+    const id=missing[Math.floor(Math.random()*missing.length)];
+    gameData.skillBookOffers.items.push({id,price:20+Math.min(30,gameData.hero.level*2)});
+  }
+}
+function buySkillBook(skillId){
+  ensureDailySkillBookOffers();
+  const offer=gameData.skillBookOffers.items.find(x=>x.id===skillId);if(!offer)return;
+  if(gameData.hero.gold<offer.price){alert('金幣不足');return;}
+  gameData.hero.gold-=offer.price;
+  if(learnSkillBook(skillId,'商店'))gameData.skillBookOffers.items=gameData.skillBookOffers.items.filter(x=>x.id!==skillId);
+  saveGame();renderAll();
+}
+function maybeDropSkillBook(chance,source){
+  if(!gameData.hero.jobAwakened)return null;
+  const missing=missingClassSkillIds();if(!missing.length||Math.random()>=chance)return null;
+  const id=missing[Math.floor(Math.random()*missing.length)];
+  learnSkillBook(id,source); return {type:'skillbook',label:`技能書：${JOB_SKILL_LIBRARY[id].name}`,value:id};
+}
 
 function clampBattle(v,min,max){return Math.max(min,Math.min(max,v));}
 function battleSleep(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -1941,8 +2227,20 @@ function normalizeHeroStats(){
     virtue:effectiveStat(gameData.hero.virtue||0)
   };
 }
+function passiveBattleMods(){
+  const p=gameData.hero.jobPassive;
+  return {
+    attack:p==='warrior_grit'?1.06:p==='spellblade'?1.04:1,
+    magic:p==='mana_echo'?1.06:p==='spellblade'?1.04:1,
+    defense:p==='holy_guard'?1.07:p==='warrior_grit'?1.04:1,
+    evade:p==='shadow_step'?0.04:0,
+    crit:p==='hunter_instinct'?0.04:0,
+    statusRes:p==='blessing'?0.08:0
+  };
+}
+
 function makeHeroBattleStats(){
-  const e=normalizeHeroStats(),lv=Number(gameData.hero.level)||1;
+  const e=normalizeHeroStats(),lv=Number(gameData.hero.level)||1,pm=passiveBattleMods();
   const jobRule=gameData.hero.jobAwakened?JOB_RULES.find(j=>j.name===gameData.hero.heroClass):null;
   const jobCore=jobRule?jobEffectiveCoreValue(jobRule):0;
   const masteryBonus=jobRule?clampBattle((jobCore-35)/250,0,.18):0;
@@ -1952,15 +2250,15 @@ function makeHeroBattleStats(){
     side:'hero',name:gameData.hero.name,
     ...e,
     maxHp,maxEnergy,
-    attack:(10+e.str*1.25)*(1+masteryBonus),
-    magicAttack:(8+e.int*1.25)*(1+masteryBonus),
-    defense:(10+e.will*.8)*(1+masteryBonus*.6),
+    attack:(10+e.str*1.25)*(1+masteryBonus)*pm.attack,
+    magicAttack:(8+e.int*1.25)*(1+masteryBonus)*pm.magic,
+    defense:(10+e.will*.8)*(1+masteryBonus*.6)*pm.defense,
     speed:e.agi,
-    crit:clampBattle(.05+.25*(e.agi/(e.agi+100)),.05,.30),
-    evade:clampBattle(.02+.20*(e.agi/(e.agi+100)),.02,.22),
+    crit:clampBattle(.05+.25*(e.agi/(e.agi+100))+pm.crit,.05,.35),
+    evade:clampBattle(.02+.20*(e.agi/(e.agi+100))+pm.evade,.02,.30),
     parry:clampBattle(.03+.08*(e.will/(e.will+100)),.03,.11),
     block:clampBattle(.05+.14*(e.will/(e.will+100)),.05,.19),
-    statusRes:clampBattle(.05+.25*(e.will/(e.will+100)),.05,.30),
+    statusRes:clampBattle(.05+.25*(e.will/(e.will+100))+pm.statusRes,.05,.40),
     elementalBaseRes:clampBattle(.15*(e.will/(e.will+100)),0,.15),
     resist:{fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0},
     statuses:[],guarding:false
@@ -2076,7 +2374,7 @@ function showDamage(side,text,extraClass=''){
   e.textContent=text;arena.appendChild(e);setTimeout(()=>e.remove(),820);
 }
 
-const HERO_ATTACK_FRAMES=[1,2,3,4].map(n=>asset(`images/hero_attack_${n}.png`));
+let HERO_ATTACK_FRAMES=heroAttackFrames();
 let heroAttackFramesReady=false;
 async function preloadBattleHeroFrames(){
   const jobs=HERO_ATTACK_FRAMES.map(src=>new Promise(resolve=>{
@@ -2402,7 +2700,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div id="battleArena" class="battle-arena">
       <div class="battle-bg"></div><div class="battle-floor"></div>
       <div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div>
-      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="images/hero_attack_1.png?v=20260826_1" alt="勇者"></div>
+      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${heroAttackFrames()[0]}" onerror="this.onerror=null;this.src=asset('images/hero_attack_1.png')" alt="勇者"></div>
       <div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div>
     </div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！選擇行動。</div></div>
@@ -2430,7 +2728,9 @@ async function finishBattleV10(win){
   const rating=calculateBattleRating(win,s.heroHp,s.hero.maxHp,s.round);
   let drop=null;
   if(win){gameData.hero.gold+=s.baseGold;addExp(s.baseExp);drop=rollDungeonDrop(rating);}
-  if(s.eventType==='midterm')setWorldAfterMidterm(win);
+  if(s.eventType==='midterm'&&isFinalExamDay('midterm')){
+    setWorldAfterMidterm(win);
+  }
   gameData.dailyDungeon.challenged=true;
   gameData.dailyDungeon.result=win?'win':'lose';
   gameData.dailyDungeon.drop=drop;
@@ -2439,6 +2739,7 @@ async function finishBattleV10(win){
     result:win?'win':'lose',eventType:s.eventType,drop,rounds:s.round,rating,
     battleV10:{heroHp:Math.max(0,s.heroHp),heroMaxHp:s.hero.maxHp,enemyHp:Math.max(0,s.enemyHp),enemyMaxHp:s.enemy.maxHp}
   });
+  if(win&&s.eventType==='midterm'&&isFinalExamDay('midterm'))maybeUnlockUltimate();
   saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
   document.getElementById('battleActions').style.display='none';
   document.getElementById('battleSubmenu').style.display='none';
@@ -2454,6 +2755,7 @@ async function finishBattleV10(win){
   </div>`;
 }
 function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType){
+  HERO_ATTACK_FRAMES=heroAttackFrames();
   const hero=makeHeroBattleStats(),enemy=deriveEnemyStats(enemyPower,enemyName,eventType);
   battleStateV10={
     hero,enemy,enemyName,enemyPower,baseGold,baseExp,eventType,
@@ -2469,7 +2771,7 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   updateBattleResource('enemy',battleStateV10.enemyEnergy,enemy.maxEnergy);
   updateBattleStatuses();
   const battleState=actualVsExpectedStatus(enemyPower);
-  addBattleLog(`${battleState.label}｜你的戰力 ${combatPower()} / 怪物 ${enemyPower}｜測試倍率 ${Math.round(currentBattleTestMultiplier()*100)}%`);
+  addBattleLog(`${eventType==='midterm'||eventType==='final'?examPhaseLabel(eventType)+'｜':''}${battleState.label}｜你的戰力 ${combatPower()} / 怪物 ${enemyPower}｜測試倍率 ${Math.round(currentBattleTestMultiplier()*100)}%`);
   addBattleLog(`⚡ 速度：${Math.round(hero.speed)} vs ${Math.round(enemy.speed)}｜較快者本回合先行動。`);
   setTimeout(()=>addBattleLog(heroAttackFramesReady?'🎞️ 勇者攻擊動畫：4幀已載入':'⚠️ 攻擊動畫圖片尚未全部載入，請檢查 images/hero_attack_1~4.png'),250);
 }
@@ -2499,7 +2801,7 @@ function challengeDungeon(){
     if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
     const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
     const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'
-      ?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15}
+      ?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15,power:calibratedDailyMonsterPower()}
       :gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
     const enemyPower=Math.round(resolvedDungeonPower(evt,monster)*currentBattleTestMultiplier());
     const enemyName=evt?evt.name:monster?.name;
@@ -2513,29 +2815,13 @@ function challengeDungeon(){
   }
 }
 function drawLottery(){
-  if(gameData.hero.lotteryCoins<1){alert('沒有抽獎金幣');return;}
-  const item=weightedPick(gameData.lotteryPool);
-  if(!item){alert('抽獎池尚未設定');return;}
+  if(gameData.hero.lotteryCoins<1){alert('沒有抽獎幣');return;}
+  const pool=(gameData.lotteryPool||[]).filter(x=>x.active!==false&&(Number(x.stock)||0)!==0);
+  const item=weightedPick(pool);if(!item){alert('抽獎池目前沒有可抽獎項');return;}
   gameData.hero.lotteryCoins--;
-
-  let result='';
-  if(item.type==='gold'){
-    const amount=Number(item.value)||0;
-    gameData.hero.gold+=amount;
-    result=item.label;
-  }else if(item.type==='shop'){
-    const available=gameData.shopItems.filter(x=>x.active);
-    if(available.length){
-      const shop=available[Math.floor(Math.random()*available.length)];
-      gameData.inventory.push({id:uid(),itemId:shop.id,name:shop.name,status:'unused',boughtDate:today(),source:'lottery'});
-      result=shop.name;
-    }else{
-      gameData.hero.gold+=50;
-      result='商店沒有商品，改獲得金幣 +50 G';
-    }
-  }
-  saveGame();renderAll();
-  alert('🎰 抽獎結果：'+result);
+  if(Number(item.stock)>0)item.stock--;
+  gameData.inventory.push({id:uid(),itemId:'lottery_reward_'+item.id,name:item.label,status:'unused',boughtDate:today(),source:'lottery',lotteryReward:true});
+  saveGame();renderAll();alert('🎉 抽中了：'+item.label+'\n已放入背包，可向家長申請兌換。');
 }
 function exportLearningCSV(){
   if(!gameData.learningProgress.length){alert('目前沒有學習進度紀錄');return;}
@@ -2663,7 +2949,7 @@ function monsterAssetKey(monster,evt){
   if(s.includes('哥布林')||s.includes('goblin'))return 'goblin';
   return null;
 }
-function dungeonHeroIdleFrames(){return [1,2,3,4].map(n=>asset(`images/hero_idle_${n}.png`));}
+function dungeonHeroIdleFrames(){return heroIdleFrames();}
 function dungeonEnemyIdleFrames(monster,evt){
   const key=monsterAssetKey(monster,evt);return key?[1,2,3,4].map(n=>asset(`images/${key}_idle_${n}.png`)):[];
 }
@@ -2692,7 +2978,7 @@ function renderDungeon(){
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card">
-          <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${asset('images/hero_idle_1.png')}" alt="${gameData.hero.name}"></div>
+          <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroIdleFrames()[0]}" onerror="this.onerror=null;this.src=asset('images/hero_idle_1.png')" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
         </div>
@@ -2724,10 +3010,12 @@ function renderDungeon(){
           <strong>${gameData.dailyDungeon.drop.label}</strong>
         </div>`:''}
     </div>`;
+  el.insertAdjacentHTML('beforeend',skillLoadoutHTML());
   setTimeout(()=>startDungeonIdleAnimation(m,evt),0);
 }
 function renderShop(){
   let html='<h2>🏪 兌換商店</h2>';
+  ensureDailySkillBookOffers();
   gameData.shopItems.filter(i=>i.active).forEach(i=>{
     html+=`<div class="card">
       <strong>${i.name}</strong><div class="small">${i.description||''}</div>
@@ -2735,6 +3023,11 @@ function renderShop(){
       <button class="btn blue" onclick="buyItem('${i.id}')">購買</button>
     </div>`;
   });
+  if(gameData.hero.jobAwakened){
+    html+=`<div class="card"><h3>📘 今日職業技能書</h3>${(gameData.skillBookOffers?.items||[]).length?
+      gameData.skillBookOffers.items.map(o=>`<div><strong>${JOB_SKILL_LIBRARY[o.id]?.name||o.id}</strong>｜${o.price} G <button class="btn purple" onclick="buySkillBook('${o.id}')">購買</button></div>`).join(''):
+      '<div class="small">今天沒有技能書出現。</div>'}</div>`;
+  }
   document.getElementById('panel-shop').innerHTML=html;
 }
 function renderLottery(){
@@ -2747,7 +3040,7 @@ function renderLottery(){
     </div>
     <div class="card">
       <h3>目前獎池</h3>
-      ${gameData.lotteryPool.map(x=>`<div class="small">${x.label}｜權重 ${x.weight}</div>`).join('')}
+      ${gameData.lotteryPool.filter(x=>x.active!==false).map(x=>`<div class="small">${x.label}｜權重 ${x.weight}｜${Number(x.stock)>0?'剩 '+x.stock:'不限次數'}</div>`).join('')}
     </div>`;
 }
 function renderBag(){
@@ -2800,6 +3093,10 @@ function renderGM(){
 
   document.getElementById('panel-gm').innerHTML=`
     <h2>🛠️ 家長控制後台</h2>
+    <div class="card"><strong>📅 2026 秋季正式學期</strong>
+      <div class="small">正式上線：2026/08/31｜Season：2026_FALL｜AUTO怪物週數從 8/31 起算。</div>
+      <div class="small">8/31 第一次開啟會捨棄本機測試角色與測試經濟；雲端也使用新的 Season 路徑，不會讀回測試檔。</div>
+    </div>
 
     <div class="card">
       <h3>📅 學期行事曆</h3>
@@ -2916,20 +3213,26 @@ function renderGM(){
         <div><label>進度</label><input id="gmProgressValue" placeholder="第3課 / 完成"></div>
       </div>
       <div class="grid3">
-        <div><label>金幣</label><input id="gmTaskGold" oninput="refreshTaskBalancePreview()" type="number" value="20"></div>
+        <div><label>金幣</label><input id="gmTaskGold" oninput="refreshTaskBalancePreview()" type="number" value="2"></div>
         <div><label>EXP</label><input id="gmTaskExp" oninput="refreshTaskBalancePreview()" type="number" value="10"></div>
         <div><label>每日上限</label><input id="gmTaskLimit" oninput="refreshTaskBalancePreview()" type="number" value="1"></div>
       </div>
 
       <div id="gmTimerSettings" class="gm-type-settings">
         <h3>⏱ 時間獎勵</h3>
+        <label>計時評分方式</label>
+        <select id="gmTimerMode" onchange="refreshAutoRewardPreview();updateTimerModeLabels()">
+          <option value="deadline">⚡ 限時完成型（越快越好：作業／整理）</option>
+          <option value="duration">🎹 累積時間型（越久越好：鋼琴／閱讀／練習）</option>
+        </select>
+        <div id="timerModeHelp" class="small" style="margin-bottom:8px">第一門檻＝優秀速度；第二門檻＝一般速度。</div>
         <div class="grid3">
-          <div><label>幾分鐘內</label><input id="gmRule1Min" type="number" value="30"></div>
+          <div><label id="gmRule1Label">第一門檻（分鐘）</label><input id="gmRule1Min" type="number" value="30"></div>
           <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="will">意志</option><option value="virtue">美德</option></select></div>
           <div><label>增加</label><input id="gmRule1Val" oninput="refreshTaskBalancePreview()" type="number" value="5"></div>
         </div>
         <div class="grid3">
-          <div><label>幾分鐘內</label><input id="gmRule2Min" type="number" value="60"></div>
+          <div><label id="gmRule2Label">第二門檻（分鐘）</label><input id="gmRule2Min" type="number" value="60"></div>
           <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="will">意志</option><option value="virtue">美德</option></select></div>
           <div><label>增加</label><input id="gmRule2Val" oninput="refreshTaskBalancePreview()" type="number" value="1"></div>
         </div>
@@ -2968,7 +3271,7 @@ function renderGM(){
       <label>名稱</label><input id="gmShopName">
       <label>說明</label><input id="gmShopDesc">
       <div class="grid2">
-        <div><label>價格</label><input id="gmShopPrice" type="number" value="100"></div>
+        <div><label>價格</label><input id="gmShopPrice" type="number" value="20"></div>
         <div><label>每日限購</label><input id="gmShopLimit" type="number" value="1"></div>
       </div>
       <button class="btn gold" onclick="gmAddShopItem()">新增商品</button>
@@ -2980,7 +3283,7 @@ function renderGM(){
       <label>名稱</label><input id="gmMonName">
       <div class="grid3">
         <div><label>戰力</label><input id="gmMonPower" type="number" value="80"></div>
-        <div><label>金幣</label><input id="gmMonGold" type="number" value="20"></div>
+        <div><label>金幣</label><input id="gmMonGold" type="number" value="4"></div>
         <div><label>EXP</label><input id="gmMonExp" type="number" value="20"></div>
       </div>
       <button class="btn gold" onclick="gmAddMonster()">新增怪物</button>
@@ -3005,6 +3308,18 @@ function renderGM(){
     <div class="card"><h3>兌換審核</h3>${reqList}</div>
 
     <div class="card">
+      <h3>🎰 抽獎池管理</h3>
+      <div class="small">抽獎幣屬稀有獎勵；抽中必定有獎，不設銘謝惠顧。</div>
+      ${(gameData.lotteryPool||[]).map(x=>`<div class="card"><strong>${x.label}</strong><div class="small">權重 ${x.weight}｜${Number(x.stock)>0?'庫存 '+x.stock:'不限次數'}</div><button class="btn red" onclick="gmDeleteLotteryReward('${x.id}')">刪除</button></div>`).join('')}
+      <div class="grid3">
+        <div><label>獎項</label><input id="gmLotteryLabel" placeholder="例如：🍦 吃冰淇淋"></div>
+        <div><label>權重</label><input id="gmLotteryWeight" type="number" value="10" min="1"></div>
+        <div><label>庫存（0=不限）</label><input id="gmLotteryStock" type="number" value="0" min="0"></div>
+      </div>
+      <button class="btn purple" onclick="gmAddLotteryReward()">＋新增抽獎獎項</button>
+    </div>
+
+    <div class="card">
       <h3>快捷調整</h3>
       
       <button class="btn purple" onclick="gmAddLotteryCoin(1)">+1 抽獎金幣</button>
@@ -3024,7 +3339,7 @@ function renderGM(){
       <div class="test-multiplier-row">
         ${[.5,1,1.5,2,3].map(v=>`<button class="btn gray ${(gameData.settings?.battleTestMultiplier||1)===v?'active':''}" onclick="gmSetBattleTestMultiplier(${v})">${Math.round(v*100)}%</button>`).join('')}
       </div>
-      <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。副本頁顯示與實際戰鬥都會同步套用；正式使用請設回100%。</div>
+      <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。100%=正式原始強度（×1.0）；200%=兩倍、300%=三倍。副本頁與實際戰鬥同步套用。</div>
       <div id="gmBattleDebug"></div>
       <div id="gmJobDebug" class="small" style="margin-top:10px"></div>
       <button class="btn purple" onclick="gmShowJobDebug()">🧭 檢視轉職判定（V10.5）</button>
@@ -3056,22 +3371,24 @@ function renderGM(){
     </div>
 
     <div class="card">
-      <h3>☁️ 雲端同步（Firebase）</h3>
-      <div id="cloudStatus" class="cloud-status">目前：${gameData.settings.cloud?.enabled?'已設定':'尚未設定'}</div>
-      <div class="small" style="margin:8px 0">設定完成後，爸爸手機與小孩 iPad 使用同一份存檔。</div>
-      <label>API Key</label><input id="fbApiKey" value="${gameData.settings.cloud?.apiKey||''}">
-      <label>Auth Domain</label><input id="fbAuthDomain" value="${gameData.settings.cloud?.authDomain||''}">
-      <label>Project ID</label><input id="fbProjectId" value="${gameData.settings.cloud?.projectId||''}">
-      <label>Storage Bucket</label><input id="fbStorageBucket" value="${gameData.settings.cloud?.storageBucket||''}">
-      <label>Messaging Sender ID</label><input id="fbSenderId" value="${gameData.settings.cloud?.messagingSenderId||''}">
-      <label>App ID</label><input id="fbAppId" value="${gameData.settings.cloud?.appId||''}">
-      <label>家長 Email</label><input id="fbEmail" type="email" value="${gameData.settings.cloud?.email||''}">
-      <label>Firebase 帳號密碼</label><input id="fbPassword" type="password">
+      <h3>☁️ 雲端存檔／家庭管理</h3>
+      <div id="cloudStatus" class="cloud-status">目前：${gameData.settings.cloud?.enabled?'Firebase 已設定':'尚未設定 Firebase 專案'}</div>
+      <div class="small" style="margin:8px 0">一般使用者不需要申請 Firebase。正式部署時只需由網站擁有者設定一次 Firebase 專案。</div>
       <div class="row">
-        <button class="btn purple" onclick="saveCloudConfig()">儲存設定</button>
-        <button class="btn blue" onclick="window.firebaseLogin&&window.firebaseLogin()">登入同步</button>
+        <button class="btn blue" onclick="window.firebaseGoogleLogin&&window.firebaseGoogleLogin()">使用 Google 登入／取回存檔</button>
+        <button class="btn purple" onclick="window.firebaseAnonymousLogin&&window.firebaseAnonymousLogin()">先直接玩（匿名雲端）</button>
       </div>
-      <div class="small">密碼不會寫入遊戲存檔。</div>
+      <div class="small" style="margin-top:8px">家庭多人：每位家長使用自己的 Google 帳號；Owner 可邀請 Parent。正式共享需搭配 Firestore Rules。</div>
+      <details style="margin-top:10px">
+        <summary>⚙️ 開發者 Firebase 設定（一般家庭不用碰）</summary>
+        <label>API Key</label><input id="fbApiKey" value="${gameData.settings.cloud?.apiKey||''}">
+        <label>Auth Domain</label><input id="fbAuthDomain" value="${gameData.settings.cloud?.authDomain||''}">
+        <label>Project ID</label><input id="fbProjectId" value="${gameData.settings.cloud?.projectId||''}">
+        <label>Storage Bucket</label><input id="fbStorageBucket" value="${gameData.settings.cloud?.storageBucket||''}">
+        <label>Messaging Sender ID</label><input id="fbSenderId" value="${gameData.settings.cloud?.messagingSenderId||''}">
+        <label>App ID</label><input id="fbAppId" value="${gameData.settings.cloud?.appId||''}">
+        <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
+      </details>
     </div>
 
     <div class="card">
@@ -3089,10 +3406,23 @@ function saveCloudConfig(){
   c.storageBucket=document.getElementById('fbStorageBucket').value.trim();
   c.messagingSenderId=document.getElementById('fbSenderId').value.trim();
   c.appId=document.getElementById('fbAppId').value.trim();
-  c.email=document.getElementById('fbEmail').value.trim();
   c.enabled=!!(c.apiKey&&c.authDomain&&c.projectId&&c.appId);
   familyData.profiles.forEach(p=>{if(!p.data.settings)p.data.settings={parentPinHash:'',cloud:{}};p.data.settings.cloud={...c};});
   gameData.settings.cloud=c;saveGame();alert('雲端設定已儲存');renderGM();
+}
+
+function updateTimerModeLabels(){
+  const mode=document.getElementById('gmTimerMode')?.value||'deadline';
+  const l1=document.getElementById('gmRule1Label'),l2=document.getElementById('gmRule2Label'),h=document.getElementById('timerModeHelp');
+  if(mode==='duration'){
+    if(l1)l1.textContent='基本練習時間（分鐘）';
+    if(l2)l2.textContent='優秀練習時間（分鐘）';
+    if(h)h.textContent='累積型：達到第一門檻＝良好；達到第二門檻＝優秀。超過第二門檻不再加倍，避免刷時間。';
+  }else{
+    if(l1)l1.textContent='優秀完成上限（分鐘）';
+    if(l2)l2.textContent='良好完成上限（分鐘）';
+    if(h)h.textContent='限時型：越快越好；第一門檻內最佳，第二門檻內次佳。';
+  }
 }
 
 function refreshAutoRewardPreview(){
@@ -3101,7 +3431,8 @@ function refreshAutoRewardPreview(){
   const type=document.getElementById('gmTaskType')?.value||'timer';
   const map=autoTaskRewards(c,d,type);
   const el=document.getElementById('autoRewardPreview');
-  if(el)el.innerHTML=`<b>系統建議：</b>${rewardText(map)||'無'}${type==='timer'?`<br><span class="small">⏱ 計時加成：≤ 第一門檻 → 🌟 金幣/EXP ×1.5＋敏捷 +2；≤ 第二門檻 → ✨ 金幣/EXP ×1.2＋敏捷 +1；超過門檻仍可拿完整基礎獎勵。</span>`:''}`;
+  const tm=document.getElementById('gmTimerMode')?.value||'deadline';
+  if(el)el.innerHTML=`<b>系統建議：</b>${rewardText(map)||'無'}${type==='timer'?`<br><span class="small">${tm==='duration'?'🎹 累積型：達第一門檻 → ×1.2；達第二門檻 → ×1.5。':'⚡ 限時型：第一門檻內 → ×1.5＋敏捷+2；第二門檻內 → ×1.2＋敏捷+1。'}</span>`:''}`;
 }
 function toggleRewardMode(){
   const auto=(document.getElementById('gmRewardMode')?.value||'auto')==='auto';
@@ -3139,6 +3470,7 @@ function gmAddTask(){
     weekdays:[...document.querySelectorAll('.gmWeekday:checked')].map(x=>Number(x.value)),statRules:rules,
     fixedStat:document.getElementById('gmFixedStat')?.value||'will',
     fixedStatValue:rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue')?.value)||0):0,
+    timerMode:document.getElementById('gmTimerMode')?.value||'deadline',
     fastMinutes:Number(document.getElementById('gmRule1Min')?.value)||30,
     standardMinutes:Number(document.getElementById('gmRule2Min')?.value)||60,
     quantityTarget:Math.max(1,Number(document.getElementById('gmQuantityTarget')?.value)||1),
@@ -3193,17 +3525,17 @@ function battleDebugCard(title,u){return `<div class="battle-debug-card"><b>${ti
 
 function gmShowJobDebug(){
   const box=document.getElementById('gmJobDebug');if(!box)return;
-  const scored=JOB_RULES.map(j=>({j,score:jobScore(j),share:jobCoreShare(j),qualified:j.kind==='dual'?dualJobQualified(j):true}))
-    .sort((a,b)=>b.score-a.score);
+  const c=currentJobCandidate(),weeks=c?stableCandidateWeeks(c.name):0;
   box.innerHTML=`<div class="battle-debug-card"><b>目前職業：${gameData.hero.jobAwakened?gameData.hero.heroClass:'見習勇者'}</b><br>
-  基本覺醒：Lv.${JOB_AWAKEN_CONFIG.minLevel}+、任務紀錄 ${JOB_AWAKEN_CONFIG.minTaskRecords}+、第一名領先第二名12%。<br>
-  單核心：核心成長占比至少32%。<br>
-  雙核心：兩項各至少20%，且較低核心至少為較高核心的70%。<br>
-  ${scored.map((x,i)=>{
-    const coreText=x.j.kind==='dual'?x.j.cores.map(statName).join('＋'):statName(x.j.core);
-    const q=x.j.kind==='dual'?(x.qualified?'✅雙核心成立':'❌雙核心未成立'):`核心占比 ${(x.share*100).toFixed(1)}%`;
-    return `${i+1}. ${x.j.name}｜分數 ${Math.max(0,x.score).toFixed(1)}｜${coreText}｜${q}`;
-  }).join('<br>')}</div>`;
+  觀察期：至少 ${JOB_AWAKEN_CONFIG.observationDays} 天＋${JOB_AWAKEN_CONFIG.minTaskRecords} 筆任務。<br>
+  複合職優先；雙核心各至少20%，平衡度70%。純職核心占比至少32%。<br>
+  目前候選：${c?.name||'尚未形成'}｜穩定 ${weeks}/${JOB_AWAKEN_CONFIG.stableWeeks} 週<br>
+  七職：戰士（力）／法師（智）／牧師（美德）／獵人（敏+智）／盜賊（敏+力）／聖騎士（力+美德）／魔劍士（力+智）</div>`;
+}
+
+function gmShowGrowthCurve(){
+  const ti=todayEffectiveTaskLoad();
+  return `第${semesterProgressWeek()}週｜今日有效任務 ${ti.count} 項／負荷 ${ti.load}｜${isNonSchoolDay()?'假日模式':'平日模式'}｜AUTO怪戰力 ${calibratedDailyMonsterPower()}｜測試倍率 ${Math.round(currentBattleTestMultiplier()*100)}%`;
 }
 
 function gmShowBattleDebug(){
@@ -3212,7 +3544,7 @@ function gmShowBattleDebug(){
   const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal'}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
   const name=evt?evt.name:(monster?.name||'怪物'),power=Math.round(resolvedDungeonPower(evt,monster)*currentBattleTestMultiplier());
   const h=makeHeroBattleStats(),e=deriveEnemyStats(power,name,evt?.type||'daily'),box=document.getElementById('gmBattleDebug');
-  if(box)box.innerHTML=`<div class="battle-debug-grid">${battleDebugCard('🧒 '+gameData.hero.name,h)}${battleDebugCard('👹 '+name,e)}</div>`;
+  if(box)box.innerHTML=`<div class="small" style="margin-bottom:8px">${gmShowGrowthCurve()}</div><div class="battle-debug-grid">${battleDebugCard('🧒 '+gameData.hero.name,h)}${battleDebugCard('👹 '+name,e)}</div>`;
 }
 
 function gmAddMonster(){
@@ -3249,6 +3581,16 @@ function deleteEvent(id){
   }
 }
 function gmAddGold(n){gameData.hero.gold+=n;saveGame();renderAll();}
+function gmAddLotteryReward(){
+  const label=(document.getElementById('gmLotteryLabel')?.value||'').trim();if(!label){alert('請輸入獎項名稱');return;}
+  gameData.lotteryPool.push({id:uid(),label,weight:Math.max(1,Number(document.getElementById('gmLotteryWeight')?.value)||1),stock:Math.max(0,Number(document.getElementById('gmLotteryStock')?.value)||0),active:true});
+  saveGame();renderAll();
+}
+function gmDeleteLotteryReward(id){
+  if(!confirm('刪除此抽獎獎項？'))return;
+  gameData.lotteryPool=gameData.lotteryPool.filter(x=>x.id!==id);saveGame();renderAll();
+}
+
 function gmAddLotteryCoin(n){gameData.hero.lotteryCoins+=n;saveGame();renderAll();}
 function resetAll(){
   if(confirm('確定清除全部資料？此動作無法復原。')){
@@ -3257,6 +3599,12 @@ function resetAll(){
 }
 function renderAll(){renderHero();renderTasks();renderDungeon();renderShop();renderLottery();renderBag();renderGM();startLiveTimer();startStatusClock();}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTasks();startLiveTimer();}});
+function ensureHolidayTower(){
+  if(!gameData.holidayTower)gameData.holidayTower={date:today(),runsUsed:0,bestFloor:0};
+  if(gameData.holidayTower.date!==today())gameData.holidayTower={date:today(),runsUsed:0,bestFloor:gameData.holidayTower.bestFloor||0};
+}
+function towerRunsLeft(){ensureHolidayTower();return Math.max(0,(gameData.settings?.holidayTower?.dailyLimit||3)-gameData.holidayTower.runsUsed);}
+
 function boot(){
   if(!gameData.hero.name){
     document.getElementById('heroSetup').style.display='block';
@@ -3264,7 +3612,7 @@ function boot(){
   }else{
     document.getElementById('heroSetup').style.display='none';
     document.getElementById('mainUI').style.display='block';
-    ensureDailyDungeon();renderAll();setTimeout(()=>{refreshAutoRewardPreview();toggleRewardMode();},0);
+    ensureDailyDungeon();renderAll();setTimeout(()=>{refreshAutoRewardPreview();toggleRewardMode();updateTimerModeLabels();},0);
   }
 }
 boot();
@@ -3290,7 +3638,7 @@ async function initFirebase(){
       currentUser=user;
       if(user){
         const s=document.getElementById('cloudStatus');
-        if(s)s.textContent='☁️ 已登入：'+user.email;
+        if(s)s.textContent='☁️ 已登入：'+(user.email||'匿名使用者');
         await pullCloud();
       }
     });
@@ -3300,7 +3648,7 @@ async function initFirebase(){
 async function pullCloud(){
   if(!currentUser||!db)return;
   const {doc,getDoc}=fb.fsMod;
-  const ref=doc(db,'users',currentUser.uid,'game','main');
+  const ref=doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID);
   const snap=await getDoc(ref);
   if(snap.exists()){
     const payload=snap.data();
@@ -3328,25 +3676,41 @@ async function pushCloud(){
     const {doc,setDoc,serverTimestamp}=fb.fsMod;
     persistFamily();
     const clone=JSON.parse(JSON.stringify(familyData));
-    await setDoc(doc(db,'users',currentUser.uid,'game','main'),{familyData:clone,updatedAt:serverTimestamp()},{merge:true});
+    await setDoc(doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID),{familyData:clone,updatedAt:serverTimestamp()},{merge:true});
   }catch(e){console.error(e);}
   finally{saving=false;}
 }
 window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
-window.firebaseLogin=async()=>{
+window.firebaseAnonymousLogin=async()=>{
   if(!fb){const ok=await initFirebase();if(!ok)return;}
-  const email=document.getElementById('fbEmail')?.value.trim()||gameData.settings.cloud.email;
-  const password=document.getElementById('fbPassword')?.value||'';
-  if(!email||!password){alert('請輸入 Firebase Email 與密碼');return;}
   try{
-    await fb.authMod.signInWithEmailAndPassword(auth,email,password);
-    gameData.settings.cloud.email=email;
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));
-    alert('雲端登入成功');
-  }catch(e){alert('登入失敗：'+e.message);}
+    if(auth.currentUser)return;
+    await fb.authMod.signInAnonymously(auth);
+    alert('已建立匿名雲端身份，可以直接開始使用。');
+  }catch(e){alert('匿名登入失敗：'+e.message);}
 };
-if(gameData.settings?.cloud?.enabled)initFirebase();
-</script>
+window.firebaseGoogleLogin=async()=>{
+  if(!fb){const ok=await initFirebase();if(!ok)return;}
+  try{
+    const provider=new fb.authMod.GoogleAuthProvider();
+    const result=await fb.authMod.signInWithPopup(auth,provider);
+    const user=result.user;
+    const access=ensureFamilyAccessModel();
+    if(!access.ownerUid){
+      access.ownerUid=user.uid;
+      access.members[user.uid]={role:'owner',email:user.email||'',displayName:user.displayName||'家長'};
+      persistFamily();
+    }else if(!access.members[user.uid]){
+      // 未被邀請者不自動取得管理權；先保留登入身份。
+      access.members[user.uid]={role:'viewer',email:user.email||'',displayName:user.displayName||'家長'};
+      persistFamily();
+    }
+    alert('Google 登入成功');
+    renderAll();
+  }catch(e){alert('Google 登入失敗：'+e.message);}
+};
+window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
+if(gameData.settings?.cloud?.enabled)initFirebase();</script>
 
 </body>
 </html>
