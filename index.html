@@ -2390,7 +2390,7 @@ const MONSTER_AI_DATABASE={
   zombie:{skills:[{id:'zombie_bite',weight:1}],passive:{id:'zombie_revive',maxUses:1,reviveHpPct:.30}},
   abomination:{skills:[{id:'hook_smash',weight:2},{id:'frenzy_smash',weight:1}],statProfile:{hp:'very_high',speed:'very_low'}},
   eyeball_monster:{skills:[{id:'evil_eye_beam',weight:2},{id:'evil_gaze',weight:1}]},
-  necromancer:{skills:[{id:'summon_three_skeletons',weight:10,maxUses:1},{id:'necro_shadow_bolt',weight:2}]},
+  necromancer:{skills:[{id:'necro_shadow_bolt',weight:1}],ritualTriggerHpPct:.70},
 
   lizard_mummy:{skills:[{id:'mummy_claw',weight:2},{id:'decaying_breath',weight:1}]},
   giant_beetle:{skills:[{id:'beetle_charge',weight:3},{id:'shell_guard',weight:1}],statProfile:{def:'high'}},
@@ -2423,8 +2423,9 @@ const MONSTER_AI_DATABASE={
 
 const MONSTER_MECHANIC_DATABASE={
   necromancer_soul_link:{
-    owner:'necromancer',summonCount:2,linkedSkeletonCount:1,damageReductionWhileLinked:.25,maxDamageReduction:.25,
-    description:'召喚2隻骷髏，但只有1隻帶有靈魂連結標記；連結骷髏存活時死靈法師減傷25%，擊破後連結立即解除。'
+    owner:'necromancer',triggerHpPct:.70,summonCount:2,linkedSkeletonCount:1,damageReductionWhileLinked:0,
+    linkedSkeletonCanAttack:false,normalSkeletonCanAttack:true,bossPausesDuringRitual:true,breakVulnerability:.30,
+    description:'死靈法師HP降到70%時啟動一次靈魂儀式：召喚2隻骷髏。連結骷髏不攻擊、死靈法師停止攻擊；擊破連結骷髏後死靈法師下一次行動被打斷，並在破綻窗口受到30%額外傷害。'
   },
   plague_field:{owner:'apocalypse_plague',visual:'plague_haze',status:'disease',healingMultiplier:.50,endsWhenOwnerDies:true},
   death_mark:{owner:'apocalypse_death',duration:10,damageBonusPerElapsedTurn:.05,instantDeath:false},
@@ -2450,8 +2451,8 @@ const ENEMY_SUMMON_DATABASE={
   },
   necromancer:{
     maxActiveSummons:2,maxTotalSummons:2,summonCountPerCast:2,maxCastsPerBattle:1,candidates:['skeleton'],
-    summonVariant:{skills:['skeleton_slash'],disableSkills:['throw_bone'],hpScale:.50,atkScale:.65},
-    soulLinkMechanic:'necromancer_soul_link',rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
+    summonVariant:{skills:['skeleton_slash'],disableSkills:['throw_bone'],hpScale:.42,atkScale:.55},
+    soulLinkMechanic:'necromancer_soul_link',ritualTriggerHpPct:.70,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
   },
   reborn_necromancer:{maxActiveSummons:2,candidates:['skeleton','zombie'],rewardExp:0,rewardGold:0,drops:false},
   black_command_pillar:{maxActiveSummons:2,candidates:['guardian_doll'],rewardExp:0,rewardGold:0,drops:false},
@@ -3008,10 +3009,12 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
     will:effectiveStat(rawBase*variance('will')),
     virtue:0
   };
-  // 一般怪的基礎 HP 舊版只有 80，甚至會低於 Lv.1 勇者。
-  // 調回與初始勇者同級的 100 底盤，並稍微提高 WILL 對 HP 的貢獻。
-  const maxHp=Math.round((boss?150:100)+(boss?5.2:3.6)*e.will+1.0*e.str);
-  const maxEnergy=Math.round(45+e.int*.45+e.will*.25);
+  // V10.10.28：effectiveStat 會在高數值逐漸飽和，因此不能只靠 e.will/e.str 支撐後期怪物。
+  // 保留 Power<=100 的前期手感；只有超過 100 的 Power 轉成後期成長量，避免 W1~W3 被重新拉高。
+  const latePower=Math.max(0,Number(power||0)-100);
+  const lateHp=latePower*(boss?1.80:.55);
+  const maxHp=Math.round((boss?150:100)+(boss?5.2:3.6)*e.will+1.0*e.str+lateHp);
+  const maxEnergy=Math.round(45+e.int*.45+e.will*.25+latePower*.04);
   const resist={fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0};
   if(name.includes('史萊姆')){resist.fire=-.15;resist.ice=.10;}
   if(name.includes('獸人')){resist.fire=.15;resist.ice=-.20;}
@@ -3019,10 +3022,11 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
   if(name.includes('騎士')){resist.fire=.10;resist.ice=.10;resist.lightning=.10;resist.wind=.10;}
   return {
     side:'enemy',name,...e,maxHp,maxEnergy,
-    attack:9+e.str*1.15,
-    magicAttack:7+e.int*1.15,
-    defense:8+e.will*.75,
-    magicDefense:7+e.will*.70,
+    // 高 Power 額外成長採溫和線性補償，解除 effectiveStat 飽和造成的後期斷層。
+    attack:9+e.str*1.15+latePower*.05,
+    magicAttack:7+e.int*1.15+latePower*.05,
+    defense:8+e.will*.75+latePower*.035,
+    magicDefense:7+e.will*.70+latePower*.035,
     speed:e.agi,
     crit:clampBattle(.04+.20*(e.agi/(e.agi+100)),.04,.24),
     evade:clampBattle(.02+.16*(e.agi/(e.agi+100)),.02,.18),
@@ -3486,7 +3490,7 @@ function renderBattleTargets(){
     const baseCls=(u.alive!==false&&u.hp>0)?(selected?.uid===u.uid?'locked':''):'dead';
     const cls=baseCls+(u.soulLinked?' soul-linked':'');
     const roleIcon=u.soulLinked?'🔗 ':u.isSummon?'➕ ':u.isBoss?'👑 ':'👹 ';
-    const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 靈魂連結｜擊破後解除王的25%減傷</span>`:'';
+    const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 儀式核心｜不攻擊｜擊破後王露出破綻</span>`:'';
     return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${roleIcon}${u.name}</b>${linkBadge}<div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
   }).join('');
   if(selected){
@@ -3510,8 +3514,8 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   const scale=Number(opts.statScale||1);
   // V10.10.26：finalBoss 先前只有 boss:true，和一般週五 Boss 共用同一套 HP 公式。
   // W20 死神因此雖有 finalBoss:true，實際 HP 仍只比同週標準勇者高約 20%。
-  // 最終 Boss 額外套 1.75x HP；召喚物仍以 opts.hpScale 為準，不吃此倍率。
-  const finalBossHpScale=(!opts.isSummon && def.finalBoss)?1.75:1;
+  // V10.10.28：後期 Power 曲線已修正，Final Boss 額外倍率由 1.75 校回 1.35，避免重複灌血；召喚物不吃此倍率。
+  const finalBossHpScale=(!opts.isSummon && def.finalBoss)?1.35:1;
   const hpScale=Number(opts.hpScale??scale)*finalBossHpScale;
   // V10.10.19：怪物原本不分物理/魔法職能，Boss 旗標也只增加 HP，
   // 造成死靈法師/魔王等純法系怪 MATK 過低，遇到玩家 MDEF 後常被公式壓到最低 1 傷害。
@@ -3544,25 +3548,46 @@ function activeSoulLinkSkeleton(unit){
   if(!battleStateV10||unit?.monsterId!=='necromancer')return null;
   return (battleStateV10.enemies||[]).find(x=>x.isSummon&&x.summonedBy===unit.uid&&x.soulLinked&&x.hp>0&&x.alive!==false)||null;
 }
+function necromancerRitualBoss(){
+  return (battleStateV10?.enemies||[]).find(x=>x.monsterId==='necromancer'&&x.hp>0&&x.alive!==false)||null;
+}
+function startNecromancerRitual(unit){
+  if(!unit||unit.monsterId!=='necromancer'||unit.ritualTriggered||unit.hp<=0)return false;
+  if(unit.hp/unit.maxHp>.70)return false;
+  unit.ritualTriggered=true;unit.ritualActive=true;
+  const linked=summonLiveUnit('skeleton',unit,{statScale:.55,hpScale:.42,basicOnly:true});
+  const normal=summonLiveUnit('skeleton',unit,{statScale:.55,hpScale:.38,basicOnly:true});
+  if(linked){linked.soulLinked=true;linked.ritualGuardian=true;linked.forceBasicOnly=false;linked.name='靈魂連結骷髏';}
+  if(normal){normal.name='骷髏護衛';}
+  renderBattleTargets();
+  addBattleLog('🕯️ 死靈法師 HP 降至70%：開始「靈魂儀式」！');
+  addBattleLog('🔗 擊破「靈魂連結骷髏」！儀式期間死靈法師停止攻擊，連結骷髏也不會攻擊。');
+  addBattleLog('⚔️ 另一隻骷髏護衛仍會攻擊；打破連結後，死靈法師下一次行動被打斷並受到30%額外傷害。');
+  return true;
+}
 function enemyDamageReduction(unit){
   let mult=Math.max(.1,1+effectMod(unit,'damageTaken'));
-  if(unit.monsterId==='necromancer'&&activeSoulLinkSkeleton(unit))mult*=.75;
+  if(unit?.monsterId==='necromancer'&&Number(unit.ritualVulnerableUntilRound||-1)>=Number(battleStateV10?.round||0))mult*=1.30;
   return mult;
 }
 function applyDamageToEnemy(unit,damage){
   let d=Math.max(0,Math.round(damage));
-  if(unit.monsterId==='necromancer'){
-    const linked=activeSoulLinkSkeleton(unit);
-    if(linked){const before=d;d=Math.max(1,Math.round(d*.75));if(before!==d)addBattleLog(`🔗 靈魂連結：${linked.name}替死靈法師分擔傷害（25%減傷）。`);}
-  }
   unit.hp=Math.max(0,unit.hp-d);unit.alive=unit.hp>0;
   if(unit.hp<=0 && unit.monsterId==='zombie' && !unit.reviveUsed){unit.reviveUsed=true;unit.hp=Math.max(1,Math.round(unit.maxHp*.30));unit.alive=true;addBattleLog(`🧟 ${unit.name}死而復生！恢復30% HP。`);showBattleWord('死而復生！');}
   if(unit.hp<=0 && !unit.alive){
     addBattleLog(`💀 ${unit.name}被擊倒。`);
-    if(unit.soulLinked)addBattleLog('⛓️ 靈魂連結解除！死靈法師失去25%減傷。');
+    if(unit.soulLinked){
+      const boss=necromancerRitualBoss();
+      if(boss){boss.ritualActive=false;boss.ritualBreakStun=true;boss.ritualVulnerableUntilRound=Number(battleStateV10?.round||0)+1;}
+      addBattleLog('⛓️ 靈魂連結被打破！死靈法師的儀式崩潰！');
+      addBattleLog('💥 破綻：死靈法師下一次行動被打斷，並在本回合與下一回合受到30%額外傷害！');
+      showBattleWord('儀式破解！');
+    }
     const primary=battleStateV10.enemies?.[0];
     if(unit===primary){(battleStateV10.enemies||[]).forEach(x=>{if(x.isSummon){x.hp=0;x.alive=false;}});}
     if(battleStateV10.selectedEnemyUid===unit.uid){const next=(battleStateV10.enemies||[]).find(x=>x.hp>0&&x.alive!==false);battleStateV10.selectedEnemyUid=next?.uid||null;}
+  }else if(unit.monsterId==='necromancer'){
+    startNecromancerRitual(unit);
   }
   syncLegacyEnemyAlias();renderBattleTargets();
   return d;
@@ -3673,6 +3698,11 @@ async function performLiveEnemyTurn(unit){
   if(!unit||unit.hp<=0||unit.alive===false)return;
   const ai=MONSTER_AI_DATABASE[unit.monsterId]||{};
   unit.turnsTaken++;Object.keys(unit.cooldowns).forEach(k=>unit.cooldowns[k]=Math.max(0,unit.cooldowns[k]-1));
+  if(unit.soulLinked&&unit.ritualGuardian){addBattleLog(`🔗 ${unit.name}維持靈魂儀式，本回合不攻擊。`);return;}
+  if(unit.monsterId==='necromancer'){
+    if(unit.ritualActive&&activeSoulLinkSkeleton(unit)){addBattleLog('🕯️ 死靈法師正在維持靈魂儀式，本回合停止攻擊！');return;}
+    if(unit.ritualBreakStun){unit.ritualBreakStun=false;addBattleLog('💫 儀式反噬！死靈法師本次行動被打斷！');showBattleWord('破綻！');return;}
+  }
   if(ai.passive?.healMaxHpPerTurn){const heal=Math.max(1,Math.round(unit.maxHp*ai.passive.healMaxHpPerTurn));unit.hp=Math.min(unit.maxHp,unit.hp+heal);addBattleLog(`♻️ ${unit.name}再生 ${heal} HP。`);}
   if(await tickLiveUnit(unit,false))return;
   if(unit.forceBasicOnly){await executeEnemyHit(unit,{id:'summon_basic',name:'骷髏攻擊',kind:'physical',multiplier:.8});return;}
@@ -3704,18 +3734,6 @@ async function performLiveEnemyTurn(unit){
         addBattleLog(`📣 哥布林王消耗25 MP，召喚「${su.name}」！剩餘MP ${unit.mp}/${unit.maxMp||100}。`);
         if(unit.mp===0)addBattleLog('🔵 哥布林王MP耗盡，本場不能再召喚。');
       }else addBattleLog('📣 場上已滿，哥布林王無法召喚，MP不消耗。');
-      return;
-    }
-    if(unit.monsterId==='necromancer'){
-      const summons=[];
-      for(let i=0;i<2;i++){
-        const su=summonLiveUnit('skeleton',unit,{statScale:.65,hpScale:.45,basicOnly:true});
-        if(su)summons.push(su);
-      }
-      if(summons[0]){summons[0].soulLinked=true;summons[0].name='靈魂連結骷髏';}
-      renderBattleTargets();
-      addBattleLog(`💀 死靈法師召喚 ${summons.length} 隻骷髏！其中「${summons[0]?.name||'無'}」與本體連結。`);
-      addBattleLog('🔗 只要連結骷髏存活，死靈法師獲得25%減傷；另一隻是普通召喚物。');
       return;
     }
   }
@@ -3750,7 +3768,7 @@ function syncMirrorHeroVisual(){
 function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
   document.getElementById('battleOverlay')?.remove();const o=document.createElement('div');o.id='battleOverlay';o.className='battle-overlay';
   o.innerHTML=`<div class="battle-window" role="dialog" aria-modal="true">
-    <div class="battle-top"><div class="battle-unit"><div class="battle-name">${gameData.hero.name}　Lv.${gameData.hero.level}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
+    <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
     <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${sprite('images/hero_attack_1.png')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
@@ -3789,9 +3807,9 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false,testMode:!!opts.testMode,testWeek:opts.testWeek||null,testDay:opts.testDay??null};
   createBattleOverlay(enemyName,enemyIcon,hero,primary);syncMirrorHeroVisual();preloadBattleHeroFrames().then(()=>syncMirrorHeroVisual()).catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
   addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
-  addBattleLog('⏱️ V10.10.25：每回合依SPD排序；回合中召喚的單位從下一回合才行動。');
-  if(monsterId==='necromancer')addBattleLog('💀 死靈法師調整：召喚2隻骷髏、僅1隻靈魂連結（25%減傷），暗影魔彈倍率降為0.85。');
-  if(MONSTER_DATABASE[monsterId]?.finalBoss)addBattleLog(`👑 最終Boss血量倍率：×1.75｜HP ${primary.maxHp}`);
+  addBattleLog('⏱️ V10.10.29：SPD回合制維持；W5死靈法師改為初心者可破解的靈魂儀式。');
+  if(monsterId==='necromancer')addBattleLog('🕯️ 死靈法師機制：70%HP啟動一次靈魂儀式；王與連結骷髏停止攻擊，擊破🔗後王行動被打斷並承受30%額外傷害。');
+  if(MONSTER_DATABASE[monsterId]?.finalBoss)addBattleLog(`👑 最終Boss血量倍率：×1.35｜HP ${primary.maxHp}`);
   if(monsterId==='hero_mirror')addBattleLog(`🪞 鏡像決鬥修正：雙方攻擊對鏡像規則套用50%防禦穿透；最低傷害為目標最大HP的2%，避免互相只打1。`);
   if((MONSTER_AI_DATABASE[monsterId]?.skills||[]).some(x=>MONSTER_SKILL_DATABASE[x.id]?.kind==='magic'))addBattleLog(`🔮 法系敵人數值：MATK ${primary.magicAttack.toFixed(1)}｜勇者 MDEF ${hero.magicDefense.toFixed(1)}`);
 }
