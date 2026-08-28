@@ -3578,9 +3578,9 @@ function applyDamageToEnemy(unit,damage){
     addBattleLog(`💀 ${unit.name}被擊倒。`);
     if(unit.soulLinked){
       const boss=necromancerRitualBoss();
-      if(boss){boss.ritualActive=false;boss.ritualBreakStun=true;boss.ritualVulnerableUntilRound=Number(battleStateV10?.round||0)+1;}
+      if(boss){boss.ritualActive=false;boss.ritualVulnerableUntilRound=Number(battleStateV10?.round||0)+1;addStatus(boss,{type:'stun',turns:1,power:0,mods:{},effectType:'debuff',name:STATUS_DATABASE.stun?.name||'暈眩',guaranteedSkip:true});}
       addBattleLog('⛓️ 靈魂連結被打破！死靈法師的儀式崩潰！');
-      addBattleLog('💥 破綻：死靈法師下一次行動被打斷，並在本回合與下一回合受到30%額外傷害！');
+      addBattleLog('💫 死靈法師陷入「暈眩」！下一次行動必定無法行動。');addBattleLog('💥 破綻：本回合與下一回合受到30%額外傷害！');
       showBattleWord('儀式破解！');
     }
     const primary=battleStateV10.enemies?.[0];
@@ -3701,7 +3701,6 @@ async function performLiveEnemyTurn(unit){
   if(unit.soulLinked&&unit.ritualGuardian){addBattleLog(`🔗 ${unit.name}維持靈魂儀式，本回合不攻擊。`);return;}
   if(unit.monsterId==='necromancer'){
     if(unit.ritualActive&&activeSoulLinkSkeleton(unit)){addBattleLog('🕯️ 死靈法師正在維持靈魂儀式，本回合停止攻擊！');return;}
-    if(unit.ritualBreakStun){unit.ritualBreakStun=false;addBattleLog('💫 儀式反噬！死靈法師本次行動被打斷！');showBattleWord('破綻！');return;}
   }
   if(ai.passive?.healMaxHpPerTurn){const heal=Math.max(1,Math.round(unit.maxHp*ai.passive.healMaxHpPerTurn));unit.hp=Math.min(unit.maxHp,unit.hp+heal);addBattleLog(`♻️ ${unit.name}再生 ${heal} HP。`);}
   if(await tickLiveUnit(unit,false))return;
@@ -3807,7 +3806,7 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false,testMode:!!opts.testMode,testWeek:opts.testWeek||null,testDay:opts.testDay??null};
   createBattleOverlay(enemyName,enemyIcon,hero,primary);syncMirrorHeroVisual();preloadBattleHeroFrames().then(()=>syncMirrorHeroVisual()).catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
   addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
-  addBattleLog('⏱️ V10.10.29：SPD回合制維持；W5死靈法師改為初心者可破解的靈魂儀式。');
+  addBattleLog('⏱️ V10.10.30：SPD回合制維持；W5死靈法師改為初心者可破解的靈魂儀式。');
   if(monsterId==='necromancer')addBattleLog('🕯️ 死靈法師機制：70%HP啟動一次靈魂儀式；王與連結骷髏停止攻擊，擊破🔗後王行動被打斷並承受30%額外傷害。');
   if(MONSTER_DATABASE[monsterId]?.finalBoss)addBattleLog(`👑 最終Boss血量倍率：×1.35｜HP ${primary.maxHp}`);
   if(monsterId==='hero_mirror')addBattleLog(`🪞 鏡像決鬥修正：雙方攻擊對鏡像規則套用50%防禦穿透；最低傷害為目標最大HP的2%，避免互相只打1。`);
