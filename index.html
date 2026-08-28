@@ -3185,7 +3185,9 @@ function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
   const variance=.90+Math.random()*.20;
   const attackValue=isPhysical?effectiveBattleValue(attacker,'attack'):effectiveBattleValue(attacker,'magicAttack');
   const defenseValue=isPhysical?effectiveBattleValue(defender,'defense'):effectiveBattleValue(defender,'magicDefense');
-  let raw=Math.max(1,attackValue*(action.multiplier||1)-defenseValue*.50);
+  // V10.10.20：支援特定技能/戰鬥的防禦穿透。一般戰鬥預設 0，不改既有平衡。
+  const defensePierce=clampBattle(Number(action.defensePierce||0),0,.90);
+  let raw=Math.max(1,attackValue*(action.multiplier||1)-defenseValue*(1-defensePierce)*.50);
   let weak=false,resisted=false;
 
   if(damageType==='holy'){
@@ -3212,6 +3214,12 @@ function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
   }
   if(crit)raw*=BATTLE_CONFIG.critDamage;
 
+  // V10.10.20：勇者鏡像戰避免「高防禦對高防禦」造成雙方永遠 1 傷害。
+  // 只有 mirrorDuel 攻擊套用，最低傷害為目標最大 HP 的 2%，其他怪物完全不受影響。
+  if(action.mirrorDuel){
+    const mirrorFloor=Math.max(2,Math.round(Number(defender.maxHp||1)*.02));
+    raw=Math.max(raw,mirrorFloor);
+  }
   const damage=Math.max(1,Math.round(raw));
   return {type:blocked?'block':'hit',damage,damageType,crit,weak,resisted};
 }
@@ -3415,6 +3423,7 @@ function renderBattleTargets(){
   if(selected){
     const n=document.getElementById('battleEnemyName');if(n)n.textContent=selected.name;
     updateBattleHp('enemy',selected.hp,selected.maxHp);
+    updateBattleResource('enemy',selected.mp??selected.maxEnergy??0,selected.maxMp??selected.maxEnergy??1);
     const unitStatus=document.getElementById('battleStatus_enemy');
     if(unitStatus)unitStatus.innerHTML=(selected.statuses||[]).map(st=>`<span class="status-token ${st.effectType==='buff'?'effect-buff':st.effectType==='debuff'?'effect-debuff':''}">${statusLabel(st)} ${st.turns}</span>`).join('');
   }
@@ -3428,9 +3437,27 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   }
   const scale=Number(opts.statScale||1);
   const hpScale=Number(opts.hpScale||scale);
+  // V10.10.19：怪物原本不分物理/魔法職能，Boss 旗標也只增加 HP，
+  // 造成死靈法師/魔王等純法系怪 MATK 過低，遇到玩家 MDEF 後常被公式壓到最低 1 傷害。
+  // 不改技能倍率，改由技能組判斷施法者職能，給法系怪合理的 MATK 底盤。
+  const aiProfile=MONSTER_AI_DATABASE[monsterId]||{};
+  const aiSkillDefs=(aiProfile.skills||[]).map(x=>MONSTER_SKILL_DATABASE[x.id]).filter(Boolean);
+  if(Array.isArray(aiProfile.rotation))aiProfile.rotation.forEach(id=>{const sk=MONSTER_SKILL_DATABASE[id];if(sk)aiSkillDefs.push(sk);});
+  const magicSkillCount=aiSkillDefs.filter(sk=>sk.kind==='magic').length;
+  const physicalSkillCount=aiSkillDefs.filter(sk=>sk.kind==='physical').length;
+  const isMagicCaster=magicSkillCount>0 && magicSkillCount>=physicalSkillCount;
+  const bossLike=!!(opts.isBoss??def.boss)||eventType==='midterm'||eventType==='final';
+  let attackRoleScale=1,magicRoleScale=1;
+  if(isMagicCaster){
+    magicRoleScale=bossLike?1.55:1.30;
+    attackRoleScale=.90;
+  }
+  // 明確純法系 Boss 再確保最低職能倍率；技能本身仍維持原本 1.0 / 1.35 等資料。
+  if(monsterId==='demon_king_phase1'||monsterId==='demon_king_phase2')magicRoleScale=Math.max(magicRoleScale,1.60);
+  if(monsterId==='necromancer')magicRoleScale=Math.max(magicRoleScale,1.35);
   const u={...base,uid:opts.uid||`${monsterId}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,monsterId,name:opts.name||def.name,
     maxHp:Math.max(1,Math.round(base.maxHp*hpScale)),hp:0,alive:true,isBoss:!!(opts.isBoss??def.boss),isSummon:!!opts.isSummon,summonedBy:opts.summonedBy||null,
-    attack:base.attack*scale,magicAttack:base.magicAttack*scale,defense:base.defense*scale,magicDefense:base.magicDefense*scale,speed:base.speed*scale,
+    attack:base.attack*scale*attackRoleScale,magicAttack:base.magicAttack*scale*magicRoleScale,defense:base.defense*scale,magicDefense:base.magicDefense*scale,speed:base.speed*scale,
     statuses:[],skillUses:{},cooldowns:{},chargedSkill:null,rotationIndex:0,reviveUsed:false,turnsTaken:0};
   u.hp=u.maxHp;
   const ai=MONSTER_AI_DATABASE[monsterId]||{};
@@ -3517,7 +3544,7 @@ function chooseLiveEnemySkill(unit){
   const ai=MONSTER_AI_DATABASE[unit.monsterId]||{};
   if(unit.chargedSkill){const sk=MONSTER_SKILL_DATABASE[unit.chargedSkill];if(sk)return sk;}
   if(ai.rotation?.length){const id=ai.rotation[unit.rotationIndex%ai.rotation.length];unit.rotationIndex++;return MONSTER_SKILL_DATABASE[id];}
-  if(unit.monsterId==='hero_mirror')return {id:'mirror_attack',name:'鏡像攻擊',kind:(unit.magicAttack>unit.attack?'magic':'physical'),element:'arcane',multiplier:1.0,target:'single'};
+  if(unit.monsterId==='hero_mirror')return {id:'mirror_attack',name:'鏡像攻擊',kind:(unit.magicAttack>unit.attack?'magic':'physical'),element:'arcane',multiplier:1.0,target:'single',defensePierce:.50,mirrorDuel:true};
   const candidates=[];
   for(const e of (ai.skills||[])){
     const sk=MONSTER_SKILL_DATABASE[e.id];if(skillUsableByEnemy(unit,e,sk))candidates.push({entry:e,skill:sk,weight:Number(e.weight||1)});
@@ -3534,7 +3561,9 @@ function summonLiveUnit(monsterId,summoner,opts={}){
 }
 async function executeHeroAgainstTarget(action){
   const target=selectedBattleEnemy();if(!target)return;
-  const result=resolveAttack(battleStateV10.hero,target,action);
+  // 鏡像決鬥：雙方都視為熟悉自己的防禦方式，因此獲得 50% 防禦穿透，並設最低傷害避免鎖死。
+  const liveAction=target.monsterId==='hero_mirror'?{...action,defensePierce:.50,mirrorDuel:true}:action;
+  const result=resolveAttack(battleStateV10.hero,target,liveAction);
   await animateBattleAction('hero',result);
   if(result.damage){const d=applyDamageToEnemy(target,result.damage);result.damage=d;showDamage('enemy','-'+d);}
   addBattleLog(actionSummary(result,target.name));renderBattleTargets();return result;
@@ -3546,7 +3575,12 @@ async function executeEnemyHit(unit,skill){
   for(let i=0;i<hits;i++){
     const mult=skill.multiplierPerHit||skill.multiplier||1;
     let dynamic=mult;const deathPower=unit.monsterId==='apocalypse_death'||unit.apocalypsePowers?.includes('death');if(deathPower)dynamic*=1+.05*Math.min(10,Math.max(0,battleStateV10.round-1));if(unit.apocalypsePowers?.includes('war'))dynamic*=1.30;
-    const res=resolveAttack(unit,battleStateV10.hero,{type,multiplier:dynamic});
+    const res=resolveAttack(unit,battleStateV10.hero,{type,multiplier:dynamic,defensePierce:Number(skill.defensePierce||0),mirrorDuel:!!skill.mirrorDuel});
+    // V10.10.21：召喚物縮放後不可被防禦公式壓成固定 1 傷害。
+    if(unit.isSummon && res.damage>0){
+      const summonFloor=Math.max(2,Math.round(Number(battleStateV10.hero.maxHp||1)*.02));
+      res.damage=Math.max(res.damage,summonFloor);
+    }
     await animateBattleAction('enemy',res);
     if(res.damage){battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-res.damage);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);showDamage('hero','-'+res.damage);total+=res.damage;}
     addBattleLog(actionSummary(res,battleStateV10.hero.name));
@@ -3583,7 +3617,16 @@ async function performLiveEnemyTurn(unit){
   if(skill.kind==='debuff'){tryApplyMonsterStatus(skill,battleStateV10.hero);updateBattleStatuses();return;}
   if(skill.kind==='summon'){
     if(unit.monsterId==='goblin_king'){
-      if(unit.mp<25){addBattleLog('🔵 哥布林王MP不足。');return;}const pool=['goblin_slave','goblin_soldier','goblin_shaman'];const id=pool[Math.floor(Math.random()*pool.length)];const su=summonLiveUnit(id,unit,{statScale:.68,hpScale:.52});if(su){unit.mp-=25;addBattleLog(`📣 哥布林王消耗25 MP，召喚「${su.name}」！剩餘MP ${unit.mp}/100。`);}else addBattleLog('📣 場上已滿，哥布林王無法召喚。');return;
+      if(unit.mp<25){unit.mp=0;updateBattleResource('enemy',0,unit.maxMp||100);addBattleLog('🔵 哥布林王MP已耗盡，無法再召喚。');return;}
+      const pool=['goblin_slave','goblin_soldier','goblin_shaman'];const id=pool[Math.floor(Math.random()*pool.length)];
+      const su=summonLiveUnit(id,unit,{statScale:.82,hpScale:.52});
+      if(su){
+        unit.mp=Math.max(0,unit.mp-25);
+        updateBattleResource('enemy',unit.mp,unit.maxMp||100);
+        addBattleLog(`📣 哥布林王消耗25 MP，召喚「${su.name}」！剩餘MP ${unit.mp}/${unit.maxMp||100}。`);
+        if(unit.mp===0)addBattleLog('🔵 哥布林王MP耗盡，本場不能再召喚。');
+      }else addBattleLog('📣 場上已滿，哥布林王無法召喚，MP不消耗。');
+      return;
     }
     if(unit.monsterId==='necromancer'){
       let n=0;for(let i=0;i<3;i++)if(summonLiveUnit('skeleton',unit,{statScale:.65,hpScale:.45,basicOnly:true}))n++;addBattleLog(`💀 死靈法師召喚 ${n} 隻骷髏！靈魂連結啟動。`);return;
@@ -3646,6 +3689,8 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false,testMode:!!opts.testMode,testWeek:opts.testWeek||null,testDay:opts.testDay??null};
   createBattleOverlay(enemyName,enemyIcon,hero,primary);preloadBattleHeroFrames().catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
   addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
+  if(monsterId==='hero_mirror')addBattleLog(`🪞 鏡像決鬥修正：雙方攻擊對鏡像規則套用50%防禦穿透；最低傷害為目標最大HP的2%，避免互相只打1。`);
+  if((MONSTER_AI_DATABASE[monsterId]?.skills||[]).some(x=>MONSTER_SKILL_DATABASE[x.id]?.kind==='magic'))addBattleLog(`🔮 法系敵人數值：MATK ${primary.magicAttack.toFixed(1)}｜勇者 MDEF ${hero.magicDefense.toFixed(1)}`);
 }
 function closeBattleOverlay(){
   battleStateV10=null;
