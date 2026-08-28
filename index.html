@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.11</title>
+<title>小學勇者大冒險 V10.10.13</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -631,13 +631,13 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .dungeon-idle-sprite.enemy{bottom:8px}
 @media(max-width:600px){.dungeon-idle-stage{height:135px}.dungeon-idle-sprite{width:135px;height:120px}.dungeon-idle-sprite.hero{bottom:20px}.dungeon-idle-sprite.enemy{bottom:6px}}
 
-/* V10.10.11 商店分類／背包分類／裝備欄 */
+/* V10.10.13 商店分類／背包分類／裝備欄 */
 .item-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.item-tabs button{background:#30363d;color:#f0f6fc}.item-tabs button.active{background:#f0883e;color:#111}.equipment-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.equip-slot{background:#0d1117;border:1px solid #59616d;border-radius:9px;padding:10px;text-align:center;min-height:92px}.equip-slot strong{display:block;margin-bottom:5px}.item-meta{font-size:11px;color:#8b949e;margin-top:4px}@media(max-width:600px){.equipment-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.11</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10.13</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -950,6 +950,9 @@ function migrateProfileData(d){
   (d.tasks||[]).forEach(t=>{
     if(!t.taskType)t.taskType='timer';
     if(t.quantityTarget==null)t.quantityTarget=1;
+    if(t.scoreMax==null)t.scoreMax=100;
+    if(t.allowCorrection==null)t.allowCorrection=true;
+    if(t.correctionExp==null)t.correctionExp=30;
     if(!t.quantityUnit)t.quantityUnit='次';
     if(!t.fixedStat)t.fixedStat='will';
     if(t.fixedStat==='vit')t.fixedStat='will';
@@ -1556,14 +1559,89 @@ function completeQuantityTask(taskId){
   alert(`🎉 達成 ${amount} ${t.quantityUnit||'次'}！\n💰 +${t.goldReward}\n⭐ +${t.expReward}`+(gain?.multi?`\n${rewardText(gain.gains)}`:gain?`\n${statName(gain.stat)} +${gain.value}`:''));
   renderAll();
 }
+
+function scoreRewardTier(score,maxScore){
+  const pct=maxScore>0?score/maxScore:0;
+  if(pct>=.90)return {grade:'S',multiplier:1.00,label:'S'};
+  if(pct>=.80)return {grade:'A',multiplier:.90,label:'A'};
+  if(pct>=.70)return {grade:'B',multiplier:.80,label:'B'};
+  if(pct>=.60)return {grade:'C',multiplier:.70,label:'C'};
+  return {grade:'D',multiplier:.60,label:'D'};
+}
+function scaledRewardMap(map,multiplier){
+  const out={};
+  Object.entries(map||{}).forEach(([k,v])=>out[k]=Math.max(0,Math.round((Number(v)||0)*multiplier)));
+  return out;
+}
+function completeScoreTask(taskId){
+  const t=gameData.tasks.find(x=>x.id===taskId);
+  if(!t)return;
+  if(completedCount(taskId)>=t.dailyLimit){alert('今天已經登記過成績');return;}
+  const maxScore=Math.max(1,Number(t.scoreMax)||100);
+  const input=document.getElementById('score_'+taskId);
+  const score=Number(input?.value);
+  if(!Number.isFinite(score)||score<0||score>maxScore){alert(`請輸入 0～${maxScore} 的分數`);return;}
+  const tier=scoreRewardTier(score,maxScore);
+  const gold=Math.round((Number(t.goldReward)||0)*tier.multiplier);
+  const exp=Math.round((Number(t.expReward)||0)*tier.multiplier);
+  applyGoldWithDebt(gold); addExp(exp);
+
+  let statGain=null, rollbackStats={};
+  if(t.rewardMode==='auto'){
+    const gains=applyRewardMap(scaledRewardMap(autoTaskRewards(t.category,t.difficulty,'complete'),tier.multiplier));
+    statGain={multi:true,gains}; rollbackStats=gains;
+  }else{
+    const val=Math.round((Number(t.fixedStatValue)||0)*tier.multiplier);
+    if(val>0){
+      const stat=t.fixedStat||'will';
+      if(stat==='virtue')gameData.hero.virtue=(gameData.hero.virtue||0)+val;
+      else gameData.hero.stats[stat]=(gameData.hero.stats[stat]||0)+val;
+      gameData.hero.lastStatGains={[stat]:val};
+      statGain={stat,value:val}; rollbackStats={[stat]:val};
+    }
+  }
+  const record={
+    id:uid(),taskId:t.id,date:today(),status:'completed',taskType:'score',
+    completedAt:new Date().toISOString(),score,scoreMax:maxScore,scoreGrade:tier.grade,scoreMultiplier:tier.multiplier,
+    rewards:{gold,exp,statGain},approvalStatus:'pending',
+    rollback:{gold,exp,statGain:rollbackStats},corrected:false
+  };
+  gameData.taskRecords.push(record);
+  if(t.subject||t.progressType||t.progressValue){
+    gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:`${score}/${maxScore}（${tier.grade}）`});
+  }
+  evaluateHiddenJob(true);saveGame();
+  alert(`📝 ${t.name}\n成績 ${score}/${maxScore}｜${tier.grade}級\n獎勵倍率 ${Math.round(tier.multiplier*100)}%\n💰 +${gold}\n⭐ +${exp}`+(statGain?.multi?`\n${rewardText(statGain.gains)}`:statGain?`\n${statName(statGain.stat)} +${statGain.value}`:''));
+  renderAll();
+}
+function correctScoreTask(taskId,recordId){
+  const t=gameData.tasks.find(x=>x.id===taskId);
+  const r=(gameData.taskRecords||[]).find(x=>x.id===recordId);
+  if(!t||!r||r.corrected)return;
+  const maxScore=Math.max(1,Number(r.scoreMax)||Number(t.scoreMax)||100);
+  const corrected=Number(document.getElementById('corr_'+taskId)?.value);
+  if(!Number.isFinite(corrected)||corrected<0||corrected>maxScore){alert(`請輸入 0～${maxScore} 的訂正後分數`);return;}
+  if(corrected<=Number(r.score||0)){alert('訂正後分數要高於第一次成績才會發放訂正獎勵');return;}
+  const bonusExp=Math.max(0,Number(t.correctionExp)||0);
+  addExp(bonusExp);
+  r.corrected=true;r.correctedScore=corrected;r.correctedAt=new Date().toISOString();r.correctionExp=bonusExp;
+  r.rollback.correctionExp=bonusExp;
+  if(t.subject||t.progressType||t.progressValue){
+    gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:(t.progressType||t.name)+'・訂正',progress:`${r.score} → ${corrected}/${maxScore}`});
+  }
+  saveGame();alert(`✨ 訂正完成！\n${r.score} → ${corrected}/${maxScore}\n⭐ 訂正 EXP +${bonusExp}`);renderAll();
+}
+
 function updateTaskTypeFields(){
   const type=document.getElementById('gmTaskType')?.value||'timer';
   const timer=document.getElementById('gmTimerSettings');
   const fixed=document.getElementById('gmFixedSettings');
   const qty=document.getElementById('gmQuantitySettings');
+  const score=document.getElementById('gmScoreSettings');
   if(timer)timer.style.display=type==='timer'?'block':'none';
   if(fixed)fixed.style.display=type==='timer'?'none':'block';
   if(qty)qty.style.display=type==='quantity'?'block':'none';
+  if(score)score.style.display=type==='score'?'block':'none';
 }
 
 function selectGender(g){
@@ -1830,25 +1908,176 @@ function semesterWeekIndex(){
   const now=new Date(today()+'T12:00:00');
   return Math.max(1,Math.floor((now-start)/604800000)+1);
 }
-const WORLD_CHAPTERS=[
-  {week:1,family:'史萊姆',normal:['綠色史萊姆','藍色史萊姆','跳跳史萊姆'],boss:'巨大史萊姆'},
-  {week:2,family:'哥布林',normal:['哥布林斥候','哥布林戰士','哥布林投石手'],boss:'哥布林王'},
-  {week:3,family:'獸人',normal:['獸人斥候','獸人戰士','狂暴獸人'],boss:'獸人將軍'},
-  {week:4,family:'骷髏',normal:['骷髏兵','骷髏弓手','骷髏法師'],boss:'骷髏騎士'},
-  {week:5,family:'魔獸',normal:['魔狼','岩甲獸','暗影豹'],boss:'魔獸王'},
-  {week:6,family:'黑騎士',normal:['黑騎士侍從','黑騎士','黑騎士槍兵'],boss:'黑騎士隊長'}
+/* =========================
+   V10.10.13 遊戲資料庫層
+   固定遊戲資料集中管理；玩家存檔仍留在 gameData / Firebase。
+   週怪物只決定「今天是誰」，不碰既有怪物強度浮動公式。
+   ========================= */
+
+const STATUS_DATABASE={
+  poison:{id:'poison',name:'中毒',icon:'☠️',kind:'debuff',defaultTurns:3},
+  burn:{id:'burn',name:'燃燒',icon:'🔥',kind:'debuff',defaultTurns:3},
+  bleed:{id:'bleed',name:'流血',icon:'🩸',kind:'debuff',defaultTurns:3},
+  curse:{id:'curse',name:'詛咒',icon:'💀',kind:'debuff',defaultTurns:4},
+  paralysis:{id:'paralysis',name:'麻痺',icon:'⚡',kind:'debuff',defaultTurns:2},
+  freeze:{id:'freeze',name:'冰凍',icon:'🧊',kind:'debuff',defaultTurns:1},
+  stun:{id:'stun',name:'暈眩',icon:'💫',kind:'debuff',defaultTurns:1},
+  defense:{id:'defense',name:'防禦姿態',icon:'🛡️',kind:'buff',defaultTurns:1},
+  focus:{id:'focus',name:'專注',icon:'🎯',kind:'buff',defaultTurns:2}
+};
+
+const EQUIPMENT_DATABASE={
+  wooden_sword:{id:'wooden_sword',name:'木製短劍',category:'equipment',equipSlot:'weapon',icon:'🗡️',stats:{attack:4}},
+  travel_cap:{id:'travel_cap',name:'旅行皮帽',category:'equipment',equipSlot:'head',icon:'🎩',stats:{magicDefense:3}},
+  adventurer_clothes:{id:'adventurer_clothes',name:'冒險者布衣',category:'equipment',equipSlot:'body',icon:'👕',stats:{defense:4}},
+  lucky_charm:{id:'lucky_charm',name:'幸運護符',category:'equipment',equipSlot:'accessory',icon:'💍',stats:{crit:.02}}
+};
+
+const ITEM_DATABASE={
+  small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',category:'consumable',icon:'🧪',effectType:'heal_hp',effectValue:50},
+  small_energy_potion:{id:'small_energy_potion',name:'小型能量藥水',category:'consumable',icon:'🔷',effectType:'heal_energy',effectValue:35},
+  beginner_poison:{id:'beginner_poison',name:'初級毒藥',category:'consumable',icon:'☠️',effectType:'poison',effectValue:6,effectTurns:3},
+  ...EQUIPMENT_DATABASE
+};
+
+const MONSTER_DATABASE={
+  slime_water:{id:'slime_water',name:'水史萊姆',family:'slime',element:'water'},
+  slime_fire:{id:'slime_fire',name:'火史萊姆',family:'slime',element:'fire'},
+  slime_grass:{id:'slime_grass',name:'草史萊姆',family:'slime',element:'nature'},
+  slime_lightning:{id:'slime_lightning',name:'雷史萊姆',family:'slime',element:'lightning'},
+  slime_king:{id:'slime_king',name:'大史萊姆',family:'slime',boss:true},
+
+  goblin_slave:{id:'goblin_slave',name:'哥布林奴隸',family:'goblin'},
+  goblin_soldier:{id:'goblin_soldier',name:'哥布林士兵',family:'goblin'},
+  goblin_shaman:{id:'goblin_shaman',name:'哥布林巫醫',family:'goblin'},
+  goblin_general:{id:'goblin_general',name:'哥布林將軍',family:'goblin'},
+  goblin_king:{id:'goblin_king',name:'哥布林王',family:'goblin',boss:true},
+
+  forest_spider:{id:'forest_spider',name:'蜘蛛',family:'forest'},
+  forest_wolf:{id:'forest_wolf',name:'狼',family:'forest'},
+  forest_bear:{id:'forest_bear',name:'熊',family:'forest'},
+  evil_fairy:{id:'evil_fairy',name:'邪惡妖精',family:'forest'},
+  dark_elf:{id:'dark_elf',name:'黑暗精靈',family:'forest',boss:true},
+
+  orc_slave:{id:'orc_slave',name:'獸人農奴',family:'orc'},
+  orc_warrior:{id:'orc_warrior',name:'獸人戰士',family:'orc'},
+  orc_shaman:{id:'orc_shaman',name:'獸人巫醫',family:'orc'},
+  orc_champion:{id:'orc_champion',name:'獸人冠軍劍士',family:'orc'},
+  orc_general:{id:'orc_general',name:'獸人將軍',family:'orc',boss:true},
+
+  skeleton:{id:'skeleton',name:'骷髏',family:'undead'},
+  zombie:{id:'zombie',name:'殭屍',family:'undead'},
+  abomination:{id:'abomination',name:'縫合怪',family:'undead'},
+  eyeball_monster:{id:'eyeball_monster',name:'眼球怪',family:'undead'},
+  necromancer:{id:'necromancer',name:'死靈法師',family:'undead',boss:true},
+
+  lizard_mummy:{id:'lizard_mummy',name:'蜥蜴人木乃伊',family:'desert'},
+  giant_beetle:{id:'giant_beetle',name:'大型甲蟲怪',family:'desert'},
+  giant_scorpion:{id:'giant_scorpion',name:'大型毒蠍',family:'desert'},
+  lizard_warrior:{id:'lizard_warrior',name:'蜥蜴人戰士',family:'lizard'},
+  chimera:{id:'chimera',name:'奇美拉合成獸',family:'desert',boss:true},
+
+  lizard_mage:{id:'lizard_mage',name:'蜥蜴人巫師',family:'lizard'},
+  lizard_pharaoh:{id:'lizard_pharaoh',name:'蜥蜴人法老',family:'lizard'},
+  lizard_anubis:{id:'lizard_anubis',name:'蜥蜴人阿努比斯',family:'lizard'},
+  lizard_ra:{id:'lizard_ra',name:'蜥蜴人太陽神拉',family:'lizard',boss:true},
+
+  human_bandit_rogue:{id:'human_bandit_rogue',name:'人類土匪盜賊',family:'bandit'},
+  cult_mage:{id:'cult_mage',name:'人類邪教巫師',family:'cult'},
+  ogre:{id:'ogre',name:'食人巨魔',family:'ogre'},
+  two_headed_ogre_mage:{id:'two_headed_ogre_mage',name:'雙頭食人巨魔巫師',family:'ogre',boss:true},
+
+  apocalypse_war:{id:'apocalypse_war',name:'天啟・戰爭騎士',family:'apocalypse'},
+  apocalypse_plague:{id:'apocalypse_plague',name:'天啟・瘟疫騎士',family:'apocalypse'},
+  apocalypse_famine:{id:'apocalypse_famine',name:'天啟・饑荒騎士',family:'apocalypse'},
+  apocalypse_death:{id:'apocalypse_death',name:'天啟・死亡騎士',family:'apocalypse'},
+  demon_general:{id:'demon_general',name:'魔王大將',family:'demon',boss:true},
+
+  gargoyle:{id:'gargoyle',name:'石像鬼',family:'demon_castle'},
+  vampire_swordsman:{id:'vampire_swordsman',name:'吸血鬼劍士',family:'demon_castle'},
+  hero_mirror:{id:'hero_mirror',name:'勇者的鏡像',family:'mirror',mirrorHero:true},
+  demon_king_phase1:{id:'demon_king_phase1',name:'魔王・第一階段',family:'demon',boss:true},
+  demon_king_phase2:{id:'demon_king_phase2',name:'魔王・第二階段',family:'demon',boss:true},
+
+  human_bandit:{id:'human_bandit',name:'人類土匪',family:'bandit'},
+  reborn_necromancer:{id:'reborn_necromancer',name:'復活的死靈法師',family:'undead',boss:true},
+
+  guardian_stone:{id:'guardian_stone',name:'守護石像',family:'ruins'},
+  guardian_metal:{id:'guardian_metal',name:'守護金屬像',family:'ruins'},
+  guardian_octopus_machine:{id:'guardian_octopus_machine',name:'守護機械・章魚型',family:'ruins'},
+  guardian_doll:{id:'guardian_doll',name:'守護人偶',family:'ruins'},
+  black_command_pillar:{id:'black_command_pillar',name:'黑色發光石柱',family:'ruins',boss:true,summons:['guardian_doll']},
+
+  human_pirate:{id:'human_pirate',name:'人類海盜',family:'sea'},
+  murloc:{id:'murloc',name:'魚人莫拉克',family:'sea'},
+  murloc_mage:{id:'murloc_mage',name:'魚人莫拉克巫師',family:'sea'},
+  evil_murloc_summoner:{id:'evil_murloc_summoner',name:'邪惡魚人召喚師',family:'sea'},
+  kraken:{id:'kraken',name:'克拉肯',family:'sea',boss:true},
+
+  man_eating_flower:{id:'man_eating_flower',name:'食人花',family:'jungle'},
+  crocodile:{id:'crocodile',name:'鱷魚',family:'jungle'},
+  giant_python:{id:'giant_python',name:'巨蟒',family:'jungle'},
+  gorilla:{id:'gorilla',name:'大猩猩',family:'jungle'},
+  tyrannosaurus:{id:'tyrannosaurus',name:'霸王龍',family:'jungle',boss:true}
+};
+
+const WEEKLY_MAP_DATABASE=[
+  {week:1,map:'草地',background:'images/week01_grassland.png',monsters:['slime_water','slime_fire','slime_grass','slime_lightning','slime_king']},
+  {week:2,map:'洞窟',background:'images/week02_cave.png',monsters:['goblin_slave','goblin_soldier','goblin_shaman','goblin_general','goblin_king']},
+  {week:3,map:'森林',background:'images/week03_forest.png',monsters:['forest_spider','forest_wolf','forest_bear','evil_fairy','dark_elf']},
+  {week:4,map:'荒地',background:'images/week04_wasteland.png',monsters:['orc_slave','orc_warrior','orc_shaman','orc_champion','orc_general']},
+  {week:5,map:'邪惡巫師塔',background:'images/week05_wizard_tower.png',monsters:['skeleton','zombie','abomination','eyeball_monster','necromancer']},
+  {week:6,map:'沙漠',background:'images/week06_desert.png',monsters:['lizard_mummy','giant_beetle','giant_scorpion','lizard_warrior','chimera']},
+  {week:7,map:'金字塔內部',background:'images/week07_pyramid.png',monsters:['lizard_warrior','lizard_mage','lizard_pharaoh','lizard_anubis','lizard_ra']},
+  {week:8,map:'魔王城郊區',background:'images/week08_demon_outskirts.png',monsters:['human_bandit_rogue','cult_mage','orc_general','ogre','two_headed_ogre_mage']},
+  {week:9,map:'魔王城外圍',background:'images/week09_demon_castle_outer.png',monsters:['apocalypse_war','apocalypse_plague','apocalypse_famine','apocalypse_death','demon_general']},
+  {week:10,map:'魔王城內部',background:'images/week10_demon_castle_inner.png',monsters:['gargoyle','vampire_swordsman','hero_mirror','demon_king_phase1','demon_king_phase2']},
+  {week:11,map:'燃燒的大地',background:'images/week11_burning_land.png',monsters:['human_bandit','goblin_soldier','orc_warrior','orc_shaman','reborn_necromancer']},
+  {week:12,map:'古代遺跡',background:'images/week12_ancient_ruins.png',monsters:['guardian_stone','guardian_metal','guardian_octopus_machine','guardian_doll','black_command_pillar']},
+  {week:13,map:'船的甲板',background:'images/week13_ship_deck.png',monsters:['human_pirate','murloc','murloc_mage','evil_murloc_summoner','kraken']},
+  {week:14,map:'蠻荒叢林',background:'images/week14_jungle.png',monsters:['man_eating_flower','crocodile','giant_python','gorilla','tyrannosaurus']}
 ];
-function worldChapterForToday(){
-  const wk=semesterWeekIndex();
-  return WORLD_CHAPTERS[(wk-1)%WORLD_CHAPTERS.length];
+
+const GAME_DATABASE={
+  monsters:MONSTER_DATABASE,
+  items:ITEM_DATABASE,
+  equipment:EQUIPMENT_DATABASE,
+  statuses:STATUS_DATABASE,
+  weeklyMaps:WEEKLY_MAP_DATABASE,
+  // 技能資料沿用既有 BEGINNER_SKILLS / JOB_SKILL_LIBRARY，透過 getSkillDatabase() 統一取得。
+  get skills(){
+    const a=typeof BEGINNER_SKILLS!=='undefined'?BEGINNER_SKILLS:[];
+    const b=typeof JOB_SKILL_LIBRARY!=='undefined'?Object.values(JOB_SKILL_LIBRARY):[];
+    return Object.fromEntries([...a,...b].map(x=>[x.id,x]));
+  }
+};
+
+function weeklyMapForDate(dateStr=today()){
+  const start=new Date((gameData.semester?.startDate||'2026-08-31')+'T12:00:00');
+  const now=new Date(dateStr+'T12:00:00');
+  const wk=Math.max(1,Math.floor((now-start)/604800000)+1);
+  return WEEKLY_MAP_DATABASE.find(x=>x.week===wk)||null;
 }
+function dailyMonsterIndexForDate(dateStr=today()){
+  const wd=weekdayNumberFor(dateStr);
+  if(wd===0||wd===6)return 4;   // 週末固定本週週五 Boss，可補打／重刷
+  return Math.max(0,Math.min(4,wd-1)); // 一~五 => 0~4
+}
+function monsterDefinitionById(id){return MONSTER_DATABASE[id]||null;}
+function currentWeeklyMonster(dateStr=today()){
+  const map=weeklyMapForDate(dateStr);
+  if(!map)return null;
+  const id=map.monsters[dailyMonsterIndexForDate(dateStr)];
+  return monsterDefinitionById(id);
+}
+function worldChapterForToday(){return weeklyMapForDate(today());}
 function generatedMonsterName(){
-  const c=worldChapterForToday();
-  const sunday=weekdayNumberFor()===0;
-  if(sunday)return c.boss;
-  const seed=Number(today().replaceAll('-',''))||1;
-  return c.normal[seed%c.normal.length];
+  return currentWeeklyMonster(today())?.name||'未知怪物';
 }
+function currentMapName(){
+  return weeklyMapForDate(today())?.map||'未知地區';
+}
+
 
 function semesterEventOn(dateStr){
   return (gameData.semester?.events||[]).filter(e=>e.date===dateStr);
@@ -1949,10 +2178,17 @@ function setWorldAfterMidterm(win){
   gameData.semester.worldState='ruined';
   gameData.semester.midtermResult=win?'win':'lose';
 }
+const __weeklyBackgroundReady={};
 function currentWorldBackground(){
-  return gameData.semester?.worldState==='ruined'
-    ? 'images/grassland_bg.png'
-    : 'images/grassland_bg.png';
+  const candidate=weeklyMapForDate(today())?.background;
+  if(candidate && __weeklyBackgroundReady[candidate])return candidate;
+  if(candidate && __weeklyBackgroundReady[candidate]===undefined){
+    __weeklyBackgroundReady[candidate]=false;
+    const img=new Image();
+    img.onload=()=>{__weeklyBackgroundReady[candidate]=true;try{renderDungeon();}catch(e){}};
+    img.src=sprite(candidate);
+  }
+  return 'images/grassland_bg.png';
 }
 const SEMESTER_BALANCE = {
   targetCompletion: .75,
@@ -2991,7 +3227,7 @@ function renderTasks(){
     const type=t.taskType||'timer';
     const count=completedCount(t.id);
     const start=gameData.activeTasks[t.id];
-    const typeLabel=type==='timer'?'⏱ 計時':type==='quantity'?'🔢 數量':'✅ 完成';
+    const typeLabel=type==='timer'?'⏱ 計時':type==='quantity'?'🔢 數量':type==='score'?'📝 分數':'✅ 完成';
     let action='';
 
     if(type==='timer'){
@@ -3007,6 +3243,14 @@ function renderTasks(){
           <input id="qty_${t.id}" type="number" inputmode="numeric" min="0" placeholder="${t.quantityTarget||1} ${t.quantityUnit||'次'}">
           <button class="btn" ${count>=t.dailyLimit?'disabled':''} onclick="completeQuantityTask('${t.id}')">完成</button>
         </div>`;
+    }else if(type==='score'){
+      const todayRec=(gameData.taskRecords||[]).find(r=>r.taskId===t.id&&r.date===today()&&r.status==='completed');
+      action=todayRec
+        ? `<div class="small good">本次：${todayRec.score}/${todayRec.scoreMax}｜${todayRec.scoreGrade||''}</div>`+
+          ((t.allowCorrection&&!todayRec.corrected)
+            ? `<div class="quantity-box"><input id="corr_${t.id}" type="number" min="0" max="${t.scoreMax||100}" placeholder="訂正後分數"><button class="btn purple" onclick="correctScoreTask('${t.id}','${todayRec.id}')">完成訂正</button></div>`
+            : (todayRec.corrected?`<div class="small purple">✨ 已訂正：${todayRec.correctedScore}/${todayRec.scoreMax}</div>`:''))
+        : `<div class="quantity-box"><input id="score_${t.id}" type="number" inputmode="numeric" min="0" max="${t.scoreMax||100}" placeholder="輸入分數 / ${t.scoreMax||100}"><button class="btn" onclick="completeScoreTask('${t.id}')">送出成績</button></div>`;
     }else{
       action=`<button class="btn big-battle-btn" ${count>=t.dailyLimit?'disabled':''} onclick="completeSimpleTask('${t.id}')">${count>=t.dailyLimit?'今天完成了':'完成！'}</button>`;
     }
@@ -3024,8 +3268,8 @@ function renderTasks(){
           ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}｜🌟 ≤${t.fastMinutes||30}分：金幣/EXP ×1.5＋敏捷+2｜✨ ≤${t.standardMinutes||60}分：×1.2＋敏捷+1</div>`
           :`<div class="small">${(t.statRules||[]).map(r=>`≤${r.maxMinutes}分：${statName(r.stat)}+${r.value}`).join(' ｜ ')}</div>`)
         :(t.rewardMode==='auto'
-          ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`
-          :`<div class="small">${statName(t.fixedStat||'will')} +${t.fixedStatValue||0}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:''}</div>`)
+          ?`<div class="small good">🌱 ${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:type==='score'?`｜滿分 ${t.scoreMax||100} 分`:''}</div>`
+          :`<div class="small">${statName(t.fixedStat||'will')} +${t.fixedStatValue||0}${type==='quantity'?`｜目標 ${t.quantityTarget||1} ${t.quantityUnit||'次'}`:type==='score'?`｜滿分 ${t.scoreMax||100} 分`:''}</div>`)
       }
       ${action}
     </div>`;
@@ -3198,7 +3442,7 @@ function renderBag(){
 }
 
 
-/* ===== V10.10.11 item/shop/equipment system ===== */
+/* ===== V10.10.13 item/shop/equipment system ===== */
 const ITEM_CATEGORY_LABELS={all:'全部',consumable:'消耗品',equipment:'裝備',coupon:'兌換券',special:'特殊'};
 const EQUIP_SLOT_LABELS={weapon:'⚔️ 武器',head:'🪖 頭部',body:'👕 身體',accessory:'💍 飾品'};
 let shopCategoryFilter='all',bagCategoryFilter='all';
@@ -3356,6 +3600,7 @@ function renderGM(){
         <option value="timer">⏱ 計時任務（作業 / 複習）</option>
         <option value="complete">✅ 完成任務（鋼琴 / 足球）</option>
         <option value="quantity">🔢 數量任務（頁數 / 次數）</option>
+        <option value="score">📝 分數任務（練習卷 / 小考）</option>
       </select>
       <div class="grid2">
         <div><label>任務分類</label><select id="gmTaskCategory" onchange="refreshAutoRewardPreview()">
@@ -3435,6 +3680,15 @@ function renderGM(){
           <div><label>目標數量</label><input id="gmQuantityTarget" type="number" value="20"></div>
           <div><label>單位</label><input id="gmQuantityUnit" value="頁" placeholder="頁 / 次 / 下"></div>
         </div>
+      </div>
+      <div id="gmScoreSettings" class="gm-type-settings" style="display:none">
+        <h3>📝 練習卷／分數任務</h3>
+        <div class="grid2">
+          <div><label>滿分</label><input id="gmScoreMax" type="number" value="100" min="1"></div>
+          <div><label>訂正獎勵 EXP</label><input id="gmCorrectionExp" type="number" value="30" min="0"></div>
+        </div>
+        <div class="small good">評級：S 90–100＝100%｜A 80–89＝90%｜B 70–79＝80%｜C 60–69＝70%｜D 未滿60＝60%。低分仍有基本獎勵，鼓勵完成與訂正。</div>
+        <label><input id="gmAllowCorrection" type="checkbox" checked style="width:auto"> 允許完成後輸入訂正分數並領訂正獎勵</label>
       </div>
 
       <div id="taskBalancePreview" class="balance-box balance-good"></div>
@@ -3617,7 +3871,7 @@ function refreshAutoRewardPreview(){
   const map=autoTaskRewards(c,d,type);
   const el=document.getElementById('autoRewardPreview');
   const tm=document.getElementById('gmTimerMode')?.value||'deadline';
-  if(el)el.innerHTML=`<b>系統建議：</b>${rewardText(map)||'無'}${type==='timer'?`<br><span class="small">${tm==='duration'?'🎹 累積型：達第一門檻 → ×1.2；達第二門檻 → ×1.5。':'⚡ 限時型：第一門檻內 → ×1.5＋敏捷+2；第二門檻內 → ×1.2＋敏捷+1。'}</span>`:''}`;
+  if(el)el.innerHTML=`<b>系統建議：</b>${rewardText(map)||'無'}${type==='timer'?`<br><span class="small">${tm==='duration'?'🎹 累積型：達第一門檻 → ×1.2；達第二門檻 → ×1.5。':'⚡ 限時型：第一門檻內 → ×1.5＋敏捷+2；第二門檻內 → ×1.2＋敏捷+1。'}</span>`:type==='score'?`<br><span class="small">📝 分數型：S=100%、A=90%、B=80%、C=70%、D=60%；可另外設定訂正 EXP。</span>`:''}`;
 }
 function toggleRewardMode(){
   const auto=(document.getElementById('gmRewardMode')?.value||'auto')==='auto';
@@ -3659,7 +3913,10 @@ function gmAddTask(){
     fastMinutes:Number(document.getElementById('gmRule1Min')?.value)||30,
     standardMinutes:Number(document.getElementById('gmRule2Min')?.value)||60,
     quantityTarget:Math.max(1,Number(document.getElementById('gmQuantityTarget')?.value)||1),
-    quantityUnit:(document.getElementById('gmQuantityUnit')?.value||'次').trim()
+    quantityUnit:(document.getElementById('gmQuantityUnit')?.value||'次').trim(),
+    scoreMax:Math.max(1,Number(document.getElementById('gmScoreMax')?.value)||100),
+    allowCorrection:document.getElementById('gmAllowCorrection')?.checked!==false,
+    correctionExp:Math.max(0,Number(document.getElementById('gmCorrectionExp')?.value)||0)
   };
   if(rewardMode==='manual'){
     const previewStat=taskType==='timer'?Math.max(0,...rules.map(r=>Number(r.value)||0)):task.fixedStatValue;
