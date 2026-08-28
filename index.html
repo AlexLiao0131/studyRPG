@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.13</title>
+<title>小學勇者大冒險 V10.10.17</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -631,13 +631,25 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .dungeon-idle-sprite.enemy{bottom:8px}
 @media(max-width:600px){.dungeon-idle-stage{height:135px}.dungeon-idle-sprite{width:135px;height:120px}.dungeon-idle-sprite.hero{bottom:20px}.dungeon-idle-sprite.enemy{bottom:6px}}
 
-/* V10.10.13 商店分類／背包分類／裝備欄 */
+/* V10.10.15 商店分類／背包分類／裝備欄 */
 .item-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.item-tabs button{background:#30363d;color:#f0f6fc}.item-tabs button.active{background:#f0883e;color:#111}.equipment-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.equip-slot{background:#0d1117;border:1px solid #59616d;border-radius:9px;padding:10px;text-align:center;min-height:92px}.equip-slot strong{display:block;margin-bottom:5px}.item-meta{font-size:11px;color:#8b949e;margin-top:4px}@media(max-width:600px){.equipment-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== V10.10.17 多目標鎖定 / 怪物技能實裝 ===== */
+.battle-target-strip{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0 4px}
+.battle-target-card{border:2px solid rgba(255,255,255,.18);border-radius:12px;padding:7px 9px;background:rgba(20,24,40,.82);color:#fff;min-width:110px;cursor:pointer;transition:.15s;position:relative}
+.battle-target-card:hover{transform:translateY(-1px)}
+.battle-target-card.locked{border-color:#ffd34d;box-shadow:0 0 0 2px rgba(255,211,77,.2),0 0 18px rgba(255,211,77,.3)}
+.battle-target-card.locked:before{content:'🎯';position:absolute;right:4px;top:2px;font-size:16px}
+.battle-target-card.dead{opacity:.35;filter:grayscale(1);cursor:default}
+.battle-target-card .mini-hp{height:6px;background:rgba(255,255,255,.15);border-radius:8px;overflow:hidden;margin-top:4px}
+.battle-target-card .mini-hp>i{display:block;height:100%;background:linear-gradient(90deg,#df4b4b,#ff8a61)}
+.battle-target-hint{text-align:center;font-size:12px;opacity:.8;margin-top:3px}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.13</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10.15</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1909,7 +1921,7 @@ function semesterWeekIndex(){
   return Math.max(1,Math.floor((now-start)/604800000)+1);
 }
 /* =========================
-   V10.10.13 遊戲資料庫層
+   V10.10.15 遊戲資料庫層
    固定遊戲資料集中管理；玩家存檔仍留在 gameData / Firebase。
    週怪物只決定「今天是誰」，不碰既有怪物強度浮動公式。
    ========================= */
@@ -1956,7 +1968,7 @@ const MONSTER_DATABASE={
   forest_spider:{id:'forest_spider',name:'蜘蛛',family:'forest'},
   forest_wolf:{id:'forest_wolf',name:'狼',family:'forest'},
   forest_bear:{id:'forest_bear',name:'熊',family:'forest'},
-  evil_fairy:{id:'evil_fairy',name:'邪惡妖精',family:'forest'},
+  treant:{id:'treant',name:'樹妖',family:'forest'},
   dark_elf:{id:'dark_elf',name:'黑暗精靈',family:'forest',boss:true},
 
   orc_slave:{id:'orc_slave',name:'獸人農奴',family:'orc'},
@@ -1985,7 +1997,7 @@ const MONSTER_DATABASE={
   human_bandit_rogue:{id:'human_bandit_rogue',name:'人類土匪盜賊',family:'bandit'},
   cult_mage:{id:'cult_mage',name:'人類邪教巫師',family:'cult'},
   ogre:{id:'ogre',name:'食人巨魔',family:'ogre'},
-  two_headed_ogre_mage:{id:'two_headed_ogre_mage',name:'雙頭食人巨魔巫師',family:'ogre',boss:true},
+  two_headed_ogre_mage:{id:'two_headed_ogre_mage',name:'食人巨魔巫師',family:'ogre',boss:true},
 
   apocalypse_war:{id:'apocalypse_war',name:'天啟・戰爭騎士',family:'apocalypse'},
   apocalypse_plague:{id:'apocalypse_plague',name:'天啟・瘟疫騎士',family:'apocalypse'},
@@ -2004,7 +2016,7 @@ const MONSTER_DATABASE={
 
   guardian_stone:{id:'guardian_stone',name:'守護石像',family:'ruins'},
   guardian_metal:{id:'guardian_metal',name:'守護金屬像',family:'ruins'},
-  guardian_octopus_machine:{id:'guardian_octopus_machine',name:'守護機械・章魚型',family:'ruins'},
+  guardian_octopus_machine:{id:'guardian_octopus_machine',name:'章魚型守護機械',family:'ruins'},
   guardian_doll:{id:'guardian_doll',name:'守護人偶',family:'ruins'},
   black_command_pillar:{id:'black_command_pillar',name:'黑色發光石柱',family:'ruins',boss:true,summons:['guardian_doll']},
 
@@ -2018,31 +2030,440 @@ const MONSTER_DATABASE={
   crocodile:{id:'crocodile',name:'鱷魚',family:'jungle'},
   giant_python:{id:'giant_python',name:'巨蟒',family:'jungle'},
   gorilla:{id:'gorilla',name:'大猩猩',family:'jungle'},
-  tyrannosaurus:{id:'tyrannosaurus',name:'霸王龍',family:'jungle',boss:true}
+  tyrannosaurus:{id:'tyrannosaurus',name:'霸王龍',family:'jungle',boss:true},
+
+  giant_bat:{id:'giant_bat',name:'大型蝙蝠',family:'swamp'},
+  ghost:{id:'ghost',name:'幽靈',family:'undead'},
+  swamp_skeleton:{id:'swamp_skeleton',name:'骷髏怪',family:'undead'},
+  banshee:{id:'banshee',name:'報喪女妖',family:'undead'},
+  scarecrow_reaper:{id:'scarecrow_reaper',name:'稻草人鐮刀收割者',family:'undead',boss:true},
+
+  skeleton_lizardman:{id:'skeleton_lizardman',name:'骷髏蜥蜴人',family:'sunken_city'},
+  wandering_zombie_lizardman:{id:'wandering_zombie_lizardman',name:'遊蕩的殭屍蜥蜴人',family:'sunken_city'},
+  zombie_lizard_warrior:{id:'zombie_lizard_warrior',name:'殭屍蜥蜴人戰士',family:'sunken_city'},
+  zombie_lizard_priest:{id:'zombie_lizard_priest',name:'殭屍蜥蜴人祭司',family:'sunken_city'},
+  hydra:{id:'hydra',name:'九頭巨蛇',family:'sunken_city',boss:true},
+
+  pigman:{id:'pigman',name:'豬頭人',family:'rift'},
+  pigman_warrior:{id:'pigman_warrior',name:'豬頭人戰士',family:'rift'},
+  centaur:{id:'centaur',name:'半人馬',family:'rift'},
+  centaur_knight:{id:'centaur_knight',name:'半人馬騎士',family:'rift'},
+  cyclops:{id:'cyclops',name:'獨眼巨人',family:'rift',boss:true},
+
+  harpy:{id:'harpy',name:'鷹身女妖',family:'sky'},
+  flying_goblin:{id:'flying_goblin',name:'飛行哥布林',family:'sky'},
+  wyvern:{id:'wyvern',name:'翼龍',family:'dragon'},
+  sky_pirate:{id:'sky_pirate',name:'天空海盜',family:'sky_pirate'},
+  sky_pirate_captain:{id:'sky_pirate_captain',name:'天空海盜船長',family:'sky_pirate',boss:true},
+
+  magic_armor:{id:'magic_armor',name:'魔法鎧甲',family:'sky_city'},
+  stone_gargoyle:{id:'stone_gargoyle',name:'石像翼魔',family:'sky_city'},
+  sky_city_mage:{id:'sky_city_mage',name:'天空城魔導士',family:'sky_city'},
+  sky_city_guardian_knight:{id:'sky_city_guardian_knight',name:'天空城守護騎士',family:'sky_city'},
+  sky_colossus:{id:'sky_colossus',name:'天空巨像',family:'sky_city',boss:true},
+
+  fire_lizard:{id:'fire_lizard',name:'火焰蜥蜴',family:'burning_plain',element:'fire'},
+  lava_giant:{id:'lava_giant',name:'熔岩巨人',family:'burning_plain',element:'fire'},
+  demon_dragon_phase1:{id:'demon_dragon_phase1',name:'魔龍・第一階段',family:'dragon',element:'fire',boss:true,examBoss:'final_day1'},
+  demon_dragon_phase2:{id:'demon_dragon_phase2',name:'魔龍・第二階段',family:'dragon',element:'fire',boss:true,examBoss:'final_day2'},
+  grim_reaper:{id:'grim_reaper',name:'死神',family:'undead',boss:true,finalBoss:true,origin:'死靈法師吸收魔龍力量後轉化'}
 };
 
+// 素材路徑統一規則：images/monsters/<monster_id>_idle.png / _battle.png
+// 勇者的鏡像例外：直接使用玩家目前角色圖並水平翻轉，不另外建怪物 PNG。
+Object.values(MONSTER_DATABASE).forEach(m=>{
+  if(m.mirrorHero)return;
+  m.sprites={
+    idle:`images/monsters/${m.id}_idle.png`,
+    battle:`images/monsters/${m.id}_battle.png`
+  };
+});
+
 const WEEKLY_MAP_DATABASE=[
-  {week:1,map:'草地',background:'images/week01_grassland.png',monsters:['slime_water','slime_fire','slime_grass','slime_lightning','slime_king']},
-  {week:2,map:'洞窟',background:'images/week02_cave.png',monsters:['goblin_slave','goblin_soldier','goblin_shaman','goblin_general','goblin_king']},
-  {week:3,map:'森林',background:'images/week03_forest.png',monsters:['forest_spider','forest_wolf','forest_bear','evil_fairy','dark_elf']},
-  {week:4,map:'荒地',background:'images/week04_wasteland.png',monsters:['orc_slave','orc_warrior','orc_shaman','orc_champion','orc_general']},
-  {week:5,map:'邪惡巫師塔',background:'images/week05_wizard_tower.png',monsters:['skeleton','zombie','abomination','eyeball_monster','necromancer']},
-  {week:6,map:'沙漠',background:'images/week06_desert.png',monsters:['lizard_mummy','giant_beetle','giant_scorpion','lizard_warrior','chimera']},
-  {week:7,map:'金字塔內部',background:'images/week07_pyramid.png',monsters:['lizard_warrior','lizard_mage','lizard_pharaoh','lizard_anubis','lizard_ra']},
-  {week:8,map:'魔王城郊區',background:'images/week08_demon_outskirts.png',monsters:['human_bandit_rogue','cult_mage','orc_general','ogre','two_headed_ogre_mage']},
-  {week:9,map:'魔王城外圍',background:'images/week09_demon_castle_outer.png',monsters:['apocalypse_war','apocalypse_plague','apocalypse_famine','apocalypse_death','demon_general']},
-  {week:10,map:'魔王城內部',background:'images/week10_demon_castle_inner.png',monsters:['gargoyle','vampire_swordsman','hero_mirror','demon_king_phase1','demon_king_phase2']},
-  {week:11,map:'燃燒的大地',background:'images/week11_burning_land.png',monsters:['human_bandit','goblin_soldier','orc_warrior','orc_shaman','reborn_necromancer']},
-  {week:12,map:'古代遺跡',background:'images/week12_ancient_ruins.png',monsters:['guardian_stone','guardian_metal','guardian_octopus_machine','guardian_doll','black_command_pillar']},
-  {week:13,map:'船的甲板',background:'images/week13_ship_deck.png',monsters:['human_pirate','murloc','murloc_mage','evil_murloc_summoner','kraken']},
-  {week:14,map:'蠻荒叢林',background:'images/week14_jungle.png',monsters:['man_eating_flower','crocodile','giant_python','gorilla','tyrannosaurus']}
+  {week:1,map:'草地',background:'images/backgrounds/week01_grassland.png',monsters:['slime_water','slime_fire','slime_grass','slime_lightning','slime_king']},
+  {week:2,map:'洞窟',background:'images/backgrounds/week02_cave.png',monsters:['goblin_slave','goblin_soldier','goblin_shaman','goblin_general','goblin_king']},
+  {week:3,map:'森林',background:'images/backgrounds/week03_forest.png',monsters:['forest_spider','forest_wolf','forest_bear','treant','dark_elf']},
+  {week:4,map:'荒地',background:'images/backgrounds/week04_wasteland.png',monsters:['orc_slave','orc_warrior','orc_shaman','orc_champion','orc_general']},
+  {week:5,map:'邪惡巫師塔',background:'images/backgrounds/week05_wizard_tower.png',monsters:['skeleton','zombie','abomination','eyeball_monster','necromancer']},
+  {week:6,map:'沙漠',background:'images/backgrounds/week06_desert.png',monsters:['lizard_mummy','giant_beetle','giant_scorpion','lizard_warrior','chimera']},
+  {week:7,map:'金字塔內部',background:'images/backgrounds/week07_pyramid.png',monsters:['lizard_warrior','lizard_mage','lizard_pharaoh','lizard_anubis','lizard_ra']},
+  {week:8,map:'魔王城郊區',background:'images/backgrounds/week08_demon_outskirts.png',monsters:['human_bandit_rogue','cult_mage','orc_general','ogre','two_headed_ogre_mage']},
+  {week:9,map:'魔王城外圍',background:'images/backgrounds/week09_demon_castle_outer.png',monsters:['apocalypse_war','apocalypse_plague','apocalypse_famine','apocalypse_death','demon_general']},
+  {week:10,map:'魔王城內部',background:'images/backgrounds/week10_demon_castle_inner.png',monsters:['gargoyle','vampire_swordsman','hero_mirror','demon_king_phase1','demon_king_phase2']},
+  {week:11,map:'燃燒的大地',background:'images/backgrounds/week11_burning_land.png',monsters:['human_bandit','goblin_soldier','orc_warrior','orc_shaman','reborn_necromancer']},
+  {week:12,map:'古代遺跡',background:'images/backgrounds/week12_ancient_ruins.png',monsters:['guardian_stone','guardian_metal','guardian_octopus_machine','guardian_doll','black_command_pillar']},
+  {week:13,map:'船的甲板',background:'images/backgrounds/week13_ship_deck.png',monsters:['human_pirate','murloc','murloc_mage','evil_murloc_summoner','kraken']},
+  {week:14,map:'蠻荒叢林',background:'images/backgrounds/week14_jungle.png',monsters:['man_eating_flower','crocodile','giant_python','gorilla','tyrannosaurus']},
+  {week:15,map:'幽靈沼澤',background:'images/backgrounds/week15_ghost_swamp.png',monsters:['giant_bat','ghost','swamp_skeleton','banshee','scarecrow_reaper']},
+  {week:16,map:'沉沒古城',background:'images/backgrounds/week16_sunken_city.png',monsters:['skeleton_lizardman','wandering_zombie_lizardman','zombie_lizard_warrior','zombie_lizard_priest','hydra']},
+  {week:17,map:'大裂谷',background:'images/backgrounds/week17_great_rift.png',monsters:['pigman','pigman_warrior','centaur','centaur_knight','cyclops']},
+  {week:18,map:'飛空艇',background:'images/backgrounds/week18_airship.png',monsters:['harpy','flying_goblin','wyvern','sky_pirate','sky_pirate_captain']},
+  {week:19,map:'天空城',background:'images/backgrounds/week19_sky_city.png',monsters:['magic_armor','stone_gargoyle','sky_city_mage','sky_city_guardian_knight','sky_colossus']},
+  {week:20,map:'燃燒平原',background:'images/backgrounds/week20_burning_plain.png',monsters:['fire_lizard','lava_giant','demon_dragon_phase1','demon_dragon_phase2','grim_reaper'],finalWeek:true},
+  {week:21,map:'皇都凱旋遊行',background:'images/backgrounds/week21_royal_parade.png',monsters:[null,null,null,null,null],mode:'celebration',noBattle:true}
 ];
+/* ===== V10.10.15 MULTI-ENEMY / SUMMON CORE =====
+   相容原本 1v1：舊 battle.enemy 仍保留為主要敵人；
+   新系統用 battle.enemies 管理 Boss + 最多 2 個召喚物。
+*/
+const MULTI_ENEMY_RULES={
+  maxEnemies:4,
+  maxSummons:3,
+  summonRewards:false,
+  removeSummonsWhenBossDies:true
+};
+
+function makeBattleEnemyUnit(monsterId, opts={}){
+  const def=monsterDefinitionById(monsterId)||{id:monsterId,name:monsterId};
+  const maxHp=Math.max(1,Number(opts.maxHp||opts.hp||100));
+  return {
+    uid:opts.uid||`${monsterId}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+    monsterId,
+    name:opts.name||def.name||monsterId,
+    hp:Math.max(0,Number(opts.hp??maxHp)),
+    maxHp,
+    atk:Number(opts.atk||0),
+    def:Number(opts.def||0),
+    matk:Number(opts.matk||0),
+    mdef:Number(opts.mdef||0),
+    speed:Number(opts.speed||0),
+    statuses:Array.isArray(opts.statuses)?opts.statuses:[],
+    isBoss:!!(opts.isBoss??def.boss),
+    isSummon:!!opts.isSummon,
+    summonedBy:opts.summonedBy||null,
+    rewardExp:opts.isSummon?0:Number(opts.rewardExp||0),
+    rewardGold:opts.isSummon?0:Number(opts.rewardGold||0),
+    dropTableId:opts.isSummon?null:(opts.dropTableId||def.dropTableId||null),
+    alive:true
+  };
+}
+
+function ensureBattleEnemyArray(battle){
+  if(!battle)return [];
+  if(!Array.isArray(battle.enemies))battle.enemies=[];
+  // 舊版只有 enemy 時，自動包成第一個主要敵人，不破壞舊資料。
+  if(!battle.enemies.length && battle.enemy){
+    const e=battle.enemy;
+    const unit=makeBattleEnemyUnit(e.monsterId||e.id||'legacy_enemy',{
+      ...e,
+      uid:e.uid||'primary_enemy',
+      isBoss:!!e.isBoss,
+      isSummon:false
+    });
+    battle.enemies.push(unit);
+  }
+  battle.enemies.forEach(u=>{
+    u.alive=Number(u.hp)>0;
+    if(!Array.isArray(u.statuses))u.statuses=[];
+  });
+  return battle.enemies;
+}
+
+function livingBattleEnemies(battle){
+  return ensureBattleEnemyArray(battle).filter(u=>u.alive && Number(u.hp)>0);
+}
+function primaryBattleEnemy(battle){
+  return ensureBattleEnemyArray(battle).find(u=>!u.isSummon)||ensureBattleEnemyArray(battle)[0]||null;
+}
+function battleEnemyByUid(battle,uid){
+  return ensureBattleEnemyArray(battle).find(u=>u.uid===uid)||null;
+}
+function canSummonBattleEnemy(battle){
+  const alive=livingBattleEnemies(battle);
+  return alive.length<MULTI_ENEMY_RULES.maxEnemies &&
+         alive.filter(u=>u.isSummon).length<MULTI_ENEMY_RULES.maxSummons;
+}
+function summonBattleEnemy(battle,monsterId,summoner,opts={}){
+  if(!canSummonBattleEnemy(battle))return null;
+  const parent=typeof summoner==='string'?battleEnemyByUid(battle,summoner):summoner;
+  const unit=makeBattleEnemyUnit(monsterId,{
+    ...opts,
+    isSummon:true,
+    summonedBy:parent?.uid||null,
+    rewardExp:0,rewardGold:0,dropTableId:null
+  });
+  ensureBattleEnemyArray(battle).push(unit);
+  return unit;
+}
+function defeatBattleEnemyUnit(battle,uid){
+  const unit=battleEnemyByUid(battle,uid);
+  if(!unit)return {ended:false};
+  unit.hp=0; unit.alive=false;
+  const main=primaryBattleEnemy(battle);
+  if(main && !main.alive && MULTI_ENEMY_RULES.removeSummonsWhenBossDies){
+    ensureBattleEnemyArray(battle).forEach(u=>{
+      if(u.isSummon){u.hp=0;u.alive=false;}
+    });
+  }
+  return {ended:livingBattleEnemies(battle).length===0,unit};
+}
+function validEnemyTargets(battle){
+  return livingBattleEnemies(battle).map(u=>({uid:u.uid,name:u.name,isBoss:u.isBoss,isSummon:u.isSummon,hp:u.hp,maxHp:u.maxHp}));
+}
+function chooseEnemyTarget(battle,preferredUid=null){
+  const alive=livingBattleEnemies(battle);
+  return (preferredUid&&alive.find(u=>u.uid===preferredUid))||alive[0]||null;
+}
+
+/* 敵方逐隻行動的通用排程器。actionFn(unit) 可接既有怪物 AI。 */
+async function runEnemyTeamTurn(battle,actionFn){
+  const queue=[...livingBattleEnemies(battle)];
+  for(const unit of queue){
+    if(!unit.alive||Number(unit.hp)<=0)continue;
+    if(typeof actionFn==='function')await actionFn(unit);
+    const main=primaryBattleEnemy(battle);
+    if(main && !main.alive)break;
+  }
+}
+
+/* 通用簡易 AI：技能可帶 weight / condition。
+   condition: low_hp, no_summon, target_not_statused, always */
+function chooseWeightedEnemySkill(unit,battle,skills=[]){
+  const pool=[];
+  for(const s of skills){
+    if(!s)continue;
+    let ok=true;
+    if(s.condition==='low_hp')ok=(unit.hp/unit.maxHp)<=Number(s.threshold||.4);
+    if(s.condition==='no_summon')ok=!livingBattleEnemies(battle).some(x=>x.isSummon&&x.summonedBy===unit.uid);
+    if(!ok)continue;
+    const weight=Math.max(0,Number(s.weight||1));
+    if(weight>0)pool.push({s,weight});
+  }
+  if(!pool.length)return skills[0]||null;
+  const total=pool.reduce((a,x)=>a+x.weight,0);
+  let r=Math.random()*total;
+  for(const x of pool){r-=x.weight;if(r<=0)return x.s;}
+  return pool[pool.length-1].s;
+}
+
+/* ===== V10.10.16 第1～10週怪物技能 / AI / Boss機制資料庫 =====
+   本區只集中「固定遊戲資料」，不改既有每日怪物動態戰力公式。
+   轉職仍由既有 28 日觀察 / 任務紀錄動態判定，不綁週數或日期。
+*/
+Object.assign(STATUS_DATABASE,{
+  slow:{id:'slow',name:'緩速',icon:'🐌',kind:'debuff',defaultTurns:2},
+  bind:{id:'bind',name:'束縛',icon:'🌿',kind:'debuff',defaultTurns:2},
+  weak:{id:'weak',name:'虛弱',icon:'📉',kind:'debuff',defaultTurns:2},
+  disease:{id:'disease',name:'疾病',icon:'☣️',kind:'debuff',defaultTurns:99},
+  blind:{id:'blind',name:'命中下降',icon:'👁️',kind:'debuff',defaultTurns:2},
+  rage:{id:'rage',name:'狂暴',icon:'🔥',kind:'buff',defaultTurns:3},
+  warcry:{id:'warcry',name:'戰吼',icon:'📣',kind:'buff',defaultTurns:3},
+  stone_guard:{id:'stone_guard',name:'石化防禦',icon:'🗿',kind:'buff',defaultTurns:1},
+  golden_shield:{id:'golden_shield',name:'黃金護盾',icon:'🛡️',kind:'buff',defaultTurns:99},
+  death_mark:{id:'death_mark',name:'死亡標記',icon:'☠️',kind:'debuff',defaultTurns:10}
+});
+
+const MONSTER_SKILL_DATABASE={
+  /* Week 1 史萊姆 */
+  slime_tackle:{id:'slime_tackle',name:'史萊姆撞擊',kind:'physical',target:'single',multiplier:1.0},
+  water_bullet:{id:'water_bullet',name:'水彈',kind:'magic',element:'water',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.70}},
+  fire_bullet:{id:'fire_bullet',name:'火焰彈',kind:'magic',element:'fire',target:'single',multiplier:1.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05}},
+  nature_heal:{id:'nature_heal',name:'自然治癒',kind:'heal',element:'nature',target:'self',healMaxHp:.20},
+  thunder_bullet:{id:'thunder_bullet',name:'雷電彈',kind:'magic',element:'lightning',target:'single',multiplier:1.0,status:{id:'paralysis',chance:.30,duration:1}},
+
+  /* Week 2 哥布林 */
+  goblin_club:{id:'goblin_club',name:'木棒敲擊',kind:'physical',target:'single',multiplier:1.0},
+  goblin_slash:{id:'goblin_slash',name:'短劍斬擊',kind:'physical',target:'single',multiplier:1.0},
+  goblin_guard:{id:'goblin_guard',name:'舉盾防禦',kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1},
+  goblin_magic_bolt:{id:'goblin_magic_bolt',name:'魔力彈',kind:'magic',target:'single',multiplier:1.0},
+  goblin_poison_curse:{id:'goblin_poison_curse',name:'毒咒',kind:'magic',target:'single',multiplier:.35,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
+  goblin_heal:{id:'goblin_heal',name:'治療術',kind:'heal',target:'ally_lowest_hp',healMaxHp:.15,conditionHpBelow:.40,maxUsesPerBattle:1},
+  goblin_heavy_slash:{id:'goblin_heavy_slash',name:'重斬',kind:'physical',target:'single',multiplier:1.4},
+  goblin_warcry:{id:'goblin_warcry',name:'戰吼',kind:'buff',target:'self',atkMultiplier:1.20,duration:3,maxUsesPerBattle:1},
+  goblin_summon:{id:'goblin_summon',name:'召喚哥布林',kind:'summon',target:'none',mpCost:25},
+
+  /* Week 3 森林 */
+  spider_poison_fang:{id:'spider_poison_fang',name:'毒牙',kind:'physical',target:'single',multiplier:1.0,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
+  spider_web:{id:'spider_web',name:'蛛網',kind:'debuff',target:'single',status:{id:'slow',chance:1,duration:2,speedMultiplier:.60}},
+  wolf_bite:{id:'wolf_bite',name:'撕咬',kind:'physical',target:'single',multiplier:1.0,status:{id:'bleed',chance:1,duration:3,maxHpDot:.04}},
+  bear_slam:{id:'bear_slam',name:'熊掌猛擊',kind:'physical',target:'single',multiplier:1.4},
+  bear_claw:{id:'bear_claw',name:'撕裂爪擊',kind:'physical',target:'single',multiplier:1.1},
+  vine_whip:{id:'vine_whip',name:'藤蔓鞭打',kind:'physical',target:'single',multiplier:1.0},
+  vine_bind:{id:'vine_bind',name:'藤蔓綑綁',kind:'debuff',target:'single',status:{id:'bind',chance:1,duration:2,speedMultiplier:.50,evasionMultiplier:0}},
+  shadow_arrow:{id:'shadow_arrow',name:'暗影箭',kind:'magic',element:'dark',target:'single',multiplier:1.0,status:{id:'weak',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
+  double_shot:{id:'double_shot',name:'二連射',kind:'physical',target:'single',hits:2,multiplierPerHit:.55},
+  shadow_step:{id:'shadow_step',name:'暗影步',kind:'buff',target:'self',evasionBonus:.20,duration:2,maxUsesPerBattle:1},
+
+  /* Week 4 獸人 */
+  orc_swing:{id:'orc_swing',name:'粗暴揮擊',kind:'physical',target:'single',multiplier:1.0},
+  orc_charge:{id:'orc_charge',name:'蓄力',kind:'charge',target:'self',nextSkill:'orc_charged_smash'},
+  orc_charged_smash:{id:'orc_charged_smash',name:'蓄力重擊',kind:'physical',target:'single',multiplier:1.8,requiresCharge:true},
+  chain_lightning:{id:'chain_lightning',name:'連鎖閃電',kind:'magic',element:'lightning',target:'single',hitsMin:2,hitsMax:3,multiplierPerHit:.45},
+  staff_hit:{id:'staff_hit',name:'法杖敲擊',kind:'physical',target:'single',multiplier:.8},
+  sword_slash:{id:'sword_slash',name:'劍刃斬擊',kind:'physical',target:'single',multiplier:1.0},
+  whirlwind:{id:'whirlwind',name:'旋風斬',kind:'physical',target:'all',hits:3,multiplierPerHit:.45},
+  general_axe:{id:'general_axe',name:'巨斧斬擊',kind:'physical',target:'single',multiplier:1.0},
+  general_order:{id:'general_order',name:'下令進攻',kind:'support_attack',target:'single',multiplier:.70,maxUsesPerBattle:2,noPersistentSummon:true},
+
+  /* Week 5 邪惡巫師塔 */
+  skeleton_slash:{id:'skeleton_slash',name:'普通攻擊',kind:'physical',target:'single',multiplier:1.0},
+  throw_bone:{id:'throw_bone',name:'丟骨頭',kind:'physical',target:'single',multiplier:1.3,selfDestruct:true,conditionHpBelow:.30},
+  zombie_bite:{id:'zombie_bite',name:'腐爛撕咬',kind:'physical',target:'single',multiplier:1.0},
+  hook_smash:{id:'hook_smash',name:'肉鉤重擊',kind:'physical',target:'single',multiplier:1.2},
+  frenzy_smash:{id:'frenzy_smash',name:'瘋狂猛擊',kind:'physical',target:'single',multiplier:1.6,selfMaxHpDamage:.08},
+  evil_eye_beam:{id:'evil_eye_beam',name:'魔眼光束',kind:'magic',target:'single',multiplier:1.0},
+  evil_gaze:{id:'evil_gaze',name:'凝視',kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
+  necro_shadow_bolt:{id:'necro_shadow_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
+  summon_three_skeletons:{id:'summon_three_skeletons',name:'召喚骷髏',kind:'summon',target:'none',count:3,maxUsesPerBattle:1},
+
+  /* Week 6 沙漠 */
+  mummy_claw:{id:'mummy_claw',name:'木乃伊爪擊',kind:'physical',target:'single',multiplier:1.0},
+  decaying_breath:{id:'decaying_breath',name:'腐朽氣息',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+  beetle_charge:{id:'beetle_charge',name:'衝撞',kind:'physical',target:'single',multiplier:1.1},
+  shell_guard:{id:'shell_guard',name:'甲殼防禦',kind:'buff',target:'self',damageTakenMultiplier:.55,duration:1},
+  scorpion_claw:{id:'scorpion_claw',name:'巨鉗攻擊',kind:'physical',target:'single',multiplier:1.0},
+  venom_sting:{id:'venom_sting',name:'毒尾刺',kind:'physical',target:'single',multiplier:1.1,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
+  spear_thrust:{id:'spear_thrust',name:'長矛突刺',kind:'physical',target:'single',multiplier:1.1},
+  tail_escape:{id:'tail_escape',name:'斷尾求生',kind:'trigger',target:'self',conditionHpBelow:.30,healMaxHp:.15,speedMultiplier:1.20,maxUsesPerBattle:1},
+  lion_bite:{id:'lion_bite',name:'獅首猛咬',kind:'physical',target:'single',multiplier:1.2},
+  goat_flame:{id:'goat_flame',name:'羊首火焰',kind:'magic',element:'fire',target:'single',multiplier:1.1},
+  snake_venom:{id:'snake_venom',name:'蛇尾毒刺',kind:'physical',target:'single',multiplier:.9,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
+
+  /* Week 7 金字塔 */
+  lizard_fire_magic:{id:'lizard_fire_magic',name:'火焰魔法',kind:'magic',element:'fire',target:'single',multiplier:1.1},
+  sand_spell:{id:'sand_spell',name:'沙塵術',kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
+  pharaoh_staff:{id:'pharaoh_staff',name:'權杖攻擊',kind:'physical',target:'single',multiplier:1.0},
+  golden_shield:{id:'golden_shield',name:'黃金護盾',kind:'shield',target:'self',maxUsesPerBattle:1},
+  death_scythe:{id:'death_scythe',name:'死神鐮斬',kind:'physical',target:'single',multiplier:1.25},
+  soul_judgment:{id:'soul_judgment',name:'靈魂審判',kind:'magic',element:'dark',target:'single',multiplier:1.15},
+  solar_flame:{id:'solar_flame',name:'太陽火焰',kind:'magic',element:'fire',target:'single',multiplier:1.1},
+  solar_charge:{id:'solar_charge',name:'聚集太陽能量',kind:'charge',target:'self',nextSkill:'wrath_of_ra'},
+  wrath_of_ra:{id:'wrath_of_ra',name:'太陽神之怒',kind:'magic',element:'fire',target:'single',multiplier:1.8,requiresCharge:true},
+
+  /* Week 8 魔王城郊區 */
+  rogue_stab:{id:'rogue_stab',name:'短刀攻擊',kind:'physical',target:'single',multiplier:1.0},
+  rogue_stun:{id:'rogue_stun',name:'柄擊',kind:'physical',target:'single',multiplier:.8,status:{id:'stun',chance:.30,duration:1},cannotUseConsecutively:true},
+  cult_curse:{id:'cult_curse',name:'詛咒',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+  life_drain:{id:'life_drain',name:'生命吸取',kind:'magic',element:'dark',target:'single',multiplier:1.0,healFromDamage:.50},
+  ogre_swing:{id:'ogre_swing',name:'巨棒揮擊',kind:'physical',target:'single',multiplier:1.2},
+  frost_arrow:{id:'frost_arrow',name:'冰霜箭',kind:'magic',element:'ice',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
+  blizzard:{id:'blizzard',name:'暴風雪',kind:'magic',element:'ice',target:'single',multiplier:1.3,cooldown:2},
+
+  /* Week 9 天啟四騎士 */
+  apocalypse_slash:{id:'apocalypse_slash',name:'重劍斬擊',kind:'physical',target:'single',multiplier:1.1},
+  war_rage:{id:'war_rage',name:'戰爭狂暴',kind:'buff',target:'self',atkMultiplier:1.30,duration:3,maxUsesPerBattle:1},
+  plague_slash:{id:'plague_slash',name:'腐疫斬擊',kind:'physical',target:'single',multiplier:1.1},
+  famine_strike:{id:'famine_strike',name:'虛弱打擊',kind:'physical',target:'single',multiplier:1.0,resourceDamageMaxPct:.05},
+  death_slash:{id:'death_slash',name:'死亡斬擊',kind:'physical',target:'single',multiplier:1.1},
+  demon_general_slash:{id:'demon_general_slash',name:'魔將斬擊',kind:'physical',target:'single',multiplier:1.1},
+
+  /* Week 10 魔王城內部 */
+  gargoyle_claw:{id:'gargoyle_claw',name:'石爪攻擊',kind:'physical',target:'single',multiplier:1.0},
+  petrify_guard:{id:'petrify_guard',name:'石化防禦',kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1},
+  blood_blade:{id:'blood_blade',name:'血刃斬擊',kind:'physical',target:'single',multiplier:1.1},
+  vampire_slash:{id:'vampire_slash',name:'吸血斬',kind:'physical',target:'single',multiplier:1.0,healFromDamage:.50},
+  demon_dark_bolt:{id:'demon_dark_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
+  dark_burst:{id:'dark_burst',name:'黑暗爆發',kind:'magic',element:'dark',target:'single',multiplier:1.35,cooldown:2},
+  mana_shield:{id:'mana_shield',name:'魔力護盾',kind:'shield',target:'self'}
+};
+
+const MONSTER_AI_DATABASE={
+  slime_water:{skills:[{id:'slime_tackle',weight:1},{id:'water_bullet',weight:1}]},
+  slime_fire:{skills:[{id:'slime_tackle',weight:1},{id:'fire_bullet',weight:1}]},
+  slime_grass:{skills:[{id:'slime_tackle',weight:2},{id:'nature_heal',weight:3,condition:'low_hp',threshold:.55}]},
+  slime_lightning:{skills:[{id:'slime_tackle',weight:1},{id:'thunder_bullet',weight:1}]},
+  slime_king:{skills:[{id:'slime_tackle',weight:1},{id:'water_bullet',weight:1},{id:'fire_bullet',weight:1},{id:'thunder_bullet',weight:1},{id:'nature_heal',weight:4,condition:'low_hp',threshold:.40}]},
+
+  goblin_slave:{skills:[{id:'goblin_club',weight:1}]},
+  goblin_soldier:{skills:[{id:'goblin_slash',weight:3},{id:'goblin_guard',weight:1}]},
+  goblin_shaman:{skills:[{id:'goblin_magic_bolt',weight:2},{id:'goblin_poison_curse',weight:2},{id:'goblin_heal',weight:4,condition:'low_hp',threshold:.40}],healMaxUses:1},
+  goblin_general:{skills:[{id:'goblin_warcry',weight:5,maxUses:1},{id:'goblin_heavy_slash',weight:2},{id:'goblin_slash',weight:2}]},
+  goblin_king:{skills:[{id:'goblin_summon',weight:1}],mp:100,maxMp:100,mpRegen:0,noAttack:true},
+
+  forest_spider:{skills:[{id:'spider_poison_fang',weight:1},{id:'spider_web',weight:1}]},
+  forest_wolf:{skills:[{id:'wolf_bite',weight:1}]},
+  forest_bear:{skills:[{id:'bear_slam',weight:1},{id:'bear_claw',weight:1}],statProfile:{hp:'high',atk:'high',speed:'low'}},
+  treant:{skills:[{id:'vine_whip',weight:2},{id:'vine_bind',weight:1}]},
+  dark_elf:{skills:[{id:'shadow_arrow',weight:2},{id:'double_shot',weight:2},{id:'shadow_step',weight:1,maxUses:1}]},
+
+  orc_slave:{skills:[{id:'orc_swing',weight:1}]},
+  orc_warrior:{skills:[{id:'orc_swing',weight:2},{id:'orc_charge',weight:1}],chargeSequence:['orc_charge','orc_charged_smash']},
+  orc_shaman:{skills:[{id:'staff_hit',weight:2},{id:'chain_lightning',weight:3}]},
+  orc_champion:{skills:[{id:'sword_slash',weight:2},{id:'whirlwind',weight:1}]},
+  orc_general:{skills:[{id:'goblin_warcry',weight:1,maxUses:1},{id:'general_axe',weight:2},{id:'general_order',weight:1,maxUses:2},{id:'orc_charge',weight:1}],chargeSequence:['orc_charge','orc_charged_smash']},
+
+  skeleton:{skills:[{id:'skeleton_slash',weight:3},{id:'throw_bone',weight:5,condition:'low_hp',threshold:.30}]},
+  zombie:{skills:[{id:'zombie_bite',weight:1}],passive:{id:'zombie_revive',maxUses:1,reviveHpPct:.30}},
+  abomination:{skills:[{id:'hook_smash',weight:2},{id:'frenzy_smash',weight:1}],statProfile:{hp:'very_high',speed:'very_low'}},
+  eyeball_monster:{skills:[{id:'evil_eye_beam',weight:2},{id:'evil_gaze',weight:1}]},
+  necromancer:{skills:[{id:'summon_three_skeletons',weight:10,maxUses:1},{id:'necro_shadow_bolt',weight:2}]},
+
+  lizard_mummy:{skills:[{id:'mummy_claw',weight:2},{id:'decaying_breath',weight:1}]},
+  giant_beetle:{skills:[{id:'beetle_charge',weight:3},{id:'shell_guard',weight:1}],statProfile:{def:'high'}},
+  giant_scorpion:{skills:[{id:'scorpion_claw',weight:2},{id:'venom_sting',weight:1}]},
+  lizard_warrior:{skills:[{id:'spear_thrust',weight:1}],triggerSkills:['tail_escape']},
+  chimera:{rotation:['lion_bite','goat_flame','snake_venom'],singleActionPerTurn:true},
+
+  lizard_mage:{skills:[{id:'lizard_fire_magic',weight:2},{id:'sand_spell',weight:1}]},
+  lizard_pharaoh:{skills:[{id:'pharaoh_staff',weight:3},{id:'golden_shield',weight:1,maxUses:1}]},
+  lizard_anubis:{skills:[{id:'death_scythe',weight:1},{id:'soul_judgment',weight:1}]},
+  lizard_ra:{skills:[{id:'solar_flame',weight:3},{id:'solar_charge',weight:1}],chargeSequence:['solar_charge','wrath_of_ra']},
+
+  human_bandit_rogue:{skills:[{id:'rogue_stab',weight:3},{id:'rogue_stun',weight:1}],alwaysActsFirstOnBattleStart:true},
+  cult_mage:{skills:[{id:'cult_curse',weight:1},{id:'life_drain',weight:3}],doNotReapplyActiveCurse:true},
+  ogre:{skills:[{id:'ogre_swing',weight:1}],passive:{id:'troll_regeneration',healMaxHpPerTurn:.05},statProfile:{hp:'very_high',speed:'very_low'}},
+  two_headed_ogre_mage:{skills:[{id:'frost_arrow',weight:3},{id:'blizzard',weight:1}],passive:{id:'troll_regeneration',healMaxHpPerTurn:.05},statProfile:{hp:'very_high',speed:'very_low'}},
+
+  apocalypse_war:{skills:[{id:'apocalypse_slash',weight:3},{id:'war_rage',weight:3,condition:'low_hp',threshold:.60,maxUses:1}]},
+  apocalypse_plague:{skills:[{id:'plague_slash',weight:1}],battleStartMechanic:'plague_field'},
+  apocalypse_famine:{skills:[{id:'famine_strike',weight:1}]},
+  apocalypse_death:{skills:[{id:'death_slash',weight:1}],battleStartMechanic:'death_mark'},
+  demon_general:{skills:[{id:'demon_general_slash',weight:1}],battleStartMechanic:'roll_two_apocalypse_powers'},
+
+  gargoyle:{skills:[{id:'gargoyle_claw',weight:3},{id:'petrify_guard',weight:1}]},
+  vampire_swordsman:{skills:[{id:'blood_blade',weight:2},{id:'vampire_slash',weight:1}]},
+  hero_mirror:{copyHero:true,statScale:.85,copyEquippedSkills:true,copyJob:true,copyAppearance:true,horizontalFlip:true},
+  demon_king_phase1:{skills:[{id:'demon_dark_bolt',weight:3},{id:'dark_burst',weight:1},{id:'mana_shield',weight:1}]},
+  demon_king_phase2:{phase2ReadsPhase1Damage:true,startsAtFullHp:true,inheritPhase1Hp:false}
+};
+
+const MONSTER_MECHANIC_DATABASE={
+  necromancer_soul_link:{
+    owner:'necromancer',summonCount:3,damageReductionPerLivingSkeleton:.25,maxDamageReduction:.75,
+    description:'每隻存活召喚骷髏提供25%減傷；3隻=75%，逐隻擊破後減傷同步下降。'
+  },
+  plague_field:{owner:'apocalypse_plague',visual:'plague_haze',status:'disease',healingMultiplier:.50,endsWhenOwnerDies:true},
+  death_mark:{owner:'apocalypse_death',duration:10,damageBonusPerElapsedTurn:.05,instantDeath:false},
+  roll_two_apocalypse_powers:{
+    owner:'demon_general',rollCount:2,unique:true,revealAtBattleStart:true,
+    pool:['war','plague','famine','death']
+  },
+  demon_king_phase_transition:{
+    phase1:'demon_king_phase1',phase2:'demon_king_phase2',
+    saveField:'phase1DamageRatio',phase2StartsAtFullHp:true,inheritRemainingHp:false,
+    effect:'phase1DamageRatio lowers phase2 magic power; exact balance curve is intentionally left tunable',
+    storyAfterPhase2:'魔王化為魔龍並飛往火焰山脈'
+  }
+};
+
+const ENEMY_SUMMON_DATABASE={
+  goblin_king:{
+    maxActiveSummons:2,maxTotalSummons:4,mp:100,maxMp:100,mpRegen:0,mpCostPerSummon:25,
+    summonCountPerCast:1,candidates:[
+      {id:'goblin_slave',weight:50},{id:'goblin_soldier',weight:35},{id:'goblin_shaman',weight:15,maxActive:1}
+    ],
+    rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
+  },
+  necromancer:{
+    maxActiveSummons:3,maxTotalSummons:3,summonCountPerCast:3,maxCastsPerBattle:1,candidates:['skeleton'],
+    summonVariant:{skills:['skeleton_slash'],disableSkills:['throw_bone'],hpScale:.50,atkScale:.65},
+    soulLinkMechanic:'necromancer_soul_link',rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
+  },
+  reborn_necromancer:{maxActiveSummons:2,candidates:['skeleton','zombie'],rewardExp:0,rewardGold:0,drops:false},
+  black_command_pillar:{maxActiveSummons:2,candidates:['guardian_doll'],rewardExp:0,rewardGold:0,drops:false},
+  evil_murloc_summoner:{maxActiveSummons:2,candidates:['murloc'],rewardExp:0,rewardGold:0,drops:false}
+};
+
 
 const GAME_DATABASE={
   monsters:MONSTER_DATABASE,
   items:ITEM_DATABASE,
   equipment:EQUIPMENT_DATABASE,
   statuses:STATUS_DATABASE,
+  monsterSkills:MONSTER_SKILL_DATABASE,
+  monsterAI:MONSTER_AI_DATABASE,
+  monsterMechanics:MONSTER_MECHANIC_DATABASE,
+  enemySummons:ENEMY_SUMMON_DATABASE,
   weeklyMaps:WEEKLY_MAP_DATABASE,
   // 技能資料沿用既有 BEGINNER_SKILLS / JOB_SKILL_LIBRARY，透過 getSkillDatabase() 統一取得。
   get skills(){
@@ -2072,7 +2493,12 @@ function currentWeeklyMonster(dateStr=today()){
 }
 function worldChapterForToday(){return weeklyMapForDate(today());}
 function generatedMonsterName(){
+  const map=weeklyMapForDate(today());
+  if(map?.noBattle)return '皇都凱旋遊行';
   return currentWeeklyMonster(today())?.name||'未知怪物';
+}
+function isCelebrationWeek(dateStr=today()){
+  return weeklyMapForDate(dateStr)?.mode==='celebration';
 }
 function currentMapName(){
   return weeklyMapForDate(today())?.map||'未知地區';
@@ -2622,12 +3048,8 @@ function effectiveBattleValue(unit,key){return Math.max(0,Number(unit[key]||0)+e
 function addTimedEffect(target,effect){target.statuses.push({type:'effect_'+Date.now()+'_'+Math.random(),name:effect.name||'效果',effectType:effect.effectType||'buff',turns:Number(effect.turns)||1,mods:{...(effect.mods||{})}});}
 function updateBattleStatuses(){
   if(!battleStateV10)return;
-  const paint=(side,unit)=>{
-    const el=document.getElementById('battleStatus_'+side);
-    if(el)el.innerHTML=unit.statuses.map(s=>`<span class="status-token ${s.effectType==='buff'?'effect-buff':s.effectType==='debuff'?'effect-debuff':''}">${statusLabel(s)} ${s.turns}</span>`).join('');
-  };
-  paint('hero',battleStateV10.hero);
-  paint('enemy',battleStateV10.enemy);
+  const paint=(side,unit)=>{const el=document.getElementById('battleStatus_'+side);if(el)el.innerHTML=(unit?.statuses||[]).map(st=>`<span class="status-token ${st.effectType==='buff'?'effect-buff':st.effectType==='debuff'?'effect-debuff':''}">${statusLabel(st)} ${st.turns}</span>`).join('');};
+  paint('hero',battleStateV10.hero);paint('enemy',typeof selectedBattleEnemy==='function'?selectedBattleEnemy():battleStateV10.enemy);
 }
 function updateBattleResource(side,val,max){
   const pct=Math.max(0,Math.round(val/max*100));
@@ -2754,7 +3176,7 @@ function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
   const damageType=action.type||'physical';
   const isPhysical=damageType==='physical';
   const canDodge=action.canDodge!==false;
-  const hit=clampBattle(BATTLE_CONFIG.baseHit+(attacker.speed-defender.speed)*.001,.82,.99);
+  const hit=clampBattle(BATTLE_CONFIG.baseHit+(attacker.speed-defender.speed)*.001+effectMod(attacker,'hit'),.45,.99);
   if(Math.random()>hit)return {type:'miss',damage:0,damageType};
   if(canDodge && Math.random()<effectiveBattleValue(defender,'evade'))return {type:'dodge',damage:0,damageType};
   if(isPhysical && action.canParry!==false && Math.random()<effectiveBattleValue(defender,'parry'))return {type:'parry',damage:0,damageType};
@@ -2892,61 +3314,32 @@ function applyEnergyForAction(side,action){
 async function performAction(side,action){
   const unit=side==='hero'?battleStateV10.hero:battleStateV10.enemy;
   unit.guarding=false;
-  if(action.kind==='defend'){
-    unit.guarding=true;
-    document.getElementById('battleChar_'+side)?.classList.add('guard');
-    addBattleLog(`🛡️ ${unit.name}採取防禦姿態！本回合傷害降低。`);
-    applyEnergyForAction(side,action);await battleSleep(300);return;
-  }
+  if(action.kind==='defend'){unit.guarding=true;addTimedEffect(unit,{name:'防禦姿態',effectType:'buff',turns:1,mods:{damageTaken:-.50}});addBattleLog(`🛡️ ${unit.name}採取防禦姿態！`);applyEnergyForAction(side,action);updateBattleStatuses();return;}
   if(action.kind==='skill'){
     if(getUnitEnergy(side)<action.cost){addBattleLog(`⚡ ${unit.name}能量不足！`);return;}
-    addBattleLog(`${action.icon||'✨'} ${unit.name}使用「${action.name}」！`);
-    applyEnergyForAction(side,action);
-    if(side==='hero')recordSkillUsage(action.id);
-    if(action.effect){
-      addTimedEffect(unit,{...action.effect,name:action.name});
-      addBattleLog(`${action.icon||'✨'} ${action.name}生效，持續 ${action.effect.turns} 回合。`);
-      updateBattleStatuses();await battleSleep(300);return;
-    }
-    const res=await executeAttack(side,action);
-    return;
+    addBattleLog(`${action.icon||'✨'} ${unit.name}使用「${action.name}」！`);applyEnergyForAction(side,action);if(side==='hero')recordSkillUsage(action.id);
+    if(action.effect){addTimedEffect(unit,{...action.effect,name:action.name});addBattleLog(`${action.name}生效。`);updateBattleStatuses();return;}
+    if(side==='hero')return executeHeroAgainstTarget(action);
+    return executeAttack(side,action);
   }
-  addBattleLog(`⚔️ ${unit.name}攻擊！`);
-  applyEnergyForAction(side,action);
-  await executeAttack(side,action);
+  addBattleLog(`⚔️ ${unit.name}攻擊！`);applyEnergyForAction(side,action);if(side==='hero')return executeHeroAgainstTarget(action);return executeAttack(side,action);
 }
 function setBattleControls(enabled){
   document.querySelectorAll('.battle-action-btn,.battle-choice').forEach(b=>b.disabled=!enabled);
 }
 async function battlePlayerAction(action){
   if(!battleStateV10||battleStateV10.busy||battleStateV10.ended)return;
-  if(action.kind==='skill' && battleStateV10.heroEnergy<action.cost){
-    addBattleLog('⚡ 能量不足！');return;
-  }
-  battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();
-  battleStateV10.round++;
-  const banner=document.getElementById('battleRoundBanner');
-  if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
-
-  // 每回合先處理雙方異常狀態
-  const heroSkip=await processStatusTick('hero');
-  if(await checkBattleEnd())return;
-  const enemySkip=await processStatusTick('enemy');
-  if(await checkBattleEnd())return;
-
-  const enemyAction=enemyChooseAction();
-  const order=(battleStateV10.hero.speed>=battleStateV10.enemy.speed)
-    ?[['hero',action,heroSkip],['enemy',enemyAction,enemySkip]]
-    :[['enemy',enemyAction,enemySkip],['hero',action,heroSkip]];
-
-  for(const [side,act,skip] of order){
-    if(skip)continue;
-    await performAction(side,act);
-    if(await checkBattleEnd())return;
-    await battleSleep(BATTLE_CONFIG.delay);
-  }
-  battleStateV10.hero.guarding=false;battleStateV10.enemy.guarding=false;
-  battleStateV10.busy=false;setBattleControls(true);
+  if(action.kind==='skill'&&battleStateV10.heroEnergy<action.cost){addBattleLog('⚡ 能量不足！');return;}
+  if(!selectedBattleEnemy()){addBattleLog('沒有可攻擊的目標。');return;}
+  battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;
+  const banner=document.getElementById('battleRoundBanner');if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
+  const heroSkip=await tickLiveUnit(battleStateV10.hero,true);if(await checkBattleEnd())return;
+  const first=battleStateV10.enemies?.[0];
+  if(battleStateV10.round===1&&first?.monsterId==='human_bandit_rogue'&&!first.firstStrikeDone&&first.hp>0){first.firstStrikeDone=true;addBattleLog('🗡️ 土匪盜賊搶先出手！');await performLiveEnemyTurn(first);if(await checkBattleEnd())return;}
+  if(!heroSkip)await performAction('hero',action);if(await checkBattleEnd())return;
+  await battleSleep(250);
+  for(const u of [...(battleStateV10.enemies||[])]){if(u.hp<=0||u.alive===false)continue;await performLiveEnemyTurn(u);if(await checkBattleEnd())return;await battleSleep(220);}
+  battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();updateBattleStatuses();
 }
 function showBattleSkills(){
   if(!battleStateV10||battleStateV10.busy)return;
@@ -2975,132 +3368,278 @@ function hideBattleSubmenu(){
 }
 async function battleUsePoison(){
   if(!battleStateV10||battleStateV10.busy)return;
+  const target=selectedBattleEnemy();if(!target)return;
   if(battleConsumableCount('初級毒藥')<1){addBattleLog('🎒 沒有初級毒藥。');hideBattleSubmenu();return;}
   if(!consumeBattleConsumable('初級毒藥'))return;
-  battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();
-  battleStateV10.round++;
+  battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;
   addBattleLog('🧪 使用初級毒藥，剩餘 '+battleConsumableCount('初級毒藥')+' 瓶。');
-  const chance=statusChance(.75,battleStateV10.enemy,'poison');
-  if(Math.random()<chance){
-    addStatus(battleStateV10.enemy,{type:'poison',turns:3,power:Math.max(5,battleStateV10.hero.int*.12)});
-    addBattleLog(`🧪 毒藥生效！${battleStateV10.enemy.name}中毒了。`);
-  }else addBattleLog(`🧪 ${battleStateV10.enemy.name}抵抗了毒藥！`);
-  updateBattleStatuses();
-  await battleSleep(300);
-  const enemySkip=await processStatusTick('enemy');
-  if(await checkBattleEnd())return;
-  if(!enemySkip)await performAction('enemy',enemyChooseAction());
-  if(await checkBattleEnd())return;
-  battleStateV10.busy=false;setBattleControls(true);
+  if(Math.random()<statusChance(.75,target,'poison')){addStatus(target,{type:'poison',name:'中毒',turns:3,maxHpDot:.03,effectType:'debuff',mods:{}});addBattleLog(`☠️ ${target.name}中毒了。`);}else addBattleLog(`🧪 ${target.name}抵抗了毒藥！`);
+  for(const u of [...battleStateV10.enemies]){if(u.hp>0)await performLiveEnemyTurn(u);if(await checkBattleEnd())return;}
+  battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();
 }
+
+/* ===== V10.10.17 LIVE MONSTER SKILL ENGINE ===== */
+function monsterIdByName(name){
+  const hit=Object.values(MONSTER_DATABASE).find(m=>m.name===name);
+  return hit?.id||null;
+}
+function selectedBattleEnemy(){
+  if(!battleStateV10)return null;
+  const alive=(battleStateV10.enemies||[]).filter(u=>u.alive!==false&&u.hp>0);
+  let t=alive.find(u=>u.uid===battleStateV10.selectedEnemyUid)||alive[0]||null;
+  if(t)battleStateV10.selectedEnemyUid=t.uid;
+  return t;
+}
+function syncLegacyEnemyAlias(){
+  if(!battleStateV10)return;
+  const t=selectedBattleEnemy()||battleStateV10.enemies?.[0]||battleStateV10.enemy;
+  if(t){battleStateV10.enemy=t;battleStateV10.enemyHp=t.hp;}
+}
+function selectBattleTarget(uid){
+  if(!battleStateV10||battleStateV10.busy||battleStateV10.ended)return;
+  const t=(battleStateV10.enemies||[]).find(u=>u.uid===uid&&u.alive!==false&&u.hp>0);
+  if(!t)return;
+  battleStateV10.selectedEnemyUid=uid;syncLegacyEnemyAlias();renderBattleTargets();
+  addBattleLog(`🎯 鎖定目標：${t.name}`);
+}
+function renderBattleTargets(){
+  if(!battleStateV10)return;
+  const strip=document.getElementById('battleTargetStrip');
+  const enemies=battleStateV10.enemies||[];
+  const selected=selectedBattleEnemy();
+  if(strip)strip.innerHTML=enemies.map(u=>{
+    const pct=Math.max(0,Math.round((u.hp/u.maxHp)*100));
+    const cls=(u.alive!==false&&u.hp>0)?(selected?.uid===u.uid?'locked':''):'dead';
+    return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${u.isSummon?'➕ ':u.isBoss?'👑 ':'👹 '}${u.name}</b><div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
+  }).join('');
+  if(selected){
+    const n=document.getElementById('battleEnemyName');if(n)n.textContent=selected.name;
+    updateBattleHp('enemy',selected.hp,selected.maxHp);
+    const unitStatus=document.getElementById('battleStatus_enemy');
+    if(unitStatus)unitStatus.innerHTML=(selected.statuses||[]).map(st=>`<span class="status-token ${st.effectType==='buff'?'effect-buff':st.effectType==='debuff'?'effect-debuff':''}">${statusLabel(st)} ${st.turns}</span>`).join('');
+  }
+}
+function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
+  const def=MONSTER_DATABASE[monsterId]||{id:monsterId,name:opts.name||'怪物'};
+  let base=deriveEnemyStats(power,def.name,eventType);
+  if(monsterId==='hero_mirror'){
+    const h=makeHeroBattleStats();
+    base={...base,maxHp:Math.round(h.maxHp*.95),maxEnergy:h.maxEnergy,attack:h.attack*.85,magicAttack:h.magicAttack*.85,defense:h.defense*.85,magicDefense:h.magicDefense*.85,speed:h.speed*.85,crit:h.crit,evade:h.evade,parry:h.parry,block:h.block,statusRes:h.statusRes,elementalBaseRes:h.elementalBaseRes,resist:{...h.resist}};
+  }
+  const scale=Number(opts.statScale||1);
+  const hpScale=Number(opts.hpScale||scale);
+  const u={...base,uid:opts.uid||`${monsterId}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,monsterId,name:opts.name||def.name,
+    maxHp:Math.max(1,Math.round(base.maxHp*hpScale)),hp:0,alive:true,isBoss:!!(opts.isBoss??def.boss),isSummon:!!opts.isSummon,summonedBy:opts.summonedBy||null,
+    attack:base.attack*scale,magicAttack:base.magicAttack*scale,defense:base.defense*scale,magicDefense:base.magicDefense*scale,speed:base.speed*scale,
+    statuses:[],skillUses:{},cooldowns:{},chargedSkill:null,rotationIndex:0,reviveUsed:false,turnsTaken:0};
+  u.hp=u.maxHp;
+  const ai=MONSTER_AI_DATABASE[monsterId]||{};
+  u.maxMp=Number(ai.maxMp||ai.mp||base.maxEnergy||50);u.mp=Number(ai.mp??u.maxMp);
+  return u;
+}
+function enemyDamageReduction(unit){
+  let mult=Math.max(.1,1+effectMod(unit,'damageTaken'));
+  if(unit.monsterId==='necromancer'){
+    const n=(battleStateV10.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.hp>0).length;
+    mult*=Math.max(.25,1-.25*n);
+  }
+  return mult;
+}
+function applyDamageToEnemy(unit,damage){
+  let d=Math.max(0,Math.round(damage));
+  if(unit.monsterId==='necromancer'){
+    const n=(battleStateV10.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.hp>0).length;
+    if(n){const before=d;d=Math.max(1,Math.round(d*Math.max(.25,1-.25*n)));if(before!==d)addBattleLog(`🔗 靈魂連結：${n}隻骷髏替死靈法師分擔傷害。`);}
+  }
+  unit.hp=Math.max(0,unit.hp-d);unit.alive=unit.hp>0;
+  if(unit.hp<=0 && unit.monsterId==='zombie' && !unit.reviveUsed){unit.reviveUsed=true;unit.hp=Math.max(1,Math.round(unit.maxHp*.30));unit.alive=true;addBattleLog(`🧟 ${unit.name}死而復生！恢復30% HP。`);showBattleWord('死而復生！');}
+  if(unit.hp<=0 && !unit.alive){
+    addBattleLog(`💀 ${unit.name}被擊倒。`);
+    const primary=battleStateV10.enemies?.[0];
+    if(unit===primary){(battleStateV10.enemies||[]).forEach(x=>{if(x.isSummon){x.hp=0;x.alive=false;}});}
+    if(battleStateV10.selectedEnemyUid===unit.uid){const next=(battleStateV10.enemies||[]).find(x=>x.hp>0&&x.alive!==false);battleStateV10.selectedEnemyUid=next?.uid||null;}
+  }
+  syncLegacyEnemyAlias();renderBattleTargets();
+  return d;
+}
+function liveStatusFromSkill(st,target){
+  if(!st)return null; const mods={};
+  if(st.speedMultiplier!=null)mods.speed=(target.speed||0)*(Number(st.speedMultiplier)-1);
+  if(st.evasionMultiplier!=null)mods.evade=-(target.evade||0)*(1-Number(st.evasionMultiplier));
+  if(st.atkMultiplier!=null)mods.attack=(target.attack||0)*(Number(st.atkMultiplier)-1);
+  if(st.matkMultiplier!=null)mods.magicAttack=(target.magicAttack||0)*(Number(st.matkMultiplier)-1);
+  if(st.defMultiplier!=null)mods.defense=(target.defense||0)*(Number(st.defMultiplier)-1);
+  if(st.mdefMultiplier!=null)mods.magicDefense=(target.magicDefense||0)*(Number(st.mdefMultiplier)-1);
+  if(st.accuracyPenalty!=null)mods.hit=-Number(st.accuracyPenalty);
+  return {type:st.id,turns:Number(st.duration||STATUS_DATABASE[st.id]?.defaultTurns||1),power:0,maxHpDot:Number(st.maxHpDot||0),mods,effectType:'debuff',name:STATUS_DATABASE[st.id]?.name||st.id,guaranteedSkip:['stun','paralysis'].includes(st.id)};
+}
+function tryApplyMonsterStatus(skill,target){
+  const st=skill.status;if(!st)return false;
+  const chance=clampBattle(Number(st.chance??1)*(1-(target.statusRes||0)),0,.95);
+  if(Math.random()>chance)return false;
+  const live=liveStatusFromSkill(st,target);addStatus(target,live);addBattleLog(`${STATUS_DATABASE[st.id]?.icon||'🌀'} ${target.name}陷入「${live.name}」！`);return true;
+}
+async function tickLiveUnit(unit,isHero=false){
+  let skip=false;
+  for(const st of [...(unit.statuses||[])]){
+    if(st.maxHpDot>0){const dmg=Math.max(1,Math.round((isHero?battleStateV10.hero.maxHp:unit.maxHp)*st.maxHpDot));if(isHero){battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-dmg);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);}else applyDamageToEnemy(unit,dmg);addBattleLog(`${statusLabel(st)}：${unit.name}受到 ${dmg} 點傷害。`);showDamage(isHero?'hero':'enemy','-'+dmg);}
+    if(['stun','paralysis','freeze'].includes(st.type)&&st.guaranteedSkip!==false){skip=true;addBattleLog(`${statusLabel(st)}！${unit.name}本回合無法行動。`);}
+    st.turns--;
+  }
+  unit.statuses=(unit.statuses||[]).filter(st=>st.turns>0);
+  if(isHero)updateBattleStatuses();else renderBattleTargets();
+  return skip;
+}
+function skillUsableByEnemy(unit,entry,skill){
+  if(!skill)return false;
+  const used=unit.skillUses[skill.id]||0;
+  const max=Number(entry?.maxUses??skill.maxUsesPerBattle??999);
+  if(used>=max)return false;
+  if((unit.cooldowns[skill.id]||0)>0)return false;
+  if(skill.requiresCharge&&unit.chargedSkill!==skill.id)return false;
+  if(skill.conditionHpBelow!=null&&unit.hp/unit.maxHp>skill.conditionHpBelow)return false;
+  if(entry?.condition==='low_hp'){
+    if(skill.target==='ally_lowest_hp'){const low=(battleStateV10.enemies||[]).some(x=>x.hp>0&&x.hp/x.maxHp<=Number(entry.threshold||skill.conditionHpBelow||.4));if(!low)return false;}
+    else if(unit.hp/unit.maxHp>Number(entry.threshold||.4))return false;
+  }
+  if(skill.id==='cult_curse'&&(battleStateV10.hero.statuses||[]).some(x=>x.type==='curse'))return false;
+  if(skill.cannotUseConsecutively&&unit.lastSkillId===skill.id)return false;
+  if(skill.kind==='summon'){
+    if(unit.monsterId==='goblin_king'){
+      const active=(battleStateV10.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.hp>0).length;
+      if(active>=2||unit.mp<25||(unit.skillUses.goblin_summon||0)>=4)return false;
+    }
+    if(unit.monsterId==='necromancer'&&(unit.skillUses.summon_three_skeletons||0)>=1)return false;
+  }
+  return true;
+}
+function chooseLiveEnemySkill(unit){
+  const ai=MONSTER_AI_DATABASE[unit.monsterId]||{};
+  if(unit.chargedSkill){const sk=MONSTER_SKILL_DATABASE[unit.chargedSkill];if(sk)return sk;}
+  if(ai.rotation?.length){const id=ai.rotation[unit.rotationIndex%ai.rotation.length];unit.rotationIndex++;return MONSTER_SKILL_DATABASE[id];}
+  if(unit.monsterId==='hero_mirror')return {id:'mirror_attack',name:'鏡像攻擊',kind:(unit.magicAttack>unit.attack?'magic':'physical'),element:'arcane',multiplier:1.0,target:'single'};
+  const candidates=[];
+  for(const e of (ai.skills||[])){
+    const sk=MONSTER_SKILL_DATABASE[e.id];if(skillUsableByEnemy(unit,e,sk))candidates.push({entry:e,skill:sk,weight:Number(e.weight||1)});
+  }
+  if(!candidates.length)return ai.noAttack?null:{id:'basic_attack',name:'攻擊',kind:'physical',target:'single',multiplier:1};
+  let total=candidates.reduce((a,x)=>a+x.weight,0),r=Math.random()*total;
+  for(const x of candidates){r-=x.weight;if(r<=0)return x.skill;}return candidates.at(-1).skill;
+}
+function summonLiveUnit(monsterId,summoner,opts={}){
+  if((battleStateV10.enemies||[]).filter(x=>x.hp>0).length>=MULTI_ENEMY_RULES.maxEnemies)return null;
+  const u=makeLiveEnemy(monsterId,battleStateV10.enemyPower,battleStateV10.eventType,{isSummon:true,summonedBy:summoner.uid,statScale:opts.statScale||.65,hpScale:opts.hpScale||.45});
+  if(opts.basicOnly)u.forceBasicOnly=true;
+  battleStateV10.enemies.push(u);renderBattleTargets();return u;
+}
+async function executeHeroAgainstTarget(action){
+  const target=selectedBattleEnemy();if(!target)return;
+  const result=resolveAttack(battleStateV10.hero,target,action);
+  await animateBattleAction('hero',result);
+  if(result.damage){const d=applyDamageToEnemy(target,result.damage);result.damage=d;showDamage('enemy','-'+d);}
+  addBattleLog(actionSummary(result,target.name));renderBattleTargets();return result;
+}
+async function executeEnemyHit(unit,skill){
+  const type=skill.kind==='magic'?(skill.element||'arcane'):'physical';
+  const hits=Number(skill.hits||0)||(skill.hitsMin?Math.floor(Math.random()*(skill.hitsMax-skill.hitsMin+1))+skill.hitsMin:1);
+  let total=0;
+  for(let i=0;i<hits;i++){
+    const mult=skill.multiplierPerHit||skill.multiplier||1;
+    let dynamic=mult;const deathPower=unit.monsterId==='apocalypse_death'||unit.apocalypsePowers?.includes('death');if(deathPower)dynamic*=1+.05*Math.min(10,Math.max(0,battleStateV10.round-1));if(unit.apocalypsePowers?.includes('war'))dynamic*=1.30;
+    const res=resolveAttack(unit,battleStateV10.hero,{type,multiplier:dynamic});
+    await animateBattleAction('enemy',res);
+    if(res.damage){battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-res.damage);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);showDamage('hero','-'+res.damage);total+=res.damage;}
+    addBattleLog(actionSummary(res,battleStateV10.hero.name));
+  }
+  if(total&&skill.status)tryApplyMonsterStatus(skill,battleStateV10.hero);
+  if(skill.healFromDamage&&total){const heal=Math.round(total*skill.healFromDamage);unit.hp=Math.min(unit.maxHp,unit.hp+heal);addBattleLog(`🩸 ${unit.name}吸收生命，恢復 ${heal} HP。`);}
+  if(skill.resourceDamageMaxPct||unit.apocalypsePowers?.includes('famine')){const cut=Math.round(battleStateV10.hero.maxEnergy*(skill.resourceDamageMaxPct||.05));battleStateV10.heroEnergy=Math.max(0,battleStateV10.heroEnergy-cut);updateBattleResource('hero',battleStateV10.heroEnergy,battleStateV10.hero.maxEnergy);addBattleLog(`⚡ ${battleStateV10.hero.name}被削減 ${cut} 點能量。`);}
+  if(skill.selfMaxHpDamage){const self=Math.max(1,Math.round(unit.maxHp*skill.selfMaxHpDamage));unit.hp=Math.max(1,unit.hp-self);addBattleLog(`💢 ${unit.name}反噬 ${self} HP。`);}
+  if(skill.selfDestruct){unit.hp=0;unit.alive=false;addBattleLog(`💥 ${unit.name}丟出骨頭後崩解。`);}
+}
+async function performLiveEnemyTurn(unit){
+  if(!unit||unit.hp<=0||unit.alive===false)return;
+  const ai=MONSTER_AI_DATABASE[unit.monsterId]||{};
+  unit.turnsTaken++;Object.keys(unit.cooldowns).forEach(k=>unit.cooldowns[k]=Math.max(0,unit.cooldowns[k]-1));
+  if(ai.passive?.healMaxHpPerTurn){const heal=Math.max(1,Math.round(unit.maxHp*ai.passive.healMaxHpPerTurn));unit.hp=Math.min(unit.maxHp,unit.hp+heal);addBattleLog(`♻️ ${unit.name}再生 ${heal} HP。`);}
+  if(await tickLiveUnit(unit,false))return;
+  if(unit.forceBasicOnly){await executeEnemyHit(unit,{id:'summon_basic',name:'骷髏攻擊',kind:'physical',multiplier:.8});return;}
+  if(unit.monsterId==='lizard_warrior'&&unit.hp/unit.maxHp<.30&&!unit.skillUses.tail_escape){unit.skillUses.tail_escape=1;const heal=Math.round(unit.maxHp*.15);unit.hp=Math.min(unit.maxHp,unit.hp+heal);addTimedEffect(unit,{name:'斷尾求生',effectType:'buff',turns:99,mods:{speed:unit.speed*.20}});addBattleLog(`🦎 ${unit.name}斷尾求生，恢復 ${heal} HP並提升速度！`);renderBattleTargets();return;}
+  const skill=chooseLiveEnemySkill(unit);
+  if(!skill){addBattleLog(`… ${unit.name}沒有可用行動。`);return;}
+  unit.skillUses[skill.id]=(unit.skillUses[skill.id]||0)+1;if(skill.cooldown)unit.cooldowns[skill.id]=skill.cooldown;unit.lastSkillId=skill.id;
+  addBattleLog(`👹 ${unit.name}使用「${skill.name}」！`);
+  if(skill.kind==='charge'){unit.chargedSkill=skill.nextSkill;addBattleLog(`⚠️ ${unit.name}正在蓄力！下一次將使出「${MONSTER_SKILL_DATABASE[skill.nextSkill]?.name||skill.nextSkill}」。`);return;}
+  if(skill.requiresCharge)unit.chargedSkill=null;
+  if(skill.kind==='heal'){
+    let target=unit;if(skill.target==='ally_lowest_hp'){target=(battleStateV10.enemies||[]).filter(x=>x.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]||unit;}
+    const heal=Math.max(1,Math.round(target.maxHp*skill.healMaxHp));target.hp=Math.min(target.maxHp,target.hp+heal);addBattleLog(`💚 ${target.name}恢復 ${heal} HP。`);renderBattleTargets();return;
+  }
+  if(['buff','shield'].includes(skill.kind)){
+    const mods={};if(skill.damageTakenMultiplier!=null)mods.damageTaken=Number(skill.damageTakenMultiplier)-1;if(skill.atkMultiplier!=null)mods.attack=unit.attack*(Number(skill.atkMultiplier)-1);if(skill.evasionBonus)mods.evade=skill.evasionBonus;
+    if(skill.id==='golden_shield'||skill.id==='mana_shield')mods.damageTaken=-.35;
+    addTimedEffect(unit,{name:skill.name,effectType:'buff',turns:Number(skill.duration||2),mods});renderBattleTargets();return;
+  }
+  if(skill.kind==='debuff'){tryApplyMonsterStatus(skill,battleStateV10.hero);updateBattleStatuses();return;}
+  if(skill.kind==='summon'){
+    if(unit.monsterId==='goblin_king'){
+      if(unit.mp<25){addBattleLog('🔵 哥布林王MP不足。');return;}const pool=['goblin_slave','goblin_soldier','goblin_shaman'];const id=pool[Math.floor(Math.random()*pool.length)];const su=summonLiveUnit(id,unit,{statScale:.68,hpScale:.52});if(su){unit.mp-=25;addBattleLog(`📣 哥布林王消耗25 MP，召喚「${su.name}」！剩餘MP ${unit.mp}/100。`);}else addBattleLog('📣 場上已滿，哥布林王無法召喚。');return;
+    }
+    if(unit.monsterId==='necromancer'){
+      let n=0;for(let i=0;i<3;i++)if(summonLiveUnit('skeleton',unit,{statScale:.65,hpScale:.45,basicOnly:true}))n++;addBattleLog(`💀 死靈法師召喚 ${n} 隻骷髏！靈魂連結啟動。`);return;
+    }
+  }
+  await executeEnemyHit(unit,skill);renderBattleTargets();
+}
+function applyBattleStartMonsterMechanics(){
+  const u=battleStateV10.enemies?.[0];if(!u)return;
+  const ai=MONSTER_AI_DATABASE[u.monsterId]||{};
+  if(ai.battleStartMechanic==='plague_field'){addStatus(battleStateV10.hero,{type:'disease',name:'疾病',effectType:'debuff',turns:99,mods:{healingReceived:-.50}});addBattleLog('☣️ 瘟疫領域展開：勇者受到疾病影響。');}
+  if(ai.battleStartMechanic==='death_mark'){addStatus(battleStateV10.hero,{type:'death_mark',name:'死亡標記',effectType:'debuff',turns:10,mods:{}});addBattleLog('☠️ 死亡標記：死亡騎士每經過1回合傷害+5%。');}
+  if(ai.battleStartMechanic==='roll_two_apocalypse_powers'){
+    const all=['war','plague','famine','death'];for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]];}u.apocalypsePowers=all.slice(0,2);addBattleLog(`🎲 魔王大將抽取能力：${u.apocalypsePowers.join('＋')}`);if(u.apocalypsePowers.includes('plague')){addStatus(battleStateV10.hero,{type:'disease',name:'疾病',effectType:'debuff',turns:99,mods:{healingReceived:-.50}});} }
+  if(u.monsterId==='demon_king_phase2'){
+    const r=Number(gameData.storyFlags?.demonKingPhase1DamageRatio||0);const factor=1-.30*clampBattle(r,0,1);u.magicAttack*=factor;addBattleLog(`👿 第一階段削弱 ${(r*100).toFixed(0)}%｜第二階段魔力倍率 ${(factor*100).toFixed(0)}%｜HP重新滿血。`);
+  }
+  updateBattleStatuses();renderBattleTargets();
+}
+
 function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
-  document.getElementById('battleOverlay')?.remove();
-  const o=document.createElement('div');o.id='battleOverlay';o.className='battle-overlay';
+  document.getElementById('battleOverlay')?.remove();const o=document.createElement('div');o.id='battleOverlay';o.className='battle-overlay';
   o.innerHTML=`<div class="battle-window" role="dialog" aria-modal="true">
-    <div class="battle-top">
-      <div class="battle-unit">
-        <div class="battle-name">${gameData.hero.name}　Lv.${gameData.hero.level}</div>
-        <div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div>
-        <div id="battleHpText_hero" class="hp-text">❤️ ${heroStats.maxHp} / ${heroStats.maxHp}</div>
-        <div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill" style="width:50%"></div></div>
-        <div id="battleEnergyText_hero" class="resource-text"></div>
-        <div id="battleStatus_hero" class="battle-status-line"></div>
-      </div>
-      <div class="battle-unit enemy">
-        <div class="battle-name">${enemyName}</div>
-        <div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div>
-        <div id="battleHpText_enemy" class="hp-text">❤️ ${enemyStats.maxHp} / ${enemyStats.maxHp}</div>
-        <div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill" style="width:50%"></div></div>
-        <div id="battleEnergyText_enemy" class="resource-text"></div>
-        <div id="battleStatus_enemy" class="battle-status-line"></div>
-      </div>
-    </div>
-    <div id="battleArena" class="battle-arena">
-      <div class="battle-bg"></div><div class="battle-floor"></div>
-      <div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div>
-      <div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${sprite('images/hero_attack_1.png')}" alt="勇者"></div>
-      <div id="battleChar_enemy" class="battle-enemy">${
-        (String(enemyName||'').includes('史萊姆')||String(enemyName||'').toLowerCase().includes('slime'))
-        ? `<img id="battleEnemySprite" src="${sprite('images/slime_idle_1.png')}" alt="${enemyName}">`
-        : `<div class="enemy-glyph">${enemyIcon}</div>`
-      }</div>
-    </div>
-    <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！選擇行動。</div></div>
-    <div id="battleActions" class="battle-actions">
-      <button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button>
-      <button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button>
-      <button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button>
-    </div>
-    <div id="battleSubmenu" class="battle-submenu" style="display:none"></div>
-    <div id="battleResult"></div>
-  </div>`;
-  document.body.appendChild(o);
+    <div class="battle-top"><div class="battle-unit"><div class="battle-name">${gameData.hero.name}　Lv.${gameData.hero.level}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
+    <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
+    <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
+    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${sprite('images/hero_attack_1.png')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div></div>
+    <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
+    <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
+    <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
 }
 async function checkBattleEnd(){
   if(!battleStateV10)return false;
-  const heroDead=battleStateV10.heroHp<=0,enemyDead=battleStateV10.enemyHp<=0;
+  const heroDead=battleStateV10.heroHp<=0;const enemyDead=(battleStateV10.enemies||[]).every(u=>u.hp<=0||u.alive===false);
   if(!heroDead&&!enemyDead&&battleStateV10.round<BATTLE_CONFIG.maxRounds)return false;
-  battleStateV10.ended=true;battleStateV10.busy=true;setBattleControls(false);
-  const win=enemyDead&&!heroDead;
-  await finishBattleV10(win);
-  return true;
+  battleStateV10.ended=true;battleStateV10.busy=true;setBattleControls(false);await finishBattleV10(enemyDead&&!heroDead);return true;
 }
 async function finishBattleV10(win){
-  const s=battleStateV10;
-  const rating=calculateBattleRating(win,s.heroHp,s.hero.maxHp,s.round);
-  let drop=null;
+  const s=battleStateV10,primary=s.enemies?.[0]||s.enemy;
+  const rating=calculateBattleRating(win,s.heroHp,s.hero.maxHp,s.round);let drop=null;
   if(win){gameData.hero.gold+=s.baseGold;addExp(s.baseExp);drop=rollDungeonDrop(rating);}
-  if(s.eventType==='midterm'&&isFinalExamDay('midterm')){
-    setWorldAfterMidterm(win);
+  if(primary?.monsterId==='demon_king_phase1'){
+    gameData.storyFlags=gameData.storyFlags||{};gameData.storyFlags.demonKingPhase1DamageRatio=clampBattle(1-(Math.max(0,primary.hp)/primary.maxHp),0,1);
   }
-  gameData.dailyDungeon.challenged=true;
-  gameData.dailyDungeon.result=win?'win':'lose';
-  gameData.dailyDungeon.drop=drop;
-  gameData.battleRecords.push({
-    id:uid(),date:today(),enemyName:s.enemyName,power:combatPower(),enemyPower:s.enemyPower,
-    result:win?'win':'lose',eventType:s.eventType,drop,rounds:s.round,rating,
-    battleV10:{heroHp:Math.max(0,s.heroHp),heroMaxHp:s.hero.maxHp,enemyHp:Math.max(0,s.enemyHp),enemyMaxHp:s.enemy.maxHp}
-  });
-  if(win&&s.eventType==='midterm'&&isFinalExamDay('midterm'))maybeUnlockUltimate();
-  saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
-  document.getElementById('battleActions').style.display='none';
-  document.getElementById('battleSubmenu').style.display='none';
-  document.getElementById('battleResult').innerHTML=`<div class="battle-result">
-    <div class="battle-result-icon">${win?'🏆':'💀'}</div>
-    <h2>${win?'勝利！':'戰敗！'}</h2>
-    ${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div>
-      <div>${rating===3?'完美勝利':rating===2?'漂亮勝利':'苦戰勝利'}</div><div class="small">評級依剩餘HP與戰鬥回合判定；角色夠強而輕鬆取勝不會被扣分。</div>
-      <div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div>
-      <div style="margin-top:8px">🎁 ${drop?.label||'沒有額外掉落'}</div>`
-      :`<div class="small">💀 戰敗：沒有掉落，但不扣 EXP、金幣或能力值。</div>`}
-    <button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button>
-  </div>`;
+  if(s.eventType==='midterm'&&isFinalExamDay('midterm'))setWorldAfterMidterm(win);
+  gameData.dailyDungeon.challenged=true;gameData.dailyDungeon.result=win?'win':'lose';gameData.dailyDungeon.drop=drop;
+  gameData.battleRecords.push({id:uid(),date:today(),enemyName:s.enemyName,power:combatPower(),enemyPower:s.enemyPower,result:win?'win':'lose',eventType:s.eventType,drop,rounds:s.round,rating,battleV10:{heroHp:Math.max(0,s.heroHp),heroMaxHp:s.hero.maxHp,enemyHp:Math.max(0,primary?.hp||0),enemyMaxHp:primary?.maxHp||0,enemyCount:s.enemies?.length||1}});
+  if(win&&s.eventType==='midterm'&&isFinalExamDay('midterm'))maybeUnlockUltimate();saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
+  document.getElementById('battleActions').style.display='none';document.getElementById('battleSubmenu').style.display='none';document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div><div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div><div>🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">戰敗不扣 EXP、金幣或能力值。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
 }
-function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType){
-  HERO_ATTACK_FRAMES=heroAttackFrames();
-  const hero=makeHeroBattleStats(),enemy=deriveEnemyStats(enemyPower,enemyName,eventType);
-  battleStateV10={
-    hero,enemy,enemyName,enemyPower,baseGold,baseExp,eventType,
-    heroHp:hero.maxHp,enemyHp:enemy.maxHp,
-    heroEnergy:Math.round(hero.maxEnergy*.50),
-    enemyEnergy:Math.round(enemy.maxEnergy*.50),
-    round:0,busy:false,ended:false
-  };
-  createBattleOverlay(enemyName,enemyIcon,hero,enemy);
-  preloadBattleHeroFrames().catch(e=>console.error('勇者動畫預載失敗',e));
-  if(String(enemyName||'').includes('史萊姆')||String(enemyName||'').toLowerCase().includes('slime'))preloadSlimeFrames().then(ok=>{if(!ok)addBattleLog('⚠️ 史萊姆圖片載入失敗，請檢查 images/slime_idle_1~4.png 與 slime_attack_1~4.png');});
-  updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);
-  updateBattleHp('enemy',battleStateV10.enemyHp,enemy.maxHp);
-  updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);
-  updateBattleResource('enemy',battleStateV10.enemyEnergy,enemy.maxEnergy);
-  updateBattleStatuses();
-  const battleState=actualVsExpectedStatus(enemyPower);
-  addBattleLog(`${eventType==='midterm'||eventType==='final'?examPhaseLabel(eventType)+'｜':''}${battleState.label}｜你的戰力 ${combatPower()} / 怪物 ${enemyPower}｜測試倍率 ${Math.round(currentBattleTestMultiplier()*100)}%`);
-  addBattleLog(`⚡ 速度：${Math.round(hero.speed)} vs ${Math.round(enemy.speed)}｜較快者本回合先行動。`);
-  setTimeout(()=>{
-    if(heroAttackFramesReady)addBattleLog('🎞️ 勇者攻擊動畫：4幀已載入');
-    else addBattleLog('⚠️ 勇者攻擊圖載入失敗：'+HERO_ATTACK_FRAMES.join(' / '));
-  },250);
+function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType,monsterId=null){
+  HERO_ATTACK_FRAMES=heroAttackFrames();const hero=makeHeroBattleStats();monsterId=monsterId||monsterIdByName(enemyName)||'legacy_enemy';
+  const primary=makeLiveEnemy(monsterId,enemyPower,eventType,{name:enemyName,isBoss:eventType==='midterm'||eventType==='final'||MONSTER_DATABASE[monsterId]?.boss});
+  battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false};
+  createBattleOverlay(enemyName,enemyIcon,hero,primary);preloadBattleHeroFrames().catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
+  addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
 }
 function closeBattleOverlay(){
   battleStateV10=null;
@@ -3123,23 +3662,14 @@ function battleIconForEnemy(evt,monster){
 }
 
 function challengeDungeon(){
-  try{
-    ensureDailyDungeon();
-    if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
+  try{ensureDailyDungeon();if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
     const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
-    const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'
-      ?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15,power:calibratedDailyMonsterPower()}
-      :gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
-    const enemyPower=Math.round(resolvedDungeonPower(evt,monster)*currentBattleTestMultiplier());
-    const enemyName=evt?evt.name:monster?.name;
-    if(!enemyName){alert('今天沒有敵人');return;}
-    const baseGold=evt?Number(evt.rewardGold||0):Number(monster?.rewardGold||0);
-    const baseExp=evt?Number(evt.rewardExp||0):Number(monster?.rewardExp||0);
-    runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily');
-  }catch(err){
-    console.error('challengeDungeon failed:',err);
-    alert('戰鬥啟動失敗：'+(err?.message||err));
-  }
+    const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15,power:calibratedDailyMonsterPower()}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
+    const enemyPower=Math.round(resolvedDungeonPower(evt,monster)*currentBattleTestMultiplier());const enemyName=evt?evt.name:monster?.name;if(!enemyName){alert('今天沒有敵人');return;}
+    const baseGold=evt?Number(evt.rewardGold||0):Number(monster?.rewardGold||0),baseExp=evt?Number(evt.rewardExp||0):Number(monster?.rewardExp||0);
+    let monsterId=monsterIdByName(enemyName);if(!monsterId&&gameData.dailyDungeon.monsterId!=='AUTO')monsterId=gameData.dailyDungeon.monsterId;
+    runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily',monsterId);
+  }catch(err){console.error('challengeDungeon failed:',err);alert('戰鬥啟動失敗：'+(err?.message||err));}
 }
 function drawLottery(){
   if(gameData.hero.lotteryCoins<1){alert('沒有抽獎幣');return;}
@@ -3301,6 +3831,17 @@ function renderDungeon(){
   ensureDailyDungeon();
   const el=document.getElementById('panel-dungeon');
   if(!el)return;
+  if(isCelebrationWeek()){
+    const map=weeklyMapForDate(today());
+    el.innerHTML=`
+      <div class="card" style="text-align:center">
+        <div style="font-size:42px">🎊🏰🎊</div>
+        <h2>${map?.map||'皇都凱旋遊行'}</h2>
+        <div class="small">第一學期冒險已完成。本週無每日怪物、無副本戰鬥。</div>
+        <div style="margin-top:12px;font-size:20px">⚔️ ${gameData.hero.name} 凱旋歸來！</div>
+      </div>`;
+    return;
+  }
   const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
   const m=!evt?(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal'}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId)):null;
   const enemy=evt||m;
@@ -3442,7 +3983,7 @@ function renderBag(){
 }
 
 
-/* ===== V10.10.13 item/shop/equipment system ===== */
+/* ===== V10.10.15 item/shop/equipment system ===== */
 const ITEM_CATEGORY_LABELS={all:'全部',consumable:'消耗品',equipment:'裝備',coupon:'兌換券',special:'特殊'};
 const EQUIP_SLOT_LABELS={weapon:'⚔️ 武器',head:'🪖 頭部',body:'👕 身體',accessory:'💍 飾品'};
 let shopCategoryFilter='all',bagCategoryFilter='all';
