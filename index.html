@@ -3508,7 +3508,11 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
     base={...base,maxHp:Math.round(h.maxHp*.95),maxEnergy:h.maxEnergy,attack:h.attack*.85,magicAttack:h.magicAttack*.85,defense:h.defense*.85,magicDefense:h.magicDefense*.85,speed:h.speed*.85,crit:h.crit,evade:h.evade,parry:h.parry,block:h.block,statusRes:h.statusRes,elementalBaseRes:h.elementalBaseRes,resist:{...h.resist}};
   }
   const scale=Number(opts.statScale||1);
-  const hpScale=Number(opts.hpScale||scale);
+  // V10.10.26：finalBoss 先前只有 boss:true，和一般週五 Boss 共用同一套 HP 公式。
+  // W20 死神因此雖有 finalBoss:true，實際 HP 仍只比同週標準勇者高約 20%。
+  // 最終 Boss 額外套 1.75x HP；召喚物仍以 opts.hpScale 為準，不吃此倍率。
+  const finalBossHpScale=(!opts.isSummon && def.finalBoss)?1.75:1;
+  const hpScale=Number(opts.hpScale??scale)*finalBossHpScale;
   // V10.10.19：怪物原本不分物理/魔法職能，Boss 旗標也只增加 HP，
   // 造成死靈法師/魔王等純法系怪 MATK 過低，遇到玩家 MDEF 後常被公式壓到最低 1 傷害。
   // 不改技能倍率，改由技能組判斷施法者職能，給法系怪合理的 MATK 底盤。
@@ -3787,6 +3791,7 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
   addBattleLog('⏱️ V10.10.25：每回合依SPD排序；回合中召喚的單位從下一回合才行動。');
   if(monsterId==='necromancer')addBattleLog('💀 死靈法師調整：召喚2隻骷髏、僅1隻靈魂連結（25%減傷），暗影魔彈倍率降為0.85。');
+  if(MONSTER_DATABASE[monsterId]?.finalBoss)addBattleLog(`👑 最終Boss血量倍率：×1.75｜HP ${primary.maxHp}`);
   if(monsterId==='hero_mirror')addBattleLog(`🪞 鏡像決鬥修正：雙方攻擊對鏡像規則套用50%防禦穿透；最低傷害為目標最大HP的2%，避免互相只打1。`);
   if((MONSTER_AI_DATABASE[monsterId]?.skills||[]).some(x=>MONSTER_SKILL_DATABASE[x.id]?.kind==='magic'))addBattleLog(`🔮 法系敵人數值：MATK ${primary.magicAttack.toFixed(1)}｜勇者 MDEF ${hero.magicDefense.toFixed(1)}`);
 }
@@ -4674,7 +4679,14 @@ function gmRenderWeekTestMonsterOptions(){
   const d=Math.max(0,Math.min(4,Number(document.getElementById('gmTestDay')?.value||sessionStorage.getItem('gmTestDay')||0)));
   sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w),id=map?.monsters?.[d],mon=monsterDefinitionById(id),box=document.getElementById('gmWeekTestPreview');
-  if(box)box.innerHTML=map?.noBattle?`🎊 第${w}週｜${map.map}｜無戰鬥`:`🗺️ 第${w}週｜${map?.map||'未知'}　👹 ${mon?.name||id||'沒有怪物'}${mon?.boss?'　👑 Boss':''}`;
+  if(box){
+    if(map?.noBattle)box.innerHTML=`🎊 第${w}週｜${map.map}｜無戰鬥`;
+    else{
+      const enc=gmTestEncounterInfo(w,d,mon),pwr=gmWeekTestPower(w,d,mon);
+      const tag=enc.eventType==='final'?`🏆 期末 ×${SEMESTER_BALANCE.eventMultipliers.final}`:enc.eventType==='midterm'?`📘 期中 ×${SEMESTER_BALANCE.eventMultipliers.midterm}`:'📅 日常';
+      box.innerHTML=`🗺️ 第${w}週｜${map?.map||'未知'}　👹 ${mon?.name||id||'沒有怪物'}${mon?.boss?'　👑 Boss':''}<br>🧪 ${enc.date}｜${tag}｜測試 Power ${pwr}`;
+    }
+  }
   const mode=document.getElementById('gmTestHeroMode')?.value||'standard',custom=document.getElementById('gmTestHeroCustom');if(custom)custom.style.display=mode==='custom'?'flex':'none';
   const hp=gmBuildTestHero(w,mode),prev=document.getElementById('gmTestHeroPreview');if(prev)prev.textContent=`${mode==='standard'?'週數標準勇者':mode==='current'?'目前角色':'自訂勇者'}｜Lv.${hp.testLevel||gameData.hero.level||1}｜HP ${hp.maxHp}｜ATK ${Math.round(hp.attack)}｜MATK ${Math.round(hp.magicAttack)}｜DEF ${Math.round(hp.defense)}｜MDEF ${Math.round(hp.magicDefense)}`;
 }
@@ -4695,20 +4707,59 @@ function gmBuildTestHero(week,mode){
   const u={side:'hero',name:'測試勇者',...e,testLevel:lv,maxHp:Math.round((100+lv*10+e.will*3+e.str)*mult),maxEnergy:Math.round((50+e.int*.5+e.will*.3)*mult),attack:(10+e.str*1.25)*mult,magicAttack:(8+e.int*1.25)*mult,defense:(10+e.will*.8)*mult,magicDefense:(8+e.will*.75)*mult,speed:e.agi*mult,crit:clampBattle(.05+.25*(e.agi/(e.agi+100)),.05,.35),evade:clampBattle(.02+.20*(e.agi/(e.agi+100)),.02,.30),parry:clampBattle(.03+.08*(e.will/(e.will+100)),.03,.11),block:clampBattle(.05+.14*(e.will/(e.will+100)),.05,.19),statusRes:clampBattle(.05+.25*(e.will/(e.will+100)),.05,.40),elementalBaseRes:clampBattle(.15*(e.will/(e.will+100)),0,.15),resist:{fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0},statuses:[],guarding:false};
   return u;
 }
-function gmWeekTestPower(week,dayIndex=0){
-  const cfg=DUNGEON_GROWTH_CONFIG||{firstWeekBase:40,weeklyGrowth:.16,minPower:32};
-  const weeklyBase=(cfg.firstWeekBase||40)*Math.pow(1+(cfg.weeklyGrowth||.16),Math.max(0,week-1));
-  return Math.max(cfg.minPower||1,Math.round(weeklyBase*weeklyEncounterFactor(dayIndex)*currentBattleTestMultiplier()));
+// V10.10.27：GM週數測試必須走和正式事件相同的期中／期末 Power 公式。
+// 過去所有週五 boss 都被誤當 midterm，但 Power 又只走週數曲線，造成「標籤是 Boss、強度卻不是考試 Boss」。
+function gmTestDateForWeekDay(week,dayIndex=0){
+  const start=dateOnlyBattle(gameData.semester?.startDate||OFFICIAL_LAUNCH_DATE);
+  if(!start)return today();
+  const d=new Date(start);
+  d.setDate(d.getDate()+Math.max(0,week-1)*7+Math.max(0,Math.min(4,Number(dayIndex)||0)));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function deterministicVarianceForDate(dateStr){
+  const s=String(dateStr||today()).replaceAll('-','');
+  let n=0;for(const ch of s)n=(n*31+ch.charCodeAt(0))%997;
+  return ((n/996)*2-1)*SEMESTER_BALANCE.dailyVariance;
+}
+function gmTestEncounterInfo(week,dayIndex=0,mon=null){
+  const date=gmTestDateForWeekDay(week,dayIndex);
+  const evt=(gameData.events||[]).find(e=>e.active!==false&&e.date===date&&(e.type==='midterm'||e.type==='final'));
+  let eventType='daily';
+  if(mon?.finalBoss||mon?.examBoss==='final_day1'||mon?.examBoss==='final_day2')eventType='final';
+  else if(evt?.type==='final'||evt?.type==='midterm')eventType=evt.type;
+  return {date,eventType,evt};
+}
+function gmWeekTestPower(week,dayIndex=0,mon=null){
+  const info=gmTestEncounterInfo(week,dayIndex,mon);
+  let basePower;
+  if(info.eventType==='midterm'||info.eventType==='final'){
+    // 若正式事件有人工指定 Power，測試器尊重該值；否則用正式考試公式。
+    if(info.evt&&Number(info.evt.power)>0){
+      basePower=Number(info.evt.power);
+    }else{
+      const expected=Math.max(SEMESTER_BALANCE.minPower,expectedSemesterPowerAt(info.date));
+      const diff=SEMESTER_BALANCE.difficultyMultipliers.normal;
+      const evtMult=SEMESTER_BALANCE.eventMultipliers[info.eventType]||1;
+      basePower=Math.max(SEMESTER_BALANCE.minPower,Math.round(expected*diff*evtMult*(1+deterministicVarianceForDate(info.date))));
+    }
+  }else{
+    const cfg=DUNGEON_GROWTH_CONFIG||{firstWeekBase:40,weeklyGrowth:.16,minPower:32};
+    const weeklyBase=(cfg.firstWeekBase||40)*Math.pow(1+(cfg.weeklyGrowth||.16),Math.max(0,week-1));
+    basePower=Math.max(cfg.minPower||1,Math.round(weeklyBase*weeklyEncounterFactor(dayIndex)));
+  }
+  return Math.max(1,Math.round(basePower*currentBattleTestMultiplier()));
 }
 function gmStartWeekBattleTest(){
   const w=Math.max(1,Math.min(21,Number(document.getElementById('gmTestWeek')?.value||1))),d=Math.max(0,Math.min(4,Number(document.getElementById('gmTestDay')?.value||0)));
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w);if(!map||map.noBattle){alert('這一週沒有戰鬥。');return;}
   const monsterId=map.monsters?.[d],mon=monsterDefinitionById(monsterId);if(!mon){alert('找不到這隻怪物的資料。');return;}
   sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));
-  const power=gmWeekTestPower(w,d),eventType=mon.boss?'midterm':'daily',heroMode=document.getElementById('gmTestHeroMode')?.value||'standard';
+  const encounter=gmTestEncounterInfo(w,d,mon),eventType=encounter.eventType,power=gmWeekTestPower(w,d,mon),heroMode=document.getElementById('gmTestHeroMode')?.value||'standard';
   const testHero=gmBuildTestHero(w,heroMode);
-  runBattleSequence(mon.name,battleIconForEnemy(eventType==='midterm'?{type:'midterm'}:null,mon),power,0,0,eventType,monsterId,{testMode:true,testWeek:w,testDay:d,testHero});
-  addBattleLog(`🧪 GM測試模式：第${w}週 ${['一','二','三','四','五'][d]}｜Power ${power}｜敵HP ${battleStateV10?.enemy?.maxHp||'-'}｜不寫入正式進度與獎勵。`);
+  const iconEvt=eventType==='daily'?null:{type:eventType};
+  runBattleSequence(mon.name,battleIconForEnemy(iconEvt,mon),power,0,0,eventType,monsterId,{testMode:true,testWeek:w,testDay:d,testHero});
+  const formulaLabel=eventType==='final'?`期末公式 ×${SEMESTER_BALANCE.eventMultipliers.final}`:eventType==='midterm'?`期中公式 ×${SEMESTER_BALANCE.eventMultipliers.midterm}`:'週數日常公式';
+  addBattleLog(`🧪 GM測試模式：第${w}週 ${['一','二','三','四','五'][d]}｜模擬日期 ${encounter.date}｜${formulaLabel}｜Power ${power}｜敵HP ${battleStateV10?.enemy?.maxHp||'-'}｜不寫入正式進度與獎勵。`);
 }
 function gmSetBattleTestMultiplier(v){
   gameData.settings.battleTestMultiplier=Number(v)||1;
