@@ -642,6 +642,8 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .battle-target-card.locked{border-color:#ffd34d;box-shadow:0 0 0 2px rgba(255,211,77,.2),0 0 18px rgba(255,211,77,.3)}
 .battle-target-card.locked:before{content:'🎯';position:absolute;right:4px;top:2px;font-size:16px}
 .battle-target-card.dead{opacity:.35;filter:grayscale(1);cursor:default}
+.battle-target-card.soul-linked{border-color:#bc8cff;box-shadow:0 0 0 2px rgba(188,140,255,.18),0 0 18px rgba(188,140,255,.28)}
+.soul-link-badge{display:block;margin-top:3px;font-size:10px;font-weight:900;color:#d8c3ff}
 .battle-target-card .mini-hp{height:6px;background:rgba(255,255,255,.15);border-radius:8px;overflow:hidden;margin-top:4px}
 .battle-target-card .mini-hp>i{display:block;height:100%;background:linear-gradient(90deg,#df4b4b,#ff8a61)}
 .battle-target-hint{text-align:center;font-size:12px;opacity:.8;margin-top:3px}
@@ -2305,8 +2307,8 @@ const MONSTER_SKILL_DATABASE={
   frenzy_smash:{id:'frenzy_smash',name:'瘋狂猛擊',kind:'physical',target:'single',multiplier:1.6,selfMaxHpDamage:.08},
   evil_eye_beam:{id:'evil_eye_beam',name:'魔眼光束',kind:'magic',target:'single',multiplier:1.0},
   evil_gaze:{id:'evil_gaze',name:'凝視',kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
-  necro_shadow_bolt:{id:'necro_shadow_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
-  summon_three_skeletons:{id:'summon_three_skeletons',name:'召喚骷髏',kind:'summon',target:'none',count:3,maxUsesPerBattle:1},
+  necro_shadow_bolt:{id:'necro_shadow_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:.85},
+  summon_three_skeletons:{id:'summon_three_skeletons',name:'召喚骷髏',kind:'summon',target:'none',count:2,maxUsesPerBattle:1},
 
   /* Week 6 沙漠 */
   mummy_claw:{id:'mummy_claw',name:'木乃伊爪擊',kind:'physical',target:'single',multiplier:1.0},
@@ -2421,8 +2423,8 @@ const MONSTER_AI_DATABASE={
 
 const MONSTER_MECHANIC_DATABASE={
   necromancer_soul_link:{
-    owner:'necromancer',summonCount:3,damageReductionPerLivingSkeleton:.25,maxDamageReduction:.75,
-    description:'每隻存活召喚骷髏提供25%減傷；3隻=75%，逐隻擊破後減傷同步下降。'
+    owner:'necromancer',summonCount:2,linkedSkeletonCount:1,damageReductionWhileLinked:.25,maxDamageReduction:.25,
+    description:'召喚2隻骷髏，但只有1隻帶有靈魂連結標記；連結骷髏存活時死靈法師減傷25%，擊破後連結立即解除。'
   },
   plague_field:{owner:'apocalypse_plague',visual:'plague_haze',status:'disease',healingMultiplier:.50,endsWhenOwnerDies:true},
   death_mark:{owner:'apocalypse_death',duration:10,damageBonusPerElapsedTurn:.05,instantDeath:false},
@@ -2447,7 +2449,7 @@ const ENEMY_SUMMON_DATABASE={
     rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
   },
   necromancer:{
-    maxActiveSummons:3,maxTotalSummons:3,summonCountPerCast:3,maxCastsPerBattle:1,candidates:['skeleton'],
+    maxActiveSummons:2,maxTotalSummons:2,summonCountPerCast:2,maxCastsPerBattle:1,candidates:['skeleton'],
     summonVariant:{skills:['skeleton_slash'],disableSkills:['throw_bone'],hpScale:.50,atkScale:.65},
     soulLinkMechanic:'necromancer_soul_link',rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
   },
@@ -3369,18 +3371,45 @@ async function performAction(side,action){
 function setBattleControls(enabled){
   document.querySelectorAll('.battle-action-btn,.battle-choice').forEach(b=>b.disabled=!enabled);
 }
+function battleInitiativeSpeed(unit,isHero=false){
+  const base=effectiveBattleValue(unit,'speed');
+  // W8 土匪盜賊保留「第一回合搶先出手」特色，但只行動一次，不再額外偷一回合。
+  const firstStrike=(!isHero&&battleStateV10?.round===1&&unit?.monsterId==='human_bandit_rogue'&&!unit.firstStrikeDone)?10000:0;
+  return base+firstStrike;
+}
+function buildRoundInitiativeQueue(){
+  const entries=[{side:'hero',unit:battleStateV10.hero,speed:battleInitiativeSpeed(battleStateV10.hero,true),order:0}];
+  (battleStateV10.enemies||[]).filter(u=>u.hp>0&&u.alive!==false).forEach((u,i)=>entries.push({side:'enemy',unit:u,speed:battleInitiativeSpeed(u,false),order:i+1}));
+  // 每回合開始時就凍結名單：本回合中途召喚出的單位從下一回合才取得行動權。
+  return entries.sort((a,b)=>b.speed-a.speed||a.order-b.order);
+}
+async function runInitiativeRound(heroActionFn){
+  const queue=buildRoundInitiativeQueue();
+  addBattleLog(`⏱️ 行動順序：${queue.map(x=>`${x.side==='hero'?'🧒':'👹'}${x.unit.name}(${Math.round(effectiveBattleValue(x.unit,'speed'))})`).join(' → ')}`);
+  for(const turn of queue){
+    if(battleStateV10.ended)return false;
+    if(turn.side==='hero'){
+      const heroSkip=await tickLiveUnit(battleStateV10.hero,true);if(await checkBattleEnd())return false;
+      if(!heroSkip)await heroActionFn();
+    }else{
+      const u=turn.unit;
+      if(u.hp<=0||u.alive===false)continue;
+      if(u.monsterId==='human_bandit_rogue'&&battleStateV10.round===1&&!u.firstStrikeDone){u.firstStrikeDone=true;addBattleLog('🗡️ 土匪盜賊速度壓制，第一回合搶先行動！');}
+      await performLiveEnemyTurn(u);
+    }
+    if(await checkBattleEnd())return false;
+    await battleSleep(turn.side==='hero'?250:220);
+  }
+  return true;
+}
 async function battlePlayerAction(action){
   if(!battleStateV10||battleStateV10.busy||battleStateV10.ended)return;
   if(action.kind==='skill'&&battleStateV10.heroEnergy<action.cost){addBattleLog('⚡ 能量不足！');return;}
   if(!selectedBattleEnemy()){addBattleLog('沒有可攻擊的目標。');return;}
   battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;
   const banner=document.getElementById('battleRoundBanner');if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
-  const heroSkip=await tickLiveUnit(battleStateV10.hero,true);if(await checkBattleEnd())return;
-  const first=battleStateV10.enemies?.[0];
-  if(battleStateV10.round===1&&first?.monsterId==='human_bandit_rogue'&&!first.firstStrikeDone&&first.hp>0){first.firstStrikeDone=true;addBattleLog('🗡️ 土匪盜賊搶先出手！');await performLiveEnemyTurn(first);if(await checkBattleEnd())return;}
-  if(!heroSkip)await performAction('hero',action);if(await checkBattleEnd())return;
-  await battleSleep(250);
-  for(const u of [...(battleStateV10.enemies||[])]){if(u.hp<=0||u.alive===false)continue;await performLiveEnemyTurn(u);if(await checkBattleEnd())return;await battleSleep(220);}
+  const completed=await runInitiativeRound(()=>performAction('hero',action));
+  if(!completed||battleStateV10.ended)return;
   battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();updateBattleStatuses();
 }
 function showBattleSkills(){
@@ -3414,10 +3443,13 @@ async function battleUsePoison(){
   if(battleConsumableCount('初級毒藥')<1){addBattleLog('🎒 沒有初級毒藥。');hideBattleSubmenu();return;}
   if(!consumeBattleConsumable('初級毒藥'))return;
   battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;
-  addBattleLog('🧪 使用初級毒藥，剩餘 '+battleConsumableCount('初級毒藥')+' 瓶。');
-  if(Math.random()<statusChance(.75,target,'poison')){addStatus(target,{type:'poison',name:'中毒',turns:3,maxHpDot:.03,effectType:'debuff',mods:{}});addBattleLog(`☠️ ${target.name}中毒了。`);}else addBattleLog(`🧪 ${target.name}抵抗了毒藥！`);
-  for(const u of [...battleStateV10.enemies]){if(u.hp>0)await performLiveEnemyTurn(u);if(await checkBattleEnd())return;}
-  battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();
+  const banner=document.getElementById('battleRoundBanner');if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
+  const completed=await runInitiativeRound(async()=>{
+    addBattleLog('🧪 使用初級毒藥，剩餘 '+battleConsumableCount('初級毒藥')+' 瓶。');
+    if(Math.random()<statusChance(.75,target,'poison')){addStatus(target,{type:'poison',name:'中毒',turns:3,maxHpDot:.03,effectType:'debuff',mods:{}});addBattleLog(`☠️ ${target.name}中毒了。`);}else addBattleLog(`🧪 ${target.name}抵抗了毒藥！`);
+  });
+  if(!completed||battleStateV10.ended)return;
+  battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();updateBattleStatuses();
 }
 
 /* ===== V10.10.17 LIVE MONSTER SKILL ENGINE ===== */
@@ -3451,8 +3483,11 @@ function renderBattleTargets(){
   const selected=selectedBattleEnemy();
   if(strip)strip.innerHTML=enemies.map(u=>{
     const pct=Math.max(0,Math.round((u.hp/u.maxHp)*100));
-    const cls=(u.alive!==false&&u.hp>0)?(selected?.uid===u.uid?'locked':''):'dead';
-    return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${u.isSummon?'➕ ':u.isBoss?'👑 ':'👹 '}${u.name}</b><div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
+    const baseCls=(u.alive!==false&&u.hp>0)?(selected?.uid===u.uid?'locked':''):'dead';
+    const cls=baseCls+(u.soulLinked?' soul-linked':'');
+    const roleIcon=u.soulLinked?'🔗 ':u.isSummon?'➕ ':u.isBoss?'👑 ':'👹 ';
+    const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 靈魂連結｜擊破後解除王的25%減傷</span>`:'';
+    return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${roleIcon}${u.name}</b>${linkBadge}<div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
   }).join('');
   if(selected){
     const n=document.getElementById('battleEnemyName');if(n)n.textContent=selected.name;
@@ -3501,24 +3536,26 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   u.maxMp=Number(ai.maxMp||ai.mp||base.maxEnergy||50);u.mp=Number(ai.mp??u.maxMp);
   return u;
 }
+function activeSoulLinkSkeleton(unit){
+  if(!battleStateV10||unit?.monsterId!=='necromancer')return null;
+  return (battleStateV10.enemies||[]).find(x=>x.isSummon&&x.summonedBy===unit.uid&&x.soulLinked&&x.hp>0&&x.alive!==false)||null;
+}
 function enemyDamageReduction(unit){
   let mult=Math.max(.1,1+effectMod(unit,'damageTaken'));
-  if(unit.monsterId==='necromancer'){
-    const n=(battleStateV10.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.hp>0).length;
-    mult*=Math.max(.25,1-.25*n);
-  }
+  if(unit.monsterId==='necromancer'&&activeSoulLinkSkeleton(unit))mult*=.75;
   return mult;
 }
 function applyDamageToEnemy(unit,damage){
   let d=Math.max(0,Math.round(damage));
   if(unit.monsterId==='necromancer'){
-    const n=(battleStateV10.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.hp>0).length;
-    if(n){const before=d;d=Math.max(1,Math.round(d*Math.max(.25,1-.25*n)));if(before!==d)addBattleLog(`🔗 靈魂連結：${n}隻骷髏替死靈法師分擔傷害。`);}
+    const linked=activeSoulLinkSkeleton(unit);
+    if(linked){const before=d;d=Math.max(1,Math.round(d*.75));if(before!==d)addBattleLog(`🔗 靈魂連結：${linked.name}替死靈法師分擔傷害（25%減傷）。`);}
   }
   unit.hp=Math.max(0,unit.hp-d);unit.alive=unit.hp>0;
   if(unit.hp<=0 && unit.monsterId==='zombie' && !unit.reviveUsed){unit.reviveUsed=true;unit.hp=Math.max(1,Math.round(unit.maxHp*.30));unit.alive=true;addBattleLog(`🧟 ${unit.name}死而復生！恢復30% HP。`);showBattleWord('死而復生！');}
   if(unit.hp<=0 && !unit.alive){
     addBattleLog(`💀 ${unit.name}被擊倒。`);
+    if(unit.soulLinked)addBattleLog('⛓️ 靈魂連結解除！死靈法師失去25%減傷。');
     const primary=battleStateV10.enemies?.[0];
     if(unit===primary){(battleStateV10.enemies||[]).forEach(x=>{if(x.isSummon){x.hp=0;x.alive=false;}});}
     if(battleStateV10.selectedEnemyUid===unit.uid){const next=(battleStateV10.enemies||[]).find(x=>x.hp>0&&x.alive!==false);battleStateV10.selectedEnemyUid=next?.uid||null;}
@@ -3666,7 +3703,16 @@ async function performLiveEnemyTurn(unit){
       return;
     }
     if(unit.monsterId==='necromancer'){
-      let n=0;for(let i=0;i<3;i++)if(summonLiveUnit('skeleton',unit,{statScale:.65,hpScale:.45,basicOnly:true}))n++;addBattleLog(`💀 死靈法師召喚 ${n} 隻骷髏！靈魂連結啟動。`);return;
+      const summons=[];
+      for(let i=0;i<2;i++){
+        const su=summonLiveUnit('skeleton',unit,{statScale:.65,hpScale:.45,basicOnly:true});
+        if(su)summons.push(su);
+      }
+      if(summons[0]){summons[0].soulLinked=true;summons[0].name='靈魂連結骷髏';}
+      renderBattleTargets();
+      addBattleLog(`💀 死靈法師召喚 ${summons.length} 隻骷髏！其中「${summons[0]?.name||'無'}」與本體連結。`);
+      addBattleLog('🔗 只要連結骷髏存活，死靈法師獲得25%減傷；另一隻是普通召喚物。');
+      return;
     }
   }
   await executeEnemyHit(unit,skill);renderBattleTargets();
@@ -3739,6 +3785,8 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false,testMode:!!opts.testMode,testWeek:opts.testWeek||null,testDay:opts.testDay??null};
   createBattleOverlay(enemyName,enemyIcon,hero,primary);syncMirrorHeroVisual();preloadBattleHeroFrames().then(()=>syncMirrorHeroVisual()).catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
   addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
+  addBattleLog('⏱️ V10.10.25：每回合依SPD排序；回合中召喚的單位從下一回合才行動。');
+  if(monsterId==='necromancer')addBattleLog('💀 死靈法師調整：召喚2隻骷髏、僅1隻靈魂連結（25%減傷），暗影魔彈倍率降為0.85。');
   if(monsterId==='hero_mirror')addBattleLog(`🪞 鏡像決鬥修正：雙方攻擊對鏡像規則套用50%防禦穿透；最低傷害為目標最大HP的2%，避免互相只打1。`);
   if((MONSTER_AI_DATABASE[monsterId]?.skills||[]).some(x=>MONSTER_SKILL_DATABASE[x.id]?.kind==='magic'))addBattleLog(`🔮 法系敵人數值：MATK ${primary.magicAttack.toFixed(1)}｜勇者 MDEF ${hero.magicDefense.toFixed(1)}`);
 }
