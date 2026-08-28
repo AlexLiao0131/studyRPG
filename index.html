@@ -2424,8 +2424,8 @@ const MONSTER_AI_DATABASE={
 const MONSTER_MECHANIC_DATABASE={
   necromancer_soul_link:{
     owner:'necromancer',triggerHpPct:.70,summonCount:2,linkedSkeletonCount:1,damageReductionWhileLinked:0,
-    linkedSkeletonCanAttack:false,normalSkeletonCanAttack:true,bossPausesDuringRitual:true,breakVulnerability:.30,
-    description:'死靈法師HP降到70%時啟動一次靈魂儀式：召喚2隻骷髏。連結骷髏不攻擊、死靈法師停止攻擊；擊破連結骷髏後死靈法師下一次行動被打斷，並在破綻窗口受到30%額外傷害。'
+    linkedSkeletonCanAttack:true,normalSkeletonCanAttack:true,bossPausesDuringRitual:true,breakVulnerability:.30,ritualTurnLimit:5,maxRitualSkeletons:2,
+    description:'死靈法師HP降到70%時啟動靈魂儀式：先召喚1隻會攻擊的靈魂連結骷髏，死靈法師停止攻擊。5回合內未擊破連結骷髏則再召喚第2隻骷髏；上限2隻。擊破連結骷髏後死靈法師暈眩1回合並在破綻窗口受到30%額外傷害。'
   },
   plague_field:{owner:'apocalypse_plague',visual:'plague_haze',status:'disease',healingMultiplier:.50,endsWhenOwnerDies:true},
   death_mark:{owner:'apocalypse_death',duration:10,damageBonusPerElapsedTurn:.05,instantDeath:false},
@@ -2450,7 +2450,7 @@ const ENEMY_SUMMON_DATABASE={
     rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
   },
   necromancer:{
-    maxActiveSummons:2,maxTotalSummons:2,summonCountPerCast:2,maxCastsPerBattle:1,candidates:['skeleton'],
+    maxActiveSummons:2,maxTotalSummons:2,summonCountPerCast:1,maxCastsPerBattle:2,candidates:['skeleton'],
     summonVariant:{skills:['skeleton_slash'],disableSkills:['throw_bone'],hpScale:.42,atkScale:.55},
     soulLinkMechanic:'necromancer_soul_link',ritualTriggerHpPct:.70,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true
   },
@@ -3404,6 +3404,8 @@ async function runInitiativeRound(heroActionFn){
     if(await checkBattleEnd())return false;
     await battleSleep(turn.side==='hero'?250:220);
   }
+  tickNecromancerRitualRound();
+  if(await checkBattleEnd())return false;
   return true;
 }
 async function battlePlayerAction(action){
@@ -3490,7 +3492,7 @@ function renderBattleTargets(){
     const baseCls=(u.alive!==false&&u.hp>0)?(selected?.uid===u.uid?'locked':''):'dead';
     const cls=baseCls+(u.soulLinked?' soul-linked':'');
     const roleIcon=u.soulLinked?'🔗 ':u.isSummon?'➕ ':u.isBoss?'👑 ':'👹 ';
-    const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 儀式核心｜不攻擊｜擊破後王露出破綻</span>`:'';
+    const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 儀式核心｜會攻擊｜5回合內擊破！</span>`:'';
     return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${roleIcon}${u.name}</b>${linkBadge}<div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
   }).join('');
   if(selected){
@@ -3554,16 +3556,29 @@ function necromancerRitualBoss(){
 function startNecromancerRitual(unit){
   if(!unit||unit.monsterId!=='necromancer'||unit.ritualTriggered||unit.hp<=0)return false;
   if(unit.hp/unit.maxHp>.70)return false;
-  unit.ritualTriggered=true;unit.ritualActive=true;
+  unit.ritualTriggered=true;unit.ritualActive=true;unit.ritualStartRound=Number(battleStateV10?.round||0);unit.ritualRoundsLeft=5;unit.ritualSecondSummoned=false;
   const linked=summonLiveUnit('skeleton',unit,{statScale:.55,hpScale:.42,basicOnly:true});
-  const normal=summonLiveUnit('skeleton',unit,{statScale:.55,hpScale:.38,basicOnly:true});
-  if(linked){linked.soulLinked=true;linked.ritualGuardian=true;linked.forceBasicOnly=false;linked.name='靈魂連結骷髏';}
-  if(normal){normal.name='骷髏護衛';}
+  if(linked){linked.soulLinked=true;linked.ritualGuardian=false;linked.forceBasicOnly=true;linked.name='靈魂連結骷髏';}
   renderBattleTargets();
   addBattleLog('🕯️ 死靈法師 HP 降至70%：開始「靈魂儀式」！');
-  addBattleLog('🔗 擊破「靈魂連結骷髏」！儀式期間死靈法師停止攻擊，連結骷髏也不會攻擊。');
-  addBattleLog('⚔️ 另一隻骷髏護衛仍會攻擊；打破連結後，死靈法師下一次行動被打斷並受到30%額外傷害。');
+  addBattleLog('🔗 靈魂連結骷髏現身！骷髏會攻擊，但儀式期間死靈法師停止攻擊。');
+  addBattleLog('⏳ 5回合內擊破連結骷髏；逾時將再召喚第2隻骷髏！');
   return true;
+}
+function tickNecromancerRitualRound(){
+  const boss=necromancerRitualBoss();
+  if(!boss||!boss.ritualActive)return;
+  const linked=activeSoulLinkSkeleton(boss);if(!linked)return;
+  const now=Number(battleStateV10?.round||0),start=Number(boss.ritualStartRound??now);
+  const elapsed=Math.max(0,now-start);
+  boss.ritualRoundsLeft=Math.max(0,5-elapsed);
+  if(elapsed>0&&boss.ritualRoundsLeft>0)addBattleLog(`⏳ 靈魂儀式倒數：剩 ${boss.ritualRoundsLeft} 回合！`);
+  if(boss.ritualRoundsLeft<=0&&!boss.ritualSecondSummoned){
+    boss.ritualSecondSummoned=true;
+    const second=summonLiveUnit('skeleton',boss,{statScale:.55,hpScale:.38,basicOnly:true});
+    if(second){second.name='儀式增援骷髏';second.forceBasicOnly=true;addBattleLog('☠️ 儀式失控！5回合內未擊破連結骷髏，第2隻骷髏甦醒！');showBattleWord('儀式失控！');}
+    renderBattleTargets();
+  }
 }
 function enemyDamageReduction(unit){
   let mult=Math.max(.1,1+effectMod(unit,'damageTaken'));
@@ -3698,7 +3713,6 @@ async function performLiveEnemyTurn(unit){
   if(!unit||unit.hp<=0||unit.alive===false)return;
   const ai=MONSTER_AI_DATABASE[unit.monsterId]||{};
   unit.turnsTaken++;Object.keys(unit.cooldowns).forEach(k=>unit.cooldowns[k]=Math.max(0,unit.cooldowns[k]-1));
-  if(unit.soulLinked&&unit.ritualGuardian){addBattleLog(`🔗 ${unit.name}維持靈魂儀式，本回合不攻擊。`);return;}
   if(unit.monsterId==='necromancer'){
     if(unit.ritualActive&&activeSoulLinkSkeleton(unit)){addBattleLog('🕯️ 死靈法師正在維持靈魂儀式，本回合停止攻擊！');return;}
   }
