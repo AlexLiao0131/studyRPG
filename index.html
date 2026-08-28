@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.17</title>
+<title>小學勇者大冒險 V10.10.23</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -489,6 +489,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .battle-hero,.battle-enemy{position:absolute;bottom:18px;width:190px;height:190px;display:flex;align-items:flex-end;justify-content:center;transition:transform .22s ease,filter .18s ease}
 .battle-hero{left:8%}.battle-enemy{right:8%}.battle-hero img,.battle-enemy img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
 .enemy-glyph{font-size:118px;line-height:1;filter:drop-shadow(0 8px 0 #0005)}
+.battle-enemy .mirror-hero-sprite{transform:scaleX(-1);transform-origin:center bottom;filter:drop-shadow(0 8px 0 #0005)}
 .battle-hero.attack{transform:translateX(80px) scale(1.04)}.battle-enemy.attack{transform:translateX(-80px) scale(1.05)}
 .battle-hero.hurt,.battle-enemy.hurt{animation:battleShake .22s linear 2;filter:brightness(1.8) saturate(.6)}
 .battle-hero.dodge{transform:translateX(-45px)}.battle-enemy.dodge{transform:translateX(45px)}
@@ -649,7 +650,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.15</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.10.23</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -691,6 +692,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </div>
 
 <script>
+// V10.10.23：週數浮動強度除錯修正
 const OFFICIAL_LAUNCH_DATE='2026-08-31';
 const CURRENT_SEASON_ID='2026_FALL';
 const OFFICIAL_SEASON_MARKER='studyRPG_official_2026_fall';
@@ -2768,31 +2770,37 @@ function isNonSchoolDay(){
   const holidayMarked=(gameData.calendarDays||[]).some(x=>x.date===today()&&x.holiday===true);
   return day===0||day===6||holidayMarked;
 }
+// V10.10.23：同一週由週一到週五逐步升壓；週末重打視同週五 Boss。
+function weeklyEncounterFactor(dayIndex){
+  const i=Math.max(0,Math.min(4,Number(dayIndex)||0));
+  return [0.90,0.98,1.06,1.14,1.22][i];
+}
 function calibratedDailyMonsterPower(){
   const week=semesterProgressWeek();
   const cfg=DUNGEON_GROWTH_CONFIG;
 
-  // 學期週數只提供長期底盤，不直接決定今天一定多難。
+  // 學期週數提供長期底盤。
   const weeklyBase=cfg.firstWeekBase*Math.pow(1+cfg.weeklyGrowth,week-1);
+
+  // 同一週週一→週五也要有明確升壓，不能五天都吃同一個 power。
+  const encounterFactor=weeklyEncounterFactor(dailyMonsterIndexForDate(today()));
 
   // 今日任務是每日怪強度的主要短期依據。
   const taskInfo=todayEffectiveTaskLoad();
-  // 約以「普通一天 4 個普通任務 ≈ load 12」為中性值。
-  // 少任務會下降，多任務會提高；限制上下界避免極端排程炸掉難度。
   const neutralLoad=12;
   const taskRatio=taskInfo.load>0?taskInfo.load/neutralLoad:.70;
   const taskFactor=Math.max(.72,Math.min(1.38,.72+taskRatio*.28));
 
-  // 假日/國定假日不使用平日強度要求；若仍有自訂任務，只溫和反映其負荷。
+  // 假日/國定假日不使用平日強度要求；週末若補打 Boss，仍由 encounterFactor 保留 Boss 壓力。
   const calendarFactor=isNonSchoolDay() ? .88 : 1.0;
 
-  // 角色成長只做很小的安全修正，避免「孩子變強，怪同步變強」。
+  // 角色成長只做很小的安全修正，避免怪物完全追著角色膨脹。
   const cp=Math.max(1,combatPower());
   const growthFactor=1+(Math.max(0,cp-41)/100)*cfg.learningInfluence;
 
   return Math.max(
     cfg.minPower,
-    Math.round(weeklyBase*taskFactor*calendarFactor*growthFactor)
+    Math.round(weeklyBase*encounterFactor*taskFactor*calendarFactor*growthFactor)
   );
 }
 
@@ -2979,7 +2987,10 @@ function makeHeroBattleStats(){
 }
 function deriveEnemyStats(power,name='怪物',eventType='daily'){
   const boss=eventType==='midterm'||eventType==='final';
-  const rawBase=Math.max(8,Number(power||70)/5);
+  // V10.10.23 修正 power→戰鬥屬性的換算。
+  // 勇者 10/10/10/10 的 combatPower 約 41，因此平均單項能力應約為 power/4.1；
+  // 舊版除以 5 會把 W1~W3 怪物能力整體壓低約 18%，造成新角色也能輕鬆普攻推過。
+  const rawBase=Math.max(8,Number(power||70)/4.1);
   const variance=(label)=>{
     if(name.includes('史萊姆'))return label==='will'?.85:label==='agi'?.8:1;
     if(name.includes('哥布林'))return label==='agi'?1.25:label==='will'?.8:1;
@@ -2995,7 +3006,9 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
     will:effectiveStat(rawBase*variance('will')),
     virtue:0
   };
-  const maxHp=Math.round((boss?150:80)+(boss?5.2:3.2)*e.will+1.0*e.str);
+  // 一般怪的基礎 HP 舊版只有 80，甚至會低於 Lv.1 勇者。
+  // 調回與初始勇者同級的 100 底盤，並稍微提高 WILL 對 HP 的貢獻。
+  const maxHp=Math.round((boss?150:100)+(boss?5.2:3.6)*e.will+1.0*e.str);
   const maxEnergy=Math.round(45+e.int*.45+e.will*.25);
   const resist={fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0};
   if(name.includes('史萊姆')){resist.fire=-.15;resist.ice=.10;}
@@ -3137,6 +3150,23 @@ async function playHeroAttackFrames(){
 async function playEnemyAttackFrames(){
   const img=document.getElementById('battleEnemySprite');
   if(!img){await battleSleep(180);return;}
+
+  // 勇者鏡像：直接共用玩家目前的戰鬥動作圖，僅做水平翻轉。
+  if(battleStateV10?.monsterId==='hero_mirror'){
+    if(!heroAttackFramesReady)await preloadBattleHeroFrames();
+    const frames=HERO_ATTACK_FRAMES.length?HERO_ATTACK_FRAMES:heroAttackFrames();
+    const timings=[155,95,105,175];
+    for(let i=0;i<frames.length;i++){
+      img.src=frames[i];
+      try{if(img.decode)await img.decode();}catch(e){}
+      await nextPaint();
+      await battleSleep(timings[i]||120);
+    }
+    img.src=frames[0];
+    await nextPaint();
+    return;
+  }
+
   const name=(battleStateV10?.enemyName||battleStateV10?.enemy?.name||'').toLowerCase();
   if(!(name.includes('史萊姆')||name.includes('slime'))){await battleSleep(180);return;}
   const frames=[1,2,3,4].map(n=>sprite(`images/slime_attack_${n}.png`));
@@ -3170,6 +3200,10 @@ async function animateBattleAction(attackerSide,result){
     defender.style.transform='';
     const sprite=document.getElementById('battleHeroSprite');
     if(sprite)sprite.src=HERO_ATTACK_FRAMES[0];
+    if(battleStateV10?.monsterId==='hero_mirror'){
+      const mirror=document.getElementById('battleEnemySprite');
+      if(mirror)mirror.src=HERO_ATTACK_FRAMES[0];
+    }
   }
 }
 function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
@@ -3430,7 +3464,10 @@ function renderBattleTargets(){
 }
 function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   const def=MONSTER_DATABASE[monsterId]||{id:monsterId,name:opts.name||'怪物'};
-  let base=deriveEnemyStats(power,def.name,eventType);
+  // 週五 roster Boss 在正式每日副本原本 eventType 仍是 daily，
+  // 導致 deriveEnemyStats 沒有套到 Boss HP 公式。Boss 旗標在這裡轉成 boss 統計模式。
+  const statEventType=(def.boss||opts.isBoss) && eventType==='daily' ? 'midterm' : eventType;
+  let base=deriveEnemyStats(power,def.name,statEventType);
   if(monsterId==='hero_mirror'){
     const h=makeHeroBattleStats();
     base={...base,maxHp:Math.round(h.maxHp*.95),maxEnergy:h.maxEnergy,attack:h.attack*.85,magicAttack:h.magicAttack*.85,defense:h.defense*.85,magicDefense:h.magicDefense*.85,speed:h.speed*.85,crit:h.crit,evade:h.evade,parry:h.parry,block:h.block,statusRes:h.statusRes,elementalBaseRes:h.elementalBaseRes,resist:{...h.resist}};
@@ -3647,13 +3684,26 @@ function applyBattleStartMonsterMechanics(){
   updateBattleStatuses();renderBattleTargets();
 }
 
+function battleEnemyVisualHTML(enemyIcon){
+  if(battleStateV10?.monsterId==='hero_mirror'){
+    const first=(HERO_ATTACK_FRAMES&&HERO_ATTACK_FRAMES[0])||sprite('images/hero_attack_1.png');
+    return `<img id="battleEnemySprite" class="mirror-hero-sprite" src="${first}" alt="勇者的鏡像">`;
+  }
+  return `<div class="enemy-glyph">${enemyIcon}</div>`;
+}
+function syncMirrorHeroVisual(){
+  if(battleStateV10?.monsterId!=='hero_mirror')return;
+  const hero=document.getElementById('battleHeroSprite'),mirror=document.getElementById('battleEnemySprite');
+  if(hero&&mirror)mirror.src=hero.currentSrc||hero.src||HERO_ATTACK_FRAMES[0];
+}
+
 function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
   document.getElementById('battleOverlay')?.remove();const o=document.createElement('div');o.id='battleOverlay';o.className='battle-overlay';
   o.innerHTML=`<div class="battle-window" role="dialog" aria-modal="true">
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${gameData.hero.name}　Lv.${gameData.hero.level}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${sprite('images/hero_attack_1.png')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy"><div class="enemy-glyph">${enemyIcon}</div></div></div>
+    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${sprite('images/hero_attack_1.png')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -3684,10 +3734,10 @@ async function finishBattleV10(win){
   document.getElementById('battleActions').style.display='none';document.getElementById('battleSubmenu').style.display='none';document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div><div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div><div>🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">戰敗不扣 EXP、金幣或能力值。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
 }
 function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType,monsterId=null,opts={}){
-  HERO_ATTACK_FRAMES=heroAttackFrames();const hero=makeHeroBattleStats();monsterId=monsterId||monsterIdByName(enemyName)||'legacy_enemy';
+  HERO_ATTACK_FRAMES=heroAttackFrames();const hero=opts?.testHero?{...opts.testHero,statuses:[],guarding:false}:makeHeroBattleStats();monsterId=monsterId||monsterIdByName(enemyName)||'legacy_enemy';
   const primary=makeLiveEnemy(monsterId,enemyPower,eventType,{name:enemyName,isBoss:eventType==='midterm'||eventType==='final'||MONSTER_DATABASE[monsterId]?.boss});
   battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false,testMode:!!opts.testMode,testWeek:opts.testWeek||null,testDay:opts.testDay??null};
-  createBattleOverlay(enemyName,enemyIcon,hero,primary);preloadBattleHeroFrames().catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
+  createBattleOverlay(enemyName,enemyIcon,hero,primary);syncMirrorHeroVisual();preloadBattleHeroFrames().then(()=>syncMirrorHeroVisual()).catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
   addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
   if(monsterId==='hero_mirror')addBattleLog(`🪞 鏡像決鬥修正：雙方攻擊對鏡像規則套用50%防禦穿透；最低傷害為目標最大HP的2%，避免互相只打1。`);
   if((MONSTER_AI_DATABASE[monsterId]?.skills||[]).some(x=>MONSTER_SKILL_DATABASE[x.id]?.kind==='magic'))addBattleLog(`🔮 法系敵人數值：MATK ${primary.magicAttack.toFixed(1)}｜勇者 MDEF ${hero.magicDefense.toFixed(1)}`);
@@ -4369,6 +4419,25 @@ function renderGM(){
           <select id="gmTestDay" onchange="gmRenderWeekTestMonsterOptions()" style="min-width:150px">${['星期一','星期二','星期三','星期四','星期五'].map((x,i)=>`<option value="${i}" ${(Number(sessionStorage.getItem('gmTestDay')||0)===i)?'selected':''}>${x}</option>`).join('')}</select>
         </div>
         <div id="gmWeekTestPreview" class="small" style="margin-top:8px"></div>
+        <div class="card" style="margin-top:10px;background:rgba(0,0,0,.16)">
+          <b>🧒 測試勇者</b>
+          <div class="row" style="margin-top:8px">
+            <select id="gmTestHeroMode" onchange="gmRenderWeekTestMonsterOptions()">
+              <option value="standard">依所選週數自動模擬</option>
+              <option value="current">使用目前正式角色</option>
+              <option value="custom">自訂測試勇者</option>
+            </select>
+            <label>倍率 <input id="gmTestHeroMultiplier" type="number" min="0.25" max="3" step="0.05" value="1" style="width:80px" onchange="gmRenderWeekTestMonsterOptions()"></label>
+          </div>
+          <div id="gmTestHeroCustom" class="row" style="margin-top:8px;display:none">
+            <label>Lv <input id="gmTestHeroLv" type="number" min="1" value="1" style="width:70px"></label>
+            <label>STR <input id="gmTestHeroStr" type="number" min="0" value="10" style="width:70px"></label>
+            <label>AGI <input id="gmTestHeroAgi" type="number" min="0" value="10" style="width:70px"></label>
+            <label>INT <input id="gmTestHeroInt" type="number" min="0" value="10" style="width:70px"></label>
+            <label>WILL <input id="gmTestHeroWill" type="number" min="0" value="10" style="width:70px"></label>
+          </div>
+          <div id="gmTestHeroPreview" class="small" style="margin-top:6px"></div>
+        </div>
         <button class="btn red" style="margin-top:8px" onclick="gmStartWeekBattleTest()">⚔️ 立即測試這隻怪</button>
         <div class="small" style="margin-top:6px">第21週為凱旋遊行，沒有戰鬥。</div>
       </div>
@@ -4558,19 +4627,40 @@ function gmRenderWeekTestMonsterOptions(){
   sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w),id=map?.monsters?.[d],mon=monsterDefinitionById(id),box=document.getElementById('gmWeekTestPreview');
   if(box)box.innerHTML=map?.noBattle?`🎊 第${w}週｜${map.map}｜無戰鬥`:`🗺️ 第${w}週｜${map?.map||'未知'}　👹 ${mon?.name||id||'沒有怪物'}${mon?.boss?'　👑 Boss':''}`;
+  const mode=document.getElementById('gmTestHeroMode')?.value||'standard',custom=document.getElementById('gmTestHeroCustom');if(custom)custom.style.display=mode==='custom'?'flex':'none';
+  const hp=gmBuildTestHero(w,mode),prev=document.getElementById('gmTestHeroPreview');if(prev)prev.textContent=`${mode==='standard'?'週數標準勇者':mode==='current'?'目前角色':'自訂勇者'}｜Lv.${hp.testLevel||gameData.hero.level||1}｜HP ${hp.maxHp}｜ATK ${Math.round(hp.attack)}｜MATK ${Math.round(hp.magicAttack)}｜DEF ${Math.round(hp.defense)}｜MDEF ${Math.round(hp.magicDefense)}`;
 }
-function gmWeekTestPower(week){
+
+function gmBuildTestHero(week,mode){
+  mode=mode||document.getElementById('gmTestHeroMode')?.value||'standard';
+  if(mode==='current')return makeHeroBattleStats();
+  let lv,str,agi,intel,will;
+  if(mode==='custom'){
+    lv=Math.max(1,Number(document.getElementById('gmTestHeroLv')?.value)||1);
+    str=Math.max(0,Number(document.getElementById('gmTestHeroStr')?.value)||0);agi=Math.max(0,Number(document.getElementById('gmTestHeroAgi')?.value)||0);intel=Math.max(0,Number(document.getElementById('gmTestHeroInt')?.value)||0);will=Math.max(0,Number(document.getElementById('gmTestHeroWill')?.value)||0);
+  }else{
+    lv=Math.max(1,Math.round(1+(week-1)*1.5));
+    const gain=(week-1)*2.25;str=10+gain;agi=10+gain;intel=10+gain;will=10+gain;
+  }
+  const mult=Math.max(.25,Math.min(3,Number(document.getElementById('gmTestHeroMultiplier')?.value)||1));
+  const e={str:effectiveStat(str),agi:effectiveStat(agi),int:effectiveStat(intel),will:effectiveStat(will),virtue:0};
+  const u={side:'hero',name:'測試勇者',...e,testLevel:lv,maxHp:Math.round((100+lv*10+e.will*3+e.str)*mult),maxEnergy:Math.round((50+e.int*.5+e.will*.3)*mult),attack:(10+e.str*1.25)*mult,magicAttack:(8+e.int*1.25)*mult,defense:(10+e.will*.8)*mult,magicDefense:(8+e.will*.75)*mult,speed:e.agi*mult,crit:clampBattle(.05+.25*(e.agi/(e.agi+100)),.05,.35),evade:clampBattle(.02+.20*(e.agi/(e.agi+100)),.02,.30),parry:clampBattle(.03+.08*(e.will/(e.will+100)),.03,.11),block:clampBattle(.05+.14*(e.will/(e.will+100)),.05,.19),statusRes:clampBattle(.05+.25*(e.will/(e.will+100)),.05,.40),elementalBaseRes:clampBattle(.15*(e.will/(e.will+100)),0,.15),resist:{fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0},statuses:[],guarding:false};
+  return u;
+}
+function gmWeekTestPower(week,dayIndex=0){
   const cfg=DUNGEON_GROWTH_CONFIG||{firstWeekBase:40,weeklyGrowth:.16,minPower:32};
-  return Math.max(cfg.minPower||1,Math.round((cfg.firstWeekBase||40)*Math.pow(1+(cfg.weeklyGrowth||.16),Math.max(0,week-1))*currentBattleTestMultiplier()));
+  const weeklyBase=(cfg.firstWeekBase||40)*Math.pow(1+(cfg.weeklyGrowth||.16),Math.max(0,week-1));
+  return Math.max(cfg.minPower||1,Math.round(weeklyBase*weeklyEncounterFactor(dayIndex)*currentBattleTestMultiplier()));
 }
 function gmStartWeekBattleTest(){
   const w=Math.max(1,Math.min(21,Number(document.getElementById('gmTestWeek')?.value||1))),d=Math.max(0,Math.min(4,Number(document.getElementById('gmTestDay')?.value||0)));
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w);if(!map||map.noBattle){alert('這一週沒有戰鬥。');return;}
   const monsterId=map.monsters?.[d],mon=monsterDefinitionById(monsterId);if(!mon){alert('找不到這隻怪物的資料。');return;}
   sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));
-  const power=gmWeekTestPower(w),eventType=mon.boss?'midterm':'daily';
-  runBattleSequence(mon.name,battleIconForEnemy(eventType==='midterm'?{type:'midterm'}:null,mon),power,0,0,eventType,monsterId,{testMode:true,testWeek:w,testDay:d});
-  addBattleLog(`🧪 GM測試模式：第${w}週 ${['一','二','三','四','五'][d]}｜不寫入正式進度與獎勵。`);
+  const power=gmWeekTestPower(w,d),eventType=mon.boss?'midterm':'daily',heroMode=document.getElementById('gmTestHeroMode')?.value||'standard';
+  const testHero=gmBuildTestHero(w,heroMode);
+  runBattleSequence(mon.name,battleIconForEnemy(eventType==='midterm'?{type:'midterm'}:null,mon),power,0,0,eventType,monsterId,{testMode:true,testWeek:w,testDay:d,testHero});
+  addBattleLog(`🧪 GM測試模式：第${w}週 ${['一','二','三','四','五'][d]}｜Power ${power}｜敵HP ${battleStateV10?.enemy?.maxHp||'-'}｜不寫入正式進度與獎勵。`);
 }
 function gmSetBattleTestMultiplier(v){
   gameData.settings.battleTestMultiplier=Number(v)||1;
