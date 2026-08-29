@@ -693,7 +693,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   image-rendering:pixelated;
   transform-origin:center bottom;
 }
-.monster-attack-css{animation:monsterAttackSingle .36s ease-out 1}
+.monster-attack-css{animation:monsterAttackSingle .65s ease-out 1}
 @keyframes monsterAttackSingle{
   0%{transform:translateX(0) scale(1)}
   45%{transform:translateX(-24px) scale(1.04,.98)}
@@ -1096,8 +1096,40 @@ function setHeroBattleVisualState(state='idle'){
   if(!img)return;
   const allowed=['idle','attack','hurt','status','death'];
   const next=allowed.includes(state)?state:'idle';
+  img.classList.remove('hero-idle-css','hero-attack-css','hero-hurt-css','hero-status-css','hero-death-css');
   img.src=heroSpritePath(next);
   img.dataset.heroState=next;
+  if(next==='idle')img.classList.add('hero-idle-css');
+  else if(next==='attack')img.classList.add('hero-attack-css');
+  else if(next==='hurt')img.classList.add('hero-hurt-css');
+  else if(next==='status')img.classList.add('hero-status-css');
+  else if(next==='death')img.classList.add('hero-death-css');
+}
+
+let heroStatusVisualTimer=null;
+async function playHeroHurtVisual(){
+  if(!battleStateV10||battleStateV10.heroHp<=0)return;
+  setHeroBattleVisualState('hurt');
+  await battleSleep(420);
+  if(battleStateV10&&battleStateV10.heroHp>0&&document.getElementById('battleHeroSprite')?.dataset.heroState==='hurt'){
+    setHeroBattleVisualState('idle');
+  }
+}
+function playHeroStatusVisual(){
+  if(!battleStateV10||battleStateV10.heroHp<=0)return;
+  if(heroStatusVisualTimer)clearTimeout(heroStatusVisualTimer);
+  setHeroBattleVisualState('status');
+  heroStatusVisualTimer=setTimeout(()=>{
+    heroStatusVisualTimer=null;
+    if(battleStateV10&&battleStateV10.heroHp>0&&document.getElementById('battleHeroSprite')?.dataset.heroState==='status'){
+      setHeroBattleVisualState('idle');
+    }
+  },700);
+}
+async function playHeroDeathVisual(){
+  if(heroStatusVisualTimer){clearTimeout(heroStatusVisualTimer);heroStatusVisualTimer=null;}
+  setHeroBattleVisualState('death');
+  await battleSleep(900);
 }
 
 
@@ -3554,18 +3586,20 @@ async function playEnemyAttackFrames(){
     // 攻擊順序：idle -> battle -> idle
     if(def.sprites.idle){
       img.src=sprite(def.sprites.idle);
-      await battleSleep(120);
+      await battleSleep(180);
     }
     if(def.sprites.battle){
       img.src=sprite(def.sprites.battle);
       img.classList.remove('monster-attack-css');
       void img.offsetWidth;
       img.classList.add('monster-attack-css');
-      await battleSleep(360);
+      // battle 圖停留久一點，讓攻擊姿勢肉眼看得到
+      await battleSleep(def.boss ? 900 : 650);
       img.classList.remove('monster-attack-css');
     }
     if(def.sprites.idle){
       img.src=sprite(def.sprites.idle);
+      await battleSleep(120);
     }
     return;
   }
@@ -3728,7 +3762,12 @@ async function executeAttack(attackerSide,action){
   const defender=defenderSide==='hero'?battleStateV10.hero:battleStateV10.enemy;
   const result=resolveAttack(attacker,defender,action);
   await animateBattleAction(attackerSide,result);
-  if(result.damage)setUnitHp(defenderSide,getUnitHp(defenderSide)-result.damage);
+  if(result.damage){
+    setUnitHp(defenderSide,getUnitHp(defenderSide)-result.damage);
+    if(defenderSide==='hero'){
+      if(battleStateV10.heroHp>0)await playHeroHurtVisual();
+    }
+  }
   addBattleLog(actionSummary(result,defender.name));
   if(attackerSide==='enemy')maybeApplyEnemyStatus(attacker,defender,result);
   updateBattleStatuses();
@@ -4018,7 +4057,7 @@ function tryApplyMonsterStatus(skill,target){
 async function tickLiveUnit(unit,isHero=false){
   let skip=false;
   for(const st of [...(unit.statuses||[])]){
-    if(st.maxHpDot>0){const dmg=Math.max(1,Math.round((isHero?battleStateV10.hero.maxHp:unit.maxHp)*st.maxHpDot));if(isHero){battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-dmg);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);}else applyDamageToEnemy(unit,dmg);addBattleLog(`${statusLabel(st)}：${unit.name}受到 ${dmg} 點傷害。`);showDamage(isHero?'hero':'enemy','-'+dmg);}
+    if(st.maxHpDot>0){const dmg=Math.max(1,Math.round((isHero?battleStateV10.hero.maxHp:unit.maxHp)*st.maxHpDot));if(isHero){battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-dmg);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);if(battleStateV10.heroHp>0)await playHeroHurtVisual();}else applyDamageToEnemy(unit,dmg);addBattleLog(`${statusLabel(st)}：${unit.name}受到 ${dmg} 點傷害。`);showDamage(isHero?'hero':'enemy','-'+dmg);}
     if(['stun','paralysis','freeze'].includes(st.type)&&st.guaranteedSkip!==false){skip=true;addBattleLog(`${statusLabel(st)}！${unit.name}本回合無法行動。`);}
     st.turns--;
   }
@@ -4091,7 +4130,13 @@ async function executeEnemyHit(unit,skill){
       res.damage=Math.max(res.damage,summonFloor);
     }
     await animateBattleAction('enemy',res);
-    if(res.damage){battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-res.damage);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);showDamage('hero','-'+res.damage);total+=res.damage;}
+    if(res.damage){
+      battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-res.damage);
+      updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);
+      showDamage('hero','-'+res.damage);
+      total+=res.damage;
+      if(battleStateV10.heroHp>0)await playHeroHurtVisual();
+    }
     addBattleLog(actionSummary(res,battleStateV10.hero.name));
   }
   if(total&&skill.status)tryApplyMonsterStatus(skill,battleStateV10.hero);
@@ -4189,7 +4234,9 @@ async function checkBattleEnd(){
   if(!battleStateV10)return false;
   const heroDead=battleStateV10.heroHp<=0;const enemyDead=(battleStateV10.enemies||[]).every(u=>u.hp<=0||u.alive===false);
   if(!heroDead&&!enemyDead&&battleStateV10.round<BATTLE_CONFIG.maxRounds)return false;
-  battleStateV10.ended=true;battleStateV10.busy=true;setBattleControls(false);await finishBattleV10(enemyDead&&!heroDead);return true;
+  battleStateV10.ended=true;battleStateV10.busy=true;setBattleControls(false);
+  if(heroDead)await playHeroDeathVisual();
+  await finishBattleV10(enemyDead&&!heroDead);return true;
 }
 async function finishBattleV10(win){
   const s=battleStateV10,primary=s.enemies?.[0]||s.enemy;
@@ -4214,7 +4261,7 @@ function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,event
   HERO_ATTACK_FRAMES=heroAttackFrames();const hero=opts?.testHero?{...opts.testHero,statuses:[],guarding:false}:makeHeroBattleStats();monsterId=monsterId||monsterIdByName(enemyName)||'legacy_enemy';
   const primary=makeLiveEnemy(monsterId,enemyPower,eventType,{name:enemyName,isBoss:eventType==='midterm'||eventType==='final'||MONSTER_DATABASE[monsterId]?.boss});
   battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false,testMode:!!opts.testMode,testWeek:opts.testWeek||null,testDay:opts.testDay??null};
-  createBattleOverlay(enemyName,enemyIcon,hero,primary);syncMirrorHeroVisual();preloadBattleHeroFrames().then(()=>syncMirrorHeroVisual()).catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
+  createBattleOverlay(enemyName,enemyIcon,hero,primary);setHeroBattleVisualState('idle');syncMirrorHeroVisual();preloadBattleHeroFrames().then(()=>syncMirrorHeroVisual()).catch(()=>{});updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);updateBattleResource('hero',battleStateV10.heroEnergy,hero.maxEnergy);updateBattleResource('enemy',primary.mp??primary.maxEnergy,primary.maxMp??primary.maxEnergy);renderBattleTargets();applyBattleStartMonsterMechanics();
   addBattleLog(`怪物技能引擎：${MONSTER_AI_DATABASE[monsterId]?'已載入':'使用基本攻擊'}｜🎯 可自由切換目標。`);
   addBattleLog('⏱️ V10.10.30：SPD回合制維持；W5死靈法師改為初心者可破解的靈魂儀式。');
   if(monsterId==='necromancer')addBattleLog('🕯️ 死靈法師機制：70%HP啟動一次靈魂儀式；王與連結骷髏停止攻擊，擊破🔗後王行動被打斷並承受30%額外傷害。');
@@ -6322,7 +6369,11 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
   const oldAddStatus=addStatus;
   addStatus=function(unit,st){
     if(st?.type==='holy_seal' && (unit?.statuses||[]).some(x=>x.type==='holy_seal'))return unit.statuses.find(x=>x.type==='holy_seal');
-    return oldAddStatus(unit,st);
+    const result=oldAddStatus(unit,st);
+    const harmfulTypes=['poison','burn','bleed','curse','paralysis','freeze','stun','disease','death_mark','slow','armor_break'];
+    const harmful=st?.effectType==='debuff'||harmfulTypes.includes(st?.type);
+    if(unit===battleStateV10?.hero && harmful)playHeroStatusVisual();
+    return result;
   };
 })();
 </script>
