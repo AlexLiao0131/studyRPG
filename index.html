@@ -5061,7 +5061,7 @@ function setEnchant(type){const f=battleStateV10.formal;f.enchant=type;addBattle
 async function triggerEnchant(target){const f=battleStateV10.formal;if(f.overload){f.overload=false;for(const [ty,st] of [['arcane',null],['fire',{type:'burn',turns:3,dotMatk:.2}],['ice',{type:'slow',turns:3,mods:{speedPct:-.25}}],['lightning',{type:'paralysis',turns:1,chance:.35}]]){const r=await hitTarget(target,{name:'全元素附魔',type:ty,multiplier:.45,status:st},.45,ty);}addBattleLog('🌈 全元素附魔爆發！次級附魔仍然保留。');return;}if(!f.enchant)return;const ty=f.enchant;f.enchant=null;const st=ty==='fire'?{type:'burn',turns:3,dotMatk:.2}:ty==='ice'?{type:'slow',turns:3,mods:{speedPct:-.25}}:ty==='lightning'?{type:'paralysis',turns:1,chance:.35}:null;await hitTarget(target,{name:'附魔武器',type:ty,multiplier:.55,status:st},.55,ty);}
 async function formalSkillAction(a){const f=battleStateV10.formal,target=selectedBattleEnemy();formalPay(a);f.uses[a.id]=(f.uses[a.id]||0)+1;recordSkillUsage(a.id);addBattleLog(`${a.icon||'✨'} ${battleStateV10.hero.name}使用「${a.name}」！`);
  if(a.id==='war_ragefill'){f.rage=100;updateFormalResourceUI();return;}if(a.special==='meditate'){if(f.uses[a.id]>2){f.uses[a.id]--;addBattleLog('本場魔力冥想已使用2次。');return;}addTimedEffect(battleStateV10.hero,{name:'魔力冥想',effectType:'buff',turns:3,mods:{hit:.15,mpRegenPct:.10}});return;}if(a.special==='cleanse'){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>!['poison','disease','curse'].includes(s.type));updateBattleStatuses();return;}if(a.special==='freedom'){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>!['stun','freeze','paralysis','slow'].includes(s.type));updateBattleStatuses();return;}if(a.special==='miracle'){if(f.miracle||f.uses[a.id]>1){addBattleLog('🌟 奇蹟每場只能準備一次。');return;}f.miracle=true;addStatus(battleStateV10.hero,{type:'miracle',name:'🌟 奇蹟',turns:999,effectType:'buff',mods:{}});return;}if(a.special==='bigheal'){heroHeal(battleStateV10.hero.maxHp*.55+virtueNow()*1.5,'神聖禱言');return;}if(a.special==='lightbolt'){if(confirm('聖光彈：按「確定」治療自己；按「取消」攻擊敵人。')){heroHeal(battleStateV10.hero.magicAttack*1.25+virtueNow()*1.2,'聖光彈');return;}}
- if(a.special==='hound'){f.hound={hp:Math.round(battleStateV10.hero.maxHp*.45),attack:battleStateV10.hero.attack*.55,speed:battleStateV10.hero.speed*.9};addBattleLog(`🐕 獵犬加入戰鬥！HP ${f.hound.hp}｜ATK ${Math.round(f.hound.attack)}`);return;}if(a.special==='snipe'){f.snipe={targetUid:target?.uid||null,armed:true};addStatus(battleStateV10.hero,{type:'snipe_aim',name:'🔭 狙擊瞄準',turns:2,effectType:'buff',mods:{}});addBattleLog(`🔭 鎖定 ${target?.name||'目標'}，本回合進入瞄準；下一次行動必定命中、必定暴擊！`);return;}if(a.special==='steal'){if(target.stolen){addBattleLog('👜 這名敵人已經沒東西可偷了。');return;}if(Math.random()<.75){target.stolen=true;if(Math.random()<.55){const g=5+Math.floor(Math.random()*16);gameData.hero.gold+=g;addBattleLog(`👜 偷到 ${g} G！`);}else{gameData.inventory.push({id:uid(),itemId:'stolen_potion',name:'初級生命藥水',status:'unused',source:'steal'});addBattleLog('👜 偷到初級生命藥水！');}saveGame();}else addBattleLog('👜 盜竊失敗！');return;}
+ if(a.special==='hound'){const h=battleStateV10.hero;f.hound={hp:Math.round(h.maxHp*.45),maxHp:Math.round(h.maxHp*.45),attack:h.attack*.85,defense:h.defense*.70,speed:h.speed*.90};addBattleLog(`🐕 獵犬加入戰鬥！HP ${f.hound.hp}｜ATK ${Math.round(f.hound.attack)}｜DEF ${Math.round(f.hound.defense)}`);return;}if(a.special==='snipe'){f.snipe={targetUid:target?.uid||null,armed:true};addStatus(battleStateV10.hero,{type:'snipe_aim',name:'🔭 狙擊瞄準',turns:2,effectType:'buff',mods:{}});addBattleLog(`🔭 鎖定 ${target?.name||'目標'}，本回合進入瞄準；下一次行動必定命中、必定暴擊！`);return;}if(a.special==='steal'){if(target.stolen){addBattleLog('👜 這名敵人已經沒東西可偷了。');return;}if(Math.random()<.75){target.stolen=true;if(Math.random()<.55){const g=5+Math.floor(Math.random()*16);gameData.hero.gold+=g;addBattleLog(`👜 偷到 ${g} G！`);}else{gameData.inventory.push({id:uid(),itemId:'stolen_potion',name:'初級生命藥水',status:'unused',source:'steal'});addBattleLog('👜 偷到初級生命藥水！');}saveGame();}else addBattleLog('👜 盜竊失敗！');return;}
  if(a.special==='disrupt'){const buffs=(target.statuses||[]).filter(s=>s.effectType==='buff'&&!s.unstealable);if(buffs.length){const st=buffs[Math.floor(Math.random()*buffs.length)];target.statuses=target.statuses.filter(x=>x!==st);if(st.type==='holy_seal')setEnchant('holy');else addStatus(battleStateV10.hero,{...st});addBattleLog(`🌀 偷走了 ${st.name||st.type}！`);}gainFormal('mp',Math.round(f.maxMp*.15));gainFormal('energy',Math.round(battleStateV10.hero.maxEnergy*.15));return;}
  if(a.special==='accel'){addTimedEffect(battleStateV10.hero,{name:'力場加速',effectType:'buff',turns:4,mods:{speedPct:.30}});setEnchant('lightning');return;}if(a.special==='frostarmor'){addTimedEffect(battleStateV10.hero,{name:'冰霜護甲',effectType:'buff',turns:4,mods:{defensePct:.30,frostRetaliate:true}});setEnchant('ice');return;}if(a.special==='firestorm'){await hitAll(a,1.05,'fire');for(const t of battleStateV10.enemies.filter(x=>x.hp>0))addSimpleStatus(t,{type:'burn',turns:3,dotMatk:.22},a.name);setEnchant('fire');return;}if(a.special==='element_bolt'){const ty=['fire','ice','lightning'][Math.floor(Math.random()*3)];await hitTarget(target,a,1.25,ty);setEnchant(ty);return;}if(a.special==='elementburst'){for(const ty of ['arcane','fire','ice','lightning'])await hitTarget(target,a,.75,ty);f.overload=true;addBattleLog('🌈 第一層「全元素附魔」已準備；不會覆蓋次級附魔。');return;}
  if(a.special==='consecrate'){addTimedEffect(battleStateV10.hero,{name:'奉獻',effectType:'buff',turns:3,mods:{consecrate:.45}});return;}
@@ -5102,7 +5102,7 @@ tickLiveUnit=async function(u,isHero=false){if(isHero&&battleStateV10?.formal){
       await __oldTickLiveUnit(u,isHero); updateBattleStatuses(); return true;
     }
   }
-if(f.resourceType==='energy')gainFormal('energy',8);if(f.resourceType==='dual')gainFormal('energy',8);const med=u.statuses?.find(s=>s.mods?.mpRegenPct);if(med)gainFormal('mp',f.maxMp*med.mods.mpRegenPct);const cons=u.statuses?.find(s=>s.mods?.consecrate);if(cons)await hitAll({name:'奉獻',type:'holy'},cons.mods.consecrate,'holy');if(f.hound){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(alive.length){const t=alive[Math.floor(Math.random()*alive.length)];const fake={...battleStateV10.hero,attack:f.hound.attack};const r=resolveAttack(fake,t,{type:'physical',multiplier:.65});if(r.damage){applyDamageToEnemy(t,r.damage);showDamage('enemy','-'+r.damage);addSimpleStatus(t,{type:'bleed',turns:3,dotAtk:.15},'獵犬撕咬');addBattleLog(`🐕 獵犬咬擊 ${r.damage}！`);}}}if(f.cls==='聖騎士'&&!f.seal){if(f.sealCooldown>0)f.sealCooldown--;else{f.seal=true;addStatus(u,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});addBattleLog('✨ 聖印恢復！');}}}return __oldTickLiveUnit(u,isHero);};
+if(f.resourceType==='energy')gainFormal('energy',8);if(f.resourceType==='dual')gainFormal('energy',8);const med=u.statuses?.find(s=>s.mods?.mpRegenPct);if(med)gainFormal('mp',f.maxMp*med.mods.mpRegenPct);const cons=u.statuses?.find(s=>s.mods?.consecrate);if(cons)await hitAll({name:'奉獻',type:'holy'},cons.mods.consecrate,'holy');if(f.hound){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(alive.length){const t=alive[Math.floor(Math.random()*alive.length)];const fake={...battleStateV10.hero,attack:f.hound.attack,speed:f.hound.speed};const r=resolveAttack(fake,t,{type:'physical',multiplier:1.00,canParry:false});if(r.damage){const biteFloor=Math.max(2,Math.round(f.hound.attack*.20));const biteDamage=Math.max(r.damage,biteFloor);applyDamageToEnemy(t,biteDamage);showDamage('enemy','-'+biteDamage);addSimpleStatus(t,{type:'bleed',turns:3,dotAtk:.15},'獵犬撕咬');addBattleLog(`🐕 獵犬咬擊 ${biteDamage}！`);}else if(r.type==='miss'||r.type==='dodge'){addBattleLog(`🐕 獵犬咬擊被閃開了！`);}}}if(f.cls==='聖騎士'&&!f.seal){if(f.sealCooldown>0)f.sealCooldown--;else{f.seal=true;addStatus(u,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});addBattleLog('✨ 聖印恢復！');}}}return __oldTickLiveUnit(u,isHero);};
 const __oldCheckBattleEnd=checkBattleEnd;
 checkBattleEnd=async function(){if(battleStateV10?.heroHp<=0&&battleStateV10?.formal?.miracle){battleStateV10.formal.miracle=false;battleStateV10.heroHp=Math.round(battleStateV10.hero.maxHp*.40);battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>s.type!=='miracle');updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);addBattleLog('🌟 奇蹟！勇者重新站了起來！');return false;}return __oldCheckBattleEnd();};
 function gmTestSwitchClass(cls){const skills=FORMAL_CLASS_SKILLS[cls];if(!skills)return;gameData.hero.heroClass=cls;gameData.hero.jobAwakened=true;const ids=skills.map(s=>s.id);const allFormalIds=new Set(Object.values(FORMAL_CLASS_SKILLS).flat().map(x=>x.id));gameData.hero.knownSkills=[...(gameData.hero.knownSkills||[]).filter(id=>!allFormalIds.has(id)),...ids];gameData.hero.skills=[...(gameData.hero.skills||[]).filter(id=>!allFormalIds.has(id)),...ids];gameData.hero.equippedSkills=ids.slice(0,4);const rule=JOB_RULES.find(x=>x.name===cls);gameData.hero.jobPassive=rule?.passive||'';saveGame();renderAll();renderGM();alert(`🧪 已切換測試職業：${cls}\n已載入該職8招並自動裝備前4招。\n可到戰前技能配置自由換另外4招。`);}
@@ -5234,11 +5234,11 @@ mage_blizzard:'消耗40 MP，對全體造成120%冰屬性魔法傷害，30%機�
 mage_burn:'消耗25 MP，造成100%火屬性魔法傷害並灼燒3回合；重複施放刷新持續時間。',
 mage_icefire:'消耗55 MP，造成230%魔法傷害。目標有灼燒或冰凍時各提高20%最終傷害。',
 priest_smite:'消耗22 MP，對單一敵人造成神聖魔法傷害。',
-priest_lightbolt:'消耗18 MP，可選擇攻擊敵人或治療自己；治療會觸發「神恩護盾」。',
+priest_lightbolt:'消耗18 MP，可選擇攻擊敵人或治療自己；治療會觸發「神恩護盾」，且治療型施法會大幅提高「美德共鳴」回魔機率。',
 priest_protection:'消耗15 MP，持續5回合降低承傷；受擊時有機率回復MP。',
 priest_grace:'消耗20 MP，3回合提高美德效果，使美德相關治療與回魔機制更強。',
 priest_exorcism:'消耗32 MP，對全體敵人造成神聖魔法傷害。',
-priest_holy_prayer:'消耗40 MP，大量恢復HP，並觸發「神恩護盾」。',
+priest_holy_prayer:'消耗40 MP，大量恢復HP，並觸發「神恩護盾」；治療型施法具有更高的「美德共鳴」機率與70% MP返還。',
 priest_cleanse:'消耗18 MP，移除中毒、疾病、詛咒；不移除暈眩、冰凍、麻痺、燃燒與流血。',
 priest_miracle:'消耗45 MP，每場一次。預先施加奇蹟；死亡時自動復活並恢復部分HP。',
 hunter_trip:'消耗22能量，造成120%物理傷害並降低目標速度。',
@@ -5246,7 +5246,7 @@ hunter_magic_arrow:'消耗18能量，造成125%魔法傷害，可用來對付高
 hunter_counter:'消耗25能量，2回合內受到直接攻擊時反擊攻擊者。',
 hunter_focus:'消耗20能量，4回合提高速度，並強化能量循環。',
 hunter_explosive:'消耗38能量，對全體造成物理傷害並附加3回合灼燒。',
-hunter_hound:'消耗30能量，召喚獵犬。獵犬會自動攻擊並造成流血；流血目標更容易被發現弱點。',
+hunter_hound:'消耗30能量，召喚獵犬。獵犬以召喚當下獵人戰鬥數值建立：HP為45%、ATK為85%、DEF為70%、SPD為90%。每回合自動咬擊並造成流血；流血目標更容易被發現弱點。',
 hunter_deadly:'消耗35能量，造成高物理傷害；若目標有「弱點」，消耗弱點並大幅提高傷害。',
 hunter_snipe:'消耗35能量，本回合只進入瞄準。下一次能行動時必定命中、必定暴擊；目標HP≤20%且有弱點時，普通敵人直接狙殺，Boss改為300%攻擊。',
 rogue_ambush:'消耗22能量，造成145%物理傷害。每場第一次使用有50%暴擊率；暴擊時額外獲得1顆能量球。',
@@ -5356,8 +5356,10 @@ formalSkillAction=async function(a){
   const r=await __v10113FormalSkillAction(a);
   if(f.cls==='牧師'&&Number(a.cost||0)>0&&priestBefore>f.mp){
     const spent=Math.max(0,priestBefore-f.mp),virt=virtueNow();
-    const chance=Math.min(.60,.22+virt/300);
-    if(spent>0&&Math.random()<chance){const refund=Math.max(1,Math.round(spent*.50));gainFormal('mp',refund);addBattleLog(`✨ 美德共鳴！返還 ${refund} MP。`);}
+    const isHeal=['priest_lightbolt','priest_holy_prayer'].includes(a.id);
+    const chance=isHeal?Math.min(.85,.45+virt/220):Math.min(.70,.28+virt/260);
+    const refundRate=isHeal?.70:.55;
+    if(spent>0&&Math.random()<chance){const refund=Math.max(1,Math.round(spent*refundRate));gainFormal('mp',refund);addBattleLog(`✨ 美德共鳴！返還 ${refund} MP。`);}
   }
   updateFormalResourceUI();return r;
 };
@@ -5433,5 +5435,92 @@ buildRoundInitiativeQueue=function(){
 const __v10113TickLiveUnit=tickLiveUnit;
 tickLiveUnit=async function(u,isHero=false){const r=await __v10113TickLiveUnit(u,isHero);if(isHero&&battleStateV10?.formal)updateFormalResourceUI();return r;};
 </script>
+
+<script>
+/* V10.11.4 — MP resource source-of-truth + Mage sustain */
+(function(){
+  // MP上限只讀角色永久能力值，不再誤讀 battle unit 上不存在的 int/will，避免 NaN/假滿條。
+  formalMaxMP=function(_battleHero,cls){
+    const st=gameData?.hero?.stats||{};
+    const intel=Number(st.int)||0, will=Number(st.will)||0;
+    const virtue=Number(gameData?.hero?.virtue)||0, lv=Number(gameData?.hero?.level)||1;
+    if(cls==='牧師') return Math.max(1,Math.round(45+lv*3+will*1.10+virtue*.80+intel*.35));
+    if(cls==='聖騎士') return Math.max(1,Math.round(40+lv*2.5+will*.80+virtue*.55+intel*.25));
+    return Math.max(1,Math.round(50+lv*3+intel*1.20+will*.45));
+  };
+
+  // 強制MP顯示只以 formal.mp 為唯一真值；同步舊 heroEnergy 僅為舊UI相容，不參與MP判定。
+  const oldUpdateFormalResourceUI=updateFormalResourceUI;
+  updateFormalResourceUI=function(){
+    const f=battleStateV10?.formal;
+    if(f&&f.resourceType==='mp'){
+      f.maxMp=Math.max(1,Number(f.maxMp)||formalMaxMP(battleStateV10.hero,f.cls));
+      f.mp=Math.max(0,Math.min(f.maxMp,Number(f.mp)||0));
+      battleStateV10.hero.maxEnergy=f.maxMp;
+      battleStateV10.heroEnergy=f.mp;
+    }
+    return oldUpdateFormalResourceUI();
+  };
+
+  // 每場開戰後再做一次MP初始化，修復舊存檔/GM切職造成的 NaN 或錯條。
+  const oldRun=runBattleSequence;
+  runBattleSequence=function(...args){
+    const r=oldRun(...args);
+    const f=battleStateV10?.formal;
+    if(f&&f.resourceType==='mp'){
+      f.maxMp=formalMaxMP(battleStateV10.hero,f.cls);
+      f.mp=f.maxMp;
+      battleStateV10.hero.maxEnergy=f.maxMp;
+      battleStateV10.heroEnergy=f.mp;
+      updateFormalResourceUI();
+      addBattleLog(`🔵 ${f.cls} MP初始化：${f.mp}/${f.maxMp}`);
+    }
+    return r;
+  };
+
+  // 法師：普攻命中回20% MaxMP（原10%）。覆寫舊10%回復的差額，總計20%。
+  const oldHeroVs=executeHeroAgainstTarget;
+  executeHeroAgainstTarget=async function(a){
+    const f=battleStateV10?.formal;
+    const before=(f?.cls==='法師'&&a?.kind==='attack')?Number(f.mp||0):null;
+    const r=await oldHeroVs(a);
+    if(f?.cls==='法師'&&a?.kind==='attack'&&r?.damage){
+      // 舊版已回10%，再補10%。
+      const extra=Math.max(1,Math.round(f.maxMp*.10));
+      gainFormal('mp',extra);
+      addBattleLog(`🔵 魔力汲取強化：額外恢復 ${extra} MP（普攻合計20% MaxMP）。`);
+    }
+    return r;
+  };
+
+  // 法師冥想：由每回合10%提高到15%，3回合共45%。
+  const oldFormalSkill=formalSkillAction;
+  formalSkillAction=async function(a){
+    const r=await oldFormalSkill(a);
+    const f=battleStateV10?.formal;
+    if(f?.cls==='法師'&&a?.id==='mage_meditation'){
+      const med=(battleStateV10.hero.statuses||[]).find(s=>s.name==='魔力冥想');
+      if(med)med.mods.mpRegenPct=.15;
+      addBattleLog('🌀 魔力冥想強化：3回合每回合恢復15% MaxMP（共45%）。');
+    }
+    // 魔力增幅疊滿後，攻擊法術命中循環返還5% MaxMP，讓連續施法不會太快OOM。
+    if(f?.cls==='法師'&&['arcane','fire','ice','lightning'].includes(a?.type)&&(f.magicAmpStacks||0)>=5){
+      const n=Math.max(1,Math.round(f.maxMp*.05));
+      gainFormal('mp',n);addBattleLog(`🔮 魔力增幅滿層：回流 ${n} MP。`);
+    }
+    return r;
+  };
+
+  // 更新技能/被動說明。
+  if(typeof FORMAL_SKILL_HELP!=='undefined'){
+    FORMAL_SKILL_HELP.mage_meditation='每場最多2次。持續3回合，每回合恢復15%最大MP（共45%）並提高命中；會中斷魔力增幅。';
+  }
+  if(typeof FORMAL_PASSIVE_HELP!=='undefined'){
+    FORMAL_PASSIVE_HELP['法師']='🔮 魔力增幅：連續使用消耗MP的攻擊法術累積層數，每層+5%魔法傷害，最多5層；滿5層後攻擊法術會回流5% MaxMP。普攻會中斷層數，但命中可恢復20% MaxMP；冥想3回合共恢復45% MaxMP。';
+    FORMAL_PASSIVE_HELP['牧師']='🪽 神恩護盾：主動治療會產生護盾；護盾受擊回復少量HP、破裂再治療。牧師MP以角色意志＋美德＋少量智力計算。美德共鳴：治療技能基礎45%＋美德加成，最高85%，觸發返還70%本次MP消耗；其他耗魔神聖技能基礎28%＋美德加成，最高70%，觸發返還55%。';
+  }
+})();
+</script>
+
 </body>
 </html>
