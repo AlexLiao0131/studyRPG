@@ -667,6 +667,33 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   transform:translateX(-50%) !important;
 }
 
+
+/* V10.11.26 怪物素材：依 monster_id 直接讀取 CSV 對照表命名 */
+.dungeon-world-bg{
+  background-position:center bottom !important;
+  background-size:cover !important;
+  background-repeat:no-repeat !important;
+}
+.monster-battle-sprite{
+  display:block;
+  width:190px;
+  height:190px;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+  transform-origin:center bottom;
+}
+.monster-attack-css{animation:monsterAttackSingle .36s ease-out 1}
+@keyframes monsterAttackSingle{
+  0%{transform:translateX(0) scale(1)}
+  45%{transform:translateX(-24px) scale(1.04,.98)}
+  100%{transform:translateX(0) scale(1)}
+}
+@media(max-width:600px){
+  .monster-battle-sprite{width:145px;height:145px}
+}
+
 </style>
 
 <style>
@@ -3211,16 +3238,15 @@ async function preloadBattleHeroFrames(){
   heroAttackFramesReady=result.every(Boolean);
   return heroAttackFramesReady;
 }
-async function preloadSlimeFrames(){
-  const frames=[
-    ...[1,2,3,4].map(n=>sprite(`images/slime_idle_${n}.png`)),
-    ...[1,2,3,4].map(n=>sprite(`images/slime_attack_${n}.png`))
-  ];
-  const result=await Promise.all(frames.map(src=>new Promise(resolve=>{
+async function preloadCurrentMonsterSprites(monsterId){
+  const def=MONSTER_DATABASE[monsterId];
+  if(!def||def.mirrorHero||!def.sprites)return true;
+  const paths=[def.sprites.idle,def.sprites.battle].filter(Boolean);
+  const result=await Promise.all(paths.map(src=>new Promise(resolve=>{
     const img=new Image();
     img.onload=()=>resolve(true);
-    img.onerror=()=>{console.error('史萊姆圖片載入失敗:',src);resolve(false);};
-    img.src=src;
+    img.onerror=()=>{console.error('怪物圖片載入失敗:',src);resolve(false);};
+    img.src=sprite(src);
   })));
   return result.every(Boolean);
 }
@@ -3247,33 +3273,24 @@ async function playHeroAttackFrames(){
 async function playEnemyAttackFrames(){
   const img=document.getElementById('battleEnemySprite');
   if(!img){await battleSleep(180);return;}
-
-  // 勇者鏡像：直接共用玩家目前的戰鬥動作圖，僅做水平翻轉。
   if(battleStateV10?.monsterId==='hero_mirror'){
     if(!heroAttackFramesReady||heroAttackAssetKey!==heroAssetKey())await preloadBattleHeroFrames();
-    const frames=HERO_ATTACK_FRAMES.length?HERO_ATTACK_FRAMES:heroAttackFrames();
-    const timings=[155,95,105,175];
-    for(let i=0;i<frames.length;i++){
-      img.src=frames[i];
-      try{if(img.decode)await img.decode();}catch(e){}
-      await nextPaint();
-      await battleSleep(timings[i]||120);
-    }
-    img.src=frames[0];
-    await nextPaint();
+    img.src=heroSpritePath('attack');
+    await battleSleep(360);
+    img.src=heroSpritePath('idle');
     return;
   }
-
-  const name=(battleStateV10?.enemyName||battleStateV10?.enemy?.name||'').toLowerCase();
-  if(!(name.includes('史萊姆')||name.includes('slime'))){await battleSleep(180);return;}
-  const frames=[1,2,3,4].map(n=>sprite(`images/slime_attack_${n}.png`));
-  const timings=[150,95,105,170];
-  for(let i=0;i<4;i++){
-    img.src=frames[i];
-    await nextPaint();
-    await battleSleep(timings[i]);
+  const def=MONSTER_DATABASE[battleStateV10?.monsterId];
+  if(def?.sprites?.battle){
+    img.src=sprite(def.sprites.battle);
+    img.classList.remove('monster-attack-css');
+    void img.offsetWidth;
+    img.classList.add('monster-attack-css');
+    await battleSleep(360);
+    img.classList.remove('monster-attack-css');
+    return;
   }
-  img.src=sprite('images/slime_idle_1.png');
+  await battleSleep(180);
 }
 
 async function animateBattleAction(attackerSide,result){
@@ -3862,8 +3879,11 @@ function applyBattleStartMonsterMechanics(){
 
 function battleEnemyVisualHTML(enemyIcon){
   if(battleStateV10?.monsterId==='hero_mirror'){
-    const first=(HERO_ATTACK_FRAMES&&HERO_ATTACK_FRAMES[0])||heroSpritePath('attack');
-    return `<img id="battleEnemySprite" class="mirror-hero-sprite" src="${first}" alt="勇者的鏡像">`;
+    return `<img id="battleEnemySprite" class="mirror-hero-sprite" src="${heroSpritePath('idle')}" alt="勇者的鏡像">`;
+  }
+  const def=MONSTER_DATABASE[battleStateV10?.monsterId];
+  if(def?.sprites?.battle){
+    return `<img id="battleEnemySprite" class="monster-battle-sprite" src="${sprite(def.sprites.battle)}" alt="${def.name||'怪物'}">`;
   }
   return `<div class="enemy-glyph">${enemyIcon}</div>`;
 }
@@ -3879,7 +3899,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
+    <div id="battleArena" class="battle-arena"><div class="battle-bg" style="background-image:url('${sprite(weeklyMapForDate(today())?.background||'images/grassland_bg.png')}')"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -3985,7 +4005,7 @@ function renderHero(){
     </div>
     <div style="margin-bottom:8px">
       <span class="world-chip">第 ${semesterWeekIndex()} 週</span>
-      <span class="world-chip">${worldChapterForToday().family}</span>
+      <span class="world-chip">${worldChapterForToday()?.map||"未知地區"}</span>
       ${gameData.semester?.worldState==='ruined'?'<span class="world-chip">🔥 毀壞世界</span>':''}
     </div>
 
@@ -4088,16 +4108,21 @@ function renderTasks(){
 }
 
 let dungeonIdleTimer=null;
+function dungeonMonsterDefinition(monster,evt){
+  if(gameData?.dailyDungeon?.monsterId==='AUTO'||evt){
+    const weekly=currentWeeklyMonster(today());
+    if(weekly)return weekly;
+  }
+  const directId=monster?.monsterId||monster?.id||gameData?.dailyDungeon?.monsterId;
+  return MONSTER_DATABASE[directId]||Object.values(MONSTER_DATABASE).find(x=>x.name===monster?.name)||null;
+}
 function monsterAssetKey(monster,evt){
-  const s=((evt?.name||monster?.name||'')+'').toLowerCase();
-  if(s.includes('史萊姆')||s.includes('slime'))return 'slime';
-  return null;
+  return dungeonMonsterDefinition(monster,evt)?.id||null;
 }
 function dungeonHeroIdleFrames(){return heroIdleFrames();}
 function dungeonEnemyIdleFrames(monster,evt){
-  const key=monsterAssetKey(monster,evt);
-  if(key==='slime')return [1,2,3,4].map(n=>sprite(`images/slime_idle_${n}.png`));
-  return [];
+  const def=dungeonMonsterDefinition(monster,evt);
+  return def?.sprites?.idle?[sprite(def.sprites.idle)]:[];
 }
 function startDungeonIdleAnimation(monster,evt){
   if(dungeonIdleTimer){clearInterval(dungeonIdleTimer);dungeonIdleTimer=null;}
@@ -4161,7 +4186,7 @@ function renderDungeon(){
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card">
-          <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
+          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${sprite(weeklyMapForDate(today())?.background||'images/grassland_bg.png')}')"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
         </div>
@@ -4172,7 +4197,7 @@ function renderDungeon(){
         </div>
 
         <div class="fighter-card">
-          <div class="dungeon-idle-stage">${monsterAssetKey(m,evt)?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy" src="${monsterAssetKey(m,evt)==='slime'?sprite('images/slime_idle_1.png'):''}" alt="${enemy?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
+          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${sprite(weeklyMapForDate(today())?.background||'images/grassland_bg.png')}')">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
           ${testMultiplier!==1?`<div class="small">基準 ${basePower} × ${Math.round(testMultiplier*100)}%</div>`:''}
