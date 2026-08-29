@@ -792,6 +792,61 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .dungeon-scene-background{filter:saturate(.92) brightness(.72)}
 .home-scene-background{filter:none}
 
+
+/* V10.11.32 FINAL：副本入口角色/怪物 Y 軸 + Boss 戰鬥尺寸/落地 */
+
+/* 副本入口：角色與怪物往下，腳底/底部靠近草地地面 */
+#dungeonHeroIdle{
+  top:auto !important;
+  bottom:72px !important;
+  left:50% !important;
+  transform:translateX(-50%) !important;
+}
+#dungeonEnemyIdle{
+  top:auto !important;
+  bottom:68px !important;
+  left:50% !important;
+  right:auto !important;
+  transform:translateX(-50%) !important;
+}
+
+/* 副本入口 Boss 再放大 */
+#dungeonEnemyIdle.boss-dungeon-sprite{
+  width:310px !important;
+  height:270px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+
+/* 正式戰鬥 Boss：更大，並貼近戰鬥地面 */
+.battle-enemy:has(.boss-monster-sprite){
+  bottom:12px !important;
+}
+.boss-monster-sprite{
+  width:390px !important;
+  height:390px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+
+@media(max-width:600px){
+  #dungeonHeroIdle{bottom:54px !important;}
+  #dungeonEnemyIdle{bottom:50px !important;}
+  #dungeonEnemyIdle.boss-dungeon-sprite{
+    width:225px !important;
+    height:200px !important;
+  }
+  .battle-enemy:has(.boss-monster-sprite){bottom:8px !important;}
+  .boss-monster-sprite{
+    width:285px !important;
+    height:285px !important;
+  }
+}
+
 </style>
 
 <style>
