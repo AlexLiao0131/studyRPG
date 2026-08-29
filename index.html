@@ -2263,6 +2263,7 @@ const MONSTER_SKILL_DATABASE={
   water_bullet:{id:'water_bullet',name:'水彈',kind:'magic',element:'water',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.70}},
   fire_bullet:{id:'fire_bullet',name:'火焰彈',kind:'magic',element:'fire',target:'single',multiplier:1.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05}},
   nature_heal:{id:'nature_heal',name:'自然治癒',kind:'heal',element:'nature',target:'self',healMaxHp:.20},
+  slime_king_heal:{id:'slime_king_heal',name:'大史萊姆再生',kind:'heal',element:'nature',target:'self',healMaxHp:.12,maxUsesPerBattle:1},
   thunder_bullet:{id:'thunder_bullet',name:'雷電彈',kind:'magic',element:'lightning',target:'single',multiplier:1.0,status:{id:'paralysis',chance:.30,duration:1}},
 
   /* Week 2 哥布林 */
@@ -2366,7 +2367,7 @@ const MONSTER_AI_DATABASE={
   slime_fire:{skills:[{id:'slime_tackle',weight:1},{id:'fire_bullet',weight:1}]},
   slime_grass:{skills:[{id:'slime_tackle',weight:2},{id:'nature_heal',weight:3,condition:'low_hp',threshold:.55}]},
   slime_lightning:{skills:[{id:'slime_tackle',weight:1},{id:'thunder_bullet',weight:1}]},
-  slime_king:{skills:[{id:'slime_tackle',weight:1},{id:'water_bullet',weight:1},{id:'fire_bullet',weight:1},{id:'thunder_bullet',weight:1},{id:'nature_heal',weight:4,condition:'low_hp',threshold:.40}]},
+  slime_king:{skills:[{id:'slime_tackle',weight:2},{id:'water_bullet',weight:1},{id:'fire_bullet',weight:1},{id:'thunder_bullet',weight:1},{id:'slime_king_heal',weight:2,condition:'low_hp',threshold:.35}]},
 
   goblin_slave:{skills:[{id:'goblin_club',weight:1}]},
   goblin_soldier:{skills:[{id:'goblin_slash',weight:3},{id:'goblin_guard',weight:1}]},
@@ -3518,7 +3519,9 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   // W20 死神因此雖有 finalBoss:true，實際 HP 仍只比同週標準勇者高約 20%。
   // V10.10.28：後期 Power 曲線已修正，Final Boss 額外倍率由 1.75 校回 1.35，避免重複灌血；召喚物不吃此倍率。
   const finalBossHpScale=(!opts.isSummon && def.finalBoss)?1.35:1;
-  const hpScale=Number(opts.hpScale??scale)*finalBossHpScale;
+  // V10.11.9：W1 大史萊姆是第一次正式轉職後的教學 Boss，不應使用完整中期 Boss 強度。
+  const earlyBossHpScale=(!opts.isSummon && monsterId==='slime_king')?.72:1;
+  const hpScale=Number(opts.hpScale??scale)*finalBossHpScale*earlyBossHpScale;
   // V10.10.19：怪物原本不分物理/魔法職能，Boss 旗標也只增加 HP，
   // 造成死靈法師/魔王等純法系怪 MATK 過低，遇到玩家 MDEF 後常被公式壓到最低 1 傷害。
   // 不改技能倍率，改由技能組判斷施法者職能，給法系怪合理的 MATK 底盤。
@@ -3537,9 +3540,12 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   // 明確純法系 Boss 再確保最低職能倍率；技能本身仍維持原本 1.0 / 1.35 等資料。
   if(monsterId==='demon_king_phase1'||monsterId==='demon_king_phase2')magicRoleScale=Math.max(magicRoleScale,1.60);
   if(monsterId==='necromancer')magicRoleScale=Math.max(magicRoleScale,1.35);
+  // W1 Boss 攻防也略降，讓剛轉職角色能靠技能循環穩定通關，而不是靠數值硬磨。
+  const earlyBossOffenseScale=monsterId==='slime_king'?.85:1;
+  const earlyBossDefenseScale=monsterId==='slime_king'?.82:1;
   const u={...base,uid:opts.uid||`${monsterId}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,monsterId,name:opts.name||def.name,
     maxHp:Math.max(1,Math.round(base.maxHp*hpScale)),hp:0,alive:true,isBoss:!!(opts.isBoss??def.boss),isSummon:!!opts.isSummon,summonedBy:opts.summonedBy||null,
-    attack:base.attack*scale*attackRoleScale,magicAttack:base.magicAttack*scale*magicRoleScale,defense:base.defense*scale,magicDefense:base.magicDefense*scale,speed:base.speed*scale,
+    attack:base.attack*scale*attackRoleScale*earlyBossOffenseScale,magicAttack:base.magicAttack*scale*magicRoleScale*earlyBossOffenseScale,defense:base.defense*scale*earlyBossDefenseScale,magicDefense:base.magicDefense*scale*earlyBossDefenseScale,speed:base.speed*scale,
     statuses:[],skillUses:{},cooldowns:{},chargedSkill:null,rotationIndex:0,reviveUsed:false,turnsTaken:0};
   u.hp=u.maxHp;
   const ai=MONSTER_AI_DATABASE[monsterId]||{};
@@ -5570,5 +5576,68 @@ tickLiveUnit=async function(u,isHero=false){const r=await __v10113TickLiveUnit(u
   }
 })();
 </script>
+
+
+<script>
+/* V10.11.8 — Priest Smite: Holy DoT + 3% MaxMP return */
+(function(){
+  const _oldFormalSkillV10118=formalSkillAction;
+  formalSkillAction=async function(a){
+    const f=battleStateV10?.formal;
+    const isSmite=f?.cls==='牧師' && a?.id==='priest_smite';
+    const target=isSmite?selectedBattleEnemy():null;
+    const hpBefore=target?Number(target.hp||0):null;
+
+    const r=await _oldFormalSkillV10118(a);
+
+    if(isSmite && target){
+      const hpAfter=Number(target.hp||0);
+      // 只有真正命中並造成傷害時才觸發懲戒後續效果。
+      if(hpBefore>hpAfter){
+        // 神聖持續傷害：3回合，每回合約35% MATK，仍受部分MDEF影響；同一目標不疊層，只刷新回合。
+        const matk=Math.max(0,Number(battleStateV10.hero?.magicAttack||0));
+        const mdef=Math.max(0,Number(target.magicDefense||0));
+        const dot=Math.max(1,Math.round(matk*.35-mdef*.25));
+        addStatus(target,{
+          type:'holy_penance_dot',
+          name:'✝️ 神聖懲戒',
+          turns:3,
+          power:dot,
+          effectType:'debuff',
+          mods:{}
+        });
+        const mp=Math.max(1,Math.round(f.maxMp*.03));
+        gainFormal('mp',mp);
+        addBattleLog(`✝️ 神聖懲戒附著：3回合神聖持續傷害；再次使用鞭撻懲戒可刷新。`);
+        addBattleLog(`🔵 懲戒回流：恢復 ${mp} MP（3% MaxMP）。`);
+        if(typeof updateBattleStatuses==='function')updateBattleStatuses();
+        if(typeof renderBattleTargets==='function')renderBattleTargets();
+      }
+    }
+    return r;
+  };
+
+  // 在敵方回合開始時處理神聖懲戒DoT，再交回原狀態系統遞減回合數。
+  const _oldTickV10118=tickLiveUnit;
+  tickLiveUnit=async function(unit,isHero=false){
+    if(!isHero && unit && Number(unit.hp||0)>0){
+      const st=(unit.statuses||[]).find(x=>x.type==='holy_penance_dot' && x.turns>0);
+      if(st){
+        const dmg=Math.max(1,Math.round(Number(st.power)||1));
+        const dealt=applyDamageToEnemy(unit,dmg);
+        showDamage('enemy','-'+dealt,'holy-float');
+        addBattleLog(`✝️ 神聖懲戒：${unit.name}受到 ${dealt} 點神聖傷害。`);
+        if(typeof renderBattleTargets==='function')renderBattleTargets();
+      }
+    }
+    return _oldTickV10118(unit,isHero);
+  };
+
+  if(typeof FORMAL_SKILL_HELP!=='undefined'){
+    FORMAL_SKILL_HELP.priest_smite='消耗22 MP，造成150% MATK神聖傷害。命中後附加「神聖懲戒」3回合：每回合造成神聖持續傷害；再次施放會刷新至3回合而不疊層。每次命中鞭撻懲戒另恢復3% MaxMP。';
+  }
+})();
+</script>
+
 </body>
 </html>
