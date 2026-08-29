@@ -484,7 +484,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .hp-fill.low{background:linear-gradient(#ffb347,#d29922)}.hp-fill.critical{background:linear-gradient(#ff7b72,#da3633)}
 .hp-text{margin-top:4px;font-size:12px;color:#8b949e}
 .battle-arena{position:relative;height:300px;overflow:hidden;border:2px solid #30363d;border-radius:10px;background:#203b52}
-.battle-bg{position:absolute;inset:0;background:url("images/grassland_bg.png?v=7") center/cover no-repeat;filter:saturate(.95) brightness(.86)}
+.battle-bg{position:absolute;inset:0;background-position:center bottom;background-size:cover;background-repeat:no-repeat;filter:saturate(.95) brightness(.86)}
 .battle-floor{position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(transparent,#102018aa)}
 .battle-hero,.battle-enemy{position:absolute;bottom:18px;width:190px;height:190px;display:flex;align-items:flex-end;justify-content:center;transition:transform .22s ease,filter .18s ease}
 .battle-hero{left:8%;bottom:50px}.battle-enemy{right:8%}.battle-hero img,.battle-enemy img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
@@ -694,6 +694,34 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .monster-battle-sprite{width:145px;height:145px}
 }
 
+
+/* V10.11.27：Boss 顯示尺寸 */
+.boss-monster-sprite{
+  width:320px !important;
+  height:320px !important;
+  max-width:none !important;
+  max-height:none !important;
+}
+.boss-dungeon-sprite{
+  width:260px !important;
+  height:220px !important;
+  max-width:none !important;
+  max-height:none !important;
+}
+@media(max-width:600px){
+  .boss-monster-sprite{width:220px !important;height:220px !important}
+  .boss-dungeon-sprite{width:175px !important;height:155px !important}
+}
+
+
+/* V10.11.28 FINAL：戰鬥背景與 Boss 尺寸 */
+.battle-bg{
+  background-position:center bottom !important;
+  background-size:cover !important;
+  background-repeat:no-repeat !important;
+  background-color:#203b52;
+}
+
 </style>
 
 <style>
@@ -802,6 +830,12 @@ function heroAssetKey(){
   const cls=gameData?.hero?.jobAwakened ? (gameData?.hero?.heroClass||'見習勇者') : '見習勇者';
   return HERO_ASSET_MAP[cls]||'novice';
 }
+
+function battleBackgroundForDate(dateStr=today()){
+  const weekData=weeklyMapForDate(dateStr);
+  return sprite(weekData?.background||'images/backgrounds/week01_grassland.png');
+}
+
 function heroSpritePath(state){
   return sprite(`images/hero_${heroAssetKey()}_${state}.png`);
 }
@@ -3883,7 +3917,8 @@ function battleEnemyVisualHTML(enemyIcon){
   }
   const def=MONSTER_DATABASE[battleStateV10?.monsterId];
   if(def?.sprites?.battle){
-    return `<img id="battleEnemySprite" class="monster-battle-sprite" src="${sprite(def.sprites.battle)}" alt="${def.name||'怪物'}">`;
+    const bossClass=def.boss?' boss-monster-sprite':'';
+    return `<img id="battleEnemySprite" class="monster-battle-sprite${bossClass}" src="${sprite(def.sprites.battle)}" alt="${def.name||'怪物'}">`;
   }
   return `<div class="enemy-glyph">${enemyIcon}</div>`;
 }
@@ -3899,7 +3934,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena"><div class="battle-bg" style="background-image:url('${sprite(weeklyMapForDate(today())?.background||'images/grassland_bg.png')}')"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
+    <div id="battleArena" class="battle-arena"><div class="battle-bg" style="background-image:url('${battleBackgroundForDate(today())}')"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -4186,7 +4221,7 @@ function renderDungeon(){
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card">
-          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${sprite(weeklyMapForDate(today())?.background||'images/grassland_bg.png')}')"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
+          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${battleBackgroundForDate(today())}')"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
         </div>
@@ -4197,7 +4232,7 @@ function renderDungeon(){
         </div>
 
         <div class="fighter-card">
-          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${sprite(weeklyMapForDate(today())?.background||'images/grassland_bg.png')}')">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
+          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${battleBackgroundForDate(today())}')">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
           ${testMultiplier!==1?`<div class="small">基準 ${basePower} × ${Math.round(testMultiplier*100)}%</div>`:''}
