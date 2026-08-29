@@ -5656,5 +5656,94 @@ tickLiveUnit=async function(u,isHero=false){const r=await __v10113TickLiveUnit(u
 })();
 </script>
 
+
+
+<!-- V10.11.11 GM BEGINNER / TEST JOB SKILL ISOLATION FIX -->
+<script>
+(function(){
+  // GM 週數測試的職業是「這一場戰鬥」的職業，不應沿用目前存檔角色的轉職技能。
+  function v101111BattleTestJob(){
+    if(!battleStateV10?.testMode) return null;
+    return battleStateV10?.hero?.testJob || null;
+  }
+
+  const __v101111AvailableBattleSkills = availableBattleSkills;
+  availableBattleSkills = function(){
+    const testJob=v101111BattleTestJob();
+    if(testJob){
+      if(testJob==='初心者') return BEGINNER_SKILLS.slice(0,4);
+      const list=FORMAL_CLASS_SKILLS?.[testJob];
+      if(list){
+        // 若目前存檔剛好也是同職，尊重玩家已配置的4招；否則測試器載入該職前4招。
+        if(gameData.hero.jobAwakened && gameData.hero.heroClass===testJob){
+          const map=new Map(list.map(s=>[s.id,s]));
+          const ids=(gameData.hero.equippedSkills||[]).filter(id=>map.has(id)).slice(0,4);
+          if(ids.length) return ids.map(id=>map.get(id));
+        }
+        return list.slice(0,4);
+      }
+    }
+    return __v101111AvailableBattleSkills();
+  };
+
+  const __v101111RunBattleSequence = runBattleSequence;
+  runBattleSequence = function(...args){
+    const result=__v101111RunBattleSequence(...args);
+    if(!battleStateV10?.testMode) return result;
+    const cls=battleStateV10?.hero?.testJob || '初心者';
+
+    // 清掉「目前存檔職業」在舊初始化流程中可能塞進測試戰鬥的被動狀態。
+    battleStateV10.hero.statuses=(battleStateV10.hero.statuses||[]).filter(s=>
+      s.type!=='holy_seal' && !String(s.type||'').startsWith('core_passive_')
+    );
+
+    const rt=cls==='初心者'?'energy':classResourceType(cls);
+    battleStateV10.formal={cls,resourceType:rt,mp:0,maxMp:0,rage:0,maxRage:100,combo:0,seal:false,sealCooldown:0,enchant:null,overload:false,uses:{},weakness:{},hound:null,snipe:null,miracle:false};
+
+    if(cls==='初心者'){
+      // 初心者只走原始 Energy；完全不載入任何正式職業資源與被動。
+      battleStateV10.heroEnergy=Math.round(battleStateV10.hero.maxEnergy*.50);
+      updateBattleResource('hero',battleStateV10.heroEnergy,battleStateV10.hero.maxEnergy);
+      addBattleLog('🧪 GM職業隔離：本場為初心者，只載入4招初心者技能。');
+    }else if(rt==='rage'){
+      battleStateV10.heroEnergy=0;
+      battleStateV10.hero.maxEnergy=100;
+      updateFormalResourceUI();
+    }else if(rt==='mp'){
+      battleStateV10.formal.maxMp=formalMaxMP(battleStateV10.hero,cls);
+      battleStateV10.formal.mp=battleStateV10.formal.maxMp;
+      battleStateV10.hero.maxEnergy=battleStateV10.formal.maxMp;
+      battleStateV10.heroEnergy=battleStateV10.formal.mp;
+      updateFormalResourceUI();
+    }else if(rt==='dual'){
+      battleStateV10.formal.maxMp=formalMaxMP(battleStateV10.hero,cls);
+      battleStateV10.formal.mp=battleStateV10.formal.maxMp;
+      battleStateV10.heroEnergy=battleStateV10.hero.maxEnergy;
+      updateFormalResourceUI();
+    }
+
+    if(cls!=='初心者' && typeof v10113PassiveStatus==='function'){
+      addStatus(battleStateV10.hero,v10113PassiveStatus(cls));
+    }
+    if(cls==='聖騎士'){
+      battleStateV10.formal.seal=true;
+      if(!battleStateV10.hero.statuses.some(s=>s.type==='holy_seal'))
+        addStatus(battleStateV10.hero,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});
+    }
+    updateBattleStatuses();
+    renderBattleTargets();
+    return result;
+  };
+
+  // 正式技能的資源/執行判斷以「本場測試職業」為準，不再看存檔角色是否已轉職。
+  const __v101111ApplyEnergyForAction=applyEnergyForAction;
+  applyEnergyForAction=function(side,action){
+    if(side==='hero' && battleStateV10?.testMode && battleStateV10?.hero?.testJob==='初心者'){
+      return __v101111ApplyEnergyForAction(side,action);
+    }
+    return __v101111ApplyEnergyForAction(side,action);
+  };
+})();
+</script>
 </body>
 </html>
