@@ -4424,23 +4424,22 @@ function renderGM(){
           <option value="duration">🎹 累積時間型（越久越好：鋼琴／閱讀／練習）</option>
         </select>
         <div id="timerModeHelp" class="small" style="margin-bottom:8px">第一門檻＝優秀速度；第二門檻＝一般速度。</div>
-        <div class="grid3">
+        <div class="grid2">
           <div><label id="gmRule1Label">第一門檻（分鐘）</label><input id="gmRule1Min" type="number" value="30"></div>
-          <div><label>能力</label><select id="gmRule1Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="will">意志</option><option value="virtue">美德</option></select></div>
-          <div><label>增加</label><input id="gmRule1Val" oninput="refreshTaskBalancePreview()" type="number" value="5"></div>
-        </div>
-        <div class="grid3">
           <div><label id="gmRule2Label">第二門檻（分鐘）</label><input id="gmRule2Min" type="number" value="60"></div>
-          <div><label>能力</label><select id="gmRule2Stat"><option value="agi">敏捷</option><option value="str">力量</option><option value="int">智力</option><option value="will">意志</option><option value="virtue">美德</option></select></div>
-          <div><label>增加</label><input id="gmRule2Val" oninput="refreshTaskBalancePreview()" type="number" value="1"></div>
         </div>
       </div>
 
       <div id="gmFixedSettings" class="gm-type-settings" style="display:none">
-        <h3>✅ 完成後能力</h3>
+        <h3>⚙️ 手動能力獎勵（所有任務類型共用）</h3>
+        <div class="small">計時／完成／數量／分數都可自由指定兩種能力；第二種可選「無」。</div>
         <div class="grid2">
-          <div><label>能力</label><select id="gmFixedStat"><option value="will">意志</option><option value="str">力量</option><option value="agi">敏捷</option><option value="int">智力</option><option value="virtue">美德</option></select></div>
+          <div><label>能力 1</label><select id="gmFixedStat"><option value="will">意志</option><option value="str">力量</option><option value="agi">敏捷</option><option value="int">智力</option><option value="virtue">美德</option></select></div>
           <div><label>增加</label><input id="gmFixedStatValue" oninput="refreshTaskBalancePreview()" type="number" value="2"></div>
+        </div>
+        <div class="grid2">
+          <div><label>能力 2</label><select id="gmFixedStat2"><option value="">無</option><option value="will">意志</option><option value="str">力量</option><option value="agi">敏捷</option><option value="int">智力</option><option value="virtue">美德</option></select></div>
+          <div><label>增加</label><input id="gmFixedStatValue2" oninput="refreshTaskBalancePreview()" type="number" value="0"></div>
         </div>
       </div>
 
@@ -4692,11 +4691,16 @@ function gmAddTask(){
   const category=document.getElementById('gmTaskCategory')?.value||'study';
   const difficulty=document.getElementById('gmTaskDifficulty')?.value||'normal';
   let rules=[];
+  const manualStat1=document.getElementById('gmFixedStat')?.value||'will';
+  const manualVal1=rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue')?.value)||0):0;
+  const manualStat2=document.getElementById('gmFixedStat2')?.value||'';
+  const manualVal2=rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue2')?.value)||0):0;
   if(taskType==='timer'&&rewardMode==='manual'){
+    const maxMinutes=Math.max(Number(document.getElementById('gmRule1Min')?.value)||0,Number(document.getElementById('gmRule2Min')?.value)||0);
     rules=[
-      {maxMinutes:Number(document.getElementById('gmRule1Min').value),stat:document.getElementById('gmRule1Stat').value,value:Number(document.getElementById('gmRule1Val').value)},
-      {maxMinutes:Number(document.getElementById('gmRule2Min').value),stat:document.getElementById('gmRule2Stat').value,value:Number(document.getElementById('gmRule2Val').value)}
-    ].filter(r=>r.maxMinutes>0&&r.value!==0);
+      {maxMinutes,stat:manualStat1,value:manualVal1},
+      ...(manualStat2&&manualStat2!==manualStat1?[{maxMinutes,stat:manualStat2,value:manualVal2}]:[])
+    ].filter(r=>r.value!==0);
   }
   const task={
     id:uid(),name,taskType,rewardMode,category,difficulty,
@@ -4712,8 +4716,11 @@ function gmAddTask(){
     createdDate:today(),date:document.getElementById('gmRecurringTask')?.checked===true?'':today(),activeFrom:today(),activeUntil:'',
     countForBossOnNonSchoolDay:document.getElementById('gmBossNonSchool')?.checked||false,
     weekdays:[...document.querySelectorAll('.gmWeekday:checked')].map(x=>Number(x.value)),statRules:rules,
-    fixedStat:document.getElementById('gmFixedStat')?.value||'will',
-    fixedStatValue:rewardMode==='manual'?(Number(document.getElementById('gmFixedStatValue')?.value)||0):0,
+    fixedStat:manualStat1,
+    fixedStatValue:manualVal1,
+    fixedStat2:manualStat2,
+    fixedStatValue2:manualVal2,
+    manualStatRewards:rewardMode==='manual'?{[manualStat1]:manualVal1,...(manualStat2&&manualStat2!==manualStat1?{[manualStat2]:manualVal2}:{})}:{},
     timerMode:document.getElementById('gmTimerMode')?.value||'deadline',
     fastMinutes:Number(document.getElementById('gmRule1Min')?.value)||30,
     standardMinutes:Number(document.getElementById('gmRule2Min')?.value)||60,
@@ -4724,7 +4731,7 @@ function gmAddTask(){
     correctionExp:Math.max(0,Number(document.getElementById('gmCorrectionExp')?.value)||0)
   };
   if(rewardMode==='manual'){
-    const previewStat=taskType==='timer'?Math.max(0,...rules.map(r=>Number(r.value)||0)):task.fixedStatValue;
+    const previewStat=Math.max(0,manualVal1)+Math.max(0,manualVal2);
     const br=taskBalanceReport(task.expReward,task.goldReward,previewStat);
     if(br.worst.cls==='balance-bad'&&!confirm('🔴 這組手動獎勵可能破壞數值平衡。仍要建立嗎？'))return;
   }
@@ -5977,6 +5984,7 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
       Object.assign(out,best);return out;
     }
     if(Object.prototype.hasOwnProperty.call(out,t.fixedStat))out[t.fixedStat]=Math.max(0,Number(t.fixedStatValue)||0);
+    if(t.fixedStat2&&Object.prototype.hasOwnProperty.call(out,t.fixedStat2))out[t.fixedStat2]=Math.max(out[t.fixedStat2]||0,Number(t.fixedStatValue2)||0);
     return out;
   }
 
@@ -6094,6 +6102,7 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
         if(Object.prototype.hasOwnProperty.call(out,r.stat))out[r.stat]=Math.max(out[r.stat],Number(r.value)||0);
       }
     }else if(Object.prototype.hasOwnProperty.call(out,t.fixedStat))out[t.fixedStat]=Math.max(0,Number(t.fixedStatValue)||0);
+    if(t.fixedStat2&&Object.prototype.hasOwnProperty.call(out,t.fixedStat2))out[t.fixedStat2]=Math.max(out[t.fixedStat2]||0,Number(t.fixedStatValue2)||0);
     return out;
   }
 
@@ -6138,6 +6147,67 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
     snap.updatedByAddedTaskAt=new Date().toISOString();
     try{persistFamily();}catch(e){}
   };
+})();
+</script>
+
+
+<script>
+/* V10.11.16：手動獎勵統一為雙能力，計時/完成/數量/分數全部共用 */
+(function(){
+  function manualRewardMapV10116(t,mult=1){
+    const out={str:0,agi:0,int:0,will:0,virtue:0};
+    const add=(k,v)=>{if(k&&Object.prototype.hasOwnProperty.call(out,k))out[k]+=Math.max(0,Math.round((Number(v)||0)*mult));};
+    if(t.manualStatRewards&&typeof t.manualStatRewards==='object'){
+      for(const [k,v] of Object.entries(t.manualStatRewards))add(k,v);
+    }else{add(t.fixedStat||'will',t.fixedStatValue);add(t.fixedStat2,t.fixedStatValue2);}
+    return out;
+  }
+  window.manualRewardMapV10116=manualRewardMapV10116;
+
+  applyFixedStatReward=function(t){
+    if(t.rewardMode==='auto'){const gains=applyRewardMap(taskAutoRewardMap(t,null));return {multi:true,gains};}
+    const gains=applyRewardMap(manualRewardMapV10116(t));
+    return {multi:true,gains};
+  };
+
+  finishTask=function(taskId){
+    const start=gameData.activeTasks[taskId]; if(!start){alert('請先開始任務');return;}
+    const t=gameData.tasks.find(x=>x.id===taskId); if(!t)return;
+    const minutes=(Date.now()-start)/60000; delete gameData.activeTasks[taskId];
+    const timedReward=calculateTimedRewards(t,minutes); applyGoldWithDebt(timedReward.gold); addExp(timedReward.exp);
+    const gains=t.rewardMode==='auto'?applyRewardMap(taskAutoRewardMap(t,minutes)):applyRewardMap(manualRewardMapV10116(t));
+    const statGain={multi:true,gains};
+    gameData.taskRecords.push({id:uid(),taskId:t.id,date:today(),status:'completed',startedAt:new Date(start).toISOString(),completedAt:new Date().toISOString(),durationMinutes:minutes,rewards:{gold:timedReward.gold,exp:timedReward.exp,baseGold:Number(t.goldReward)||0,baseExp:Number(t.expReward)||0,timerTier:timedReward.tier.key,statGain},approvalStatus:'pending',rollback:{gold:timedReward.gold,exp:timedReward.exp,statGain:gains}});
+    if(t.subject||t.progressType||t.progressValue)gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:t.progressValue||'完成'});
+    evaluateHiddenJob(true);saveGame();
+    const bonusText=timedReward.tier.key==='normal'?'':`\
+${timedReward.tier.label}！獎勵 ×${timedReward.tier.goldMultiplier}`;
+    alert(`完成【${t.name}】\
+耗時 ${minutes.toFixed(1)} 分鐘${bonusText}\
+💰 金幣 +${timedReward.gold}\
+⭐ EXP +${timedReward.exp}${rewardText(gains)?`\
+${rewardText(gains)}`:''}`);renderAll();
+  };
+
+  completeScoreTask=function(taskId){
+    const t=gameData.tasks.find(x=>x.id===taskId);if(!t)return;if(completedCount(taskId)>=t.dailyLimit){alert('今天已經登記過成績');return;}
+    const maxScore=Math.max(1,Number(t.scoreMax)||100),input=document.getElementById('score_'+taskId),score=Number(input?.value);
+    if(!Number.isFinite(score)||score<0||score>maxScore){alert(`請輸入 0～${maxScore} 的分數`);return;}
+    const tier=scoreRewardTier(score,maxScore),gold=Math.round((Number(t.goldReward)||0)*tier.multiplier),exp=Math.round((Number(t.expReward)||0)*tier.multiplier);applyGoldWithDebt(gold);addExp(exp);
+    const gains=t.rewardMode==='auto'?applyRewardMap(scaledRewardMap(autoTaskRewards(t.category,t.difficulty,'complete'),tier.multiplier)):applyRewardMap(manualRewardMapV10116(t,tier.multiplier));
+    const statGain={multi:true,gains};
+    const record={id:uid(),taskId:t.id,date:today(),status:'completed',taskType:'score',completedAt:new Date().toISOString(),score,scoreMax:maxScore,scoreGrade:tier.grade,scoreMultiplier:tier.multiplier,rewards:{gold,exp,statGain},approvalStatus:'pending',rollback:{gold,exp,statGain:gains},corrected:false};gameData.taskRecords.push(record);
+    if(t.subject||t.progressType||t.progressValue)gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:`${score}/${maxScore}（${tier.grade}）`});
+    evaluateHiddenJob(true);saveGame();alert(`📝 ${t.name}\
+成績 ${score}/${maxScore}｜${tier.grade}級\
+獎勵倍率 ${Math.round(tier.multiplier*100)}%\
+💰 +${gold}\
+⭐ +${exp}${rewardText(gains)?`\
+${rewardText(gains)}`:''}`);renderAll();
+  };
+
+  // 舊任務相容：沒有第二能力時照原本單能力運作。
+  (gameData.tasks||[]).forEach(t=>{if(t.fixedStat2==null)t.fixedStat2='';if(t.fixedStatValue2==null)t.fixedStatValue2=0;});
 })();
 </script>
 
