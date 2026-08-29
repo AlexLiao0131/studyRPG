@@ -979,7 +979,10 @@ function migrateProfileData(d){
     if(t.category==='reading')t.category='extra_reading';
     if(!t.difficulty)t.difficulty='normal';
     if(!t.weekdays)t.weekdays=[1,2,3,4,5,6,0];
-    if(!t.activeFrom)t.activeFrom=d.semester?.startDate||today();
+    // V10.11.15：舊任務未明確標記重複時，一律視為一次性，避免隔日自動復活。
+    if(t.recurring===undefined)t.recurring=false;
+    if(!t.createdDate)t.createdDate=t.date||t.activeFrom||d.semester?.startDate||today();
+    if(!t.activeFrom)t.activeFrom=t.createdDate||d.semester?.startDate||today();
     if(t.activeUntil===undefined)t.activeUntil='';
     if(t.countForBossOnNonSchoolDay===undefined)t.countForBossOnNonSchoolDay=false;
     
@@ -1053,6 +1056,7 @@ function combatPower(){const s=gameData.hero.stats;return Math.floor((s.str||0)*
 
 const AUTO_TASK_RULES={
   study:{label:'📚 功課／預習複習',weights:{int:.67,will:.33}},
+  exam_paper:{label:'📝 考卷／評量',weights:{int:.70,will:.30}},
   sport:{label:'⚽ 運動',weights:{str:.55,agi:.45}},
   music:{label:'🎹 才藝／音樂',weights:{agi:.45,int:.35,will:.20}},
   chore:{label:'🧹 家事',weights:{virtue:.70,will:.30}},
@@ -1760,34 +1764,57 @@ function reverseExp(amount){
   while(gameData.hero.exp<0 && gameData.hero.level>1){
     gameData.hero.level--;
     gameData.hero.maxExp=Math.max(100,Math.floor(gameData.hero.maxExp/1.2));
+    Object.keys(gameData.hero.stats||{}).forEach(k=>gameData.hero.stats[k]=Math.max(0,(Number(gameData.hero.stats[k])||0)-1));
     gameData.hero.exp+=gameData.hero.maxExp;
   }
   if(gameData.hero.exp<0)gameData.hero.exp=0;
 }
-function reviewTaskRecord(recordId,approved){
+function reviewTaskRecord(recordId,ratio){
   const r=(gameData.taskRecords||[]).find(x=>x.id===recordId);
   if(!r||r.approvalStatus!=='pending')return;
-  if(approved){
-    r.approvalStatus='approved';
-    const excellent=r.rewards?.timerTier==='excellent';
-    if(excellent){
-      if(Math.random()<.08)gameData.hero.lotteryCoins+=1;
-      maybeDropSkillBook(.06,'優秀任務獎勵');
-    }
-    saveGame();renderAll();return;
-  }
+  ratio=ratio===true?1:ratio===false?0:Number(ratio);
+  if(![1,.8,.5,0].includes(ratio))return;
   const rb=r.rollback||{};
   const statMap=rb.statGain||{};
+  const keptStats={};
   Object.entries(statMap).forEach(([k,v])=>{
-    if(k==='virtue')gameData.hero.virtue=Math.max(0,(gameData.hero.virtue||0)-(Number(v)||0));
-    else gameData.hero.stats[k]=Math.max(0,(gameData.hero.stats[k]||0)-(Number(v)||0));
+    const full=Math.max(0,Number(v)||0);
+    const keep=Math.max(0,Math.round(full*ratio));
+    const reclaim=Math.max(0,full-keep);
+    if(reclaim){
+      if(k==='virtue')gameData.hero.virtue=Math.max(0,(gameData.hero.virtue||0)-reclaim);
+      else gameData.hero.stats[k]=Math.max(0,(gameData.hero.stats[k]||0)-reclaim);
+    }
+    if(keep)keptStats[k]=keep;
   });
-  reverseExp(rb.exp||0);
-  let need=Math.max(0,Number(rb.gold)||0);
-  const take=Math.min(gameData.hero.gold,need);
-  gameData.hero.gold-=take;need-=take;
-  if(need>0)gameData.hero.pendingGoldDebt=(gameData.hero.pendingGoldDebt||0)+need;
-  r.approvalStatus='rejected';r.rejectedAt=new Date().toISOString();
+
+  const fullExp=Math.max(0,(Number(rb.exp)||0)+(Number(rb.correctionExp)||0));
+  const keepExp=Math.max(0,Math.round(fullExp*ratio));
+  const reclaimExp=Math.max(0,fullExp-keepExp);
+  if(reclaimExp)reverseExp(reclaimExp);
+
+  const fullGold=Math.max(0,Number(rb.gold)||0);
+  const keepGold=Math.max(0,Math.round(fullGold*ratio));
+  let need=Math.max(0,fullGold-keepGold);
+  if(need){
+    const take=Math.min(gameData.hero.gold,need);
+    gameData.hero.gold-=take;need-=take;
+    if(need>0)gameData.hero.pendingGoldDebt=(gameData.hero.pendingGoldDebt||0)+need;
+  }
+
+  r.approvalRatio=ratio;
+  r.approvalPercent=Math.round(ratio*100);
+  r.approvedAt=new Date().toISOString();
+  r.approvedRewards={gold:keepGold,exp:keepExp,statGain:keptStats};
+  r.approvalStatus=ratio>0?'approved':'rejected';
+  if(ratio===0)r.rejectedAt=r.approvedAt;
+
+  // 優秀任務的額外抽獎/技能書只在家長 100% 核定時觸發。
+  const excellent=r.rewards?.timerTier==='excellent';
+  if(ratio===1 && excellent){
+    if(Math.random()<.08)gameData.hero.lotteryCoins+=1;
+    maybeDropSkillBook(.06,'優秀任務獎勵');
+  }
   saveGame();renderAll();
 }
 function applyGoldWithDebt(amount){
@@ -1903,8 +1930,15 @@ function weekdayNumberFor(dateStr=today()){
   return new Date(dateStr+'T12:00:00').getDay();
 }
 function isTaskScheduledToday(t,dateStr=today()){
+  if(!t||t.active===false)return false;
+  // 一次性任務：只在指定日/建立日出現；完成後隔日不會復活。
+  if(t.recurring!==true){
+    const onceDate=t.date||t.createdDate||t.activeFrom||dateStr;
+    return dateStr===onceDate;
+  }
+  // 只有明確勾選「每日／重複任務」才依星期循環。
   const wd=weekdayNumberFor(dateStr);
-  const arr=t.weekdays||[1,2,3,4,5,6,0];
+  const arr=Array.isArray(t.weekdays)&&t.weekdays.length?t.weekdays:[1,2,3,4,5,6,0];
   return arr.includes(wd);
 }
 function effectiveSchoolDaysUntil(dateStr){
@@ -2530,7 +2564,7 @@ function isConfiguredSchoolDay(dateStr){
   return (gameData.semester?.schoolWeekdays||[1,2,3,4,5]).includes(wd);
 }
 function isBossLearningCategory(t){
-  return ['study','school_reading'].includes(t?.category);
+  return ['study','school_reading','exam_paper'].includes(t?.category);
 }
 function taskCountsTowardBossOn(t,dateStr){
   if(!isBossLearningCategory(t))return false;
@@ -2570,16 +2604,21 @@ function theoreticalLearningRequirement(kind='midterm'){
   return {expected,scheduledCount,excludedDays,start,cutoff};
 }
 
+function taskApprovalRatio(r){
+  if(r?.approvalStatus==='pending')return 0;
+  if(Number.isFinite(Number(r?.approvalRatio)))return Math.max(0,Math.min(1,Number(r.approvalRatio)));
+  return r?.approvalStatus==='approved'?1:0;
+}
 function learningCompletionRatio(kind='midterm'){
   const req=theoreticalLearningRequirement(kind);
   const records=(gameData.taskRecords||[]).filter(r=>{
-    if(r.date<req.start||r.date>req.cutoff||r.approvalStatus!=='approved')return false;
+    if(r.date<req.start||r.date>req.cutoff||taskApprovalRatio(r)<=0)return false;
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
     return !!t && taskCountsTowardBossOn(t,r.date);
   });
   const approvedPoints=records.reduce((sum,r)=>{
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
-    return sum+(DIFFICULTY_POINTS[t?.difficulty]||3);
+    return sum+(DIFFICULTY_POINTS[t?.difficulty]||3)*taskApprovalRatio(r);
   },0);
   return req.expected>0?Math.min(1.2,approvedPoints/req.expected):0;
 }
@@ -2588,10 +2627,12 @@ function bossLearningReport(kind='midterm'){
   const req=theoreticalLearningRequirement(kind);
   let approved=0;
   (gameData.taskRecords||[]).forEach(r=>{
-    if(r.date<req.start||r.date>req.cutoff||r.approvalStatus!=='approved')return;
+    const ar=taskApprovalRatio(r);
+    if(r.date<req.start||r.date>req.cutoff||ar<=0)return;
     const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
-    if(t&&taskCountsTowardBossOn(t,r.date))approved+=(DIFFICULTY_POINTS[t.difficulty]||3);
+    if(t&&taskCountsTowardBossOn(t,r.date))approved+=(DIFFICULTY_POINTS[t.difficulty]||3)*ar;
   });
+  approved=Math.round(approved*10)/10;
   const ratio=req.expected?approved/req.expected:0;
   return {required:req.expected,approved,ratio,excludedDays:req.excludedDays,cutoff:req.cutoff};
 }
@@ -4275,8 +4316,8 @@ function renderGM(){
     <div class="card">
       <h3>📈 每日怪物自動平衡</h3>
       <div class="small">
-        怪物不追著孩子的即時戰力變強，而是依「學期天數 × 任務預期成長 × 75%完成率」建立世界難度。
-        正常完成任務時應大多可勝；少做一些會進入苦戰區，但仍保留 MISS、閃避、招架、格擋造成的勝負變化。
+        每日怪以「最終戰鬥面板」為唯一玩家基準；取今日完全不做與全部任務100%完成後面板之間偏高位置，再套怪物弱化補正。
+        週數只決定怪物、地圖、AI與機制，不再直接增加數值。核定不足不會讓當日怪物跟著變弱。
       </div>
       <div style="margin-top:8px">
         今日預期戰力：<b>${expectedSemesterPower()}</b>｜
@@ -4292,12 +4333,12 @@ function renderGM(){
         const pct=x=>Math.round(x*100);
         return `<div><b>期中：</b>${mid.approved} / ${mid.required} 點（${pct(mid.ratio)}%）｜截止 ${mid.cutoff}</div>
         <div><b>期末：</b>${fin.approved} / ${fin.required} 點（${pct(fin.ratio)}%）｜截止 ${fin.cutoff}</div>
-        <div class="small" style="margin-top:6px">只計功課／預習複習與「課內／指定閱讀」；課外閱讀不計入 Boss 學業完成率。只採家長核定紀錄。新任務從建立日起才開始增加需求；週末、國定假日、放假與特殊活動日預設不列入理論需求。</div>`;
+        <div class="small" style="margin-top:6px">計入功課／預習複習、「考卷／評量」與課內／指定閱讀；課外閱讀不計入 Boss 學業完成率。核定100%/80%/50%分別按1.0/0.8/0.5計入，退回0%不計。新任務從建立日起才開始增加需求；週末、國定假日、放假與特殊活動日預設不列入理論需求。</div>`;
       })()}
     </div>
 
       <div class="small" style="margin-top:6px">
-        🌱 平衡基準：正常任務完成約 75% 即可穩定推進；失敗不扣能力、EXP、金幣或裝備。
+        🌱 平衡基準：每日怪抓「0%～100%今日成長」之間偏高位置，再做弱化補正；100%完成會取得明顯戰鬥優勢。失敗不扣能力、EXP、金幣或裝備。
       </div>
     </div>
 
@@ -4312,7 +4353,7 @@ function renderGM(){
       <h3>📝 任務核定</h3>
       ${((gameData.taskRecords||[]).filter(r=>r.approvalStatus==='pending').slice().reverse().map(r=>{
         const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
-        return `<div class="card review-pending"><strong>${r.date}｜${t?.name||'任務'}</strong><div class="small">獎勵已先發放，請檢查後核定。</div><button class="btn" onclick="reviewTaskRecord('${r.id}',true)">✅ 通過</button> <button class="btn red" onclick="reviewTaskRecord('${r.id}',false)">❌ 退回</button></div>`;
+        return `<div class="card review-pending"><strong>${r.date}｜${t?.name||'任務'}</strong><div class="small">獎勵已先發放；核定比例會套用到 EXP、金幣、能力值，也會影響有效學習量。</div><div class="row" style="margin-top:8px"><button class="btn" onclick="reviewTaskRecord('${r.id}',1)">✅ 100%</button><button class="btn blue" onclick="reviewTaskRecord('${r.id}',.8)">🟢 80%</button><button class="btn gold" onclick="reviewTaskRecord('${r.id}',.5)">🟡 50%</button><button class="btn red" onclick="reviewTaskRecord('${r.id}',0)">❌ 退回 0%</button></div></div>`;
       }).join(''))||'<div class="small">目前沒有待核定任務。</div>'}
       ${gameData.hero.pendingGoldDebt?`<div class="small bad">待回收金幣：${gameData.hero.pendingGoldDebt} G（之後任務金幣會先抵扣）</div>`:''}
     </div>
@@ -4331,6 +4372,7 @@ function renderGM(){
       <div class="grid2">
         <div><label>任務分類</label><select id="gmTaskCategory" onchange="refreshAutoRewardPreview()">
           <option value="study">📚 功課／預習複習</option>
+          <option value="exam_paper">📝 考卷／評量</option>
           <option value="school_reading">📘 課內／指定閱讀</option>
           <option value="extra_reading">📕 課外閱讀</option>
           <option value="sport">⚽ 運動</option>
@@ -4348,7 +4390,9 @@ function renderGM(){
       </select>
       <div id="autoRewardPreview" class="auto-reward-box"></div>
       <label><input id="gmAssignAll" type="checkbox" style="width:auto"> 同時指派給所有孩子</label>
-      <label>每週出現日</label>
+      <label><input id="gmRecurringTask" type="checkbox" style="width:auto"> 🔁 每日／重複任務</label>
+      <div class="small">預設不勾：這是一次性任務，只在今天出現；勾選後才依下方星期設定重複出現。</div>
+      <label>重複出現日（只有勾選上方重複任務才生效）</label>
       <div class="weekday-grid">
         <label><input type="checkbox" class="gmWeekday" value="1" checked>一</label>
         <label><input type="checkbox" class="gmWeekday" value="2" checked>二</label>
@@ -4664,7 +4708,8 @@ function gmAddTask(){
     expReward:Number(document.getElementById('gmTaskExp').value)||0,
     dailyLimit:Math.max(1,Number(document.getElementById('gmTaskLimit').value)||1),
     active:true,
-    createdDate:today(),activeFrom:today(),activeUntil:'',
+    recurring:document.getElementById('gmRecurringTask')?.checked===true,
+    createdDate:today(),date:document.getElementById('gmRecurringTask')?.checked===true?'':today(),activeFrom:today(),activeUntil:'',
     countForBossOnNonSchoolDay:document.getElementById('gmBossNonSchool')?.checked||false,
     weekdays:[...document.querySelectorAll('.gmWeekday:checked')].map(x=>Number(x.value)),statRules:rules,
     fixedStat:document.getElementById('gmFixedStat')?.value||'will',
@@ -4684,6 +4729,8 @@ function gmAddTask(){
     if(br.worst.cls==='balance-bad'&&!confirm('🔴 這組手動獎勵可能破壞數值平衡。仍要建立嗎？'))return;
   }
   gameData.tasks.push(task);
+  // 今日基準已鎖定時，新增加的今日任務只能向上補正，不能因刪除/退回向下重算。
+  if(typeof window.raiseDailyBalanceForAddedTaskV10115==='function')window.raiseDailyBalanceForAddedTaskV10115(task);
   if(document.getElementById('gmAssignAll')?.checked){
     persistFamily();
     familyData.profiles.forEach(p=>{
@@ -5761,5 +5808,338 @@ window.gmSwitchToBeginner=gmSwitchToBeginner;
 const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentUnlocked')!=='1')return;const card=document.getElementById('gmFormalClassTester');if(!card)return;const grid=card.querySelector('.class-test-grid');if(!grid||grid.querySelector('[data-gm-beginner]'))return;const b=document.createElement('button');b.className='btn '+(!gameData.hero.jobAwakened?'purple':'gray');b.dataset.gmBeginner='1';b.textContent='初心者';b.onclick=gmSwitchToBeginner;grid.insertBefore(b,grid.firstChild);};
 })();
 </script>
+
+<script>
+/* V10.11.13：恢復原始設計——怪物數值由「玩家目前戰力＋當日任務可取得成長」驅動。
+   週數只決定怪物/地圖/AI/機制，不再提供任何數值倍率。 */
+(function(){
+  function taskAvailableTodayV10113(t){
+    if(!t || t.active===false)return false;
+    const td=today(), wd=new Date(td+'T12:00:00').getDay();
+    if(t.date && t.date!==td)return false;
+    if(t.activeFrom && td<t.activeFrom)return false;
+    if(t.activeUntil && td>t.activeUntil)return false;
+    if(Array.isArray(t.weekdays) && t.weekdays.length && !t.weekdays.includes(wd))return false;
+    return true;
+  }
+  function taskExpectedStatMapV10113(t){
+    if((t.rewardMode||'auto')==='auto'){
+      const m=autoTaskRewards(t.category||'study',t.difficulty||'normal',t.taskType)||{};
+      return {str:+m.str||0,agi:+m.agi||0,int:+m.int||0,will:+m.will||0,virtue:+m.virtue||0};
+    }
+    const out={str:0,agi:0,int:0,will:0,virtue:0};
+    if(t.taskType==='timer' && Array.isArray(t.statRules) && t.statRules.length){
+      // 預估「正常完成」而非優秀獎勵：取較保守的有效規則。
+      const vals=t.statRules.filter(r=>out.hasOwnProperty(r.stat)).sort((a,b)=>(+a.value||0)-(+b.value||0));
+      if(vals.length){const r=vals[Math.floor((vals.length-1)/2)];out[r.stat]+=+r.value||0;}
+    }else if(out.hasOwnProperty(t.fixedStat)) out[t.fixedStat]+=+t.fixedStatValue||0;
+    return out;
+  }
+  function todayRemainingGrowthV10113(){
+    const td=today();
+    const doneCount={};
+    (gameData.taskRecords||[]).filter(r=>r.date===td && r.approvalStatus!=='rejected').forEach(r=>doneCount[r.taskId]=(doneCount[r.taskId]||0)+1);
+    const out={str:0,agi:0,int:0,will:0,virtue:0,exp:0,tasks:0};
+    for(const t of (gameData.tasks||[])){
+      if(!taskAvailableTodayV10113(t))continue;
+      const remaining=Math.max(0,(Math.max(1,+t.dailyLimit||1))-(doneCount[t.id]||0));
+      if(!remaining)continue;
+      const m=taskExpectedStatMapV10113(t);
+      for(const k of ['str','agi','int','will','virtue'])out[k]+=m[k]*remaining;
+      out.exp+=(+t.expReward||0)*remaining;out.tasks+=remaining;
+    }
+    return out;
+  }
+  function expectedPlayerPowerTodayV10113(){
+    const now=Math.max(1,combatPower());
+    const g=todayRemainingGrowthV10113();
+    // combatPower 原公式：STR1.2 / AGI1.1 / INT1.0 / WILL0.8；美德不直接灌通用戰力。
+    const statPower=g.str*1.2+g.agi*1.1+g.int+g.will*.8;
+    // EXP 只估計可能帶來的等級成長，不讓大量 EXP 把怪物暴力灌高。
+    const expPower=Math.min(8,g.exp/100*3);
+    return {now,g,expected:Math.max(1,now+statPower+expPower)};
+  }
+  window.expectedPlayerPowerTodayV10113=expectedPlayerPowerTodayV10113;
+
+  calibratedDailyMonsterPower=function(){
+    const x=expectedPlayerPowerTodayV10113();
+    const idx=Math.max(0,Math.min(4,dailyMonsterIndexForDate(today())));
+    // 玩家「今天完成任務後」的預估戰力為主；普通怪低於玩家，週五 Boss 接近玩家。
+    const dayFactor=[.72,.76,.80,.84,1.00][idx];
+    // 只吸收尚未取得成長的 65%，讓完成任務後真的形成優勢，不會怪物同步追滿。
+    const projected=x.now+(x.expected-x.now)*.65;
+    return Math.max(18,Math.round(projected*dayFactor));
+  };
+
+  // 敵方資源：所有非普通攻擊技能都必須真正支付 MP；不足時 AI 不得選用。
+  function enemySkillMpCostV10113(skill){
+    if(!skill || skill.id==='basic_attack')return 0;
+    if(Number.isFinite(+skill.mpCost))return Math.max(0,+skill.mpCost);
+    if(skill.kind==='magic')return 16;
+    if(skill.kind==='heal')return 20;
+    if(skill.kind==='debuff')return 14;
+    if(skill.kind==='buff'||skill.kind==='shield'||skill.kind==='charge')return 12;
+    if(skill.kind==='summon')return 25;
+    if(skill.kind==='physical' && skill.status)return 10;
+    if(skill.kind==='physical' && (+skill.multiplier||1)>1.05)return 8;
+    return 0;
+  }
+  window.enemySkillMpCostV10113=enemySkillMpCostV10113;
+
+  const oldUsable=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!oldUsable(unit,entry,skill))return false;
+    return (+unit.mp||0)>=enemySkillMpCostV10113(skill);
+  };
+
+  const oldTurn=performLiveEnemyTurn;
+  performLiveEnemyTurn=async function(unit){
+    if(!unit||unit.hp<=0||unit.alive===false)return;
+    // 由原函式選技前很難安全插入，因此暫時包住選技函式，在選定技能時立即扣 MP。
+    let picked=null;
+    const oldChoose=chooseLiveEnemySkill;
+    chooseLiveEnemySkill=function(u){const sk=oldChoose(u);if(u===unit)picked=sk;return sk;};
+    try{
+      // 在原函式真正執行技能前，利用 skillUses 尚未增加的時點由 choose 捕捉；
+      // 先執行原回合，再依實際選定技能扣除。召喚技能原本已有專用25MP扣款，避免重扣。
+      const before=+unit.mp||0;
+      await oldTurn(unit);
+      if(picked && picked.kind!=='summon'){
+        const cost=enemySkillMpCostV10113(picked);
+        if(cost>0){unit.mp=Math.max(0,before-cost);}
+      }
+      const selected=selectedBattleEnemy();
+      if(selected && selected.uid===unit.uid)updateBattleResource('enemy',unit.mp??0,unit.maxMp||1);
+    }finally{chooseLiveEnemySkill=oldChoose;}
+  };
+
+  // W1 是教學區：異常不是每發必中；大史萊姆回血只准一次且改為10%。
+  if(MONSTER_SKILL_DATABASE.water_bullet?.status)MONSTER_SKILL_DATABASE.water_bullet.status.chance=.45;
+  if(MONSTER_SKILL_DATABASE.fire_bullet?.status)MONSTER_SKILL_DATABASE.fire_bullet.status.chance=.45;
+  if(MONSTER_SKILL_DATABASE.thunder_bullet?.status)MONSTER_SKILL_DATABASE.thunder_bullet.status.chance=.20;
+  if(MONSTER_SKILL_DATABASE.nature_heal){MONSTER_SKILL_DATABASE.nature_heal.healMaxHp=.10;MONSTER_SKILL_DATABASE.nature_heal.maxUsesPerBattle=1;}
+  const king=MONSTER_AI_DATABASE.slime_king;
+  if(king){king.skills=(king.skills||[]).map(e=>e.id==='nature_heal'?{...e,weight:2,maxUses:1,threshold:.30}:e);}
+
+  // 已死亡敵人不再接受後續 DOT / 附魔 / 連段傷害。
+  const oldDamage=applyDamageToEnemy;
+  applyDamageToEnemy=function(unit,damage){if(!unit||unit.hp<=0||unit.alive===false)return 0;return oldDamage(unit,damage);};
+
+  // 聖印全域唯一保險：同一角色最多一枚 holy_seal。
+  const oldAddStatus=addStatus;
+  addStatus=function(unit,st){
+    if(st?.type==='holy_seal' && (unit?.statuses||[]).some(x=>x.type==='holy_seal'))return unit.statuses.find(x=>x.type==='holy_seal');
+    return oldAddStatus(unit,st);
+  };
+})();
+</script>
+
+
+<script>
+/* V10.11.14：最終戰鬥面板浮動 + 四段核定 + 考卷 Boss 學習量
+   核心原則：
+   A = 今日完全不做任務時的最終戰鬥面板
+   B = 今日全部排定任務100%完成後的預期最終戰鬥面板
+   怪物參考 = A + (B-A)*0.75，再依遭遇角色做弱化補正；不是1:1複製玩家。
+   當日基準建立後鎖定，80/50/0核定或刪任務都不會把怪物往下調。 */
+(function(){
+  const MID_HIGH_POSITION=.75;
+  const DAILY_WEAKEN=[.70,.74,.78,.82,.90];
+
+  function taskAvailableOnV10114(t,dateStr=today()){
+    if(!t||t.active===false)return false;
+    if(t.activeFrom&&dateStr<t.activeFrom)return false;
+    if(t.activeUntil&&dateStr>t.activeUntil)return false;
+    // 一次性任務只屬於建立/指定當日；重複任務才看 weekdays。
+    if(t.recurring!==true){
+      const onceDate=t.date||t.createdDate||t.activeFrom||dateStr;
+      return dateStr===onceDate;
+    }
+    const wd=new Date(dateStr+'T12:00:00').getDay();
+    if(Array.isArray(t.weekdays)&&t.weekdays.length&&!t.weekdays.includes(wd))return false;
+    return true;
+  }
+
+  function perfectTaskStatMapV10114(t){
+    const out={str:0,agi:0,int:0,will:0,virtue:0};
+    if((t.rewardMode||'auto')==='auto'){
+      const m=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType)||{};
+      for(const k of Object.keys(out))out[k]=Math.max(0,Number(m[k])||0);
+      return out;
+    }
+    if(t.taskType==='timer'&&Array.isArray(t.statRules)&&t.statRules.length){
+      // 100%任務基準採「任務本身可取得的完整能力獎勵」，不預先吃計時優秀額外敏捷。
+      const best={};
+      for(const r of t.statRules){
+        if(!Object.prototype.hasOwnProperty.call(out,r.stat))continue;
+        best[r.stat]=Math.max(best[r.stat]||0,Number(r.value)||0);
+      }
+      Object.assign(out,best);return out;
+    }
+    if(Object.prototype.hasOwnProperty.call(out,t.fixedStat))out[t.fixedStat]=Math.max(0,Number(t.fixedStatValue)||0);
+    return out;
+  }
+
+  function panelPowerV10114(p){
+    if(!p)return 1;
+    // 全部來源都已是 makeHeroBattleStats() 的最終值；不再重抓 STR/INT/裝備。
+    const core=(Number(p.maxHp)||0)*.04
+      +(Number(p.attack)||0)*.45
+      +(Number(p.magicAttack)||0)*.38
+      +(Number(p.defense)||0)*.35
+      +(Number(p.magicDefense)||0)*.30
+      +(Number(p.speed)||0)*.25
+      +(Number(p.maxEnergy)||0)*.04;
+    const combatRates=100*((Number(p.crit)||0)*.08+(Number(p.evade)||0)*.06+(Number(p.block)||0)*.06);
+    return Math.max(1,core+combatRates);
+  }
+
+  function addExpSilentToHeroV10114(hero,amount){
+    hero.exp=(Number(hero.exp)||0)+Math.max(0,Number(amount)||0);
+    hero.maxExp=Math.max(1,Number(hero.maxExp)||100);
+    hero.level=Math.max(1,Number(hero.level)||1);
+    while(hero.exp>=hero.maxExp){
+      hero.exp-=hero.maxExp;
+      hero.level++;
+      hero.maxExp=Math.floor(hero.maxExp*1.2);
+      Object.keys(hero.stats||{}).forEach(k=>hero.stats[k]=(Number(hero.stats[k])||0)+1);
+    }
+  }
+
+  function projectedPerfectPanelV10114(dateStr=today()){
+    const originalHero=gameData.hero;
+    const sim=JSON.parse(JSON.stringify(originalHero));
+    sim.stats=sim.stats||{str:0,agi:0,int:0,will:0};
+    try{
+      for(const t of (gameData.tasks||[])){
+        if(!taskAvailableOnV10114(t,dateStr))continue;
+        const count=Math.max(1,Number(t.dailyLimit)||1);
+        const m=perfectTaskStatMapV10114(t);
+        for(const k of ['str','agi','int','will'])sim.stats[k]=(Number(sim.stats[k])||0)+(Number(m[k])||0)*count;
+        sim.virtue=(Number(sim.virtue)||0)+(Number(m.virtue)||0)*count;
+        addExpSilentToHeroV10114(sim,(Number(t.expReward)||0)*count);
+      }
+      gameData.hero=sim;
+      return makeHeroBattleStats();
+    }finally{
+      gameData.hero=originalHero;
+    }
+  }
+
+  function ensureDailyBalanceSnapshotV10114(){
+    const td=today();
+    const old=gameData.dailyBalanceV10114;
+    if(old&&old.date===td&&Number.isFinite(Number(old.referencePower)))return old;
+
+    const basePanel=makeHeroBattleStats();
+    const perfectPanel=projectedPerfectPanelV10114(td);
+    const base=panelPowerV10114(basePanel);
+    const perfect=Math.max(base,panelPowerV10114(perfectPanel));
+    const reference=base+(perfect-base)*MID_HIGH_POSITION;
+    const snap={
+      date:td,
+      basePanelPower:Math.round(base*100)/100,
+      perfectPanelPower:Math.round(perfect*100)/100,
+      referencePower:Math.round(reference*100)/100,
+      midHighPosition:MID_HIGH_POSITION,
+      createdAt:new Date().toISOString()
+    };
+    gameData.dailyBalanceV10114=snap;
+    try{persistFamily();}catch(e){}
+    return snap;
+  }
+  window.ensureDailyBalanceSnapshotV10114=ensureDailyBalanceSnapshotV10114;
+  window.panelPowerV10114=panelPowerV10114;
+
+  // 正式覆蓋 V10.11.13 的每日怪算法。期中/期末事件仍走 resolvedDungeonPower 的既有 Boss 路徑。
+  calibratedDailyMonsterPower=function(){
+    const snap=ensureDailyBalanceSnapshotV10114();
+    const idx=Math.max(0,Math.min(4,dailyMonsterIndexForDate(today())));
+    const weakened=snap.referencePower*DAILY_WEAKEN[idx];
+    return Math.max(18,Math.round(weakened));
+  };
+
+  window.dailyBalanceDebugV10114=function(){
+    const s=ensureDailyBalanceSnapshotV10114();
+    const idx=Math.max(0,Math.min(4,dailyMonsterIndexForDate(today())));
+    return {...s,weakenFactor:DAILY_WEAKEN[idx],monsterPower:calibratedDailyMonsterPower()};
+  };
+
+  // 舊存檔核定資料相容：approved=100%、rejected=0%。pending 保持待核定。
+  (gameData.taskRecords||[]).forEach(r=>{
+    if(r.approvalRatio==null&&r.approvalStatus==='approved'){r.approvalRatio=1;r.approvalPercent=100;}
+    if(r.approvalRatio==null&&r.approvalStatus==='rejected'){r.approvalRatio=0;r.approvalPercent=0;}
+  });
+
+  // 頁面一載入就先建立今天的鎖定基準，避免完成任務後再倒推造成重複計算。
+  ensureDailyBalanceSnapshotV10114();
+})();
+</script>
+
+
+<script>
+/* V10.11.15：一次性／重複任務 + 同日新增任務只向上補正怪物基準 */
+(function(){
+  const POSITION=.75;
+
+  function taskExpectedStatMapV10115(t){
+    const out={str:0,agi:0,int:0,will:0,virtue:0};
+    if((t.rewardMode||'auto')==='auto'){
+      const m=autoTaskRewards(t.category||'custom',t.difficulty||'normal',t.taskType)||{};
+      for(const k of Object.keys(out))out[k]=Math.max(0,Number(m[k])||0);
+      return out;
+    }
+    if(t.taskType==='timer'&&Array.isArray(t.statRules)&&t.statRules.length){
+      for(const r of t.statRules){
+        if(Object.prototype.hasOwnProperty.call(out,r.stat))out[r.stat]=Math.max(out[r.stat],Number(r.value)||0);
+      }
+    }else if(Object.prototype.hasOwnProperty.call(out,t.fixedStat))out[t.fixedStat]=Math.max(0,Number(t.fixedStatValue)||0);
+    return out;
+  }
+
+  function addExpToSimV10115(hero,amount){
+    hero.exp=(Number(hero.exp)||0)+Math.max(0,Number(amount)||0);
+    hero.maxExp=Math.max(1,Number(hero.maxExp)||100);
+    hero.level=Math.max(1,Number(hero.level)||1);
+    while(hero.exp>=hero.maxExp){
+      hero.exp-=hero.maxExp; hero.level++; hero.maxExp=Math.floor(hero.maxExp*1.2);
+      for(const k of Object.keys(hero.stats||{}))hero.stats[k]=(Number(hero.stats[k])||0)+1;
+    }
+  }
+
+  function taskAppliesTodayV10115(t){
+    return isTaskScheduledToday(t,today()) && (!t.activeFrom||today()>=t.activeFrom) && (!t.activeUntil||today()<=t.activeUntil);
+  }
+
+  window.raiseDailyBalanceForAddedTaskV10115=function(t){
+    if(!t||!taskAppliesTodayV10115(t))return;
+    const snap=gameData.dailyBalanceV10114;
+    if(!snap||snap.date!==today()||!Number.isFinite(Number(snap.referencePower)))return;
+
+    // 只計「這個新任務」造成的面板差，不重抓裝備/原始能力，也不重算既有任務。
+    const beforePanel=makeHeroBattleStats();
+    const before=panelPowerV10114(beforePanel);
+    const originalHero=gameData.hero;
+    const sim=JSON.parse(JSON.stringify(originalHero));
+    sim.stats=sim.stats||{str:0,agi:0,int:0,will:0};
+    const count=Math.max(1,Number(t.dailyLimit)||1);
+    const m=taskExpectedStatMapV10115(t);
+    for(const k of ['str','agi','int','will'])sim.stats[k]=(Number(sim.stats[k])||0)+(Number(m[k])||0)*count;
+    sim.virtue=(Number(sim.virtue)||0)+(Number(m.virtue)||0)*count;
+    addExpToSimV10115(sim,(Number(t.expReward)||0)*count);
+    let after=before;
+    try{ gameData.hero=sim; after=panelPowerV10114(makeHeroBattleStats()); }
+    finally{ gameData.hero=originalHero; }
+
+    const delta=Math.max(0,after-before);
+    if(delta<=0)return;
+    snap.perfectPanelPower=Math.round((Number(snap.perfectPanelPower||snap.basePanelPower)+delta)*100)/100;
+    snap.referencePower=Math.round((Number(snap.referencePower)+delta*POSITION)*100)/100;
+    snap.updatedByAddedTaskAt=new Date().toISOString();
+    try{persistFamily();}catch(e){}
+  };
+})();
+</script>
+
 </body>
 </html>
