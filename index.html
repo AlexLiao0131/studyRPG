@@ -5745,5 +5745,21 @@ tickLiveUnit=async function(u,isHero=false){const r=await __v10113TickLiveUnit(u
   };
 })();
 </script>
+
+<script>
+(function(){
+function gmSwitchToBeginner(){
+ const formalIds=new Set(Object.values(FORMAL_CLASS_SKILLS||{}).flat().map(x=>x.id));
+ gameData.hero.heroClass='初心者'; gameData.hero.jobAwakened=false; gameData.hero.jobPassive='';
+ gameData.hero.knownSkills=(gameData.hero.knownSkills||[]).filter(id=>!formalIds.has(id));
+ gameData.hero.skills=(gameData.hero.skills||[]).filter(id=>!formalIds.has(id));
+ const ids=BEGINNER_SKILLS.slice(0,4).map(x=>x.id); gameData.hero.equippedSkills=ids;
+ ids.forEach(id=>{if(!gameData.hero.knownSkills.includes(id))gameData.hero.knownSkills.push(id);if(!gameData.hero.skills.includes(id))gameData.hero.skills.push(id);});
+ saveGame();renderAll();renderGM();alert('🧪 已切換測試職業：初心者\n已清除正式職業技能並裝備4招初心者技能。');
+}
+window.gmSwitchToBeginner=gmSwitchToBeginner;
+const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentUnlocked')!=='1')return;const card=document.getElementById('gmFormalClassTester');if(!card)return;const grid=card.querySelector('.class-test-grid');if(!grid||grid.querySelector('[data-gm-beginner]'))return;const b=document.createElement('button');b.className='btn '+(!gameData.hero.jobAwakened?'purple':'gray');b.dataset.gmBeginner='1';b.textContent='初心者';b.onclick=gmSwitchToBeginner;grid.insertBefore(b,grid.firstChild);};
+})();
+</script>
 </body>
 </html>
