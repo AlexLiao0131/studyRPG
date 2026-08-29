@@ -733,15 +733,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 
 /* V10.11.29 FINAL：副本入口背景套在整張對戰卡，不只角色小框 */
-.dungeon-fighter-bg{
-  background-image:
-    linear-gradient(rgba(8,14,20,.18),rgba(8,14,20,.48)),
-    var(--dungeon-bg);
-  background-position:center bottom !important;
-  background-size:cover !important;
-  background-repeat:no-repeat !important;
-  overflow:hidden;
-}
+
 
 
 /* V10.11.30 FINAL：戰鬥背景層級固定 */
@@ -766,6 +758,39 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   image-rendering:pixelated;
   filter:saturate(.95) brightness(.86);
 }
+
+
+/* V10.11.31 FINAL：主畫面／副本入口／戰鬥全部共用同一套當週背景 */
+.scene-background{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  object-position:center bottom !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+  user-select:none !important;
+  -webkit-user-drag:none !important;
+}
+.hero-scene>.scene-background{border-radius:inherit}
+.hero-scene>.bg-scroll,
+.hero-scene>.bg-scroll-track{display:none !important}
+.dungeon-fighter-bg{
+  position:relative !important;
+  background:none !important;
+  overflow:hidden;
+}
+.dungeon-fighter-bg>.dungeon-idle-stage,
+.dungeon-fighter-bg>.fighter-name,
+.dungeon-fighter-bg>.fighter-power,
+.dungeon-fighter-bg>*:not(.scene-background){
+  position:relative;
+  z-index:1;
+}
+.battle-scene-background{filter:saturate(.95) brightness(.86)}
+.dungeon-scene-background{filter:saturate(.92) brightness(.72)}
+.home-scene-background{filter:none}
 
 </style>
 
@@ -876,10 +901,19 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-function battleBackgroundForDate(dateStr=today()){
+function currentSceneBackground(dateStr=today()){
   const weekData=weeklyMapForDate(dateStr);
   return sprite(weekData?.background||'images/backgrounds/week01_grassland.png');
 }
+// 舊名稱保留相容，但所有場景實際都走同一個 resolver。
+function battleBackgroundForDate(dateStr=today()){
+  return currentSceneBackground(dateStr);
+}
+
+function sceneBackgroundHTML(extraClass=''){
+  return `<img class="scene-background ${extraClass}" src="${currentSceneBackground(today())}" alt="">`;
+}
+
 
 function heroSpritePath(state){
   return sprite(`images/hero_${heroAssetKey()}_${state}.png`);
@@ -3979,7 +4013,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena"><img class="battle-bg-img" src="${battleBackgroundForDate(today())}" alt=""><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
+    <div id="battleArena" class="battle-arena">${sceneBackgroundHTML("battle-scene-background")}<div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -4089,7 +4123,7 @@ function renderHero(){
       ${gameData.semester?.worldState==='ruined'?'<span class="world-chip">🔥 毀壞世界</span>':''}
     </div>
 
-    <div class="hero-scene" aria-label="勇者冒險場景">
+    <div class="hero-scene" aria-label="勇者冒險場景">${sceneBackgroundHTML("home-scene-background")}
       <div class="scene-bg-scroll" aria-hidden="true">
         <div class="scene-bg-track">
           <img src="images/grassland_bg.png?v=63" alt="">
@@ -4265,7 +4299,8 @@ function renderDungeon(){
   el.innerHTML=`
     <div class="card ${cls}">
       <div class="battle-stage">
-        <div class="fighter-card dungeon-fighter-bg" style="--dungeon-bg:url('${battleBackgroundForDate(today())}')">
+        <div class="fighter-card dungeon-fighter-bg">
+          ${sceneBackgroundHTML("dungeon-scene-background")}
           <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
@@ -4276,7 +4311,8 @@ function renderDungeon(){
           <div class="vs-text">VS</div>
         </div>
 
-        <div class="fighter-card dungeon-fighter-bg" style="--dungeon-bg:url('${battleBackgroundForDate(today())}')">
+        <div class="fighter-card dungeon-fighter-bg">
+          ${sceneBackgroundHTML("dungeon-scene-background")}
           <div class="dungeon-idle-stage">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
