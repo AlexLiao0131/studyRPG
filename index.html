@@ -5522,5 +5522,53 @@ tickLiveUnit=async function(u,isHero=false){const r=await __v10113TickLiveUnit(u
 })();
 </script>
 
+
+
+<script>
+/* V10.11.7 — Mage / Priest MaxMP rebalance */
+(function(){
+  // 法師、牧師的技能成本多落在 18~55 MP；舊公式讓正常成長角色常常只能施放 2 招。
+  // 新目標：一般進度下約可連續施放 4~6 次中型法術，再進入回魔循環。
+  formalMaxMP=function(_battleHero,cls){
+    const st=gameData?.hero?.stats||{};
+    const intel=Number(st.int)||0, will=Number(st.will)||0;
+    const virtue=Number(gameData?.hero?.virtue)||0, lv=Number(gameData?.hero?.level)||1;
+
+    if(cls==='法師'){
+      return Math.max(1,Math.round(110 + lv*4 + intel*2.50 + will*.80));
+    }
+    if(cls==='牧師'){
+      return Math.max(1,Math.round(115 + lv*4 + will*2.20 + virtue*1.20 + intel*.60));
+    }
+    // 其他MP職業維持原本資源密度，避免一起被無意膨脹。
+    if(cls==='聖騎士'){
+      return Math.max(1,Math.round(40 + lv*2.5 + will*.80 + virtue*.55 + intel*.25));
+    }
+    // 魔劍士為雙資源職，保留原本較小的MP池。
+    return Math.max(1,Math.round(50 + lv*3 + intel*1.20 + will*.45));
+  };
+
+  // 若是在GM切職或戰鬥初始化後才載入此補丁，也重新校正目前MP池比例。
+  const _oldRunMPV10117=runBattleSequence;
+  runBattleSequence=function(...args){
+    const r=_oldRunMPV10117(...args);
+    const f=battleStateV10?.formal;
+    if(f && (f.cls==='法師'||f.cls==='牧師')){
+      f.maxMp=formalMaxMP(battleStateV10.hero,f.cls);
+      f.mp=f.maxMp;
+      battleStateV10.hero.maxEnergy=f.maxMp;
+      battleStateV10.heroEnergy=f.mp;
+      updateFormalResourceUI();
+      addBattleLog(`🔵 ${f.cls} 新MP上限：${f.mp}/${f.maxMp}`);
+    }
+    return r;
+  };
+
+  if(typeof FORMAL_PASSIVE_HELP!=='undefined'){
+    FORMAL_PASSIVE_HELP['法師']='🔮 魔力增幅：連續使用消耗MP的攻擊法術累積層數，每層+5%魔法傷害，最多5層；滿5層後攻擊法術回流5% MaxMP。法師現在擁有大幅提高的基礎MP池，智力是主要MP成長來源；普攻命中回20% MaxMP，冥想3回合共回45% MaxMP。';
+    FORMAL_PASSIVE_HELP['牧師']='🪽 神恩護盾：主動治療會產生護盾；護盾受擊回復少量HP、破裂再治療。牧師現在擁有大幅提高的基礎MP池，意志與美德是主要MP成長來源；治療型「美德共鳴」最高85%，觸發返還70%技能MP。';
+  }
+})();
+</script>
 </body>
 </html>
