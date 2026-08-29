@@ -6241,5 +6241,54 @@ ${rewardText(gains)}`:''}`);renderAll();
 })();
 </script>
 
+
+<script>
+/* V10.11.18：計時＋手動時，將雙能力輸入直接放在時間獎勵卡內，避免被其他區塊/舊顯示邏輯藏掉 */
+(function(){
+  function syncManualRewardUIV10118(){
+    const type=document.getElementById('gmTaskType')?.value||'timer';
+    const mode=document.getElementById('gmRewardMode')?.value||'auto';
+    const timer=document.getElementById('gmTimerSettings');
+    const fixed=document.getElementById('gmFixedSettings');
+    const qty=document.getElementById('gmQuantitySettings');
+    const score=document.getElementById('gmScoreSettings');
+    if(timer) timer.style.display=type==='timer'?'block':'none';
+    if(qty) qty.style.display=type==='quantity'?'block':'none';
+    if(score) score.style.display=type==='score'?'block':'none';
+    if(!fixed) return;
+    fixed.style.opacity='1';
+    fixed.style.display=mode==='manual'?'block':'none';
+
+    // 計時手動：能力輸入緊接在時間門檻下方；其他類型放回一般位置。
+    const anchor=document.getElementById('gmQuantitySettings');
+    if(type==='timer' && mode==='manual' && timer){
+      timer.appendChild(fixed);
+    }else if(anchor && fixed.parentNode===timer){
+      anchor.parentNode.insertBefore(fixed,anchor);
+    }
+  }
+  window.syncManualRewardUIV10118=syncManualRewardUIV10118;
+
+  updateTaskTypeFields=function(){
+    syncManualRewardUIV10118();
+    refreshTaskBalancePreview?.();
+  };
+  toggleRewardMode=function(){
+    syncManualRewardUIV10118();
+    refreshTaskBalancePreview?.();
+  };
+
+  const oldRenderGM=window.renderGM;
+  if(typeof oldRenderGM==='function'){
+    window.renderGM=function(){
+      const r=oldRenderGM.apply(this,arguments);
+      setTimeout(syncManualRewardUIV10118,0);
+      return r;
+    };
+  }
+  setTimeout(syncManualRewardUIV10118,0);
+})();
+</script>
+
 </body>
 </html>
