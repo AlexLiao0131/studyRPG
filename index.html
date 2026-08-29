@@ -2263,7 +2263,6 @@ const MONSTER_SKILL_DATABASE={
   water_bullet:{id:'water_bullet',name:'水彈',kind:'magic',element:'water',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.70}},
   fire_bullet:{id:'fire_bullet',name:'火焰彈',kind:'magic',element:'fire',target:'single',multiplier:1.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05}},
   nature_heal:{id:'nature_heal',name:'自然治癒',kind:'heal',element:'nature',target:'self',healMaxHp:.20},
-  slime_king_heal:{id:'slime_king_heal',name:'大史萊姆再生',kind:'heal',element:'nature',target:'self',healMaxHp:.12,maxUsesPerBattle:1},
   thunder_bullet:{id:'thunder_bullet',name:'雷電彈',kind:'magic',element:'lightning',target:'single',multiplier:1.0,status:{id:'paralysis',chance:.30,duration:1}},
 
   /* Week 2 哥布林 */
@@ -2367,7 +2366,7 @@ const MONSTER_AI_DATABASE={
   slime_fire:{skills:[{id:'slime_tackle',weight:1},{id:'fire_bullet',weight:1}]},
   slime_grass:{skills:[{id:'slime_tackle',weight:2},{id:'nature_heal',weight:3,condition:'low_hp',threshold:.55}]},
   slime_lightning:{skills:[{id:'slime_tackle',weight:1},{id:'thunder_bullet',weight:1}]},
-  slime_king:{skills:[{id:'slime_tackle',weight:2},{id:'water_bullet',weight:1},{id:'fire_bullet',weight:1},{id:'thunder_bullet',weight:1},{id:'slime_king_heal',weight:2,condition:'low_hp',threshold:.35}]},
+  slime_king:{skills:[{id:'slime_tackle',weight:1},{id:'water_bullet',weight:1},{id:'fire_bullet',weight:1},{id:'thunder_bullet',weight:1},{id:'nature_heal',weight:4,condition:'low_hp',threshold:.40}]},
 
   goblin_slave:{skills:[{id:'goblin_club',weight:1}]},
   goblin_soldier:{skills:[{id:'goblin_slash',weight:3},{id:'goblin_guard',weight:1}]},
@@ -3519,9 +3518,7 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   // W20 死神因此雖有 finalBoss:true，實際 HP 仍只比同週標準勇者高約 20%。
   // V10.10.28：後期 Power 曲線已修正，Final Boss 額外倍率由 1.75 校回 1.35，避免重複灌血；召喚物不吃此倍率。
   const finalBossHpScale=(!opts.isSummon && def.finalBoss)?1.35:1;
-  // V10.11.9：W1 大史萊姆是第一次正式轉職後的教學 Boss，不應使用完整中期 Boss 強度。
-  const earlyBossHpScale=(!opts.isSummon && monsterId==='slime_king')?.72:1;
-  const hpScale=Number(opts.hpScale??scale)*finalBossHpScale*earlyBossHpScale;
+  const hpScale=Number(opts.hpScale??scale)*finalBossHpScale;
   // V10.10.19：怪物原本不分物理/魔法職能，Boss 旗標也只增加 HP，
   // 造成死靈法師/魔王等純法系怪 MATK 過低，遇到玩家 MDEF 後常被公式壓到最低 1 傷害。
   // 不改技能倍率，改由技能組判斷施法者職能，給法系怪合理的 MATK 底盤。
@@ -3540,12 +3537,9 @@ function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   // 明確純法系 Boss 再確保最低職能倍率；技能本身仍維持原本 1.0 / 1.35 等資料。
   if(monsterId==='demon_king_phase1'||monsterId==='demon_king_phase2')magicRoleScale=Math.max(magicRoleScale,1.60);
   if(monsterId==='necromancer')magicRoleScale=Math.max(magicRoleScale,1.35);
-  // W1 Boss 攻防也略降，讓剛轉職角色能靠技能循環穩定通關，而不是靠數值硬磨。
-  const earlyBossOffenseScale=monsterId==='slime_king'?.85:1;
-  const earlyBossDefenseScale=monsterId==='slime_king'?.82:1;
   const u={...base,uid:opts.uid||`${monsterId}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,monsterId,name:opts.name||def.name,
     maxHp:Math.max(1,Math.round(base.maxHp*hpScale)),hp:0,alive:true,isBoss:!!(opts.isBoss??def.boss),isSummon:!!opts.isSummon,summonedBy:opts.summonedBy||null,
-    attack:base.attack*scale*attackRoleScale*earlyBossOffenseScale,magicAttack:base.magicAttack*scale*magicRoleScale*earlyBossOffenseScale,defense:base.defense*scale*earlyBossDefenseScale,magicDefense:base.magicDefense*scale*earlyBossDefenseScale,speed:base.speed*scale,
+    attack:base.attack*scale*attackRoleScale,magicAttack:base.magicAttack*scale*magicRoleScale,defense:base.defense*scale,magicDefense:base.magicDefense*scale,speed:base.speed*scale,
     statuses:[],skillUses:{},cooldowns:{},chargedSkill:null,rotationIndex:0,reviveUsed:false,turnsTaken:0};
   u.hp=u.maxHp;
   const ai=MONSTER_AI_DATABASE[monsterId]||{};
@@ -3856,7 +3850,7 @@ function challengeDungeon(){
   try{ensureDailyDungeon();if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
     const evt=gameData.dailyDungeon.eventId?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId):null;
     const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15,power:calibratedDailyMonsterPower()}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
-    const enemyPower=Math.round(resolvedDungeonPower(evt,monster)*currentBattleTestMultiplier());const enemyName=evt?evt.name:monster?.name;if(!enemyName){alert('今天沒有敵人');return;}
+    const enemyPower=Math.round(resolvedDungeonPower(evt,monster));const enemyName=evt?evt.name:monster?.name;if(!enemyName){alert('今天沒有敵人');return;}
     const baseGold=evt?Number(evt.rewardGold||0):Number(monster?.rewardGold||0),baseExp=evt?Number(evt.rewardExp||0):Number(monster?.rewardExp||0);
     let monsterId=monsterIdByName(enemyName);if(!monsterId&&gameData.dailyDungeon.monsterId!=='AUTO')monsterId=gameData.dailyDungeon.monsterId;
     runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily',monsterId);
@@ -4038,8 +4032,8 @@ function renderDungeon(){
   const enemy=evt||m;
   const cp=combatPower();
   const basePower=resolvedDungeonPower(evt,m);
-  const testMultiplier=currentBattleTestMultiplier();
-  const power=Math.round(basePower*testMultiplier);
+  const testMultiplier=1;
+  const power=Math.round(basePower);
   const cls=evt?.type==='final'?'dragon':evt?'boss':'';
   const enemyIcon=evt?.type==='final'?'🐉':evt?.type==='midterm'?'👿':'👹';
   const ready=cp>=power;
@@ -4513,9 +4507,13 @@ function renderGM(){
           <b>🧒 測試勇者</b>
           <div class="row" style="margin-top:8px">
             <select id="gmTestHeroMode" onchange="gmRenderWeekTestMonsterOptions()">
-              <option value="standard">依所選週數自動模擬</option>
+              <option value="standard">依所選週數模擬正常養成</option>
               <option value="current">使用目前正式角色</option>
               <option value="custom">自訂測試勇者</option>
+            </select>
+            <select id="gmTestHeroJob" onchange="gmRenderWeekTestMonsterOptions()">
+              <option value="auto">依目前職業</option>
+              <option value="初心者">初心者</option><option value="戰士">戰士</option><option value="法師">法師</option><option value="牧師">牧師</option><option value="獵人">獵人</option><option value="盜賊">盜賊</option><option value="聖騎士">聖騎士</option><option value="魔劍士">魔劍士</option>
             </select>
             <label>倍率 <input id="gmTestHeroMultiplier" type="number" min="0.25" max="3" step="0.05" value="1" style="width:80px" onchange="gmRenderWeekTestMonsterOptions()"></label>
           </div>
@@ -4539,7 +4537,7 @@ function renderGM(){
       <div class="test-multiplier-row">
         ${[.5,1,1.5,2,3].map(v=>`<button class="btn gray ${(gameData.settings?.battleTestMultiplier||1)===v?'active':''}" onclick="gmSetBattleTestMultiplier(${v})">${Math.round(v*100)}%</button>`).join('')}
       </div>
-      <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。100%=正式原始強度（×1.0）；200%=兩倍、300%=三倍。副本頁與實際戰鬥同步套用。</div>
+      <div class="small">目前倍率：${Math.round((gameData.settings?.battleTestMultiplier||1)*100)}%。100%=正式原始強度（×1.0）；200%=兩倍、300%=三倍。只影響 GM 戰鬥測試；正式副本固定 100%，不再被測試倍率污染。</div>
       <div id="gmBattleDebug"></div>
       <div id="gmJobDebug" class="small" style="margin-top:10px"></div>
       <button class="btn purple" onclick="gmShowJobDebug()">🧭 檢視轉職判定（V10.5）</button>
@@ -4725,23 +4723,42 @@ function gmRenderWeekTestMonsterOptions(){
     }
   }
   const mode=document.getElementById('gmTestHeroMode')?.value||'standard',custom=document.getElementById('gmTestHeroCustom');if(custom)custom.style.display=mode==='custom'?'flex':'none';
-  const hp=gmBuildTestHero(w,mode),prev=document.getElementById('gmTestHeroPreview');if(prev)prev.textContent=`${mode==='standard'?'週數標準勇者':mode==='current'?'目前角色':'自訂勇者'}｜Lv.${hp.testLevel||gameData.hero.level||1}｜HP ${hp.maxHp}｜ATK ${Math.round(hp.attack)}｜MATK ${Math.round(hp.magicAttack)}｜DEF ${Math.round(hp.defense)}｜MDEF ${Math.round(hp.magicDefense)}`;
+  const hp=gmBuildTestHero(w,mode),prev=document.getElementById('gmTestHeroPreview');if(prev){const r=hp.testRawStats;prev.innerHTML=`${mode==='standard'?'正常進度模擬':mode==='current'?'目前角色':'自訂勇者'}｜${hp.testJob||gameData.hero.heroClass||'初心者'}｜Lv.${hp.testLevel||gameData.hero.level||1}｜HP ${hp.maxHp}｜ATK ${Math.round(hp.attack)}｜MATK ${Math.round(hp.magicAttack)}｜DEF ${Math.round(hp.defense)}｜MDEF ${Math.round(hp.magicDefense)}${r?`<br>預期永久能力：STR ${r.str.toFixed(1)}／AGI ${r.agi.toFixed(1)}／INT ${r.int.toFixed(1)}／WILL ${r.will.toFixed(1)}／美德 ${r.virtue.toFixed(1)}`:''}${mode==='standard'&&w<5&&hp.testJob&&hp.testJob!=='初心者'?'<br>⚠️ 此週數正常流程尚未達28天自然轉職門檻；這是「提前轉職」壓力測試。':''}`;}
 }
 
+function gmNormalProgressRawStats(week,job){
+  // GM 平衡基準：模擬「正常完成平日任務」後累積的永久能力，而不是只切等級/職業。
+  // 每完整週約 9 點永久能力成長；依職業核心分配，保留少量通用成長。
+  const completedWeeks=Math.max(0,Number(week||1)-1), total=completedWeeks*9;
+  const w={str:.25,agi:.25,int:.25,will:.25,virtue:0};
+  const map={
+    '戰士':{str:.55,agi:.15,int:.05,will:.25,virtue:0},
+    '法師':{str:.05,agi:.10,int:.60,will:.25,virtue:0},
+    '牧師':{str:.05,agi:.08,int:.17,will:.35,virtue:.35},
+    '獵人':{str:.10,agi:.45,int:.30,will:.15,virtue:0},
+    '盜賊':{str:.35,agi:.45,int:.05,will:.15,virtue:0},
+    '聖騎士':{str:.35,agi:.08,int:.05,will:.22,virtue:.30},
+    '魔劍士':{str:.38,agi:.10,int:.37,will:.15,virtue:0}
+  };
+  const a=map[job]||w;
+  return {str:10+total*a.str,agi:10+total*a.agi,int:10+total*a.int,will:10+total*a.will,virtue:total*a.virtue};
+}
 function gmBuildTestHero(week,mode){
   mode=mode||document.getElementById('gmTestHeroMode')?.value||'standard';
   if(mode==='current')return makeHeroBattleStats();
-  let lv,str,agi,intel,will;
+  let lv,str,agi,intel,will,virtue=0;
+  const selected=document.getElementById('gmTestHeroJob')?.value||'auto';
+  const job=selected==='auto'?(gameData.hero.jobAwakened?gameData.hero.heroClass:'初心者'):selected;
   if(mode==='custom'){
     lv=Math.max(1,Number(document.getElementById('gmTestHeroLv')?.value)||1);
     str=Math.max(0,Number(document.getElementById('gmTestHeroStr')?.value)||0);agi=Math.max(0,Number(document.getElementById('gmTestHeroAgi')?.value)||0);intel=Math.max(0,Number(document.getElementById('gmTestHeroInt')?.value)||0);will=Math.max(0,Number(document.getElementById('gmTestHeroWill')?.value)||0);
   }else{
     lv=Math.max(1,Math.round(1+(week-1)*1.5));
-    const gain=(week-1)*2.25;str=10+gain;agi=10+gain;intel=10+gain;will=10+gain;
+    const r=gmNormalProgressRawStats(week,job);str=r.str;agi=r.agi;intel=r.int;will=r.will;virtue=r.virtue;
   }
   const mult=Math.max(.25,Math.min(3,Number(document.getElementById('gmTestHeroMultiplier')?.value)||1));
-  const e={str:effectiveStat(str),agi:effectiveStat(agi),int:effectiveStat(intel),will:effectiveStat(will),virtue:0};
-  const u={side:'hero',name:'測試勇者',...e,testLevel:lv,maxHp:Math.round((100+lv*10+e.will*3+e.str)*mult),maxEnergy:Math.round((50+e.int*.5+e.will*.3)*mult),attack:(10+e.str*1.25)*mult,magicAttack:(8+e.int*1.25)*mult,defense:(10+e.will*.8)*mult,magicDefense:(8+e.will*.75)*mult,speed:e.agi*mult,crit:clampBattle(.05+.25*(e.agi/(e.agi+100)),.05,.35),evade:clampBattle(.02+.20*(e.agi/(e.agi+100)),.02,.30),parry:clampBattle(.03+.08*(e.will/(e.will+100)),.03,.11),block:clampBattle(.05+.14*(e.will/(e.will+100)),.05,.19),statusRes:clampBattle(.05+.25*(e.will/(e.will+100)),.05,.40),elementalBaseRes:clampBattle(.15*(e.will/(e.will+100)),0,.15),resist:{fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0},statuses:[],guarding:false};
+  const e={str:effectiveStat(str),agi:effectiveStat(agi),int:effectiveStat(intel),will:effectiveStat(will),virtue:effectiveStat(virtue)};
+  const u={side:'hero',name:`測試勇者・${job}`,...e,testJob:job,testRawStats:{str,agi,int:intel,will,virtue},testLevel:lv,maxHp:Math.round((100+lv*10+e.will*3+e.str)*mult),maxEnergy:Math.round((50+e.int*.5+e.will*.3)*mult),attack:(10+e.str*1.25)*mult,magicAttack:(8+e.int*1.25)*mult,defense:(10+e.will*.8)*mult,magicDefense:(8+e.will*.75)*mult,speed:e.agi*mult,crit:clampBattle(.05+.25*(e.agi/(e.agi+100)),.05,.35),evade:clampBattle(.02+.20*(e.agi/(e.agi+100)),.02,.30),parry:clampBattle(.03+.08*(e.will/(e.will+100)),.03,.11),block:clampBattle(.05+.14*(e.will/(e.will+100)),.05,.19),statusRes:clampBattle(.05+.25*(e.will/(e.will+100)),.05,.40),elementalBaseRes:clampBattle(.15*(e.will/(e.will+100)),0,.15),resist:{fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0},statuses:[],guarding:false};
   return u;
 }
 // V10.10.27：GM週數測試必須走和正式事件相同的期中／期末 Power 公式。
