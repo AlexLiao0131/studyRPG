@@ -649,6 +649,38 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .battle-target-hint{text-align:center;font-size:12px;opacity:.8;margin-top:3px}
 
 </style>
+
+<style>
+/* V10.11.20：勇者每個狀態只使用一張 PNG，動作由 CSS 完成 */
+.hero-idle-css{animation:heroIdleSingle 1.8s ease-in-out infinite;transform-origin:50% 85%}
+.hero-attack-css{animation:heroAttackSingle .36s ease-out 1;transform-origin:50% 80%}
+.hero-hurt-css{animation:heroHurtSingle .32s ease-out 1}
+.hero-status-css{animation:heroStatusSingle .75s ease-in-out infinite}
+.hero-death-css{animation:heroDeathSingle .85s ease-in forwards;transform-origin:50% 90%}
+@keyframes heroIdleSingle{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-3px) scale(1.01,.99)}
+}
+@keyframes heroAttackSingle{
+  0%{transform:translateX(0) scale(1)}
+  45%{transform:translateX(24px) scale(1.04,.98)}
+  100%{transform:translateX(0) scale(1)}
+}
+@keyframes heroHurtSingle{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-8px)}
+  55%{transform:translateX(5px)}
+}
+@keyframes heroStatusSingle{
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(.72)}
+}
+@keyframes heroDeathSingle{
+  0%{transform:rotate(0) translateY(0);opacity:1}
+  100%{transform:rotate(-78deg) translate(-10px,16px);opacity:.15}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -711,6 +743,7 @@ function sprite(path){return path;}
 
 const HERO_ASSET_MAP={
   '見習勇者':'novice',
+  '初心者':'novice',
   '戰士':'warrior',
   '法師':'mage',
   '牧師':'priest',
@@ -720,10 +753,14 @@ const HERO_ASSET_MAP={
   '魔劍士':'spellblade'
 };
 function heroAssetKey(){
-  return HERO_ASSET_MAP[gameData?.hero?.heroClass||'見習勇者']||'novice';
+  const cls=gameData?.hero?.jobAwakened ? (gameData?.hero?.heroClass||'見習勇者') : '見習勇者';
+  return HERO_ASSET_MAP[cls]||'novice';
+}
+function heroSpritePath(state){
+  return sprite(`images/hero_${heroAssetKey()}_${state}.png`);
 }
 function heroIdleFrames(){
-  return [1,2,3,4].map(n=>sprite(`images/hero_idle_${n}.png`));
+  return [heroSpritePath('idle')];
 }
 
 function loadSpriteWithFallback(img,primary,fallback){
@@ -735,7 +772,17 @@ function loadSpriteWithFallback(img,primary,fallback){
 }
 
 function heroAttackFrames(){
-  return [1,2,3,4].map(n=>sprite(`images/hero_attack_${n}.png`));
+  return [heroSpritePath('attack')];
+}
+
+
+function setHeroBattleVisualState(state='idle'){
+  const img=document.getElementById('battleHeroSprite');
+  if(!img)return;
+  const allowed=['idle','attack','hurt','status','death'];
+  const next=allowed.includes(state)?state:'idle';
+  img.src=heroSpritePath(next);
+  img.dataset.heroState=next;
 }
 
 
@@ -912,35 +959,16 @@ function showProfileSwitcher(){
 let timerInterval=null;
 let clockInterval=null;
 let heroIdleInterval=null;
-const HERO_IDLE_FRAMES=[1,2,3,4].map(n=>sprite(`images/hero_idle_${n}.png`));
-
-function heroIdleFrame(n=1){
-  return sprite(`images/hero_idle_${n}.png`);
+function heroIdleFrame(){
+  return heroSpritePath('idle');
 }
 
 function startHeroIdleAnimation(){
-  if(heroIdleInterval) clearInterval(heroIdleInterval);
-  let frame=0;
+  if(heroIdleInterval){clearInterval(heroIdleInterval);heroIdleInterval=null;}
   const img=document.getElementById('heroSprite');
   if(!img)return;
-
-  // 預載四張圖，避免 Safari 第一次切換時閃爍
-  HERO_IDLE_FRAMES.forEach(src=>{
-    const preload=new Image();
-    preload.src=src;
-  });
-
-  img.src=HERO_IDLE_FRAMES[0];
-  heroIdleInterval=setInterval(()=>{
-    const current=document.getElementById('heroSprite');
-    if(!current){
-      clearInterval(heroIdleInterval);
-      heroIdleInterval=null;
-      return;
-    }
-    frame=(frame+1)%HERO_IDLE_FRAMES.length;
-    current.src=HERO_IDLE_FRAMES[frame];
-  },300);
+  img.src=heroSpritePath('idle');
+  img.classList.add('hero-idle-css');
 }
 
 // V8 相容舊存檔
@@ -3144,10 +3172,12 @@ function showDamage(side,text,extraClass=''){
   e.textContent=text;arena.appendChild(e);setTimeout(()=>e.remove(),820);
 }
 
-let HERO_ATTACK_FRAMES=[1,2,3,4].map(n=>sprite(`images/hero_attack_${n}.png`));
+let HERO_ATTACK_FRAMES=heroAttackFrames();
 let heroAttackFramesReady=false;
+let heroAttackAssetKey='';
 async function preloadBattleHeroFrames(){
-  HERO_ATTACK_FRAMES=[1,2,3,4].map(n=>sprite(`images/hero_attack_${n}.png`));
+  HERO_ATTACK_FRAMES=heroAttackFrames();
+  heroAttackAssetKey=heroAssetKey();
   heroAttackFramesReady=false;
   const jobs=HERO_ATTACK_FRAMES.map(src=>new Promise(resolve=>{
     const img=new Image();
@@ -3181,16 +3211,15 @@ function nextPaint(){
 }
 async function playHeroAttackFrames(){
   const img=document.getElementById('battleHeroSprite');if(!img)return;
-  if(!heroAttackFramesReady)await preloadBattleHeroFrames();
-  const timings=[155,95,105,175];
-  for(let i=0;i<HERO_ATTACK_FRAMES.length;i++){
-    img.src=HERO_ATTACK_FRAMES[i];
-    try{if(img.decode)await img.decode();}catch(e){}
-    await nextPaint();
-    await battleSleep(timings[i]);
-  }
-  img.src=HERO_ATTACK_FRAMES[0];
-  await nextPaint();
+  if(!heroAttackFramesReady||heroAttackAssetKey!==heroAssetKey())await preloadBattleHeroFrames();
+  img.src=heroSpritePath('attack');
+  img.classList.remove('hero-attack-css');
+  void img.offsetWidth;
+  img.classList.add('hero-attack-css');
+  await battleWait?.(360);
+  img.src=heroSpritePath('idle');
+  img.classList.remove('hero-attack-css');
+
 }
 
 
@@ -3200,7 +3229,7 @@ async function playEnemyAttackFrames(){
 
   // 勇者鏡像：直接共用玩家目前的戰鬥動作圖，僅做水平翻轉。
   if(battleStateV10?.monsterId==='hero_mirror'){
-    if(!heroAttackFramesReady)await preloadBattleHeroFrames();
+    if(!heroAttackFramesReady||heroAttackAssetKey!==heroAssetKey())await preloadBattleHeroFrames();
     const frames=HERO_ATTACK_FRAMES.length?HERO_ATTACK_FRAMES:heroAttackFrames();
     const timings=[155,95,105,175];
     for(let i=0;i<frames.length;i++){
@@ -3808,7 +3837,7 @@ function applyBattleStartMonsterMechanics(){
 
 function battleEnemyVisualHTML(enemyIcon){
   if(battleStateV10?.monsterId==='hero_mirror'){
-    const first=(HERO_ATTACK_FRAMES&&HERO_ATTACK_FRAMES[0])||sprite('images/hero_attack_1.png');
+    const first=(HERO_ATTACK_FRAMES&&HERO_ATTACK_FRAMES[0])||heroSpritePath('attack');
     return `<img id="battleEnemySprite" class="mirror-hero-sprite" src="${first}" alt="勇者的鏡像">`;
   }
   return `<div class="enemy-glyph">${enemyIcon}</div>`;
@@ -3825,7 +3854,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${sprite('images/hero_attack_1.png')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
+    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${heroSpritePath('attack')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -3955,7 +3984,7 @@ function renderHero(){
       <div class="warrior-wrap" aria-label="勇者">
         <img id="heroSprite"
              class="hero-sprite"
-             src="images/hero_idle_1.png"
+             src="${heroSpritePath('idle')}"
              alt="勇者"
              draggable="false">
       </div>
@@ -4083,7 +4112,7 @@ function renderDungeon(){
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card">
-          <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${sprite('images/hero_idle_1.png')}" alt="${gameData.hero.name}"></div>
+          <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
         </div>
@@ -6288,6 +6317,18 @@ ${rewardText(gains)}`:''}`);renderAll();
   }
   setTimeout(syncManualRewardUIV10118,0);
 })();
+</script>
+
+
+<script>
+/* V10.11.20 職業勇者 PNG 命名：
+   images/hero_<class>_idle.png
+   images/hero_<class>_attack.png
+   images/hero_<class>_hurt.png
+   images/hero_<class>_status.png
+   images/hero_<class>_death.png
+   class = novice / warrior / mage / priest / hunter / rogue / paladin / spellblade
+*/
 </script>
 
 </body>
