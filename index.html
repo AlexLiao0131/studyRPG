@@ -798,13 +798,13 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 /* 副本入口：角色與怪物往下，腳底/底部靠近草地地面 */
 #dungeonHeroIdle{
   top:auto !important;
-  bottom:72px !important;
+  bottom:10px !important;
   left:50% !important;
   transform:translateX(-50%) !important;
 }
 #dungeonEnemyIdle{
   top:auto !important;
-  bottom:68px !important;
+  bottom:0px !important;
   left:50% !important;
   right:auto !important;
   transform:translateX(-50%) !important;
@@ -822,11 +822,11 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 /* 正式戰鬥 Boss：更大，並貼近戰鬥地面 */
 .battle-enemy:has(.boss-monster-sprite){
-  bottom:12px !important;
+  bottom:28px !important;
 }
 .boss-monster-sprite{
-  width:390px !important;
-  height:390px !important;
+  width:450px !important;
+  height:450px !important;
   max-width:none !important;
   max-height:none !important;
   object-fit:contain !important;
@@ -834,19 +834,21 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 @media(max-width:600px){
-  #dungeonHeroIdle{bottom:54px !important;}
-  #dungeonEnemyIdle{bottom:50px !important;}
+  #dungeonHeroIdle{bottom:6px !important;}
+  #dungeonEnemyIdle{bottom:0px !important;}
   #dungeonEnemyIdle.boss-dungeon-sprite{
     width:225px !important;
     height:200px !important;
   }
-  .battle-enemy:has(.boss-monster-sprite){bottom:8px !important;}
+  .battle-enemy:has(.boss-monster-sprite){bottom:20px !important;}
   .boss-monster-sprite{
-    width:285px !important;
-    height:285px !important;
+    width:330px !important;
+    height:330px !important;
   }
 }
 
+
+/* V10.11.33：副本入口往下落地；Boss 戰鬥 450x450；怪物動畫 idle→battle→idle */
 </style>
 
 <style>
@@ -3449,13 +3451,23 @@ async function playEnemyAttackFrames(){
     return;
   }
   const def=MONSTER_DATABASE[battleStateV10?.monsterId];
-  if(def?.sprites?.battle){
-    img.src=sprite(def.sprites.battle);
-    img.classList.remove('monster-attack-css');
-    void img.offsetWidth;
-    img.classList.add('monster-attack-css');
-    await battleSleep(360);
-    img.classList.remove('monster-attack-css');
+  if(def?.sprites?.battle||def?.sprites?.idle){
+    // 攻擊順序：idle -> battle -> idle
+    if(def.sprites.idle){
+      img.src=sprite(def.sprites.idle);
+      await battleSleep(120);
+    }
+    if(def.sprites.battle){
+      img.src=sprite(def.sprites.battle);
+      img.classList.remove('monster-attack-css');
+      void img.offsetWidth;
+      img.classList.add('monster-attack-css');
+      await battleSleep(360);
+      img.classList.remove('monster-attack-css');
+    }
+    if(def.sprites.idle){
+      img.src=sprite(def.sprites.idle);
+    }
     return;
   }
   await battleSleep(180);
@@ -4050,9 +4062,10 @@ function battleEnemyVisualHTML(enemyIcon){
     return `<img id="battleEnemySprite" class="mirror-hero-sprite" src="${heroSpritePath('idle')}" alt="勇者的鏡像">`;
   }
   const def=MONSTER_DATABASE[battleStateV10?.monsterId];
-  if(def?.sprites?.battle){
+  if(def?.sprites?.idle||def?.sprites?.battle){
     const bossClass=def.boss?' boss-monster-sprite':'';
-    return `<img id="battleEnemySprite" class="monster-battle-sprite${bossClass}" src="${sprite(def.sprites.battle)}" alt="${def.name||'怪物'}">`;
+    const firstSprite=def.sprites.idle||def.sprites.battle;
+    return `<img id="battleEnemySprite" class="monster-battle-sprite${bossClass}" src="${sprite(firstSprite)}" alt="${def.name||'怪物'}">`;
   }
   return `<div class="enemy-glyph">${enemyIcon}</div>`;
 }
