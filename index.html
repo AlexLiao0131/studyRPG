@@ -907,6 +907,47 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   }
 }
 
+
+/* V10.11.35 FINAL：副本入口角色被裁切修正
+   原因：dungeon-idle-stage 原本 overflow:hidden，
+   角色往下移到負 bottom 後，下半身會被容器直接裁掉。 */
+.dungeon-idle-stage{
+  overflow:visible !important;
+}
+
+/* 讓左右卡片本身仍維持圓角裁切背景，但不要裁角色 */
+.dungeon-fighter-bg{
+  overflow:hidden !important;
+}
+.dungeon-fighter-bg .dungeon-idle-stage{
+  overflow:visible !important;
+}
+
+/* 稍微增加角色區高度，避免放大 Boss 頂到卡片上緣 */
+.dungeon-idle-stage{
+  height:210px !important;
+}
+
+/* 重新落地：下半身完整顯示 */
+#dungeonHeroIdle{
+  bottom:-10px !important;
+}
+#dungeonEnemyIdle{
+  bottom:-14px !important;
+}
+
+/* Boss 副本入口維持目前大小 */
+#dungeonEnemyIdle.boss-dungeon-sprite{
+  width:310px !important;
+  height:270px !important;
+}
+
+@media(max-width:600px){
+  .dungeon-idle-stage{height:165px !important;}
+  #dungeonHeroIdle{bottom:-8px !important;}
+  #dungeonEnemyIdle{bottom:-10px !important;}
+}
+
 </style>
 
 <style>
