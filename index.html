@@ -484,7 +484,16 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .hp-fill.low{background:linear-gradient(#ffb347,#d29922)}.hp-fill.critical{background:linear-gradient(#ff7b72,#da3633)}
 .hp-text{margin-top:4px;font-size:12px;color:#8b949e}
 .battle-arena{position:relative;height:300px;overflow:hidden;border:2px solid #30363d;border-radius:10px;background:#203b52}
-.battle-bg{position:absolute;inset:0;background-position:center bottom;background-size:cover;background-repeat:no-repeat;filter:saturate(.95) brightness(.86)}
+.battle-bg{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  background-position:center bottom !important;
+  background-size:cover !important;
+  background-repeat:no-repeat !important;
+  background-color:#203b52;
+  filter:saturate(.95) brightness(.86);
+}
 .battle-floor{position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(transparent,#102018aa)}
 .battle-hero,.battle-enemy{position:absolute;bottom:18px;width:190px;height:190px;display:flex;align-items:flex-end;justify-content:center;transition:transform .22s ease,filter .18s ease}
 .battle-hero{left:8%;bottom:50px}.battle-enemy{right:8%}.battle-hero img,.battle-enemy img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
@@ -720,6 +729,42 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   background-size:cover !important;
   background-repeat:no-repeat !important;
   background-color:#203b52;
+}
+
+
+/* V10.11.29 FINAL：副本入口背景套在整張對戰卡，不只角色小框 */
+.dungeon-fighter-bg{
+  background-image:
+    linear-gradient(rgba(8,14,20,.18),rgba(8,14,20,.48)),
+    var(--dungeon-bg);
+  background-position:center bottom !important;
+  background-size:cover !important;
+  background-repeat:no-repeat !important;
+  overflow:hidden;
+}
+
+
+/* V10.11.30 FINAL：戰鬥背景層級固定 */
+.battle-arena{position:relative;isolation:isolate}
+.battle-bg{z-index:0 !important}
+.battle-floor{z-index:1 !important}
+.battle-hero,.battle-enemy{z-index:2 !important}
+.battle-round-banner,.damage-float,.battle-event-word{z-index:5 !important}
+
+
+.battle-bg-img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center bottom;
+  z-index:0;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-drag:none;
+  image-rendering:pixelated;
+  filter:saturate(.95) brightness(.86);
 }
 
 </style>
@@ -3934,7 +3979,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena"><div class="battle-bg" style="background-image:url('${battleBackgroundForDate(today())}')"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
+    <div id="battleArena" class="battle-arena"><img class="battle-bg-img" src="${battleBackgroundForDate(today())}" alt=""><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -4220,8 +4265,8 @@ function renderDungeon(){
   el.innerHTML=`
     <div class="card ${cls}">
       <div class="battle-stage">
-        <div class="fighter-card">
-          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${battleBackgroundForDate(today())}')"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
+        <div class="fighter-card dungeon-fighter-bg" style="--dungeon-bg:url('${battleBackgroundForDate(today())}')">
+          <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
         </div>
@@ -4231,8 +4276,8 @@ function renderDungeon(){
           <div class="vs-text">VS</div>
         </div>
 
-        <div class="fighter-card">
-          <div class="dungeon-idle-stage dungeon-world-bg" style="background-image:url('${battleBackgroundForDate(today())}')">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
+        <div class="fighter-card dungeon-fighter-bg" style="--dungeon-bg:url('${battleBackgroundForDate(today())}')">
+          <div class="dungeon-idle-stage">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
           ${testMultiplier!==1?`<div class="small">基準 ${basePower} × ${Math.round(testMultiplier*100)}%</div>`:''}
