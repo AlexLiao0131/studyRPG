@@ -5014,5 +5014,184 @@ window.firebaseGoogleLogin=async()=>{
 window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
 if(gameData.settings?.cloud?.enabled)initFirebase();</script>
 
+\n<!-- V10.11.0 FORMAL CLASS SKILL TEST ENGINE -->
+<style>
+.gm-class-test{border:2px solid #7c3aed;background:linear-gradient(135deg,#faf5ff,#eef2ff)}
+.class-test-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px}.class-test-grid button{width:100%}
+.combo-orbs{letter-spacing:4px;font-weight:900}.resource-note{font-size:12px;opacity:.8}
+</style>
+<script>
+const FORMAL_CLASS_SKILLS={
+'戰士':[
+{id:'war_heroic',name:'英勇打擊',icon:'⚔️',cost:30,type:'physical',multiplier:1.8},{id:'war_shockwave',name:'震盪波',icon:'🌪️',cost:35,type:'physical',multiplier:1.25,aoe:true},{id:'war_laststand',name:'破釜沉舟',icon:'🔥',cost:50,type:'buff',effect:{effectType:'buff',turns:2,mods:{deathPrevent:true}}},{id:'war_ragefill',name:'怒氣強化',icon:'😡',cost:0,type:'special'},{id:'war_charge',name:'衝鋒',icon:'🦬',cost:40,type:'physical',multiplier:1.2,status:{type:'stun',turns:1},armorBreak:true},{id:'war_blade_storm',name:'劍刃風暴',icon:'🌪️',cost:45,type:'buff',effect:{effectType:'buff',turns:2,mods:{counterAoe:.8}}},{id:'war_execute',name:'斬殺',icon:'☠️',cost:0,type:'physical',special:'execute'},{id:'war_bloodstrike',name:'嗜血打擊',icon:'🩸',cost:35,type:'physical',multiplier:1.45,healDamage:.35}],
+'法師':[
+{id:'mage_blast',name:'魔力爆破',icon:'💥',cost:35,type:'arcane',multiplier:1.9},{id:'mage_missile',name:'奧術飛彈',icon:'✨',cost:12,type:'arcane',multiplier:1.2},{id:'mage_mana_shield',name:'魔力護盾',icon:'🔷',cost:0,type:'buff',effect:{effectType:'buff',turns:2,mods:{manaShield:.5}}},{id:'mage_meditation',name:'魔力冥想',icon:'🌀',cost:0,type:'buff',special:'meditate'},{id:'mage_haste',name:'加速術',icon:'⏩',cost:25,type:'buff',effect:{effectType:'buff',turns:5,mods:{speedPct:.30}}},{id:'mage_blizzard',name:'冰風暴',icon:'❄️',cost:40,type:'ice',multiplier:1.2,aoe:true,status:{type:'freeze',turns:1,chance:.30}},{id:'mage_burn',name:'烈焰灼燒',icon:'🔥',cost:25,type:'fire',multiplier:1.0,status:{type:'burn',turns:3,dotMatk:.25}},{id:'mage_icefire',name:'冰火爆裂',icon:'🔥❄️',cost:55,type:'arcane',multiplier:2.3,special:'icefire'}],
+'牧師':[
+{id:'priest_smite',name:'鞭撻懲戒',icon:'⚡',cost:22,type:'holy',multiplier:1.5},{id:'priest_lightbolt',name:'聖光彈',icon:'✨',cost:18,type:'holy',multiplier:1.25,special:'lightbolt'},{id:'priest_protection',name:'神聖防護',icon:'🛡️',cost:15,type:'buff',effect:{effectType:'buff',turns:5,mods:{damageTaken:-.18,mpReturnChance:.30}}},{id:'priest_grace',name:'神恩',icon:'🌟',cost:20,type:'buff',effect:{effectType:'buff',turns:3,mods:{virtuePct:.50}}},{id:'priest_exorcism',name:'驅除禱言',icon:'✝️',cost:32,type:'holy',multiplier:1.15,aoe:true},{id:'priest_holy_prayer',name:'神聖禱言',icon:'🙏',cost:40,type:'heal',special:'bigheal'},{id:'priest_cleanse',name:'淨化',icon:'✨',cost:18,type:'special',special:'cleanse'},{id:'priest_miracle',name:'奇蹟',icon:'🌟',cost:45,type:'buff',special:'miracle'}],
+'獵人':[
+{id:'hunter_trip',name:'摔絆',icon:'🪤',cost:22,type:'physical',multiplier:1.2,status:{type:'slow',turns:3,mods:{speedPct:-.25}}},{id:'hunter_magic_arrow',name:'魔法箭',icon:'✨',cost:18,type:'arcane',multiplier:1.25},{id:'hunter_counter',name:'反擊',icon:'↩️',cost:25,type:'buff',effect:{effectType:'buff',turns:2,mods:{counter:.8}}},{id:'hunter_focus',name:'凝神專注',icon:'🎯',cost:20,type:'buff',effect:{effectType:'buff',turns:4,mods:{speedPct:.25,energyProc:.35}}},{id:'hunter_explosive',name:'爆炸箭',icon:'💥',cost:38,type:'physical',multiplier:1.0,aoe:true,status:{type:'burn',turns:3,dotAtk:.22}},{id:'hunter_hound',name:'召喚獵犬',icon:'🐕',cost:30,type:'special',special:'hound'},{id:'hunter_deadly',name:'致命射擊',icon:'🎯',cost:35,type:'physical',multiplier:1.35,special:'weakshot'},{id:'hunter_feign',name:'裝死',icon:'🦝',cost:20,type:'special',special:'feign'}],
+'盜賊':[
+{id:'rogue_ambush',name:'伏擊',icon:'🗡️',cost:22,type:'physical',multiplier:1.45,special:'ambush'},{id:'rogue_poison',name:'毒藥投擲',icon:'☠️',cost:22,type:'physical',multiplier:.8,status:{type:'poison',turns:3,dotAtk:.22,mods:{speedPct:-.20}}},{id:'rogue_evade',name:'閃避',icon:'💨',cost:25,type:'buff',effect:{effectType:'buff',turns:3,mods:{evade:.50}}},{id:'rogue_burst',name:'能量爆發',icon:'⚡',cost:20,type:'buff',effect:{effectType:'buff',turns:4,mods:{speedPct:.30,energyRegenPct:.50}}},{id:'rogue_rupture',name:'撕裂',icon:'🩸',cost:0,type:'physical',special:'rupture'},{id:'rogue_steal',name:'盜竊',icon:'👜',cost:15,type:'special',special:'steal'},{id:'rogue_cloak',name:'暗影披風',icon:'🌑',cost:25,type:'buff',effect:{effectType:'buff',turns:3,mods:{magicDamageTaken:-.50}}},{id:'rogue_frenzy',name:'暗影狂殺',icon:'⚔️🌑',cost:0,type:'physical',special:'frenzy'}],
+'聖騎士':[
+{id:'pal_crusader',name:'十字軍打擊',icon:'✝️',cost:0,type:'holy',special:'crusader'},{id:'pal_shock',name:'神聖震擊',icon:'⚡',cost:0,type:'holy',special:'holyshock'},{id:'pal_divine_shield',name:'聖盾',icon:'🛡️',cost:45,type:'buff',effect:{effectType:'buff',turns:3,mods:{immuneDamage:true,willAfter:true}}},{id:'pal_wings',name:'復仇之怒',icon:'🔥',cost:35,type:'buff',effect:{effectType:'buff',turns:4,mods:{damagePct:.40,healingPct:.40}}},{id:'pal_blade',name:'正義之刃',icon:'⚔️',cost:0,type:'physical',multiplier:1.35,special:'justice'},{id:'pal_freedom',name:'自由祝福',icon:'🪽',cost:20,type:'special',special:'freedom'},{id:'pal_consecrate',name:'奉獻',icon:'✨',cost:35,type:'holy',special:'consecrate'},{id:'pal_verdict',name:'最終裁決',icon:'⚖️',cost:45,type:'holy',multiplier:2.2,special:'verdict'}],
+'魔劍士':[
+{id:'sb_arcane_strike',name:'秘法打擊',icon:'🌀⚔️',cost:22,type:'physical',special:'arcane_strike'},{id:'sb_element_bolt',name:'元素彈',icon:'🔥❄️⚡',cost:22,type:'arcane',special:'element_bolt'},{id:'sb_barrier',name:'秘法屏障',icon:'🔷',cost:30,type:'buff',effect:{effectType:'buff',turns:3,mods:{magicImmune:true}}},{id:'sb_disrupt',name:'亂魔',icon:'🌀',cost:25,type:'special',special:'disrupt'},{id:'sb_accel',name:'力場加速',icon:'⚡',cost:25,type:'buff',special:'accel'},{id:'sb_frost_armor',name:'冰霜護甲',icon:'❄️🛡️',cost:30,type:'buff',special:'frostarmor'},{id:'sb_firestorm',name:'火風暴',icon:'🔥🌪️',cost:40,type:'fire',special:'firestorm'},{id:'sb_element_burst',name:'元素爆發',icon:'🌈💥',cost:55,type:'arcane',special:'elementburst'}]
+};
+const FORMAL_PASSIVES={'戰士':'🩸 戰意沸騰','法師':'🔮 魔力增幅','牧師':'🪽 神恩護盾','獵人':'🎯 弱點發現','盜賊':'🗡️ 隱藏殺意','聖騎士':'✨ 聖印','魔劍士':'🗡️✨ 附魔武器'};
+Object.values(FORMAL_CLASS_SKILLS).flat().forEach(s=>{s.description=s.description||formalSkillDesc(s);JOB_SKILL_LIBRARY[s.id]=s;});
+function formalSkillDesc(s){const bits=[];if(s.aoe)bits.push('全體');if(s.multiplier)bits.push(`${Math.round(s.multiplier*100)}%傷害`);if(s.effect?.turns)bits.push(`${s.effect.turns}回合效果`);if(s.status?.type)bits.push(`附加${s.status.type}`);return bits.join('｜')||'職業特殊技能';}
+JOB_RULES.forEach(r=>{if(FORMAL_CLASS_SKILLS[r.name])r.skills=FORMAL_CLASS_SKILLS[r.name].map(x=>x.id)});
+const __oldAvailableBattleSkills=availableBattleSkills;
+availableBattleSkills=function(){if(gameData.hero.jobAwakened&&FORMAL_CLASS_SKILLS[gameData.hero.heroClass]){const all=new Map(FORMAL_CLASS_SKILLS[gameData.hero.heroClass].map(s=>[s.id,s]));let ids=(gameData.hero.equippedSkills||[]).filter(id=>all.has(id)).slice(0,4);if(!ids.length)ids=[...all.keys()].slice(0,4);return ids.map(id=>all.get(id));}return __oldAvailableBattleSkills();};
+function classResourceType(cls=gameData.hero.heroClass){return cls==='戰士'?'rage':['法師','牧師','聖騎士'].includes(cls)?'mp':['獵人','盜賊'].includes(cls)?'energy':cls==='魔劍士'?'dual':'energy'}
+function formalMaxMP(hero,cls){const v=Number(gameData.hero.virtue||0),lv=Number(gameData.hero.level||1);if(cls==='牧師')return Math.round(45+lv*3+hero.will*1.1+v*.8+hero.int*.35);if(cls==='聖騎士')return Math.round(40+lv*2.5+hero.will*.8+v*.55+hero.int*.25);return Math.round(50+lv*3+hero.int*1.2+hero.will*.45);}
+const __oldRunBattleSequence=runBattleSequence;
+runBattleSequence=function(...args){__oldRunBattleSequence(...args);if(!battleStateV10)return;const cls=gameData.hero.jobAwakened?gameData.hero.heroClass:'初心者',rt=classResourceType(cls);battleStateV10.formal={cls,resourceType:rt,mp:0,maxMp:0,rage:0,maxRage:100,combo:0,seal:false,sealCooldown:0,enchant:null,overload:false,uses:{},weakness:{},hound:null,miracle:false};if(rt==='rage'){battleStateV10.heroEnergy=0;battleStateV10.hero.maxEnergy=100;}else if(rt==='mp'){battleStateV10.formal.maxMp=formalMaxMP(battleStateV10.hero,cls);battleStateV10.formal.mp=battleStateV10.formal.maxMp;battleStateV10.hero.maxEnergy=battleStateV10.formal.maxMp;battleStateV10.heroEnergy=battleStateV10.formal.mp;}else if(rt==='dual'){battleStateV10.formal.maxMp=formalMaxMP(battleStateV10.hero,cls);battleStateV10.formal.mp=battleStateV10.formal.maxMp;battleStateV10.heroEnergy=battleStateV10.hero.maxEnergy;}if(cls==='聖騎士'){battleStateV10.formal.seal=true;addStatus(battleStateV10.hero,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});}updateFormalResourceUI();addBattleLog(`🎓 ${cls}｜核心：${FORMAL_PASSIVES[cls]||'初心者'}｜測試技能已載入`);};
+function updateFormalResourceUI(){if(!battleStateV10?.formal)return;const f=battleStateV10.formal,cls=f.cls;let val=battleStateV10.heroEnergy,max=battleStateV10.hero.maxEnergy,label='⚡ Energy';if(f.resourceType==='rage'){val=f.rage;max=100;label='🔥 Rage';}if(f.resourceType==='mp'){val=f.mp;max=f.maxMp;label='🔵 MP';}if(f.resourceType==='dual')label=`⚡ Energy ${Math.round(battleStateV10.heroEnergy)}/${battleStateV10.hero.maxEnergy}　🔵 MP ${Math.round(f.mp)}/${f.maxMp}`;updateBattleResource('hero',val,max);const t=document.getElementById('battleEnergyText_hero');if(t)t.textContent=f.resourceType==='dual'?label:`${label} ${Math.round(val)} / ${Math.round(max)}`;}
+function formalCanPay(a){const f=battleStateV10.formal,c=Number(a.cost||0);if(f.resourceType==='rage')return f.rage>=c;if(f.resourceType==='mp'||(f.resourceType==='dual'&&['arcane','fire','ice','lightning','buff','heal','special'].includes(a.type)))return f.mp>=c;return battleStateV10.heroEnergy>=c;}
+function formalPay(a){const f=battleStateV10.formal,c=Number(a.cost||0);if(f.resourceType==='rage')f.rage=Math.max(0,f.rage-c);else if(f.resourceType==='mp'||(f.resourceType==='dual'&&['arcane','fire','ice','lightning','buff','heal','special'].includes(a.type)))f.mp=Math.max(0,f.mp-c);else battleStateV10.heroEnergy=Math.max(0,battleStateV10.heroEnergy-c);updateFormalResourceUI();}
+function gainFormal(kind,n){const f=battleStateV10.formal;if(kind==='rage')f.rage=Math.min(100,f.rage+n);if(kind==='mp')f.mp=Math.min(f.maxMp,f.mp+n);if(kind==='energy')battleStateV10.heroEnergy=Math.min(battleStateV10.hero.maxEnergy,battleStateV10.heroEnergy+n);updateFormalResourceUI();}
+function heroHeal(n,msg='恢復'){const mult=1+effectMod(battleStateV10.hero,'healingPct');n=Math.max(1,Math.round(n*mult));battleStateV10.heroHp=Math.min(battleStateV10.hero.maxHp,battleStateV10.heroHp+n);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);showDamage('hero','+'+n,'holy-float');addBattleLog(`💚 ${msg} ${n} HP。`);return n;}
+function virtueNow(){return Number(gameData.hero.virtue||0)*(1+effectMod(battleStateV10.hero,'virtuePct'));}
+function addSimpleStatus(target,st,src){if(!st)return;if(st.chance!=null&&Math.random()>statusChance(st.chance,target,st.type))return;const power=st.dotMatk?battleStateV10.hero.magicAttack*st.dotMatk:st.dotAtk?battleStateV10.hero.attack*st.dotAtk:0;addStatus(target,{type:st.type,name:st.type,turns:st.turns||2,power,mods:st.mods||{},effectType:'debuff',guaranteedSkip:['stun','freeze'].includes(st.type)});addBattleLog(`${src||'技能'}附加「${st.type}」！`);}
+async function hitTarget(target,a,mult=a.multiplier||1,type=a.type||'physical'){const act={...a,multiplier:mult,type};const r=resolveAttack(battleStateV10.hero,target,act);await animateBattleAction('hero',r);if(r.damage){const d=applyDamageToEnemy(target,r.damage);r.damage=d;showDamage('enemy','-'+d);}addBattleLog(actionSummary(r,target.name));if(r.damage&&a.status)addSimpleStatus(target,a.status,a.name);renderBattleTargets();return r;}
+async function hitAll(a,mult=a.multiplier||1,type=a.type||'physical'){let total=0;for(const t of (battleStateV10.enemies||[]).filter(x=>x.hp>0&&x.alive!==false)){const r=await hitTarget(t,a,mult,type);total+=r.damage||0;}return total;}
+function consumeSeal(){const f=battleStateV10.formal;if(!f.seal)return false;f.seal=false;f.sealCooldown=1;battleStateV10.hero.statuses=(battleStateV10.hero.statuses||[]).filter(s=>s.type!=='holy_seal');updateBattleStatuses();return true;}
+function setEnchant(type){const f=battleStateV10.formal;f.enchant=type;addBattleLog(`🗡️ 武器獲得${type==='fire'?'🔥火焰':type==='ice'?'❄️冰霜':type==='lightning'?'⚡雷電':'✨神聖'}附魔。`);}
+async function triggerEnchant(target){const f=battleStateV10.formal;if(f.overload){f.overload=false;for(const [ty,st] of [['arcane',null],['fire',{type:'burn',turns:3,dotMatk:.2}],['ice',{type:'slow',turns:3,mods:{speedPct:-.25}}],['lightning',{type:'paralysis',turns:1,chance:.35}]]){const r=await hitTarget(target,{name:'全元素附魔',type:ty,multiplier:.45,status:st},.45,ty);}addBattleLog('🌈 全元素附魔爆發！次級附魔仍然保留。');return;}if(!f.enchant)return;const ty=f.enchant;f.enchant=null;const st=ty==='fire'?{type:'burn',turns:3,dotMatk:.2}:ty==='ice'?{type:'slow',turns:3,mods:{speedPct:-.25}}:ty==='lightning'?{type:'paralysis',turns:1,chance:.35}:null;await hitTarget(target,{name:'附魔武器',type:ty,multiplier:.55,status:st},.55,ty);}
+async function formalSkillAction(a){const f=battleStateV10.formal,target=selectedBattleEnemy();formalPay(a);f.uses[a.id]=(f.uses[a.id]||0)+1;recordSkillUsage(a.id);addBattleLog(`${a.icon||'✨'} ${battleStateV10.hero.name}使用「${a.name}」！`);
+ if(a.id==='war_ragefill'){f.rage=100;updateFormalResourceUI();return;}if(a.special==='meditate'){if(f.uses[a.id]>2){f.uses[a.id]--;addBattleLog('本場魔力冥想已使用2次。');return;}addTimedEffect(battleStateV10.hero,{name:'魔力冥想',effectType:'buff',turns:3,mods:{hit:.15,mpRegenPct:.10}});return;}if(a.special==='cleanse'){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>!['poison','disease','curse'].includes(s.type));updateBattleStatuses();return;}if(a.special==='freedom'){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>!['stun','freeze','paralysis','slow'].includes(s.type));updateBattleStatuses();return;}if(a.special==='miracle'){if(f.miracle||f.uses[a.id]>1){addBattleLog('🌟 奇蹟每場只能準備一次。');return;}f.miracle=true;addStatus(battleStateV10.hero,{type:'miracle',name:'🌟 奇蹟',turns:999,effectType:'buff',mods:{}});return;}if(a.special==='bigheal'){heroHeal(battleStateV10.hero.maxHp*.55+virtueNow()*1.5,'神聖禱言');return;}if(a.special==='lightbolt'){if(confirm('聖光彈：按「確定」治療自己；按「取消」攻擊敵人。')){heroHeal(battleStateV10.hero.magicAttack*1.25+virtueNow()*1.2,'聖光彈');return;}}
+ if(a.special==='hound'){f.hound={hp:Math.round(battleStateV10.hero.maxHp*.45),attack:battleStateV10.hero.attack*.55,speed:battleStateV10.hero.speed*.9};addBattleLog(`🐕 獵犬加入戰鬥！HP ${f.hound.hp}｜ATK ${Math.round(f.hound.attack)}`);return;}if(a.special==='feign'){addBattleLog('🦝 裝死成功，脫離戰鬥；本次不算挑戰。');battleStateV10.testMode=true;closeBattleOverlay();return;}if(a.special==='steal'){if(target.stolen){addBattleLog('👜 這名敵人已經沒東西可偷了。');return;}if(Math.random()<.75){target.stolen=true;if(Math.random()<.55){const g=5+Math.floor(Math.random()*16);gameData.hero.gold+=g;addBattleLog(`👜 偷到 ${g} G！`);}else{gameData.inventory.push({id:uid(),itemId:'stolen_potion',name:'初級生命藥水',status:'unused',source:'steal'});addBattleLog('👜 偷到初級生命藥水！');}saveGame();}else addBattleLog('👜 盜竊失敗！');return;}
+ if(a.special==='disrupt'){const buffs=(target.statuses||[]).filter(s=>s.effectType==='buff'&&!s.unstealable);if(buffs.length){const st=buffs[Math.floor(Math.random()*buffs.length)];target.statuses=target.statuses.filter(x=>x!==st);if(st.type==='holy_seal')setEnchant('holy');else addStatus(battleStateV10.hero,{...st});addBattleLog(`🌀 偷走了 ${st.name||st.type}！`);}gainFormal('mp',Math.round(f.maxMp*.15));gainFormal('energy',Math.round(battleStateV10.hero.maxEnergy*.15));return;}
+ if(a.special==='accel'){addTimedEffect(battleStateV10.hero,{name:'力場加速',effectType:'buff',turns:4,mods:{speedPct:.30}});setEnchant('lightning');return;}if(a.special==='frostarmor'){addTimedEffect(battleStateV10.hero,{name:'冰霜護甲',effectType:'buff',turns:4,mods:{defensePct:.30,frostRetaliate:true}});setEnchant('ice');return;}if(a.special==='firestorm'){await hitAll(a,1.05,'fire');for(const t of battleStateV10.enemies.filter(x=>x.hp>0))addSimpleStatus(t,{type:'burn',turns:3,dotMatk:.22},a.name);setEnchant('fire');return;}if(a.special==='element_bolt'){const ty=['fire','ice','lightning'][Math.floor(Math.random()*3)];await hitTarget(target,a,1.25,ty);setEnchant(ty);return;}if(a.special==='elementburst'){for(const ty of ['arcane','fire','ice','lightning'])await hitTarget(target,a,.75,ty);f.overload=true;addBattleLog('🌈 第一層「全元素附魔」已準備；不會覆蓋次級附魔。');return;}
+ if(a.special==='consecrate'){addTimedEffect(battleStateV10.hero,{name:'奉獻',effectType:'buff',turns:3,mods:{consecrate:.45}});return;}
+ if(a.special==='rupture'){if(f.combo<1){addBattleLog('🔴 至少需要1顆能量球。');return;}const balls=f.combo;f.combo=0;const r=await hitTarget(target,a,.75+.35*balls,'physical');if(r.damage)addSimpleStatus(target,{type:'bleed',turns:3,dotAtk:.18*balls},a.name);gainFormal('energy',battleStateV10.hero.maxEnergy*(.30*balls+(r.crit?.10:0)));return;}if(a.special==='frenzy'){if(f.combo<3){addBattleLog('🔴🔴🔴 暗影狂殺需要3顆能量球！');return;}f.combo=0;for(let i=0;i<5;i++){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(!alive.length)break;await hitTarget(alive[Math.floor(Math.random()*alive.length)],a,.65,'physical');}battleStateV10.heroEnergy=battleStateV10.hero.maxEnergy;updateFormalResourceUI();return;}
+ if(a.special==='crusader'){const r=await hitTarget(target,a,1.05,'holy');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.12));if(consumeSeal())await hitTarget(target,{name:'聖印追加',type:'holy'},.75,'holy');return;}if(a.special==='holyshock'){if(confirm('神聖震擊：按「確定」治療自己（耗MP）；按「取消」攻擊敵人（回MP）。')){const cost=Math.round(f.maxMp*.18);if(f.mp<cost){addBattleLog('🔵 MP不足！');return;}f.mp-=cost;heroHeal(battleStateV10.hero.magicAttack*1.3+virtueNow(),'神聖震擊');updateFormalResourceUI();}else{const r=await hitTarget(target,a,1.2,'holy');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.15));}return;}if(a.special==='justice'){const r=await hitTarget(target,a,1.35,'physical');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.12));if(consumeSeal())addSimpleStatus(target,{type:'stun',turns:1},a.name);return;}if(a.special==='verdict'){const sealed=consumeSeal();const r=await hitTarget(target,a,2.2,'holy');if(sealed&&target.hp>0){const ratio=target.hp/target.maxHp;if(ratio<=.15&&!target.isBoss){applyDamageToEnemy(target,target.hp);addBattleLog('⚖️ 聖印裁決：斬殺！');}else if(ratio<=.15&&target.isBoss)await hitTarget(target,a,3.0,'holy');}return;}
+ if(a.special==='arcane_strike'){const r=await hitTarget(target,a,1.0,'physical');if(r.damage){await hitTarget(target,a,.75,'arcane');gainFormal('mp',Math.round(f.maxMp*.12));await triggerEnchant(target);}return;}if(a.special==='ambush'){const aa={...a};if(f.uses[a.id]===1)aa.critOverride=.50;const r=await hitTarget(target,aa,1.45,'physical');if(r.crit)f.combo=Math.min(3,f.combo+1);return;}if(a.special==='weakshot'){let m=1.35;if(f.weakness[target.uid]){m=2.25;delete f.weakness[target.uid];addBattleLog('🎯 消耗弱點發現！');}await hitTarget(target,a,m,'physical');return;}if(a.special==='icefire'){let m=2.3;const ts=target.statuses||[];if(ts.some(s=>s.type==='burn'))m*=1.2;if(ts.some(s=>s.type==='freeze'))m*=1.2;await hitTarget(target,a,m,'arcane');return;}if(a.special==='execute'){const rage=f.rage;f.rage=0;const threshold=rage>=100?.25:rage>75?.20:rage>50?.15:rage>25?.10:.05;if(target.hp/target.maxHp<=threshold&&!target.isBoss){applyDamageToEnemy(target,target.hp);addBattleLog('☠️ 斬殺成功！');}else await hitTarget(target,a,1+rage/100,'physical');updateFormalResourceUI();return;}
+ if(a.effect){addTimedEffect(battleStateV10.hero,{...a.effect,name:a.name});updateBattleStatuses();return;}const total=a.aoe?await hitAll(a):((await hitTarget(target,a)).damage||0);if(total&&a.healDamage)heroHeal(total*a.healDamage,a.name);if(a.armorBreak&&target)addStatus(target,{type:'armor_break',name:'破甲',turns:2,effectType:'debuff',mods:{defense:-target.defense*.25}});if(target&&['魔劍士'].includes(f.cls)&&['physical'].includes(a.type))await triggerEnchant(target);
+}
+const __oldPerformAction=performAction;
+performAction=async function(side,a){if(side!=='hero'||!battleStateV10?.formal||!FORMAL_CLASS_SKILLS[battleStateV10.formal.cls]?.some(x=>x.id===a.id))return __oldPerformAction(side,a);if(!formalCanPay(a)){addBattleLog('⚡/🔵 職業資源不足！');return;}return formalSkillAction(a);};
+const __oldBattlePlayerAction=battlePlayerAction;
+battlePlayerAction=async function(a){if(a.kind==='skill'&&battleStateV10?.formal&&FORMAL_CLASS_SKILLS[battleStateV10.formal.cls]?.some(x=>x.id===a.id)&&!formalCanPay(a)){addBattleLog('職業資源不足！');return;}return __oldBattlePlayerAction(a);};
+showBattleSkills=function(){if(!battleStateV10||battleStateV10.busy)return;const box=document.getElementById('battleSubmenu'),f=battleStateV10.formal;box.innerHTML=availableBattleSkills().map(s=>{let unit=f?.resourceType==='rage'?'🔥':f?.resourceType==='mp'?'🔵':f?.resourceType==='dual'&&['arcane','fire','ice','lightning','buff','heal','special'].includes(s.type)?'🔵':'⚡';return `<button class="battle-choice" onclick='battlePlayerAction(${JSON.stringify({...s,kind:'skill'})})'><strong>${s.icon} ${s.name}　${unit}${s.cost}</strong><span>${s.description||formalSkillDesc(s)}</span></button>`}).join('');box.style.display='grid';};
+const __oldResolveAttack=resolveAttack;
+resolveAttack=function(att,def,a={}){if(def?.statuses?.some(s=>s.mods?.immuneDamage))return {type:'block',damage:0,damageType:a.type||'physical'};if((a.type||'physical')!=='physical'&&def?.statuses?.some(s=>s.mods?.magicImmune))return {type:'block',damage:0,damageType:a.type||'arcane'};const r=__oldResolveAttack(att,def,a);if(r.damage&&att?.side==='hero'){const low=1-battleStateV10.heroHp/battleStateV10.hero.maxHp;if(battleStateV10?.formal?.cls==='戰士')r.damage=Math.round(r.damage*(1+Math.floor(low*10)*.03));r.damage=Math.round(r.damage*(1+effectMod(att,'damagePct')));}return r;};
+const __oldExecuteHeroAgainstTarget=executeHeroAgainstTarget;
+executeHeroAgainstTarget=async function(a){const r=await __oldExecuteHeroAgainstTarget(a);const f=battleStateV10?.formal;if(!f||!r)return r;if(a.kind==='attack'){if(f.cls==='戰士')gainFormal('rage',15+(r.damage?5:0));if(['獵人'].includes(f.cls)&&r.damage){gainFormal('energy',10);const t=selectedBattleEnemy();let ch=.22;if(t?.statuses?.some(s=>s.type==='bleed'))ch+=.25;if(Math.random()<ch){f.weakness[t.uid]=true;addBattleLog('🎯 發現弱點！');}}if(f.cls==='盜賊'){battleStateV10.heroEnergy=Math.max(0,battleStateV10.heroEnergy-8);f.combo=Math.min(3,f.combo+1);addBattleLog(`🔴 能量球 ${f.combo}/3`);}if(f.cls==='魔劍士'){gainFormal('energy',10);await triggerEnchant(selectedBattleEnemy());}if(f.cls==='聖騎士'&&f.seal)a.type='holy';}return r;};
+const __oldExecuteEnemyHit=executeEnemyHit;
+executeEnemyHit=async function(u,sk){const before=battleStateV10?.heroHp||0;await __oldExecuteEnemyHit(u,sk);const f=battleStateV10?.formal;if(!f)return;const lost=Math.max(0,before-battleStateV10.heroHp);if(lost&&f.cls==='戰士')gainFormal('rage',10);if(lost&&battleStateV10.hero.statuses.some(s=>s.mods?.mpReturnChance)&&Math.random()<.30)gainFormal('mp',Math.round(f.maxMp*.08));if(lost&&battleStateV10.hero.statuses.some(s=>s.mods?.frostRetaliate))addSimpleStatus(u,{type:'slow',turns:2,mods:{speedPct:-.20}},'冰霜護甲');if(lost&&battleStateV10.hero.statuses.some(s=>s.mods?.counter)){const st=battleStateV10.hero.statuses.find(s=>s.mods?.counter);await hitTarget(u,{name:'反擊',type:'physical'},st.mods.counter,'physical');}if(lost&&battleStateV10.hero.statuses.some(s=>s.mods?.counterAoe)){const st=battleStateV10.hero.statuses.find(s=>s.mods?.counterAoe);await hitAll({name:'劍刃風暴反擊',type:'physical'},st.mods.counterAoe,'physical');}if(f.cls==='牧師'){const shield=battleStateV10.hero.statuses.find(s=>s.type==='grace_shield');if(shield&&lost)heroHeal(battleStateV10.hero.maxHp*.03,'神恩護盾回響');}};
+const __oldTickLiveUnit=tickLiveUnit;
+tickLiveUnit=async function(u,isHero=false){if(isHero&&battleStateV10?.formal){const f=battleStateV10.formal;if(f.resourceType==='energy')gainFormal('energy',8);if(f.resourceType==='dual')gainFormal('energy',8);const med=u.statuses?.find(s=>s.mods?.mpRegenPct);if(med)gainFormal('mp',f.maxMp*med.mods.mpRegenPct);const cons=u.statuses?.find(s=>s.mods?.consecrate);if(cons)await hitAll({name:'奉獻',type:'holy'},cons.mods.consecrate,'holy');if(f.hound){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(alive.length){const t=alive[Math.floor(Math.random()*alive.length)];const fake={...battleStateV10.hero,attack:f.hound.attack};const r=resolveAttack(fake,t,{type:'physical',multiplier:.65});if(r.damage){applyDamageToEnemy(t,r.damage);showDamage('enemy','-'+r.damage);addSimpleStatus(t,{type:'bleed',turns:3,dotAtk:.15},'獵犬撕咬');addBattleLog(`🐕 獵犬咬擊 ${r.damage}！`);}}}if(f.cls==='聖騎士'&&!f.seal){if(f.sealCooldown>0)f.sealCooldown--;else{f.seal=true;addStatus(u,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});addBattleLog('✨ 聖印恢復！');}}}return __oldTickLiveUnit(u,isHero);};
+const __oldCheckBattleEnd=checkBattleEnd;
+checkBattleEnd=async function(){if(battleStateV10?.heroHp<=0&&battleStateV10?.formal?.miracle){battleStateV10.formal.miracle=false;battleStateV10.heroHp=Math.round(battleStateV10.hero.maxHp*.40);battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>s.type!=='miracle');updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);addBattleLog('🌟 奇蹟！勇者重新站了起來！');return false;}return __oldCheckBattleEnd();};
+function gmTestSwitchClass(cls){const skills=FORMAL_CLASS_SKILLS[cls];if(!skills)return;gameData.hero.heroClass=cls;gameData.hero.jobAwakened=true;const ids=skills.map(s=>s.id);gameData.hero.knownSkills=[...new Set([...(gameData.hero.knownSkills||[]),...ids])];gameData.hero.skills=[...new Set([...(gameData.hero.skills||[]),...ids])];gameData.hero.equippedSkills=ids.slice(0,4);const rule=JOB_RULES.find(x=>x.name===cls);gameData.hero.jobPassive=rule?.passive||'';saveGame();renderAll();renderGM();alert(`🧪 已切換測試職業：${cls}\n已解鎖8招並自動裝備前4招。\n可到戰前技能配置自由換另外4招。`);}
+const __oldRenderGMFormal=renderGM;
+renderGM=function(){__oldRenderGMFormal();if(sessionStorage.getItem('parentUnlocked')!=='1')return;const panel=document.getElementById('panel-gm');if(!panel||document.getElementById('gmFormalClassTester'))return;const card=document.createElement('div');card.id='gmFormalClassTester';card.className='card gm-class-test';card.innerHTML=`<h3>🧪 正式職業技能測試</h3><div class="small">目前：<b>${gameData.hero.jobAwakened?gameData.hero.heroClass:'初心者'}</b>｜切換只用於測招；會解鎖該職8招並裝備前4招。</div><div class="class-test-grid">${Object.keys(FORMAL_CLASS_SKILLS).map(c=>`<button class="btn ${gameData.hero.heroClass===c?'purple':'gray'}" onclick="gmTestSwitchClass('${c}')">${c}</button>`).join('')}</div><div class="small" style="margin-top:8px">⚔️戰士 Rage｜🧙法師 MP｜✝️牧師 MP+美德｜🏹獵人 Energy+弱點｜🗡️盜賊 Energy+3球｜🛡️聖騎士 MP+可驅散聖印｜🗡️✨魔劍士 Energy+MP+雙層附魔</div>`;panel.insertBefore(card,panel.children[2]||null);};
+</script>
+
+<script>
+/* ===== V10.11.1 NATURAL AWAKENING SAFETY + STRICT PARENT LOCK ===== */
+(function(){
+  // 每次重新載入頁面都鎖回家長後台；不再跨頁面工作階段保持解鎖。
+  try{ sessionStorage.removeItem('parentUnlocked'); }catch(e){}
+
+  const NATURAL_AWAKEN_SAFETY_DAYS=42; // 最晚第6週左右進入保險判定
+
+  function formalRuleByName(name){ return (JOB_RULES||[]).find(x=>x.name===name)||null; }
+  function grantFormalClassOnAwaken(cls){
+    const h=gameData.hero, list=(typeof FORMAL_CLASS_SKILLS!=='undefined'&&FORMAL_CLASS_SKILLS[cls])||[];
+    if(!h||!list.length)return;
+    const ids=list.map(x=>x.id);
+    h.knownSkills=[...new Set([...(h.knownSkills||[]),...ids])];
+    h.skills=[...new Set([...(h.skills||[]),...ids])];
+    // 自然轉職第一次直接裝備前4招；已有該職配置時不硬洗掉。
+    const current=(h.equippedSkills||[]).filter(id=>ids.includes(id));
+    if(!current.length)h.equippedSkills=ids.slice(0,4);
+  }
+  function strongestFallbackJob(){
+    const ranked=(JOB_RULES||[]).map(j=>({j,score:blendedJobScore(j),qualified:j.kind==='dual'?dualJobQualified(j):jobCoreShare(j)>=JOB_AWAKEN_CONFIG.minCoreGrowthShare}))
+      .sort((a,b)=>b.score-a.score);
+    return (ranked.find(x=>x.qualified)||ranked[0]||{}).j||null;
+  }
+  function awakeningDiagnostic(){
+    const h=gameData.hero, days=daysSinceSemesterStart(), records=(gameData.taskRecords||[]).length;
+    const candidate=currentJobCandidate(), stable=candidate?stableCandidateWeeks(candidate.name):0;
+    const safetyReady=days>=NATURAL_AWAKEN_SAFETY_DAYS&&records>=JOB_AWAKEN_CONFIG.minTaskRecords;
+    let reason='';
+    if(h?.jobAwakened)reason='已完成覺醒';
+    else if(days<JOB_AWAKEN_CONFIG.observationDays)reason=`觀察天數不足（還差 ${JOB_AWAKEN_CONFIG.observationDays-days} 天）`;
+    else if(records<JOB_AWAKEN_CONFIG.minTaskRecords)reason=`任務紀錄不足（還差 ${JOB_AWAKEN_CONFIG.minTaskRecords-records} 筆）`;
+    else if(!candidate)reason=safetyReady?'候選仍接近，已可啟動最晚覺醒保險':'候選職業尚未拉開差距';
+    else if(stable<JOB_AWAKEN_CONFIG.stableWeeks)reason=safetyReady?'候選尚未穩定，已可啟動最晚覺醒保險':`候選穩定度不足（${stable}/${JOB_AWAKEN_CONFIG.stableWeeks}週）`;
+    else reason='自然覺醒條件已滿足';
+    return {days,records,candidate,stable,safetyReady,reason,fallback:strongestFallbackJob()};
+  }
+
+  // 覆寫自然覺醒：原28天/20筆/穩定2週保留；第42天後若仍卡住，依最高實際成長分數保險覺醒。
+  evaluateHiddenJob=function(showNotice=true){
+    const h=gameData.hero;if(!h||h.jobAwakened)return false;
+    h.heroClass='見習勇者';
+    const d=awakeningDiagnostic();
+    if(d.days<JOB_AWAKEN_CONFIG.observationDays||d.records<JOB_AWAKEN_CONFIG.minTaskRecords)return false;
+    let chosen=null, safety=false;
+    const candidate=recordJobCandidateSnapshot();
+    if(candidate&&stableCandidateWeeks(candidate.name)>=JOB_AWAKEN_CONFIG.stableWeeks)chosen=candidate;
+    else if(d.days>=NATURAL_AWAKEN_SAFETY_DAYS){chosen=strongestFallbackJob();safety=!!chosen;}
+    if(!chosen)return false;
+    h.heroClass=chosen.name;h.jobAwakened=true;h.jobPassive=chosen.passive;
+    grantFormalClassOnAwaken(chosen.name);
+    saveGame();
+    if(showNotice)alert(`✨ 職業覺醒！\n${h.name} 成為【${h.heroClass}】！\n已取得該職業8個主動技能，可裝備其中4招。${safety?'\n（最晚覺醒保險判定）':''}`);
+    return true;
+  };
+
+  // 後台測試：真的跑與正式遊戲完全相同的自然覺醒判定。
+  window.gmRunNaturalAwakenTest=function(){
+    if(gameData.hero.jobAwakened){alert(`目前已是【${gameData.hero.heroClass}】。\n若要測未轉職判定，請使用測試角色/重置資料。`);return;}
+    const before=awakeningDiagnostic();
+    const ok=evaluateHiddenJob(true);
+    const after=awakeningDiagnostic();
+    if(!ok)alert(`🧪 自然覺醒判定：尚未轉職\n\n觀察：${before.days}/${JOB_AWAKEN_CONFIG.observationDays}天\n任務：${before.records}/${JOB_AWAKEN_CONFIG.minTaskRecords}筆\n候選：${before.candidate?.name||'尚未形成'}\n穩定：${before.stable}/${JOB_AWAKEN_CONFIG.stableWeeks}週\n原因：${before.reason}\n最晚保險：第${Math.ceil(NATURAL_AWAKEN_SAFETY_DAYS/7)}週左右（${NATURAL_AWAKEN_SAFETY_DAYS}天）`);
+    renderAll();
+  };
+
+  // 家長後台：只在「目前停留於後台」期間解鎖；一離開立刻失效。
+  const oldSwitchTabV1011=switchTab;
+  switchTab=function(name,btn){
+    if(name!=='gm'){
+      try{sessionStorage.removeItem('parentUnlocked');}catch(e){}
+    }
+    return oldSwitchTabV1011(name,btn);
+  };
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){
+      try{sessionStorage.removeItem('parentUnlocked');}catch(e){}
+    }
+  });
+
+  // 強化後台診斷卡 + 自然判定按鈕。
+  const renderGMV1011=renderGM;
+  renderGM=function(){
+    renderGMV1011();
+    if(sessionStorage.getItem('parentUnlocked')!=='1')return;
+    const panel=document.getElementById('panel-gm');if(!panel)return;
+    let box=document.getElementById('gmNaturalAwakenTester');
+    if(!box){box=document.createElement('div');box.id='gmNaturalAwakenTester';box.className='card';panel.insertBefore(box,panel.children[2]||null);}
+    const d=awakeningDiagnostic();
+    box.innerHTML=`<h3>🧭 自然轉職流程測試</h3>
+      <div class="small">這裡跑的是正式遊戲的覺醒判定，不是強制切職業。</div>
+      <div class="battle-debug-card" style="margin-top:8px">
+        <b>目前：${gameData.hero.jobAwakened?gameData.hero.heroClass:'見習勇者'}</b><br>
+        觀察天數：${d.days}/${JOB_AWAKEN_CONFIG.observationDays} 天<br>
+        任務紀錄：${d.records}/${JOB_AWAKEN_CONFIG.minTaskRecords} 筆<br>
+        目前候選：${d.candidate?.name||'尚未形成'}｜穩定 ${d.stable}/${JOB_AWAKEN_CONFIG.stableWeeks} 週<br>
+        判定：${d.reason}<br>
+        最晚覺醒保險：${NATURAL_AWAKEN_SAFETY_DAYS} 天後；候選仍不明時採目前最高成長職業
+      </div>
+      <button class="btn gold" onclick="gmRunNaturalAwakenTest()">🧪 立即模擬自然覺醒判定</button>`;
+  };
+})();
+</script>
 </body>
 </html>
