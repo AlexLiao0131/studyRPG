@@ -539,11 +539,11 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 /* V9.2：勇者座標修正，避免角色被場景底部裁切 */
 .hero-scene .warrior-wrap{
-  bottom:30px !important;
+  bottom:0px !important;
 }
 @media(max-width:520px){
   .hero-scene .warrior-wrap{
-    bottom:30px !important;
+    bottom:0px !important;
   }
 }
 
@@ -553,7 +553,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 /* V9.4：勇者落地＋移除殘影 */
 .hero-scene .warrior-wrap{
-  bottom:0px !important;
+  bottom:-25px !important;
   filter:none !important;
   animation:warriorBobV94 .58s steps(2,end) infinite !important;
 }
@@ -563,7 +563,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 @media(max-width:520px){
   .hero-scene .warrior-wrap{
-    bottom:0px !important;
+    bottom:-25px !important;
   }
 }
 
@@ -651,7 +651,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </style>
 
 <style>
-/* V10.11.20：勇者每個狀態只使用一張 PNG，動作由 CSS 完成 */
+/* V10.11.21：勇者單張狀態 PNG；修正副本入口四幀索引與戰鬥攻擊死當 */
 .hero-idle-css{animation:heroIdleSingle 1.8s ease-in-out infinite;transform-origin:50% 85%}
 .hero-attack-css{animation:heroAttackSingle .36s ease-out 1;transform-origin:50% 80%}
 .hero-hurt-css{animation:heroHurtSingle .32s ease-out 1}
@@ -3213,12 +3213,14 @@ async function playHeroAttackFrames(){
   const img=document.getElementById('battleHeroSprite');if(!img)return;
   if(!heroAttackFramesReady||heroAttackAssetKey!==heroAssetKey())await preloadBattleHeroFrames();
   img.src=heroSpritePath('attack');
+  img.classList.remove('hero-idle-css');
   img.classList.remove('hero-attack-css');
   void img.offsetWidth;
   img.classList.add('hero-attack-css');
-  await battleWait?.(360);
+  await battleSleep(360);
   img.src=heroSpritePath('idle');
   img.classList.remove('hero-attack-css');
+  img.classList.add('hero-idle-css');
 
 }
 
@@ -3275,10 +3277,14 @@ async function animateBattleAction(attackerSide,result){
     attacker.style.transform='';
     defender.style.transform='';
     const sprite=document.getElementById('battleHeroSprite');
-    if(sprite)sprite.src=HERO_ATTACK_FRAMES[0];
+    if(sprite){
+      sprite.src=heroSpritePath('idle');
+      sprite.classList.remove('hero-attack-css');
+      sprite.classList.add('hero-idle-css');
+    }
     if(battleStateV10?.monsterId==='hero_mirror'){
       const mirror=document.getElementById('battleEnemySprite');
-      if(mirror)mirror.src=HERO_ATTACK_FRAMES[0];
+      if(mirror)mirror.src=heroSpritePath('idle');
     }
   }
 }
@@ -3854,7 +3860,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" src="${heroSpritePath('attack')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
+    <div id="battleArena" class="battle-arena"><div class="battle-bg"></div><div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -4075,11 +4081,35 @@ function dungeonEnemyIdleFrames(monster,evt){
   return [];
 }
 function startDungeonIdleAnimation(monster,evt){
-  if(dungeonIdleTimer)clearInterval(dungeonIdleTimer);
-  const h=document.getElementById('dungeonHeroIdle'),e=document.getElementById('dungeonEnemyIdle');
-  const hf=dungeonHeroIdleFrames(),ef=dungeonEnemyIdleFrames(monster,evt);let i=0;
-  if(h)h.src=hf[0]; if(e&&ef.length)e.src=ef[0];
-  dungeonIdleTimer=setInterval(()=>{i=(i+1)%4;if(h)h.src=hf[i];if(e&&ef.length)e.src=ef[i];},260);
+  if(dungeonIdleTimer){clearInterval(dungeonIdleTimer);dungeonIdleTimer=null;}
+  const h=document.getElementById('dungeonHeroIdle');
+  const e=document.getElementById('dungeonEnemyIdle');
+  const hf=dungeonHeroIdleFrames();
+  const ef=dungeonEnemyIdleFrames(monster,evt);
+
+  // 勇者：單張 idle PNG + CSS 待機動畫，不再索引第 2/3/4 張。
+  if(h&&hf.length){
+    h.src=hf[0];
+    h.classList.add('hero-idle-css');
+  }
+
+  // 怪物仍可保留自己的多幀 idle。
+  if(e&&ef.length){
+    let enemyFrame=0;
+    e.src=ef[0];
+    if(ef.length>1){
+      dungeonIdleTimer=setInterval(()=>{
+        enemyFrame=(enemyFrame+1)%ef.length;
+        const currentEnemy=document.getElementById('dungeonEnemyIdle');
+        if(!currentEnemy){
+          clearInterval(dungeonIdleTimer);
+          dungeonIdleTimer=null;
+          return;
+        }
+        currentEnemy.src=ef[enemyFrame];
+      },260);
+    }
+  }
 }
 
 function renderDungeon(){
