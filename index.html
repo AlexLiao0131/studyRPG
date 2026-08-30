@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.51</title>
+<title>小學勇者大冒險 V10.11.52</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1150,7 +1150,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 
 
-/* V10.11.51 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
+/* V10.11.52 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
 
 /* W2 普通哥布林維持放大30% */
 .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
@@ -1308,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.51</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.52</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1399,7 +1399,7 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-/* V10.11.51：GM 測試背景獨立對照表。
+/* V10.11.52：GM 測試背景獨立對照表。
    放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
 var SEMESTER_WEEK_MAP = {
   1:{background:'images/backgrounds/week01_grassland.png'},
@@ -1450,7 +1450,7 @@ function sceneBackgroundHTML(extraClass=''){
 
 
 function heroSpritePath(state){
-  return sprite(`images/hero_${heroAssetKey()}_${state}.png`);
+  return sprite(`images/hero_${heroAssetKey()}${gameData.hero?.gender==='female'?'_female':''}_${state}.png`);
 }
 function heroIdleFrames(){
   return [heroSpritePath('idle')];
@@ -5522,7 +5522,7 @@ function renderGM(){
         <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
         <div class="card small" style="margin-top:10px">
           <strong>🔥 正式家庭共用需要的 Firestore Rules</strong>
-          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.51 隨附的 Rules 檔。</div>
+          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.52 隨附的 Rules 檔。</div>
         </div>
 
       </details>
@@ -6179,7 +6179,7 @@ window.firebaseAuthorizeParent=async(email)=>{
     alert('授權完成！\n\n請對方在自己的手機設定 Firebase 後，使用 '+email+' 登入 Google。\n系統會自動加入這個家庭。');
   }catch(e){
     console.error(e);
-    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.51 Firestore Rules。');
+    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.52 Firestore Rules。');
   }
 };
 window.firebaseGoogleLogin=async()=>{
