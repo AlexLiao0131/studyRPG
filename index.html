@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.55</title>
+<title>小學勇者大冒險 V10.11.56</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1308,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.55</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.56</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -2690,11 +2690,30 @@ function approveCoupon(reqId,approved){
   if(inv)inv.status=approved?'used':'unused';
   saveGame();renderAll();
 }
+function isDungeonBattleEvent(e){
+  if(!e||e.active===false)return false;
+  // start / end / holiday 是學期流程或日曆事件，不能取代當日週怪。
+  // 期中、期末走動態 Boss 公式；special 只有明確設定戰力時才是戰鬥事件。
+  if(e.type==='midterm'||e.type==='final')return true;
+  if(e.type==='special')return Number(e.power)>0;
+  return e.battle===true||e.isBattle===true;
+}
 function getTodayEvent(){
-  return gameData.events.find(e=>e.date===today()&&e.active!==false)||null;
+  return gameData.events.find(e=>e.date===today()&&isDungeonBattleEvent(e))||null;
 }
 function ensureDailyDungeon(){
-  if(gameData.dailyDungeon.date===today())return;
+  if(gameData.dailyDungeon.date===today()){
+    // V10.11.55 曾把開學 start 事件存成今日副本；升版後立即自動修復，
+    // 不要求玩家清 Firebase、重建角色或等到隔日重置。
+    const savedEvent=gameData.dailyDungeon.eventId
+      ?gameData.events.find(e=>e.id===gameData.dailyDungeon.eventId)
+      :null;
+    if(!gameData.dailyDungeon.eventId||isDungeonBattleEvent(savedEvent))return;
+    const name=generatedMonsterName();
+    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:false,result:'',drop:null,eventId:'',generatedName:name};
+    saveGame();
+    return;
+  }
   const evt=getTodayEvent();
   if(evt){
     gameData.dailyDungeon={date:today(),monsterId:'',challenged:false,result:'',drop:null,eventId:evt.id,generatedName:evt.name};
@@ -3569,7 +3588,10 @@ function actualVsExpectedStatus(monsterPower){
 }
 
 function resolvedDungeonPower(evt,monster){
-  if(evt)return Math.max(1,Number(evt.power)||eventSuggestedPower(evt.type||'midterm'));
+  // 期中／期末 Boss 一律採現行學期動態公式，不再讀舊事件固定 power。
+  if(evt?.type==='midterm'||evt?.type==='final')return eventSuggestedPower(evt.type);
+  // 其他明確戰鬥事件（例如校慶）仍可使用後台指定戰力。
+  if(evt&&isDungeonBattleEvent(evt))return Math.max(1,Number(evt.power)||calibratedDailyMonsterPower());
   if(gameData.dailyDungeon?.monsterId==='AUTO')return calibratedDailyMonsterPower();
   if(monster?.power!==undefined)return Math.max(1,Number(monster.power)||1);
   // 自訂怪物若沒有明確 power，也回到校正版每日曲線。
