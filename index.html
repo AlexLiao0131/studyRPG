@@ -1236,6 +1236,52 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .battle-summon-layer .enemy-unit-3{right:72% !important;bottom:42px !important;}
 }
 
+
+/* V10.11.42：W2 哥布林座標校正
+   原則：尺寸維持 V10.11.41，只改 XY。
+   普通哥布林 Y 參考 W1 普通史萊姆；哥布林王 Y 參考大史萊姆王。
+   召喚哥布林往 Boss 側收，不再貼近勇者。 */
+
+/* W2 週一～週四普通哥布林：往下落地，沿用普通史萊姆基準 */
+.battle-enemy .monster-family-goblin:not(.monster-id-goblin_king).enemy-unit-0{
+  right:0 !important;
+  bottom:0 !important;
+}
+
+/* 哥布林王：取消 V10.11.40/41 對圖片本身額外加的 bottom:42。
+   Boss 容器本身已有史萊姆王的 bottom:42，因此圖片底部應為 0，
+   否則會被重複往上推 42px。 */
+.battle-enemy .monster-id-goblin_king.enemy-unit-0{
+  right:0 !important;
+  bottom:0 !important;
+}
+
+/* 召喚哥布林全部往右移，集中在 Boss 與畫面中央之間 */
+.battle-summon-layer .enemy-unit-1{
+  right:28% !important;
+  bottom:0 !important;
+}
+.battle-summon-layer .enemy-unit-2{
+  right:43% !important;
+  bottom:0 !important;
+}
+.battle-summon-layer .enemy-unit-3{
+  right:56% !important;
+  bottom:0 !important;
+}
+
+@media(max-width:600px){
+  .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king).enemy-unit-0{
+    bottom:0 !important;
+  }
+  .battle-enemy .monster-id-goblin_king.enemy-unit-0{
+    bottom:0 !important;
+  }
+  .battle-summon-layer .enemy-unit-1{right:25% !important;bottom:0 !important;}
+  .battle-summon-layer .enemy-unit-2{right:43% !important;bottom:0 !important;}
+  .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:0 !important;}
+}
+
 </style>
 
 <style>
