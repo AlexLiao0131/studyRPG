@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.49</title>
+<title>小學勇者大冒險 V10.11.50</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1150,7 +1150,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 
 
-/* V10.11.49 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
+/* V10.11.50 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
 
 /* W2 普通哥布林維持放大30% */
 .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
@@ -1308,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.49</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.50</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1322,7 +1322,19 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
     <input type="hidden" id="setupGender" value="male">
     <div id="cloudFirstLoginBox" class="card" style="margin-top:10px;border:1px solid #58a6ff">
       <strong>☁️ 已經在其他裝置玩過？</strong>
-      <div class="small" style="margin:6px 0 8px">先用同一個 Google 帳號登入，會優先取回雲端角色，不需要在這台裝置重新建立。</div>
+      <div class="small" style="margin:6px 0 8px">先連接 Firebase，再用同一個 Google 帳號登入，就能取回雲端角色。</div>
+
+      <details id="firstRunFirebaseSetup" style="margin:8px 0">
+        <summary>⚙️ 第一次使用：設定 Firebase</summary>
+        <label>API Key</label><input id="setupFbApiKey" value="${gameData.settings.cloud?.apiKey||''}">
+        <label>Auth Domain</label><input id="setupFbAuthDomain" value="${gameData.settings.cloud?.authDomain||''}">
+        <label>Project ID</label><input id="setupFbProjectId" value="${gameData.settings.cloud?.projectId||''}">
+        <label>Storage Bucket</label><input id="setupFbStorageBucket" value="${gameData.settings.cloud?.storageBucket||''}">
+        <label>Messaging Sender ID</label><input id="setupFbSenderId" value="${gameData.settings.cloud?.messagingSenderId||''}">
+        <label>App ID</label><input id="setupFbAppId" value="${gameData.settings.cloud?.appId||''}">
+        <button class="btn purple" style="width:100%" onclick="saveSetupCloudConfig()">儲存 Firebase 設定</button>
+      </details>
+
       <button class="btn blue" style="width:100%" onclick="window.firebaseGoogleLogin&&window.firebaseGoogleLogin()">使用 Google 登入／取回角色</button>
       <div id="setupCloudStatus" class="small" style="margin-top:7px"></div>
     </div>
@@ -1387,7 +1399,7 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-/* V10.11.49：GM 測試背景獨立對照表。
+/* V10.11.50：GM 測試背景獨立對照表。
    放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
 var SEMESTER_WEEK_MAP = {
   1:{background:'images/backgrounds/week01_grassland.png'},
@@ -5511,7 +5523,7 @@ function renderGM(){
         <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
         <div class="card small" style="margin-top:10px">
           <strong>🔥 正式家庭共用需要的 Firestore Rules</strong>
-          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.49 隨附的 Rules 檔。</div>
+          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.50 隨附的 Rules 檔。</div>
         </div>
 
       </details>
@@ -5525,6 +5537,32 @@ function renderGM(){
 }
 setTimeout(refreshTaskBalancePreview,0);
 
+
+function saveSetupCloudConfig(){
+  const c=gameData.settings.cloud||{};
+  c.apiKey=document.getElementById('setupFbApiKey')?.value.trim()||'';
+  c.authDomain=document.getElementById('setupFbAuthDomain')?.value.trim()||'';
+  c.projectId=document.getElementById('setupFbProjectId')?.value.trim()||'';
+  c.storageBucket=document.getElementById('setupFbStorageBucket')?.value.trim()||'';
+  c.messagingSenderId=document.getElementById('setupFbSenderId')?.value.trim()||'';
+  c.appId=document.getElementById('setupFbAppId')?.value.trim()||'';
+  c.enabled=!!(c.apiKey&&c.authDomain&&c.projectId&&c.appId);
+  familyData.profiles.forEach(p=>{
+    if(!p.data.settings)p.data.settings={parentPinHash:'',cloud:{}};
+    p.data.settings.cloud={...c};
+  });
+  gameData.settings.cloud=c;
+  persistFamily();
+
+  const ss=document.getElementById('setupCloudStatus');
+  if(!c.enabled){
+    if(ss)ss.textContent='⚠️ Firebase 設定不完整，請確認 API Key、Auth Domain、Project ID、App ID。';
+    return;
+  }
+
+  if(ss)ss.textContent='✅ Firebase 設定已儲存，現在可以按 Google 登入。';
+  if(!fb)initFirebase();
+}
 function saveCloudConfig(){
   const c=gameData.settings.cloud||{};
   c.apiKey=document.getElementById('fbApiKey').value.trim();
@@ -5883,8 +5921,8 @@ function boot(){
     const ss=document.getElementById('setupCloudStatus');
     if(ss){
       ss.textContent=gameData.settings?.cloud?.enabled
-        ? '☁️ Firebase 已設定，可先登入取回其他裝置的角色'
-        : 'ℹ️ 這台裝置尚未設定 Firebase；第一次使用才需要建立新勇者';
+        ? '✅ Firebase 已設定，可以直接按 Google 登入／取回角色'
+        : '⚙️ 第一次使用請先展開「設定 Firebase」，儲存後再 Google 登入';
     }
   }else{
     document.getElementById('heroSetup').style.display='none';
