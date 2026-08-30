@@ -1148,6 +1148,94 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   }
 }
 
+
+/* V10.11.41：W2 哥布林再放大30% + Boss召喚物獨立顯示層 */
+
+/* 普通哥布林：280 -> 364 */
+.battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
+  width:364px !important;
+  height:364px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+
+/* 副本入口普通哥布林：約 +30% */
+#dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite):not(.monster-id-goblin_king){
+  width:299px !important;
+  height:273px !important;
+  max-width:none !important;
+  max-height:none !important;
+}
+
+/* 召喚物獨立於 Boss 容器，避免被 Boss 450px 圖或 battle-enemy 版面吃掉 */
+.battle-summon-layer{
+  position:absolute !important;
+  inset:0 !important;
+  z-index:4 !important;
+  pointer-events:none !important;
+  overflow:visible !important;
+}
+.battle-summon-layer .battle-enemy-unit-sprite{
+  position:absolute !important;
+  width:247px !important;   /* 190 x 1.30 */
+  height:247px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+  image-rendering:pixelated;
+  transform-origin:center bottom;
+}
+.battle-summon-layer .enemy-unit-1{
+  right:37% !important;
+  bottom:54px !important;
+  z-index:5 !important;
+}
+.battle-summon-layer .enemy-unit-2{
+  right:58% !important;
+  bottom:54px !important;
+  z-index:6 !important;
+}
+.battle-summon-layer .enemy-unit-3{
+  right:72% !important;
+  bottom:54px !important;
+  z-index:7 !important;
+}
+
+/* 哥布林王維持之前指定：與大史萊姆王相同，不跟著 +30% */
+.battle-enemy .monster-id-goblin_king{
+  width:450px !important;
+  height:450px !important;
+  max-width:none !important;
+  max-height:none !important;
+  bottom:42px !important;
+}
+#dungeonEnemyIdle.monster-id-goblin_king{
+  width:310px !important;
+  height:270px !important;
+  bottom:-14px !important;
+}
+
+@media(max-width:600px){
+  .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
+    width:267px !important;
+    height:267px !important;
+  }
+  #dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite):not(.monster-id-goblin_king){
+    width:228px !important;
+    height:208px !important;
+  }
+  .battle-summon-layer .battle-enemy-unit-sprite{
+    width:176px !important;
+    height:176px !important;
+  }
+  .battle-summon-layer .enemy-unit-1{right:34% !important;bottom:42px !important;}
+  .battle-summon-layer .enemy-unit-2{right:57% !important;bottom:42px !important;}
+  .battle-summon-layer .enemy-unit-3{right:72% !important;bottom:42px !important;}
+}
+
 </style>
 
 <style>
@@ -4131,9 +4219,17 @@ function battleEnemyUnitSpriteHTML(unit,index=0){
 function renderBattleEnemySprites(){
   if(!battleStateV10)return;
   const box=document.getElementById('battleChar_enemy');
+  const summonLayer=document.getElementById('battleSummonLayer');
   if(!box)return;
+
   const living=(battleStateV10.enemies||[]).filter(u=>u.alive!==false&&u.hp>0);
-  box.innerHTML=living.map((u,i)=>battleEnemyUnitSpriteHTML(u,i)).join('');
+  const primary=living.find(u=>!u.isSummon)||living[0]||null;
+  const summons=living.filter(u=>u.isSummon);
+
+  box.innerHTML=primary?battleEnemyUnitSpriteHTML(primary,0):'';
+  if(summonLayer){
+    summonLayer.innerHTML=summons.map((u,i)=>battleEnemyUnitSpriteHTML(u,i+1)).join('');
+  }
 }
 
 function renderBattleTargets(){
@@ -4428,7 +4524,8 @@ function applyBattleStartMonsterMechanics(){
 
 function battleEnemyVisualHTML(enemyIcon){
   const living=(battleStateV10?.enemies||[]).filter(u=>u.alive!==false&&u.hp>0);
-  if(living.length)return living.map((u,i)=>battleEnemyUnitSpriteHTML(u,i)).join('');
+  const primary=living.find(u=>!u.isSummon)||living[0]||null;
+  if(primary)return battleEnemyUnitSpriteHTML(primary,0);
   return `<div class="enemy-glyph">${enemyIcon}</div>`;
 }
 function syncMirrorHeroVisual(){
@@ -4443,7 +4540,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena">${sceneBackgroundHTML("battle-scene-background")}<div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div></div>
+    <div id="battleArena" class="battle-arena">${sceneBackgroundHTML("battle-scene-background")}<div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div><div id="battleSummonLayer" class="battle-summon-layer"></div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
