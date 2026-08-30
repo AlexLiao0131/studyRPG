@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.52</title>
+<title>小學勇者大冒險 V10.11.53</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1150,7 +1150,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 
 
-/* V10.11.52 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
+/* V10.11.53 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
 
 /* W2 普通哥布林維持放大30% */
 .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
@@ -1308,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.52</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.53</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1399,7 +1399,7 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-/* V10.11.52：GM 測試背景獨立對照表。
+/* V10.11.53：GM 測試背景獨立對照表。
    放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
 var SEMESTER_WEEK_MAP = {
   1:{background:'images/backgrounds/week01_grassland.png'},
@@ -2086,23 +2086,91 @@ function renderParentLock(){
     <input id="parentPinInput" type="password" inputmode="numeric" placeholder="••••">
     <button class="btn gold big-battle-btn" onclick="parentUnlock()">解鎖</button></div>`;
 }
-function getSemesterMilestones(){
-  return gameData.events.filter(e=>['start','midterm','special','final','end'].includes(e.type))
-    .sort((a,b)=>a.date.localeCompare(b.date));
+function ensureAdventureCalendar(){
+  if(!familyData.adventureCalendar)familyData.adventureCalendar=[];
+  familyData.adventureCalendar.forEach(e=>{
+    e.id=e.id||uid(); e.date=e.date||today(); e.name=e.name||'未命名事件';
+    e.type=e.type||'general'; e.allDay=e.allDay!==false;
+    e.startTime=e.startTime||''; e.endTime=e.endTime||'';
+    e.note=e.note||''; e.reminderMinutes=Number(e.reminderMinutes)||0;
+    e.targetType=e.targetType||'all'; e.targetProfileIds=Array.isArray(e.targetProfileIds)?e.targetProfileIds:[];
+    e.requireComplete=e.requireComplete!==false;
+    e.completedBy=e.completedBy||{};
+    e.creatorProfileId=e.creatorProfileId||'parent';
+    e.creatorRole=e.creatorRole||'parent';
+  });
+}
+function calendarVisibleTo(e,pid=activeProfileId){
+  return e.targetType==='all'||(e.targetType==='selected'&&(e.targetProfileIds||[]).includes(pid));
+}
+function eventEndDateTime(e){
+  if(e.allDay||!e.endTime)return new Date(e.date+'T23:59:59');
+  return new Date(e.date+'T'+e.endTime+':00');
+}
+function calendarEventStatus(e,pid=activeProfileId){
+  if(!e.requireComplete)return 'info';
+  if(e.completedBy?.[pid])return 'done';
+  return Date.now()>eventEndDateTime(e).getTime()?'overdue':'pending';
+}
+function calendarTypeIcon(t){
+  return ({exam:'📚',school:'🏫',sport:'⚽',activity:'🎉',todo:'📌',midterm:'👿',final:'🐉',general:'⭐'})[t]||'📌';
+}
+function calendarTimeText(e){
+  if(e.allDay)return '全天';
+  if(e.startTime&&e.endTime)return `${e.startTime}～${e.endTime}`;
+  return e.startTime||'';
 }
 function renderSemesterTimeline(){
-  const list=getSemesterMilestones(),td=today();
-  const idx=list.findIndex(e=>e.date>=td);
-  if(!list.length)return '';
-  return `<div class="card"><h3>🗺️ 學期冒險</h3><div class="timeline">${
-    list.map((e,i)=>{
-      const icon=e.type==='midterm'?'👿':e.type==='final'?'🐉':e.type==='special'?'🎪':e.type==='end'?'🏆':'🌱';
-      const short=e.type==='midterm'?'期中魔王':e.type==='final'?'期末惡龍':e.type==='special'?'校慶':e.type==='end'?'學期結算':'開學';
-      return `${i?'<div class="timeline-line"></div>':''}<div class="timeline-node ${i===idx?'current':''}"><div class="icon">${icon}</div><div>${short}</div><div class="date">${e.date.slice(5).replace('-','/')}</div></div>`;
-    }).join('')
-  }</div></div>`;
+  ensureAdventureCalendar();
+  const visible=familyData.adventureCalendar.filter(e=>calendarVisibleTo(e)).sort((a,b)=>(a.date+(a.startTime||'')).localeCompare(b.date+(b.startTime||'')));
+  const overdue=visible.filter(e=>calendarEventStatus(e)==='overdue').length;
+  const upcoming=visible.filter(e=>e.date>=today()).slice(0,8);
+  const late=visible.filter(e=>calendarEventStatus(e)==='overdue').slice(-4);
+  const list=[...late,...upcoming.filter(x=>!late.some(y=>y.id===x.id))].slice(0,10);
+  return `<div class="card"><h3>🗺️ 學期冒險 ${overdue?`<span class="pill bad">❗${overdue} 件未完成</span>`:''}</h3>
+    <div class="small" style="margin-bottom:8px">點事件可看細節、完成或修改自己的行程。</div>
+    <div class="timeline">${list.length?list.map((e,i)=>{
+      const st=calendarEventStatus(e),mark=st==='done'?'✓':st==='overdue'?'❗':'';
+      return `${i?'<div class="timeline-line"></div>':''}<div class="timeline-node ${st==='overdue'?'current':''}" onclick="openCalendarEvent('${e.id}')" style="cursor:pointer">
+        <div class="icon">${calendarTypeIcon(e.type)}</div><div>${mark} ${e.name}</div>
+        <div class="date">${e.date.slice(5).replace('-','/')} ${calendarTimeText(e)}</div></div>`;
+    }).join(''):'<div class="small">目前沒有行程。孩子也可以新增自己的行程。</div>'}</div>
+    <button class="btn blue" style="margin-top:10px" onclick="kidAddCalendarEvent()">＋ 我的行程</button>
+  </div>`;
 }
-
+function findCalendarEvent(id){ensureAdventureCalendar();return familyData.adventureCalendar.find(e=>e.id===id);}
+function openCalendarEvent(id){
+  const e=findCalendarEvent(id);if(!e)return;
+  const st=calendarEventStatus(e),mine=e.creatorRole==='child'&&e.creatorProfileId===activeProfileId;
+  const target=e.targetType==='all'?'所有孩子':(e.targetProfileIds||[]).map(id=>familyData.profiles.find(p=>p.id===id)?.data?.hero?.name||id).join('、');
+  const msg=`${calendarTypeIcon(e.type)} ${e.name}\n日期：${e.date}\n時間：${calendarTimeText(e)}\n對象：${target}\n狀態：${st==='done'?'已完成':st==='overdue'?'逾期未完成':e.requireComplete?'待完成':'一般事件'}${e.note?'\n\n附註：'+e.note:''}`;
+  if(confirm(msg+'\n\n按「確定」切換完成狀態；按「取消」只關閉。')){
+    if(e.requireComplete){e.completedBy[activeProfileId]=!e.completedBy[activeProfileId];persistFamily();renderAll();}
+  }
+  if(mine&&confirm('要修改這個自己建立的行程嗎？'))kidEditCalendarEvent(id);
+}
+function kidAddCalendarEvent(){
+  ensureAdventureCalendar();
+  const name=prompt('行程名稱');if(!name)return;
+  const date=prompt('日期 YYYY-MM-DD',today());if(!date)return;
+  const startTime=prompt('開始時間 HH:MM（全天請留空）','')||'';
+  const endTime=startTime?(prompt('結束時間 HH:MM','')||''):'';
+  const note=prompt('附註（可留空）','')||'';
+  familyData.adventureCalendar.push({id:uid(),date,name:name.trim(),type:'general',allDay:!startTime,startTime,endTime,note,
+    reminderMinutes:0,targetType:'selected',targetProfileIds:[activeProfileId],requireComplete:true,completedBy:{},
+    creatorRole:'child',creatorProfileId:activeProfileId});
+  persistFamily();renderAll();
+}
+function kidEditCalendarEvent(id){
+  const e=findCalendarEvent(id);if(!e||e.creatorRole!=='child'||e.creatorProfileId!==activeProfileId)return;
+  const name=prompt('修改名稱',e.name);if(name===null)return;
+  const date=prompt('修改日期 YYYY-MM-DD',e.date);if(!date)return;
+  const startTime=prompt('開始時間 HH:MM（全天留空）',e.startTime||'')||'';
+  const endTime=startTime?(prompt('結束時間 HH:MM',e.endTime||'')||''):'';
+  const note=prompt('附註',e.note||''); if(note===null)return;
+  Object.assign(e,{name:name.trim()||e.name,date,startTime,endTime,allDay:!startTime,note});
+  persistFamily();renderAll();
+}
 
 
 function daysBetween(a,b){
@@ -4769,6 +4837,24 @@ function exportLearningCSV(){
   document.body.appendChild(a);a.click();a.remove();
   URL.revokeObjectURL(url);
 }
+
+function checkAdventureCalendarReminders(){
+  ensureAdventureCalendar();
+  const now=new Date(),day=today();
+  familyData.calendarReminderSeen=familyData.calendarReminderSeen||{};
+  const due=familyData.adventureCalendar.filter(e=>{
+    if(!calendarVisibleTo(e)||calendarEventStatus(e)==='done'||!e.reminderMinutes)return false;
+    const when=new Date(e.date+'T'+(e.allDay?'09:00':(e.startTime||'09:00'))+':00');
+    const remindAt=new Date(when.getTime()-e.reminderMinutes*60000);
+    const key=activeProfileId+'|'+e.id+'|'+day;
+    return now>=remindAt&&now<=when&&!familyData.calendarReminderSeen[key];
+  });
+  if(due.length){
+    due.forEach(e=>familyData.calendarReminderSeen[activeProfileId+'|'+e.id+'|'+day]=true);
+    persistFamily();
+    setTimeout(()=>alert('📅 行事曆提醒\n\n'+due.map(e=>`${e.date} ${calendarTimeText(e)}｜${e.name}`).join('\n')),80);
+  }
+}
 function renderHero(){
   const h=gameData.hero;
   const xpPct=Math.min(100,h.exp/h.maxExp*100);
@@ -4826,6 +4912,7 @@ function renderHero(){
     ${renderSemesterTimeline()}`;
   startStatusClock();
   startHeroIdleAnimation();
+  checkAdventureCalendarReminders();
 }
 function renderTasks(){
   let html='<h2>📚 今日任務</h2>';
@@ -5150,6 +5237,39 @@ function addSemesterEvent(){
   saveGame();renderGM();
 }
 
+
+let gmEditingCalendarId='';
+function gmCalendarTargetsHTML(selected=[]){
+  return familyData.profiles.map(p=>`<label style="display:block"><input type="checkbox" class="gmCalTarget" value="${p.id}" ${selected.includes(p.id)?'checked':''}> ${p.data.hero?.gender==='female'?'👧':'👦'} ${p.data.hero?.name||p.label}</label>`).join('');
+}
+function gmSaveCalendarEvent(){
+  ensureAdventureCalendar();
+  const id=gmEditingCalendarId;
+  const date=document.getElementById('gmCalDate')?.value;
+  const name=(document.getElementById('gmCalName')?.value||'').trim();
+  if(!date||!name){alert('請填日期與事件名稱');return;}
+  const allDay=document.getElementById('gmCalAllDay')?.checked;
+  const targetType=document.getElementById('gmCalTargetType')?.value||'all';
+  const targets=[...document.querySelectorAll('.gmCalTarget:checked')].map(x=>x.value);
+  if(targetType==='selected'&&!targets.length){alert('請至少選一個孩子');return;}
+  const data={date,name,type:document.getElementById('gmCalType')?.value||'general',allDay,
+    startTime:allDay?'':(document.getElementById('gmCalStart')?.value||''),
+    endTime:allDay?'':(document.getElementById('gmCalEnd')?.value||''),
+    note:(document.getElementById('gmCalNote')?.value||'').trim(),
+    reminderMinutes:Number(document.getElementById('gmCalReminder')?.value)||0,
+    targetType,targetProfileIds:targetType==='all'?[]:targets,
+    requireComplete:!!document.getElementById('gmCalRequire')?.checked};
+  if(id){Object.assign(findCalendarEvent(id),data);}
+  else familyData.adventureCalendar.push({id:uid(),...data,completedBy:{},creatorRole:'parent',creatorProfileId:'parent'});
+  gmEditingCalendarId='';persistFamily();renderGM();renderHero();
+}
+function gmEditCalendarEvent(id){gmEditingCalendarId=id;renderGM();setTimeout(()=>document.getElementById('gmCalendarEditor')?.scrollIntoView({behavior:'smooth'}),20);}
+function gmDeleteCalendarEvent(id){
+  if(!confirm('刪除這個行事曆事件？'))return;
+  ensureAdventureCalendar();familyData.adventureCalendar=familyData.adventureCalendar.filter(e=>e.id!==id);
+  if(gmEditingCalendarId===id)gmEditingCalendarId='';persistFamily();renderGM();renderHero();
+}
+function gmCancelCalendarEdit(){gmEditingCalendarId='';renderGM();}
 function renderGM(){
   repairRuntimeData();
   if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
@@ -5163,7 +5283,9 @@ function renderGM(){
   }).join('');
   const shopList=gameData.shopItems.map(i=>`<div class="card"><strong>${i.name}</strong><div class="small">${i.price} G</div><button class="btn red" onclick="deleteShopItem('${i.id}')">刪除</button></div>`).join('');
   const reqList=gameData.couponRequests.filter(r=>r.status==='pending').map(r=>`<div class="card"><strong>${r.itemName}</strong><button class="btn" onclick="approveCoupon('${r.id}',true)">核准並核銷</button> <button class="btn red" onclick="approveCoupon('${r.id}',false)">退回</button></div>`).join('')||'<div class="small">目前沒有待審核兌換券。</div>';
-  const eventList=gameData.events.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`<div class="card"><strong>${e.date}｜${e.name}</strong><div class="small">${e.type==='final'?'期末惡龍':'期中 Boss'}｜戰力 ${e.power}</div><button class="btn red" onclick="deleteEvent('${e.id}')">刪除</button></div>`).join('')||'<div class="small">尚未設定考試事件。</div>';
+  ensureAdventureCalendar();
+  const editCal=gmEditingCalendarId?findCalendarEvent(gmEditingCalendarId):null;
+  const eventList=familyData.adventureCalendar.slice().sort((a,b)=>(a.date+(a.startTime||'')).localeCompare(b.date+(b.startTime||''))).map(e=>`<div class="card"><strong>${calendarTypeIcon(e.type)} ${e.date}｜${e.name}</strong><div class="small">${calendarTimeText(e)}｜${e.targetType==='all'?'所有孩子':'指定角色'}｜提醒 ${e.reminderMinutes?e.reminderMinutes+' 分鐘前':'關閉'}</div><button class="btn blue" onclick="gmEditCalendarEvent('${e.id}')">修改</button> <button class="btn red" onclick="gmDeleteCalendarEvent('${e.id}')">刪除</button></div>`).join('')||'<div class="small">尚未新增行事曆事件。</div>';
 
   document.getElementById('panel-gm').innerHTML=`
     <h2>🛠️ 家長控制後台</h2>
@@ -5378,19 +5500,25 @@ function renderGM(){
       <button class="btn gold" onclick="gmAddMonster()">新增怪物</button>
     </div>
 
-    <div class="card">
-      <h3>📅 新增考試 Boss</h3>
+    <div class="card" id="gmCalendarEditor">
+      <h3>📅 ${editCal?'修改':'新增'}冒險行事曆事件</h3>
       <div class="grid2">
-        <div><label>日期</label><input id="gmEventDate" type="date"></div>
-        <div><label>類型</label><select id="gmEventType"><option value="midterm">期中大魔王</option><option value="final">期末惡龍</option></select></div>
+        <div><label>日期</label><input id="gmCalDate" type="date" value="${editCal?.date||''}"></div>
+        <div><label>類型</label><select id="gmCalType">
+          ${[['general','一般'],['exam','考試'],['school','學校活動'],['sport','運動/比賽'],['activity','特別活動'],['todo','待辦'],['midterm','期中 Boss'],['final','期末 Boss']].map(([v,n])=>`<option value="${v}" ${editCal?.type===v?'selected':''}>${n}</option>`).join('')}
+        </select></div>
       </div>
-      <label>Boss 名稱</label><input id="gmEventName" placeholder="期中大魔王 / 學期終焉之龍">
-      <div class="grid3">
-        <div><label>戰力</label><input id="gmEventPower" type="number" value="200"></div>
-        <div><label>金幣</label><input id="gmEventGold" type="number" value="100"></div>
-        <div><label>EXP</label><input id="gmEventExp" type="number" value="100"></div>
+      <label>事件名稱</label><input id="gmCalName" value="${editCal?.name||''}" placeholder="例如：英文小考">
+      <label><input id="gmCalAllDay" type="checkbox" ${!editCal||editCal.allDay?'checked':''}> 全天事件</label>
+      <div class="grid2"><div><label>開始時間</label><input id="gmCalStart" type="time" value="${editCal?.startTime||''}"></div><div><label>結束時間</label><input id="gmCalEnd" type="time" value="${editCal?.endTime||''}"></div></div>
+      <label>附註</label><textarea id="gmCalNote" rows="3" placeholder="考試範圍、要帶的東西、集合地點……">${editCal?.note||''}</textarea>
+      <div class="grid2">
+        <div><label>提前提醒</label><select id="gmCalReminder">${[[0,'不提醒'],[10,'10 分鐘'],[30,'30 分鐘'],[60,'1 小時'],[1440,'1 天'],[4320,'3 天'],[10080,'7 天']].map(([v,n])=>`<option value="${v}" ${Number(editCal?.reminderMinutes||0)===v?'selected':''}>${n}</option>`).join('')}</select></div>
+        <div><label>顯示對象</label><select id="gmCalTargetType"><option value="all" ${!editCal||editCal.targetType==='all'?'selected':''}>所有孩子</option><option value="selected" ${editCal?.targetType==='selected'?'selected':''}>指定孩子</option></select></div>
       </div>
-      <button class="btn purple" onclick="gmAddEvent()">加入冒險日曆</button>
+      <div class="card small"><strong>指定孩子</strong>${gmCalendarTargetsHTML(editCal?.targetProfileIds||[])}</div>
+      <label><input id="gmCalRequire" type="checkbox" ${!editCal||editCal.requireComplete?'checked':''}> 需要完成確認（過期未勾會顯示 ❗）</label>
+      <div><button class="btn purple" onclick="gmSaveCalendarEvent()">${editCal?'儲存修改':'加入冒險日曆'}</button>${editCal?' <button class="btn gray" onclick="gmCancelCalendarEdit()">取消修改</button>':''}</div>
     </div>
     <div class="card"><h3>冒險日曆</h3>${eventList}</div>
 
@@ -5522,7 +5650,7 @@ function renderGM(){
         <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
         <div class="card small" style="margin-top:10px">
           <strong>🔥 正式家庭共用需要的 Firestore Rules</strong>
-          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.52 隨附的 Rules 檔。</div>
+          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.53 隨附的 Rules 檔。</div>
         </div>
 
       </details>
@@ -6179,7 +6307,7 @@ window.firebaseAuthorizeParent=async(email)=>{
     alert('授權完成！\n\n請對方在自己的手機設定 Firebase 後，使用 '+email+' 登入 Google。\n系統會自動加入這個家庭。');
   }catch(e){
     console.error(e);
-    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.52 Firestore Rules。');
+    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.53 Firestore Rules。');
   }
 };
 window.firebaseGoogleLogin=async()=>{
