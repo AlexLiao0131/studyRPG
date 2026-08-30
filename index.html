@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.53</title>
+<title>小學勇者大冒險 V10.11.54</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1150,7 +1150,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 
 
-/* V10.11.53 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
+/* V10.11.54 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
 
 /* W2 普通哥布林維持放大30% */
 .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
@@ -1308,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.53</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.54</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1399,7 +1399,7 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-/* V10.11.53：GM 測試背景獨立對照表。
+/* V10.11.54：GM 測試背景獨立對照表。
    放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
 var SEMESTER_WEEK_MAP = {
   1:{background:'images/backgrounds/week01_grassland.png'},
@@ -2145,7 +2145,7 @@ function openCalendarEvent(id){
   const target=e.targetType==='all'?'所有孩子':(e.targetProfileIds||[]).map(id=>familyData.profiles.find(p=>p.id===id)?.data?.hero?.name||id).join('、');
   const msg=`${calendarTypeIcon(e.type)} ${e.name}\n日期：${e.date}\n時間：${calendarTimeText(e)}\n對象：${target}\n狀態：${st==='done'?'已完成':st==='overdue'?'逾期未完成':e.requireComplete?'待完成':'一般事件'}${e.note?'\n\n附註：'+e.note:''}`;
   if(confirm(msg+'\n\n按「確定」切換完成狀態；按「取消」只關閉。')){
-    if(e.requireComplete){e.completedBy[activeProfileId]=!e.completedBy[activeProfileId];persistFamily();renderAll();}
+    if(e.requireComplete){e.completedBy[activeProfileId]=!e.completedBy[activeProfileId];persistCalendarChange();renderAll();}
   }
   if(mine&&confirm('要修改這個自己建立的行程嗎？'))kidEditCalendarEvent(id);
 }
@@ -2159,7 +2159,7 @@ function kidAddCalendarEvent(){
   familyData.adventureCalendar.push({id:uid(),date,name:name.trim(),type:'general',allDay:!startTime,startTime,endTime,note,
     reminderMinutes:0,targetType:'selected',targetProfileIds:[activeProfileId],requireComplete:true,completedBy:{},
     creatorRole:'child',creatorProfileId:activeProfileId});
-  persistFamily();renderAll();
+  persistCalendarChange();renderAll();
 }
 function kidEditCalendarEvent(id){
   const e=findCalendarEvent(id);if(!e||e.creatorRole!=='child'||e.creatorProfileId!==activeProfileId)return;
@@ -2169,7 +2169,7 @@ function kidEditCalendarEvent(id){
   const endTime=startTime?(prompt('結束時間 HH:MM',e.endTime||'')||''):'';
   const note=prompt('附註',e.note||''); if(note===null)return;
   Object.assign(e,{name:name.trim()||e.name,date,startTime,endTime,allDay:!startTime,note});
-  persistFamily();renderAll();
+  persistCalendarChange();renderAll();
 }
 
 
@@ -5238,6 +5238,10 @@ function addSemesterEvent(){
 }
 
 
+function persistCalendarChange(){
+  persistFamily();
+  if(window.cloudSaveGame) Promise.resolve(window.cloudSaveGame()).catch(e=>console.warn('calendar cloud save failed',e));
+}
 let gmEditingCalendarId='';
 function gmCalendarTargetsHTML(selected=[]){
   return familyData.profiles.map(p=>`<label style="display:block"><input type="checkbox" class="gmCalTarget" value="${p.id}" ${selected.includes(p.id)?'checked':''}> ${p.data.hero?.gender==='female'?'👧':'👦'} ${p.data.hero?.name||p.label}</label>`).join('');
@@ -5261,13 +5265,13 @@ function gmSaveCalendarEvent(){
     requireComplete:!!document.getElementById('gmCalRequire')?.checked};
   if(id){Object.assign(findCalendarEvent(id),data);}
   else familyData.adventureCalendar.push({id:uid(),...data,completedBy:{},creatorRole:'parent',creatorProfileId:'parent'});
-  gmEditingCalendarId='';persistFamily();renderGM();renderHero();
+  gmEditingCalendarId='';persistCalendarChange();renderGM();renderHero();
 }
 function gmEditCalendarEvent(id){gmEditingCalendarId=id;renderGM();setTimeout(()=>document.getElementById('gmCalendarEditor')?.scrollIntoView({behavior:'smooth'}),20);}
 function gmDeleteCalendarEvent(id){
   if(!confirm('刪除這個行事曆事件？'))return;
   ensureAdventureCalendar();familyData.adventureCalendar=familyData.adventureCalendar.filter(e=>e.id!==id);
-  if(gmEditingCalendarId===id)gmEditingCalendarId='';persistFamily();renderGM();renderHero();
+  if(gmEditingCalendarId===id)gmEditingCalendarId='';persistCalendarChange();renderGM();renderHero();
 }
 function gmCancelCalendarEdit(){gmEditingCalendarId='';renderGM();}
 function renderGM(){
@@ -5650,7 +5654,7 @@ function renderGM(){
         <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
         <div class="card small" style="margin-top:10px">
           <strong>🔥 正式家庭共用需要的 Firestore Rules</strong>
-          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.53 隨附的 Rules 檔。</div>
+          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.54 隨附的 Rules 檔。</div>
         </div>
 
       </details>
@@ -6307,7 +6311,7 @@ window.firebaseAuthorizeParent=async(email)=>{
     alert('授權完成！\n\n請對方在自己的手機設定 Firebase 後，使用 '+email+' 登入 Google。\n系統會自動加入這個家庭。');
   }catch(e){
     console.error(e);
-    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.53 Firestore Rules。');
+    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.54 Firestore Rules。');
   }
 };
 window.firebaseGoogleLogin=async()=>{
@@ -7575,5 +7579,27 @@ ${rewardText(gains)}`:''}`);renderAll();
 window.addEventListener('resize',()=>requestAnimationFrame(()=>positionBattleTargetMarker()));
 </script>
 
+<script>
+
+let calendarCloudRefreshBusy=false;
+let calendarCloudRefreshAt=0;
+async function refreshCalendarFromCloudOnReturn(){
+  if(document.visibilityState!=='visible'||calendarCloudRefreshBusy||!currentUser||!db||typeof pullCloud!=='function')return;
+  const now=Date.now();
+  if(now-calendarCloudRefreshAt<2500)return;
+  calendarCloudRefreshAt=now; calendarCloudRefreshBusy=true;
+  try{
+    await pullCloud();
+    renderAll();
+  }catch(e){
+    console.warn('calendar cloud refresh failed',e);
+  }finally{
+    calendarCloudRefreshBusy=false;
+  }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') refreshCalendarFromCloudOnReturn(); });
+window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
+
+</script>
 </body>
 </html>
