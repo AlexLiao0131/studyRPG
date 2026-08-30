@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.46</title>
+<title>小學勇者大冒險 V10.11.49</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1149,9 +1149,10 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 
-/* V10.11.41：W2 哥布林再放大30% + Boss召喚物獨立顯示層 */
 
-/* 普通哥布林：280 -> 364 */
+/* V10.11.49 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
+
+/* W2 普通哥布林維持放大30% */
 .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
   width:364px !important;
   height:364px !important;
@@ -1160,8 +1161,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   object-fit:contain !important;
   object-position:center bottom !important;
 }
-
-/* 副本入口普通哥布林：約 +30% */
 #dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite):not(.monster-id-goblin_king){
   width:299px !important;
   height:273px !important;
@@ -1169,7 +1168,29 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   max-height:none !important;
 }
 
-/* 召喚物獨立於 Boss 容器，避免被 Boss 450px 圖或 battle-enemy 版面吃掉 */
+/* 主怪：普通怪與 Boss 圖片本身都不再額外疊 Y，交給既有容器座標 */
+.battle-enemy .battle-enemy-unit-sprite.enemy-unit-0{
+  right:0 !important;
+  bottom:0 !important;
+}
+
+/* 哥布林王維持大史萊姆王尺寸 */
+.battle-enemy .monster-id-goblin_king{
+  width:450px !important;
+  height:450px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+#dungeonEnemyIdle.monster-id-goblin_king{
+  width:310px !important;
+  height:270px !important;
+  bottom:-14px !important;
+}
+
+/* 所有召喚怪共用同一圖層與同一套 XY。
+   Y 直接對標普通史萊姆正式戰鬥 bottom:54px。 */
 .battle-summon-layer{
   position:absolute !important;
   inset:0 !important;
@@ -1179,43 +1200,52 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 .battle-summon-layer .battle-enemy-unit-sprite{
   position:absolute !important;
-  width:247px !important;   /* 190 x 1.30 */
-  height:247px !important;
+  width:190px !important;
+  height:190px !important;
   max-width:none !important;
   max-height:none !important;
   object-fit:contain !important;
   object-position:center bottom !important;
   image-rendering:pixelated;
   transform-origin:center bottom;
+  bottom:54px !important;
+}
+/* 哥布林召喚物因 W2 素材本身較小，維持 +30% */
+.battle-summon-layer .monster-family-goblin{
+  width:247px !important;
+  height:247px !important;
 }
 .battle-summon-layer .enemy-unit-1{
-  right:37% !important;
+  right:28% !important;
   bottom:54px !important;
   z-index:5 !important;
 }
 .battle-summon-layer .enemy-unit-2{
-  right:58% !important;
+  right:43% !important;
   bottom:54px !important;
   z-index:6 !important;
 }
 .battle-summon-layer .enemy-unit-3{
-  right:72% !important;
+  right:56% !important;
   bottom:54px !important;
   z-index:7 !important;
 }
 
-/* 哥布林王維持之前指定：與大史萊姆王相同，不跟著 +30% */
-.battle-enemy .monster-id-goblin_king{
-  width:450px !important;
-  height:450px !important;
-  max-width:none !important;
-  max-height:none !important;
-  bottom:42px !important;
+/* 場上鎖定目標標記 */
+.battle-target-marker{
+  position:absolute;
+  z-index:12;
+  display:none;
+  transform:translate(-50%,-100%);
+  font-size:34px;
+  line-height:1;
+  filter:drop-shadow(0 2px 2px #000) drop-shadow(0 0 6px #ffd34d);
+  pointer-events:none;
+  animation:targetMarkerBob .75s ease-in-out infinite;
 }
-#dungeonEnemyIdle.monster-id-goblin_king{
-  width:310px !important;
-  height:270px !important;
-  bottom:-14px !important;
+@keyframes targetMarkerBob{
+  0%,100%{transform:translate(-50%,-100%) translateY(0)}
+  50%{transform:translate(-50%,-100%) translateY(-7px)}
 }
 
 @media(max-width:600px){
@@ -1228,133 +1258,18 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
     height:208px !important;
   }
   .battle-summon-layer .battle-enemy-unit-sprite{
+    width:145px !important;
+    height:145px !important;
+    bottom:42px !important;
+  }
+  .battle-summon-layer .monster-family-goblin{
     width:176px !important;
     height:176px !important;
   }
-  .battle-summon-layer .enemy-unit-1{right:34% !important;bottom:42px !important;}
-  .battle-summon-layer .enemy-unit-2{right:57% !important;bottom:42px !important;}
-  .battle-summon-layer .enemy-unit-3{right:72% !important;bottom:42px !important;}
-}
-
-
-/* V10.11.42：W2 哥布林座標校正
-   原則：尺寸維持 V10.11.41，只改 XY。
-   普通哥布林 Y 參考 W1 普通史萊姆；哥布林王 Y 參考大史萊姆王。
-   召喚哥布林往 Boss 側收，不再貼近勇者。 */
-
-/* W2 週一～週四普通哥布林：往下落地，沿用普通史萊姆基準 */
-.battle-enemy .monster-family-goblin:not(.monster-id-goblin_king).enemy-unit-0{
-  right:0 !important;
-  bottom:0 !important;
-}
-
-/* 哥布林王：取消 V10.11.40/41 對圖片本身額外加的 bottom:42。
-   Boss 容器本身已有史萊姆王的 bottom:42，因此圖片底部應為 0，
-   否則會被重複往上推 42px。 */
-.battle-enemy .monster-id-goblin_king.enemy-unit-0{
-  right:0 !important;
-  bottom:0 !important;
-}
-
-/* 召喚哥布林全部往右移，集中在 Boss 與畫面中央之間 */
-.battle-summon-layer .enemy-unit-1{
-  right:28% !important;
-  bottom:0 !important;
-}
-.battle-summon-layer .enemy-unit-2{
-  right:43% !important;
-  bottom:0 !important;
-}
-.battle-summon-layer .enemy-unit-3{
-  right:56% !important;
-  bottom:0 !important;
-}
-
-@media(max-width:600px){
-  .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king).enemy-unit-0{
-    bottom:0 !important;
-  }
-  .battle-enemy .monster-id-goblin_king.enemy-unit-0{
-    bottom:0 !important;
-  }
-  .battle-summon-layer .enemy-unit-1{right:25% !important;bottom:0 !important;}
-  .battle-summon-layer .enemy-unit-2{right:43% !important;bottom:0 !important;}
-  .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:0 !important;}
-}
-
-
-/* V10.11.43：後續怪物統一座標基準 */
-/* 所有普通怪物：沿用目前 W2 校正後的正式戰鬥座標 */
-.battle-enemy .battle-enemy-unit-sprite.enemy-unit-0:not(.boss-monster-sprite){
-  right:0 !important;
-  bottom:0 !important;
-}
-/* 所有 Boss：沿用大史萊姆王的 Boss 容器座標；圖片本身不再額外往上推 */
-.battle-enemy .battle-enemy-unit-sprite.enemy-unit-0.boss-monster-sprite{
-  right:0 !important;
-  bottom:0 !important;
-}
-/* 副本入口普通怪維持統一落地基準 */
-#dungeonEnemyIdle:not(.boss-dungeon-sprite){
-  bottom:28px !important;
-}
-/* 召喚物沿用 V10.11.42 校正後站位 */
-.battle-summon-layer .enemy-unit-1{right:28% !important;bottom:0 !important;}
-.battle-summon-layer .enemy-unit-2{right:43% !important;bottom:0 !important;}
-.battle-summon-layer .enemy-unit-3{right:56% !important;bottom:0 !important;}
-@media(max-width:600px){
-  .battle-enemy .battle-enemy-unit-sprite.enemy-unit-0:not(.boss-monster-sprite),
-  .battle-enemy .battle-enemy-unit-sprite.enemy-unit-0.boss-monster-sprite{
-    right:0 !important;
-    bottom:0 !important;
-  }
-}
-
-
-/* V10.11.44：哥布林王召喚物 Y 軸往上修正，X 維持靠 Boss 側 */
-.battle-summon-layer .enemy-unit-1{
-  right:28% !important;
-  bottom:48px !important;
-}
-.battle-summon-layer .enemy-unit-2{
-  right:43% !important;
-  bottom:48px !important;
-}
-.battle-summon-layer .enemy-unit-3{
-  right:56% !important;
-  bottom:48px !important;
-}
-@media(max-width:600px){
-  .battle-summon-layer .enemy-unit-1{right:25% !important;bottom:36px !important;}
-  .battle-summon-layer .enemy-unit-2{right:43% !important;bottom:36px !important;}
-  .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:36px !important;}
-}
-
-
-/* V10.11.45 FINAL：召喚哥布林地面座標。
-   前面 V10.11.41~44 的 bottom 規則全部由這裡最後覆蓋。 */
-.battle-summon-layer .battle-enemy-unit-sprite.summon-monster-sprite{
-  bottom:105px !important;
-}
-.battle-summon-layer .enemy-unit-1{
-  right:28% !important;
-  bottom:105px !important;
-}
-.battle-summon-layer .enemy-unit-2{
-  right:43% !important;
-  bottom:105px !important;
-}
-.battle-summon-layer .enemy-unit-3{
-  right:56% !important;
-  bottom:105px !important;
-}
-@media(max-width:600px){
-  .battle-summon-layer .battle-enemy-unit-sprite.summon-monster-sprite{
-    bottom:72px !important;
-  }
-  .battle-summon-layer .enemy-unit-1{right:25% !important;bottom:72px !important;}
-  .battle-summon-layer .enemy-unit-2{right:43% !important;bottom:72px !important;}
-  .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:72px !important;}
+  .battle-summon-layer .enemy-unit-1{right:25% !important;bottom:42px !important;}
+  .battle-summon-layer .enemy-unit-2{right:43% !important;bottom:42px !important;}
+  .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:42px !important;}
+  .battle-target-marker{font-size:28px}
 }
 
 </style>
@@ -1393,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.46</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.49</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1405,8 +1320,14 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
       <button type="button" id="genderFemale" class="btn purple gender-btn" onclick="selectGender('female')">👧 女</button>
     </div>
     <input type="hidden" id="setupGender" value="male">
-    <div class="card small" style="margin-top:10px">🌱 一開始都是「見習勇者」。職業會依完成任務後的能力成長自然覺醒。</div>
-    <button class="btn gold" onclick="createHero()">開始冒險</button>
+    <div id="cloudFirstLoginBox" class="card" style="margin-top:10px;border:1px solid #58a6ff">
+      <strong>☁️ 已經在其他裝置玩過？</strong>
+      <div class="small" style="margin:6px 0 8px">先用同一個 Google 帳號登入，會優先取回雲端角色，不需要在這台裝置重新建立。</div>
+      <button class="btn blue" style="width:100%" onclick="window.firebaseGoogleLogin&&window.firebaseGoogleLogin()">使用 Google 登入／取回角色</button>
+      <div id="setupCloudStatus" class="small" style="margin-top:7px"></div>
+    </div>
+    <div class="card small" style="margin-top:10px">🌱 如果這是第一次使用，才在下面建立新勇者。一開始都是「見習勇者」。</div>
+    <button class="btn gold" onclick="createHero()">建立新勇者並開始冒險</button>
   </div>
 
   <div id="mainUI" style="display:none">
@@ -1466,7 +1387,7 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-/* V10.11.46：GM 測試背景獨立對照表。
+/* V10.11.49：GM 測試背景獨立對照表。
    放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
 var SEMESTER_WEEK_MAP = {
   1:{background:'images/backgrounds/week01_grassland.png'},
@@ -4045,6 +3966,7 @@ async function playEnemyAttackFrames(unit=null){
     }
     if(def.sprites.idle){
       img.src=sprite(def.sprites.idle);
+      requestAnimationFrame(()=>positionBattleTargetMarker());
       await battleSleep(120);
     }
     return;
@@ -4389,6 +4311,27 @@ function renderBattleEnemySprites(){
   }
 }
 
+
+function positionBattleTargetMarker(){
+  const marker=document.getElementById('battleTargetMarker');
+  const arena=document.getElementById('battleArena');
+  const selected=selectedBattleEnemy();
+  if(!marker||!arena||!selected){
+    if(marker)marker.style.display='none';
+    return;
+  }
+  const spriteEl=document.querySelector(`[data-enemy-uid="${selected.uid}"]`);
+  if(!spriteEl){
+    marker.style.display='none';
+    return;
+  }
+  const a=arena.getBoundingClientRect();
+  const r=spriteEl.getBoundingClientRect();
+  marker.style.left=(r.left-a.left+r.width/2)+'px';
+  marker.style.top=(r.top-a.top+Math.max(18,r.height*.18))+'px';
+  marker.style.display='block';
+}
+
 function renderBattleTargets(){
   if(!battleStateV10)return;
   const strip=document.getElementById('battleTargetStrip');
@@ -4403,6 +4346,7 @@ function renderBattleTargets(){
     return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${roleIcon}${u.name}</b>${linkBadge}<div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
   }).join('');
   renderBattleEnemySprites();
+  requestAnimationFrame(()=>positionBattleTargetMarker());
   if(selected){
     const n=document.getElementById('battleEnemyName');if(n)n.textContent=selected.name;
     updateBattleHp('enemy',selected.hp,selected.maxHp);
@@ -4715,7 +4659,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena">${sceneBackgroundHTML("battle-scene-background")}<div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div><div id="battleSummonLayer" class="battle-summon-layer"></div></div>
+    <div id="battleArena" class="battle-arena">${sceneBackgroundHTML("battle-scene-background")}<div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div><div id="battleSummonLayer" class="battle-summon-layer"></div><div id="battleTargetMarker" class="battle-target-marker" aria-hidden="true">🎯</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -5544,7 +5488,18 @@ function renderGM(){
         <button class="btn blue" onclick="window.firebaseGoogleLogin&&window.firebaseGoogleLogin()">使用 Google 登入／取回存檔</button>
         <button class="btn purple" onclick="window.firebaseAnonymousLogin&&window.firebaseAnonymousLogin()">先直接玩（匿名雲端）</button>
       </div>
-      <div class="small" style="margin-top:8px">家庭多人：每位家長使用自己的 Google 帳號；Owner 可邀請 Parent。正式共享需搭配 Firestore Rules。</div>
+      <div class="card" style="margin-top:10px;background:#f8fbff">
+        <strong>👨‍👩‍👧‍👦 家庭共用</strong>
+        <div id="familyCloudStatus" class="small" style="margin:6px 0">登入 Google 後可建立／加入家庭。</div>
+        <div class="row">
+          <button class="btn gold" onclick="window.firebaseCreateFamily&&window.firebaseCreateFamily()">建立家庭／顯示家庭碼</button>
+          <button class="btn blue" onclick="window.firebaseShowFamilyCode&&window.firebaseShowFamilyCode()">顯示我的家庭碼</button>
+        </div>
+        <label>加入另一位家長的家庭碼</label>
+        <input id="joinFamilyCode" placeholder="例如：A7K9Q2M4">
+        <button class="btn purple" onclick="window.firebaseJoinFamily&&window.firebaseJoinFamily(document.getElementById('joinFamilyCode').value)">加入家庭</button>
+        <div class="small" style="margin-top:7px">爸爸、媽媽可各用自己的 Google 帳號；加入同一家庭碼後，共用同一批勇者與進度。</div>
+      </div>
       <details style="margin-top:10px">
         <summary>⚙️ 開發者 Firebase 設定（一般家庭不用碰）</summary>
         <label>API Key</label><input id="fbApiKey" value="${gameData.settings.cloud?.apiKey||''}">
@@ -5554,6 +5509,11 @@ function renderGM(){
         <label>Messaging Sender ID</label><input id="fbSenderId" value="${gameData.settings.cloud?.messagingSenderId||''}">
         <label>App ID</label><input id="fbAppId" value="${gameData.settings.cloud?.appId||''}">
         <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
+        <div class="card small" style="margin-top:10px">
+          <strong>🔥 正式家庭共用需要的 Firestore Rules</strong>
+          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.49 隨附的 Rules 檔。</div>
+        </div>
+
       </details>
     </div>
 
@@ -5920,6 +5880,12 @@ function boot(){
   if(!gameData.hero.name){
     document.getElementById('heroSetup').style.display='block';
     document.getElementById('mainUI').style.display='none';
+    const ss=document.getElementById('setupCloudStatus');
+    if(ss){
+      ss.textContent=gameData.settings?.cloud?.enabled
+        ? '☁️ Firebase 已設定，可先登入取回其他裝置的角色'
+        : 'ℹ️ 這台裝置尚未設定 Firebase；第一次使用才需要建立新勇者';
+    }
   }else{
     document.getElementById('heroSetup').style.display='none';
     document.getElementById('mainUI').style.display='block';
@@ -5930,7 +5896,7 @@ boot();
 </script>
 
 <script type="module">
-let fb=null,auth=null,db=null,currentUser=null,saving=false;
+let fb=null,auth=null,db=null,currentUser=null,saving=false,pulling=false,lastCloudPullUid='',currentFamilyId='';
 
 async function initFirebase(){
   const c=gameData.settings?.cloud;
@@ -5947,48 +5913,157 @@ async function initFirebase(){
     auth=authMod.getAuth(app); db=fsMod.getFirestore(app);
     authMod.onAuthStateChanged(auth,async user=>{
       currentUser=user;
-      if(user){
-        const s=document.getElementById('cloudStatus');
-        if(s)s.textContent='☁️ 已登入：'+(user.email||'匿名使用者');
-        await pullCloud();
-      }
+      const statusText=user?'☁️ 已登入：'+(user.email||'匿名使用者'):'☁️ 尚未登入';
+      const s=document.getElementById('cloudStatus'); if(s)s.textContent=statusText;
+      const ss=document.getElementById('setupCloudStatus'); if(ss)ss.textContent=statusText;
+      if(user){await pullCloud({reason:'auth'});updateFamilyCloudStatus();}
     });
     return true;
   }catch(e){console.error(e);alert('Firebase 初始化失敗：'+e.message);return false;}
 }
-async function pullCloud(){
-  if(!currentUser||!db)return;
-  const {doc,getDoc}=fb.fsMod;
-  const ref=doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID);
-  const snap=await getDoc(ref);
-  if(snap.exists()){
-    const payload=snap.data();
-    const localCfg=gameData.settings?.cloud;
-    if(payload?.familyData?.profiles?.length){
-      familyData=payload.familyData;
-      activeProfileId=familyData.profiles.some(p=>p.id===activeProfileId)?activeProfileId:(familyData.activeProfileId||familyData.profiles[0].id);
-      gameData=getActiveProfile().data;migrateProfileData(gameData);
-    }else if(payload?.gameData){
-      gameData=payload.gameData;migrateProfileData(gameData);
-      familyData={version:8,activeProfileId:'hero_1',profiles:[{id:'hero_1',label:gameData.hero.name||'勇者 1',data:gameData}]};
-      activeProfileId='hero_1';
-    }
-    if(payload?.familyData||payload?.gameData){
-      if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
-      gameData.settings.cloud=localCfg||gameData.settings.cloud||{};
-      persistFamily();boot();
-    }
-  }else await pushCloud();
+
+function makeFamilyCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const a=new Uint32Array(8);
+  crypto.getRandomValues(a);
+  return Array.from(a,n=>chars[n%chars.length]).join('');
 }
-async function pushCloud(){
-  if(!currentUser||!db||saving)return;
+async function readUserFamilyId(uid){
+  if(!uid||!db)return '';
+  const {doc,getDoc}=fb.fsMod;
+  const snap=await getDoc(doc(db,'users',uid));
+  return snap.exists()?String(snap.data()?.familyId||''):'';
+}
+async function writeUserFamilyId(uid,familyId,role='parent'){
+  const {doc,setDoc,serverTimestamp}=fb.fsMod;
+  await setDoc(doc(db,'users',uid),{
+    familyId,role,email:currentUser?.email||'',displayName:currentUser?.displayName||'',
+    updatedAt:serverTimestamp()
+  },{merge:true});
+}
+async function readFamilyCloud(familyId){
+  if(!familyId||!db)return null;
+  const {doc,getDoc}=fb.fsMod;
+  const snap=await getDoc(doc(db,'families',familyId,'seasons',CURRENT_SEASON_ID));
+  return snap.exists()?snap.data():null;
+}
+async function writeFamilyCloud(familyId){
+  if(!familyId||!currentUser||!db)return false;
+  const hasRealHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
+  if(!hasRealHero)return false;
+  const {doc,setDoc,serverTimestamp}=fb.fsMod;
+  persistFamily();
+  const clone=JSON.parse(JSON.stringify(familyData));
+  await setDoc(doc(db,'families',familyId,'seasons',CURRENT_SEASON_ID),{
+    familyData:clone,updatedAt:serverTimestamp(),updatedBy:currentUser.uid
+  },{merge:true});
+  return true;
+}
+function applyCloudFamilyPayload(payload,localCfg){
+  if(payload?.familyData?.profiles?.length){
+    familyData=payload.familyData;
+    activeProfileId=familyData.profiles.some(p=>p.id===familyData.activeProfileId)
+      ? familyData.activeProfileId : familyData.profiles[0].id;
+    gameData=getActiveProfile().data;
+    migrateProfileData(gameData);
+  }else if(payload?.gameData){
+    gameData=payload.gameData;migrateProfileData(gameData);
+    familyData={version:10,seasonId:CURRENT_SEASON_ID,activeProfileId:'hero_1',
+      profiles:[{id:'hero_1',label:gameData.hero?.name||'勇者 1',data:gameData}],
+      access:{ownerUid:'',members:{}}};
+    activeProfileId='hero_1';
+  }else return false;
+  if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
+  gameData.settings.cloud=localCfg||gameData.settings.cloud||{};
+  sessionStorage.setItem('activeHeroProfile',activeProfileId);
+  persistFamily();
+  return true;
+}
+function updateFamilyCloudStatus(){
+  const el=document.getElementById('familyCloudStatus');
+  if(!el)return;
+  el.textContent=currentFamilyId
+    ? '✅ 已連結家庭：'+currentFamilyId
+    : (currentUser?'☁️ 已登入，但尚未加入家庭':'請先登入 Google');
+}
+async function pullCloud(opts={}){
+  if(!currentUser||!db||pulling)return false;
+  pulling=true;
+  try{
+    const {doc,getDoc}=fb.fsMod;
+    const localCfg=gameData.settings?.cloud;
+
+    // 1. 先找這個 Google 帳號是否已經加入家庭。
+    currentFamilyId=await readUserFamilyId(currentUser.uid);
+
+    // 2. 已加入家庭：所有裝置、所有家長帳號都讀同一份 families/{家庭碼}。
+    if(currentFamilyId){
+      const shared=await readFamilyCloud(currentFamilyId);
+      if(shared && applyCloudFamilyPayload(shared,localCfg)){
+        lastCloudPullUid=currentUser.uid;
+        const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已從家庭雲端取回角色';
+        updateFamilyCloudStatus();
+        boot();
+        return true;
+      }
+    }
+
+    // 3. 相容舊版：讀原本 users/{uid}/seasons/{學期}。
+    const legacyRef=doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID);
+    const legacySnap=await getDoc(legacyRef);
+    if(legacySnap.exists()){
+      const payload=legacySnap.data();
+      if(applyCloudFamilyPayload(payload,localCfg)){
+        lastCloudPullUid=currentUser.uid;
+        const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已取回原有雲端角色';
+        updateFamilyCloudStatus();
+        boot();
+        return true;
+      }
+    }
+
+    // 4. 雲端完全沒有資料。只有真的已建角色才可建立第一份；空白新勇者禁止上傳。
+    const hasRealLocalHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
+    if(hasRealLocalHero){
+      await pushCloud({firstUpload:true});
+      const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已建立第一份雲端存檔';
+    }else{
+      const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='☁️ 此帳號沒有角色，請建立第一個勇者或加入家庭';
+    }
+    updateFamilyCloudStatus();
+    return false;
+  }catch(e){
+    console.error('讀取雲端失敗',e);
+    const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='⚠️ 雲端讀取失敗：'+String(e?.message||e);
+    return false;
+  }finally{pulling=false;}
+}
+async function pushCloud(opts={}){
+  if(!currentUser||!db||saving)return false;
+  const hasRealHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
+  if(!hasRealHero){
+    console.warn('略過雲端寫入：目前沒有已建立的正式角色');
+    return false;
+  }
   saving=true;
   try{
     const {doc,setDoc,serverTimestamp}=fb.fsMod;
     persistFamily();
     const clone=JSON.parse(JSON.stringify(familyData));
-    await setDoc(doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID),{familyData:clone,updatedAt:serverTimestamp()},{merge:true});
-  }catch(e){console.error(e);}
+
+    // 已加入家庭就只寫家庭共同存檔。
+    if(currentFamilyId){
+      await setDoc(doc(db,'families',currentFamilyId,'seasons',CURRENT_SEASON_ID),{
+        familyData:clone,updatedAt:serverTimestamp(),updatedBy:currentUser.uid
+      },{merge:true});
+    }else{
+      // 尚未建立家庭時保留單帳號雲端相容性。
+      await setDoc(doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID),{
+        familyData:clone,updatedAt:serverTimestamp()
+      },{merge:true});
+    }
+    return true;
+  }catch(e){console.error('雲端儲存失敗',e);return false;}
   finally{saving=false;}
 }
 window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
@@ -6000,25 +6075,103 @@ window.firebaseAnonymousLogin=async()=>{
     alert('已建立匿名雲端身份，可以直接開始使用。');
   }catch(e){alert('匿名登入失敗：'+e.message);}
 };
+
+window.firebaseCreateFamily=async()=>{
+  if(!currentUser){alert('請先使用 Google 登入。');return;}
+  try{
+    if(currentFamilyId){
+      alert('你的家庭碼：'+currentFamilyId+'\n\n另一位家長用自己的 Google 帳號登入後，輸入這組家庭碼即可共用。');
+      return;
+    }
+    const code=makeFamilyCode();
+    currentFamilyId=code;
+    await writeUserFamilyId(currentUser.uid,code,'owner');
+    const access=ensureFamilyAccessModel();
+    access.ownerUid=currentUser.uid;
+    access.members=access.members||{};
+    access.members[currentUser.uid]={role:'owner',email:currentUser.email||'',displayName:currentUser.displayName||'家長'};
+    persistFamily();
+    await writeFamilyCloud(code);
+    updateFamilyCloudStatus();
+    alert('家庭已建立！\n\n家庭碼：'+code+'\n\n請把這組碼給另一位家長。');
+  }catch(e){
+    currentFamilyId='';
+    console.error(e);
+    alert('建立家庭失敗：'+e.message+'\n\n如果顯示 permission-denied，需要更新 Firestore Rules。');
+  }
+};
+window.firebaseShowFamilyCode=async()=>{
+  if(!currentUser){alert('請先使用 Google 登入。');return;}
+  try{
+    currentFamilyId=currentFamilyId||await readUserFamilyId(currentUser.uid);
+    updateFamilyCloudStatus();
+    alert(currentFamilyId?'你的家庭碼：'+currentFamilyId:'目前尚未建立／加入家庭。');
+  }catch(e){alert('讀取家庭碼失敗：'+e.message);}
+};
+window.firebaseJoinFamily=async(code)=>{
+  if(!currentUser){alert('請先使用 Google 登入。');return;}
+  code=String(code||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!code){alert('請輸入家庭碼。');return;}
+  try{
+    const payload=await readFamilyCloud(code);
+    if(!payload?.familyData?.profiles?.length){
+      alert('找不到這個家庭碼，或家庭尚未建立正式角色。');
+      return;
+    }
+    // 先確認家庭真的存在，才寫入自己的帳號連結。
+    currentFamilyId=code;
+    await writeUserFamilyId(currentUser.uid,code,'parent');
+    const localCfg=gameData.settings?.cloud;
+    applyCloudFamilyPayload(payload,localCfg);
+    const access=ensureFamilyAccessModel();
+    access.members=access.members||{};
+    access.members[currentUser.uid]={role:'parent',email:currentUser.email||'',displayName:currentUser.displayName||'家長'};
+    persistFamily();
+    await writeFamilyCloud(code);
+    updateFamilyCloudStatus();
+    alert('加入家庭成功！已載入共同角色。');
+    boot();
+  }catch(e){
+    currentFamilyId='';
+    console.error(e);
+    alert('加入家庭失敗：'+e.message+'\n\n如果顯示 permission-denied，需要更新 Firestore Rules。');
+  }
+};
 window.firebaseGoogleLogin=async()=>{
   if(!fb){const ok=await initFirebase();if(!ok)return;}
   try{
     const provider=new fb.authMod.GoogleAuthProvider();
     const result=await fb.authMod.signInWithPopup(auth,provider);
     const user=result.user;
+    currentUser=user;
+
+    const restored=await pullCloud({reason:'google-login'});
+
+    // 雲端資料已取回後，再建立/更新家庭權限；避免先把新裝置空白 familyData 寫上去。
     const access=ensureFamilyAccessModel();
     if(!access.ownerUid){
       access.ownerUid=user.uid;
       access.members[user.uid]={role:'owner',email:user.email||'',displayName:user.displayName||'家長'};
       persistFamily();
+      if(gameData.hero?.name)await pushCloud({reason:'owner-init'});
     }else if(!access.members[user.uid]){
-      // 未被邀請者不自動取得管理權；先保留登入身份。
       access.members[user.uid]={role:'viewer',email:user.email||'',displayName:user.displayName||'家長'};
       persistFamily();
+      if(gameData.hero?.name)await pushCloud({reason:'member-init'});
     }
-    alert('Google 登入成功');
-    renderAll();
-  }catch(e){alert('Google 登入失敗：'+e.message);}
+
+    if(restored){
+      alert('Google 登入成功，已取回雲端角色。');
+    }else if(gameData.hero?.name){
+      alert('Google 登入成功，這台裝置的角色已連結雲端。');
+    }else{
+      alert('Google 登入成功。此帳號目前沒有雲端角色，現在可以建立第一個勇者。');
+    }
+    boot();
+  }catch(e){
+    console.error(e);
+    alert('Google 登入失敗：'+e.message);
+  }
 };
 window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
 if(gameData.settings?.cloud?.enabled)initFirebase();</script>
@@ -7245,6 +7398,8 @@ ${rewardText(gains)}`:''}`);renderAll();
    images/hero_<class>_death.png
    class = novice / warrior / mage / priest / hunter / rogue / paladin / spellblade
 */
+
+window.addEventListener('resize',()=>requestAnimationFrame(()=>positionBattleTargetMarker()));
 </script>
 
 </body>
