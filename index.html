@@ -1330,6 +1330,33 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:36px !important;}
 }
 
+
+/* V10.11.45 FINAL：召喚哥布林地面座標。
+   前面 V10.11.41~44 的 bottom 規則全部由這裡最後覆蓋。 */
+.battle-summon-layer .battle-enemy-unit-sprite.summon-monster-sprite{
+  bottom:105px !important;
+}
+.battle-summon-layer .enemy-unit-1{
+  right:28% !important;
+  bottom:105px !important;
+}
+.battle-summon-layer .enemy-unit-2{
+  right:43% !important;
+  bottom:105px !important;
+}
+.battle-summon-layer .enemy-unit-3{
+  right:56% !important;
+  bottom:105px !important;
+}
+@media(max-width:600px){
+  .battle-summon-layer .battle-enemy-unit-sprite.summon-monster-sprite{
+    bottom:72px !important;
+  }
+  .battle-summon-layer .enemy-unit-1{right:25% !important;bottom:72px !important;}
+  .battle-summon-layer .enemy-unit-2{right:43% !important;bottom:72px !important;}
+  .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:72px !important;}
+}
+
 </style>
 
 <style>
@@ -1452,7 +1479,7 @@ function resolvedSceneBackgroundV101143(){
   const gmActive=sessionStorage.getItem('gmBattleTestActive')==='1';
   const gmWeek=Math.max(1,Math.min(21,Number(sessionStorage.getItem('gmTestWeek')||1)));
   if(gmActive){
-    const gmMap=SEMESTER_WEEK_MAP[gmWeek];
+    const gmMap=WEEKLY_MAP_DATABASE.find(x=>Number(x.week)===gmWeek);
     if(gmMap?.background)return sprite(gmMap.background);
   }
   return currentSceneBackground(today());
@@ -3173,7 +3200,7 @@ const MONSTER_AI_DATABASE={
   goblin_soldier:{skills:[{id:'goblin_slash',weight:3},{id:'goblin_guard',weight:1}]},
   goblin_shaman:{skills:[{id:'goblin_magic_bolt',weight:2},{id:'goblin_poison_curse',weight:2},{id:'goblin_heal',weight:4,condition:'low_hp',threshold:.40}],healMaxUses:1},
   goblin_general:{skills:[{id:'goblin_warcry',weight:5,maxUses:1},{id:'goblin_heavy_slash',weight:2},{id:'goblin_slash',weight:2}]},
-  goblin_king:{skills:[{id:'goblin_summon',weight:1}],mp:100,maxMp:100,mpRegen:0,noAttack:true},
+  goblin_king:{skills:[{id:'goblin_summon',weight:1,maxUses:2}],mp:100,maxMp:100,mpRegen:0,noAttack:true},
 
   forest_spider:{skills:[{id:'spider_poison_fang',weight:1},{id:'spider_web',weight:1}]},
   forest_wolf:{skills:[{id:'wolf_bite',weight:1}]},
@@ -4507,8 +4534,8 @@ function skillUsableByEnemy(unit,entry,skill){
   if(skill.kind==='summon'){
     if(unit.monsterId==='goblin_king'){
       const active=(battleStateV10.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.hp>0).length;
-      const totalSummoned=Number(unit.goblinSummonTotal||0);
-      if(active>=2||unit.mp<40||totalSummoned>=2)return false;
+      const casts=Number(unit.skillUses?.goblin_summon||0);
+      if(active>=2||unit.mp<40||casts>=2)return false;
     }
     if(unit.monsterId==='necromancer'&&(unit.skillUses.summon_three_skeletons||0)>=1)return false;
   }
@@ -4600,25 +4627,32 @@ async function performLiveEnemyTurn(unit){
   if(skill.kind==='debuff'){tryApplyMonsterStatus(skill,battleStateV10.hero);updateBattleStatuses();return;}
   if(skill.kind==='summon'){
     if(unit.monsterId==='goblin_king'){
-      unit.goblinSummonTotal=Number(unit.goblinSummonTotal||0);
-      if(unit.goblinSummonTotal>=2){
-        addBattleLog('👑 哥布林王本場已完成兩次召喚，不再召喚。');
+      const casts=Number(unit.skillUses?.goblin_summon||0);
+      // skillUses 在進入這裡前已 +1，因此 casts=1 / 2 就是本次召喚次數。
+      if(casts>2){
+        addBattleLog('🚫 哥布林王已達本場召喚上限。');
         return;
       }
       if(unit.mp<40){
         updateBattleResource('enemy',unit.mp,unit.maxMp||100);
-        addBattleLog('🔵 哥布林王MP不足40，無法再召喚。');
+        addBattleLog('🔵 哥布林王MP不足40，無法召喚。');
         return;
       }
-      const pool=['goblin_slave','goblin_soldier','goblin_shaman'];const id=pool[Math.floor(Math.random()*pool.length)];
+      const pool=['goblin_slave','goblin_soldier','goblin_shaman'];
+      const id=pool[Math.floor(Math.random()*pool.length)];
+      // 每次技能只呼叫一次 summonLiveUnit，保證一次只出現一隻。
       const su=summonLiveUnit(id,unit,{statScale:.82,hpScale:.52});
       if(su){
-        unit.goblinSummonTotal++;
-        unit.mp=Math.max(0,unit.mp-40);
+        unit.mp=Math.max(0,Number(unit.mp||0)-40);
+        unit.goblinSummonTotal=casts;
         updateBattleResource('enemy',unit.mp,unit.maxMp||100);
-        addBattleLog(`📣 哥布林王消耗40 MP，召喚「${su.name}」！本場 ${unit.goblinSummonTotal}/2 次，剩餘MP ${unit.mp}/${unit.maxMp||100}。`);
-        if(unit.goblinSummonTotal>=2)addBattleLog('🚫 哥布林王已達本場召喚上限，不會再召喚。');
-      }else addBattleLog('📣 場上已滿，哥布林王無法召喚，MP不消耗。');
+        addBattleLog(`📣 哥布林王消耗40 MP，召喚「${su.name}」！本場第 ${casts}/2 次，剩餘MP ${unit.mp}/${unit.maxMp||100}。`);
+        if(casts>=2)addBattleLog('🚫 哥布林王兩次召喚已用完，本場永久停止召喚。');
+      }else{
+        // 召喚失敗時把剛才預先增加的 skillUses 還原，不算使用次數。
+        unit.skillUses.goblin_summon=Math.max(0,casts-1);
+        addBattleLog('📣 場上已滿，哥布林王無法召喚，MP不消耗。');
+      }
       return;
     }
   }
@@ -6767,6 +6801,15 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
   const oldTurn=performLiveEnemyTurn;
   performLiveEnemyTurn=async function(unit){
     if(!unit||unit.hp<=0||unit.alive===false)return;
+    if(unit.monsterId==='goblin_king'){
+      const casts=Math.min(2,Number(unit.skillUses?.goblin_summon||0));
+      const hardCap=Math.max(0,100-casts*40);
+      unit.maxMp=100;
+      unit.mp=Math.min(Number(unit.mp??100),hardCap);
+      if(casts>=2){
+        unit.mp=Math.min(unit.mp,20);
+      }
+    }
     // 由原函式選技前很難安全插入，因此暫時包住選技函式，在選定技能時立即扣 MP。
     let picked=null;
     const oldChoose=chooseLiveEnemySkill;
