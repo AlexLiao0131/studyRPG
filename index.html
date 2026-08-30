@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.50</title>
+<title>小學勇者大冒險 V10.11.51</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1150,7 +1150,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 
 
-/* V10.11.50 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
+/* V10.11.51 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
 
 /* W2 普通哥布林維持放大30% */
 .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
@@ -1308,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.50</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.51</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1399,7 +1399,7 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-/* V10.11.50：GM 測試背景獨立對照表。
+/* V10.11.51：GM 測試背景獨立對照表。
    放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
 var SEMESTER_WEEK_MAP = {
   1:{background:'images/backgrounds/week01_grassland.png'},
@@ -5504,13 +5504,12 @@ function renderGM(){
         <strong>👨‍👩‍👧‍👦 家庭共用</strong>
         <div id="familyCloudStatus" class="small" style="margin:6px 0">登入 Google 後可建立／加入家庭。</div>
         <div class="row">
-          <button class="btn gold" onclick="window.firebaseCreateFamily&&window.firebaseCreateFamily()">建立家庭／顯示家庭碼</button>
-          <button class="btn blue" onclick="window.firebaseShowFamilyCode&&window.firebaseShowFamilyCode()">顯示我的家庭碼</button>
+          <button class="btn gold" onclick="window.firebaseCreateFamily&&window.firebaseCreateFamily()">建立家庭</button>
         </div>
-        <label>加入另一位家長的家庭碼</label>
-        <input id="joinFamilyCode" placeholder="例如：A7K9Q2M4">
-        <button class="btn purple" onclick="window.firebaseJoinFamily&&window.firebaseJoinFamily(document.getElementById('joinFamilyCode').value)">加入家庭</button>
-        <div class="small" style="margin-top:7px">爸爸、媽媽可各用自己的 Google 帳號；加入同一家庭碼後，共用同一批勇者與進度。</div>
+        <label>授權另一位家長的 Google Email</label>
+        <input id="familyParentEmail" type="email" placeholder="例如：parent@gmail.com">
+        <button class="btn purple" onclick="window.firebaseAuthorizeParent&&window.firebaseAuthorizeParent(document.getElementById('familyParentEmail').value)">授權家長</button>
+        <div class="small" style="margin-top:7px">輸入另一位家長的 Google Email。對方之後用該 Google 帳號登入，就會自動加入同一家庭，不需要家庭碼。</div>
       </div>
       <details style="margin-top:10px">
         <summary>⚙️ 開發者 Firebase 設定（一般家庭不用碰）</summary>
@@ -5523,7 +5522,7 @@ function renderGM(){
         <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
         <div class="card small" style="margin-top:10px">
           <strong>🔥 正式家庭共用需要的 Firestore Rules</strong>
-          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.50 隨附的 Rules 檔。</div>
+          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.51 隨附的 Rules 檔。</div>
         </div>
 
       </details>
@@ -5979,6 +5978,27 @@ async function writeUserFamilyId(uid,familyId,role='parent'){
     updatedAt:serverTimestamp()
   },{merge:true});
 }
+
+function normalizeFamilyEmail(email){
+  return String(email||'').trim().toLowerCase();
+}
+async function readMyFamilyInvite(){
+  const email=normalizeFamilyEmail(currentUser?.email);
+  if(!email||!db)return null;
+  const {doc,getDoc}=fb.fsMod;
+  const snap=await getDoc(doc(db,'familyInvites',email));
+  return snap.exists()?snap.data():null;
+}
+async function authorizeFamilyEmail(email){
+  email=normalizeFamilyEmail(email);
+  if(!email)throw new Error('請輸入 Google Email');
+  if(!currentFamilyId)throw new Error('請先建立家庭');
+  const {doc,setDoc,serverTimestamp}=fb.fsMod;
+  await setDoc(doc(db,'familyInvites',email),{
+    email,familyId:currentFamilyId,role:'parent',
+    invitedBy:currentUser.uid,updatedAt:serverTimestamp()
+  },{merge:true});
+}
 async function readFamilyCloud(familyId){
   if(!familyId||!db)return null;
   const {doc,getDoc}=fb.fsMod;
@@ -6034,7 +6054,17 @@ async function pullCloud(opts={}){
     // 1. 先找這個 Google 帳號是否已經加入家庭。
     currentFamilyId=await readUserFamilyId(currentUser.uid);
 
-    // 2. 已加入家庭：所有裝置、所有家長帳號都讀同一份 families/{家庭碼}。
+    // 尚未連結家庭時，檢查這個 Google Email 是否已被家庭擁有者授權。
+    if(!currentFamilyId && currentUser.email){
+      const invite=await readMyFamilyInvite();
+      const invitedFamilyId=String(invite?.familyId||'');
+      if(invitedFamilyId){
+        currentFamilyId=invitedFamilyId;
+        await writeUserFamilyId(currentUser.uid,currentFamilyId,'parent');
+      }
+    }
+
+    // 2. 已加入家庭：所有裝置、所有授權家長帳號都讀同一份家庭存檔。
     if(currentFamilyId){
       const shared=await readFamilyCloud(currentFamilyId);
       if(shared && applyCloudFamilyPayload(shared,localCfg)){
@@ -6118,7 +6148,7 @@ window.firebaseCreateFamily=async()=>{
   if(!currentUser){alert('請先使用 Google 登入。');return;}
   try{
     if(currentFamilyId){
-      alert('你的家庭碼：'+currentFamilyId+'\n\n另一位家長用自己的 Google 帳號登入後，輸入這組家庭碼即可共用。');
+      alert('家庭已建立。現在可以直接輸入另一位家長的 Google Email 進行授權。');
       return;
     }
     const code=makeFamilyCode();
@@ -6131,48 +6161,25 @@ window.firebaseCreateFamily=async()=>{
     persistFamily();
     await writeFamilyCloud(code);
     updateFamilyCloudStatus();
-    alert('家庭已建立！\n\n家庭碼：'+code+'\n\n請把這組碼給另一位家長。');
+    alert('家庭已建立！\n\n接著輸入另一位家長的 Google Email，按「授權家長」。');
   }catch(e){
     currentFamilyId='';
     console.error(e);
     alert('建立家庭失敗：'+e.message+'\n\n如果顯示 permission-denied，需要更新 Firestore Rules。');
   }
 };
-window.firebaseShowFamilyCode=async()=>{
+window.firebaseAuthorizeParent=async(email)=>{
   if(!currentUser){alert('請先使用 Google 登入。');return;}
+  email=normalizeFamilyEmail(email);
+  if(!email){alert('請輸入另一位家長的 Google Email。');return;}
   try{
     currentFamilyId=currentFamilyId||await readUserFamilyId(currentUser.uid);
-    updateFamilyCloudStatus();
-    alert(currentFamilyId?'你的家庭碼：'+currentFamilyId:'目前尚未建立／加入家庭。');
-  }catch(e){alert('讀取家庭碼失敗：'+e.message);}
-};
-window.firebaseJoinFamily=async(code)=>{
-  if(!currentUser){alert('請先使用 Google 登入。');return;}
-  code=String(code||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(!code){alert('請輸入家庭碼。');return;}
-  try{
-    const payload=await readFamilyCloud(code);
-    if(!payload?.familyData?.profiles?.length){
-      alert('找不到這個家庭碼，或家庭尚未建立正式角色。');
-      return;
-    }
-    // 先確認家庭真的存在，才寫入自己的帳號連結。
-    currentFamilyId=code;
-    await writeUserFamilyId(currentUser.uid,code,'parent');
-    const localCfg=gameData.settings?.cloud;
-    applyCloudFamilyPayload(payload,localCfg);
-    const access=ensureFamilyAccessModel();
-    access.members=access.members||{};
-    access.members[currentUser.uid]={role:'parent',email:currentUser.email||'',displayName:currentUser.displayName||'家長'};
-    persistFamily();
-    await writeFamilyCloud(code);
-    updateFamilyCloudStatus();
-    alert('加入家庭成功！已載入共同角色。');
-    boot();
+    if(!currentFamilyId){alert('請先按「建立家庭」。');return;}
+    await authorizeFamilyEmail(email);
+    alert('授權完成！\n\n請對方在自己的手機設定 Firebase 後，使用 '+email+' 登入 Google。\n系統會自動加入這個家庭。');
   }catch(e){
-    currentFamilyId='';
     console.error(e);
-    alert('加入家庭失敗：'+e.message+'\n\n如果顯示 permission-denied，需要更新 Firestore Rules。');
+    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.51 Firestore Rules。');
   }
 };
 window.firebaseGoogleLogin=async()=>{
