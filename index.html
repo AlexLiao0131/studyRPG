@@ -983,6 +983,171 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   }
 }
 
+
+/* V10.11.39：第二週哥布林尺寸校正 */
+
+/* W2 普通哥布林：目前素材在同畫布下顯得太小，統一放大。
+   不影響其他週普通怪物。 */
+.battle-enemy:not(:has(.boss-monster-sprite)) .monster-family-goblin{
+  width:280px !important;
+  height:280px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+
+/* W2 副本入口普通哥布林也同步放大 */
+#dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite){
+  width:230px !important;
+  height:210px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+
+/* 哥布林王：強制跟大史萊姆王使用完全相同的 Boss 尺寸與 Y 軸 */
+.battle-enemy:has(.monster-id-goblin_king){
+  right:14% !important;
+  bottom:42px !important;
+}
+.monster-id-goblin_king{
+  width:450px !important;
+  height:450px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+
+/* 副本入口哥布林王也沿用大史萊姆王規格 */
+#dungeonEnemyIdle.monster-id-goblin_king{
+  width:310px !important;
+  height:270px !important;
+  bottom:-14px !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+}
+
+@media(max-width:600px){
+  .battle-enemy:not(:has(.boss-monster-sprite)) .monster-family-goblin{
+    width:205px !important;
+    height:205px !important;
+  }
+
+  #dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite){
+    width:175px !important;
+    height:160px !important;
+  }
+
+  .battle-enemy:has(.monster-id-goblin_king){
+    right:8% !important;
+    bottom:30px !important;
+  }
+  .monster-id-goblin_king{
+    width:330px !important;
+    height:330px !important;
+  }
+
+  #dungeonEnemyIdle.monster-id-goblin_king{
+    width:225px !important;
+    height:200px !important;
+    bottom:-10px !important;
+  }
+}
+
+
+/* V10.11.40：戰鬥場景顯示 Boss + 最多2隻召喚物 */
+.battle-enemy{
+  right:3% !important;
+  bottom:0 !important;
+  width:58% !important;
+  height:100% !important;
+  display:block !important;
+  pointer-events:none;
+  transform:none;
+}
+.battle-enemy-unit-sprite,
+.battle-enemy-unit-glyph{
+  position:absolute !important;
+  object-fit:contain !important;
+  object-position:center bottom !important;
+  image-rendering:pixelated;
+  transform-origin:center bottom;
+}
+
+/* 主體怪物 / Boss */
+.battle-enemy .enemy-unit-0{
+  right:0 !important;
+  bottom:42px !important;
+  z-index:2;
+}
+
+/* 第一、第二隻召喚物 */
+.battle-enemy .enemy-unit-1{
+  right:48% !important;
+  bottom:54px !important;
+  width:190px !important;
+  height:190px !important;
+  max-width:none !important;
+  max-height:none !important;
+  z-index:4;
+}
+.battle-enemy .enemy-unit-2{
+  right:68% !important;
+  bottom:54px !important;
+  width:190px !important;
+  height:190px !important;
+  max-width:none !important;
+  max-height:none !important;
+  z-index:5;
+}
+
+/* 召喚物不吃 Boss 450x450 規格，即使資料庫誤標也固定普通尺寸 */
+.battle-enemy .summon-monster-sprite{
+  width:190px !important;
+  height:190px !important;
+  max-width:none !important;
+  max-height:none !important;
+}
+
+/* 哥布林王維持大史萊姆王規格 */
+.battle-enemy .monster-id-goblin_king.enemy-unit-0{
+  width:450px !important;
+  height:450px !important;
+  right:0 !important;
+  bottom:42px !important;
+}
+
+@media(max-width:600px){
+  .battle-enemy{right:1% !important;width:62% !important;}
+  .battle-enemy .enemy-unit-0{bottom:30px !important;}
+  .battle-enemy .enemy-unit-1{
+    right:50% !important;
+    bottom:42px !important;
+    width:135px !important;
+    height:135px !important;
+  }
+  .battle-enemy .enemy-unit-2{
+    right:70% !important;
+    bottom:42px !important;
+    width:135px !important;
+    height:135px !important;
+  }
+  .battle-enemy .summon-monster-sprite{
+    width:135px !important;
+    height:135px !important;
+  }
+  .battle-enemy .monster-id-goblin_king.enemy-unit-0{
+    width:330px !important;
+    height:330px !important;
+    bottom:30px !important;
+  }
+}
+
 </style>
 
 <style>
@@ -3606,17 +3771,18 @@ async function playHeroAttackFrames(){
 }
 
 
-async function playEnemyAttackFrames(){
-  const img=document.getElementById('battleEnemySprite');
+async function playEnemyAttackFrames(unit=null){
+  const actor=unit||selectedBattleEnemy()||(battleStateV10?.enemies||[])[0];
+  const img=actor?document.querySelector(`[data-enemy-uid="${actor.uid}"]`):null;
   if(!img){await battleSleep(180);return;}
-  if(battleStateV10?.monsterId==='hero_mirror'){
+  if(actor?.monsterId==='hero_mirror'){
     if(!heroAttackFramesReady||heroAttackAssetKey!==heroAssetKey())await preloadBattleHeroFrames();
     img.src=heroSpritePath('attack');
     await battleSleep(360);
     img.src=heroSpritePath('idle');
     return;
   }
-  const def=MONSTER_DATABASE[battleStateV10?.monsterId];
+  const def=MONSTER_DATABASE[actor?.monsterId];
   if(def?.sprites?.battle||def?.sprites?.idle){
     // 攻擊順序：idle -> battle -> idle
     if(def.sprites.idle){
@@ -3641,7 +3807,7 @@ async function playEnemyAttackFrames(){
   await battleSleep(180);
 }
 
-async function animateBattleAction(attackerSide,result){
+async function animateBattleAction(attackerSide,result,attackerUnit=null){
   const attacker=document.getElementById('battleChar_'+attackerSide);
   const defenderSide=attackerSide==='hero'?'enemy':'hero';
   const defender=document.getElementById('battleChar_'+defenderSide);
@@ -3650,7 +3816,7 @@ async function animateBattleAction(attackerSide,result){
   void attacker.offsetWidth;
   attacker.classList.add('attack');
   try{
-    if(attackerSide==='hero')await playHeroAttackFrames(); else await playEnemyAttackFrames();
+    if(attackerSide==='hero')await playHeroAttackFrames(); else await playEnemyAttackFrames(attackerUnit);
     if(result.type==='dodge')defender.classList.add('dodge');
     else if(result.damage>0)defender.classList.add('hit');
     await battleSleep(220);
@@ -3947,6 +4113,29 @@ function selectBattleTarget(uid){
   battleStateV10.selectedEnemyUid=uid;syncLegacyEnemyAlias();renderBattleTargets();
   addBattleLog(`🎯 鎖定目標：${t.name}`);
 }
+
+function battleEnemyUnitSpriteHTML(unit,index=0){
+  if(!unit)return '';
+  if(unit.monsterId==='hero_mirror'){
+    return `<img class="battle-enemy-unit-sprite mirror-hero-sprite enemy-unit-${index}" data-enemy-uid="${unit.uid}" src="${heroSpritePath('idle')}" alt="${unit.name||'勇者鏡像'}">`;
+  }
+  const def=MONSTER_DATABASE[unit.monsterId]||{};
+  const first=def?.sprites?.idle||def?.sprites?.battle;
+  if(!first)return `<div class="enemy-glyph battle-enemy-unit-glyph enemy-unit-${index}" data-enemy-uid="${unit.uid}">👹</div>`;
+  const bossClass=(unit.isBoss||def.boss)?' boss-monster-sprite':'';
+  const summonClass=unit.isSummon?' summon-monster-sprite':'';
+  const familyClass=def.family?` monster-family-${def.family}`:'';
+  const idClass=def.id?` monster-id-${def.id}`:'';
+  return `<img class="battle-enemy-unit-sprite${bossClass}${summonClass}${familyClass}${idClass} enemy-unit-${index}" data-enemy-uid="${unit.uid}" src="${sprite(first)}" alt="${unit.name||def.name||'怪物'}">`;
+}
+function renderBattleEnemySprites(){
+  if(!battleStateV10)return;
+  const box=document.getElementById('battleChar_enemy');
+  if(!box)return;
+  const living=(battleStateV10.enemies||[]).filter(u=>u.alive!==false&&u.hp>0);
+  box.innerHTML=living.map((u,i)=>battleEnemyUnitSpriteHTML(u,i)).join('');
+}
+
 function renderBattleTargets(){
   if(!battleStateV10)return;
   const strip=document.getElementById('battleTargetStrip');
@@ -3960,6 +4149,7 @@ function renderBattleTargets(){
     const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 儀式核心｜會攻擊｜5回合內擊破！</span>`:'';
     return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${roleIcon}${u.name}</b>${linkBadge}<div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
   }).join('');
+  renderBattleEnemySprites();
   if(selected){
     const n=document.getElementById('battleEnemyName');if(n)n.textContent=selected.name;
     updateBattleHp('enemy',selected.hp,selected.maxHp);
@@ -4164,7 +4354,7 @@ async function executeEnemyHit(unit,skill){
       const summonFloor=Math.max(2,Math.round(Number(battleStateV10.hero.maxHp||1)*.02));
       res.damage=Math.max(res.damage,summonFloor);
     }
-    await animateBattleAction('enemy',res);
+    await animateBattleAction('enemy',res,unit);
     if(res.damage){
       battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-res.damage);
       updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);
@@ -4237,15 +4427,8 @@ function applyBattleStartMonsterMechanics(){
 }
 
 function battleEnemyVisualHTML(enemyIcon){
-  if(battleStateV10?.monsterId==='hero_mirror'){
-    return `<img id="battleEnemySprite" class="mirror-hero-sprite" src="${heroSpritePath('idle')}" alt="勇者的鏡像">`;
-  }
-  const def=MONSTER_DATABASE[battleStateV10?.monsterId];
-  if(def?.sprites?.idle||def?.sprites?.battle){
-    const bossClass=def.boss?' boss-monster-sprite':'';
-    const firstSprite=def.sprites.idle||def.sprites.battle;
-    return `<img id="battleEnemySprite" class="monster-battle-sprite${bossClass}" src="${sprite(firstSprite)}" alt="${def.name||'怪物'}">`;
-  }
+  const living=(battleStateV10?.enemies||[]).filter(u=>u.alive!==false&&u.hp>0);
+  if(living.length)return living.map((u,i)=>battleEnemyUnitSpriteHTML(u,i)).join('');
   return `<div class="enemy-glyph">${enemyIcon}</div>`;
 }
 function syncMirrorHeroVisual(){
@@ -4562,7 +4745,7 @@ function renderDungeon(){
 
         <div class="fighter-card dungeon-fighter-bg">
           ${sceneBackgroundHTML("dungeon-scene-background")}
-          <div class="dungeon-idle-stage">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
+          <div class="dungeon-idle-stage">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}${dungeonMonsterDefinition(m,evt)?.family?` monster-family-${dungeonMonsterDefinition(m,evt).family}`:''}${dungeonMonsterDefinition(m,evt)?.id?` monster-id-${dungeonMonsterDefinition(m,evt).id}`:''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
           ${testMultiplier!==1?`<div class="small">基準 ${basePower} × ${Math.round(testMultiplier*100)}%</div>`:''}
