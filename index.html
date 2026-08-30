@@ -948,6 +948,41 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   #dungeonEnemyIdle{bottom:-10px !important;}
 }
 
+
+/* V10.11.38：所有普通怪物統一 Y 軸；大史萊姆 Boss 不動 */
+
+/* 正式戰鬥：所有「非 Boss」怪物固定同一高度。
+   原本普通史萊姆太低，現在整體往上。 */
+.battle-enemy:not(:has(.boss-monster-sprite)){
+  bottom:54px !important;
+}
+
+/* 清掉普通怪物圖片可能殘留的個別上下位移，全部以容器 bottom 為準 */
+.battle-enemy:not(:has(.boss-monster-sprite)) .monster-battle-sprite{
+  top:auto !important;
+  bottom:auto !important;
+  margin-top:0 !important;
+  margin-bottom:0 !important;
+}
+
+/* 副本入口的普通怪物也統一同一高度 */
+#dungeonEnemyIdle:not(.boss-dungeon-sprite){
+  top:auto !important;
+  bottom:28px !important;
+}
+
+/* 大史萊姆的 .boss-monster-sprite / .boss-dungeon-sprite
+   不在以上 selector 內，所以沿用原本 Boss 專用 XY 與 450x450。 */
+
+@media(max-width:600px){
+  .battle-enemy:not(:has(.boss-monster-sprite)){
+    bottom:42px !important;
+  }
+  #dungeonEnemyIdle:not(.boss-dungeon-sprite){
+    bottom:20px !important;
+  }
+}
+
 </style>
 
 <style>
