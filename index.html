@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.10.23</title>
+<title>小學勇者大冒險 V10.11.46</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1393,7 +1393,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.10.23</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.46</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1466,6 +1466,32 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
+/* V10.11.46：GM 測試背景獨立對照表。
+   放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
+var SEMESTER_WEEK_MAP = {
+  1:{background:'images/backgrounds/week01_grassland.png'},
+  2:{background:'images/backgrounds/week02_cave.png'},
+  3:{background:'images/backgrounds/week03_forest.png'},
+  4:{background:'images/backgrounds/week04_wasteland.png'},
+  5:{background:'images/backgrounds/week05_wizard_tower.png'},
+  6:{background:'images/backgrounds/week06_desert.png'},
+  7:{background:'images/backgrounds/week07_pyramid.png'},
+  8:{background:'images/backgrounds/week08_demon_outskirts.png'},
+  9:{background:'images/backgrounds/week09_demon_castle_outer.png'},
+ 10:{background:'images/backgrounds/week10_demon_castle_inner.png'},
+ 11:{background:'images/backgrounds/week11_burning_land.png'},
+ 12:{background:'images/backgrounds/week12_ancient_ruins.png'},
+ 13:{background:'images/backgrounds/week13_ship_deck.png'},
+ 14:{background:'images/backgrounds/week14_jungle.png'},
+ 15:{background:'images/backgrounds/week15_ghost_swamp.png'},
+ 16:{background:'images/backgrounds/week16_sunken_city.png'},
+ 17:{background:'images/backgrounds/week17_great_rift.png'},
+ 18:{background:'images/backgrounds/week18_airship.png'},
+ 19:{background:'images/backgrounds/week19_sky_city.png'},
+ 20:{background:'images/backgrounds/week20_burning_plain.png'},
+ 21:{background:'images/backgrounds/week21_royal_parade.png'}
+};
+
 function currentSceneBackground(dateStr=today()){
   const weekData=weeklyMapForDate(dateStr);
   return sprite(weekData?.background||'images/backgrounds/week01_grassland.png');
@@ -1479,8 +1505,8 @@ function resolvedSceneBackgroundV101143(){
   const gmActive=sessionStorage.getItem('gmBattleTestActive')==='1';
   const gmWeek=Math.max(1,Math.min(21,Number(sessionStorage.getItem('gmTestWeek')||1)));
   if(gmActive){
-    const gmMap=WEEKLY_MAP_DATABASE.find(x=>Number(x.week)===gmWeek);
-    if(gmMap?.background)return sprite(gmMap.background);
+    const bg=SEMESTER_WEEK_MAP?.[gmWeek]?.background;
+    if(bg)return sprite(bg);
   }
   return currentSceneBackground(today());
 }
@@ -5757,6 +5783,8 @@ function gmWeekTestPower(week,dayIndex=0,mon=null){
   return Math.max(1,Math.round(basePower*currentBattleTestMultiplier()));
 }
 function gmStartWeekBattleTest(){
+  try{
+
   const w=Math.max(1,Math.min(21,Number(document.getElementById('gmTestWeek')?.value||1))),d=Math.max(0,Math.min(4,Number(document.getElementById('gmTestDay')?.value||0)));
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w);if(!map||map.noBattle){alert('這一週沒有戰鬥。');return;}
   const monsterId=map.monsters?.[d],mon=monsterDefinitionById(monsterId);if(!mon){alert('找不到這隻怪物的資料。');return;}
@@ -5767,6 +5795,11 @@ function gmStartWeekBattleTest(){
   runBattleSequence(mon.name,battleIconForEnemy(iconEvt,mon),power,0,0,eventType,monsterId,{testMode:true,testWeek:w,testDay:d,testHero});
   const formulaLabel=eventType==='final'?`期末公式 ×${SEMESTER_BALANCE.eventMultipliers.final}`:eventType==='midterm'?`期中公式 ×${SEMESTER_BALANCE.eventMultipliers.midterm}`:'週數日常公式';
   addBattleLog(`🧪 GM測試模式：第${w}週 ${['一','二','三','四','五'][d]}｜模擬日期 ${encounter.date}｜${formulaLabel}｜Power ${power}｜敵HP ${battleStateV10?.enemy?.maxHp||'-'}｜不寫入正式進度與獎勵。`);
+  }catch(err){
+    console.error('GM週數戰鬥測試啟動失敗:',err);
+    sessionStorage.removeItem('gmBattleTestActive');
+    alert('GM測試啟動失敗：'+String(err?.message||err));
+  }
 }
 function gmSetBattleTestMultiplier(v){
   gameData.settings.battleTestMultiplier=Number(v)||1;
