@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.54</title>
+<title>小學勇者大冒險 V10.11.55</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1150,7 +1150,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 
 
-/* V10.11.54 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
+/* V10.11.55 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
 
 /* W2 普通哥布林維持放大30% */
 .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
@@ -1308,7 +1308,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.54</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.55</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -1399,7 +1399,7 @@ function heroAssetKey(){
   return HERO_ASSET_MAP[cls]||'novice';
 }
 
-/* V10.11.54：GM 測試背景獨立對照表。
+/* V10.11.55：GM 測試背景獨立對照表。
    放在 resolver 前，避免 WEEKLY_MAP_DATABASE 尚未初始化時造成整個狀態頁崩潰。 */
 var SEMESTER_WEEK_MAP = {
   1:{background:'images/backgrounds/week01_grassland.png'},
@@ -5654,7 +5654,7 @@ function renderGM(){
         <button class="btn purple" onclick="saveCloudConfig()">儲存開發者設定</button>
         <div class="card small" style="margin-top:10px">
           <strong>🔥 正式家庭共用需要的 Firestore Rules</strong>
-          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.54 隨附的 Rules 檔。</div>
+          <div style="margin-top:5px">若建立／加入家庭出現 <code>permission-denied</code>，請到 Firebase → Firestore Database → Rules 套用 V10.11.55 隨附的 Rules 檔。</div>
         </div>
 
       </details>
@@ -6066,6 +6066,7 @@ boot();
 
 <script type="module">
 let fb=null,auth=null,db=null,currentUser=null,saving=false,pulling=false,lastCloudPullUid='',currentFamilyId='';
+let familyRealtimeUnsub=null, familyRealtimeId='', cloudSaveQueued=false, applyingRealtimeCloud=false;
 
 async function initFirebase(){
   const c=gameData.settings?.cloud;
@@ -6082,6 +6083,7 @@ async function initFirebase(){
     auth=authMod.getAuth(app); db=fsMod.getFirestore(app);
     authMod.onAuthStateChanged(auth,async user=>{
       currentUser=user;
+      if(!user)stopFamilyRealtime();
       const statusText=user?'☁️ 已登入：'+(user.email||'匿名使用者'):'☁️ 尚未登入';
       const s=document.getElementById('cloudStatus'); if(s)s.textContent=statusText;
       const ss=document.getElementById('setupCloudStatus'); if(ss)ss.textContent=statusText;
@@ -6176,6 +6178,33 @@ function updateFamilyCloudStatus(){
     ? '✅ 已連結家庭：'+currentFamilyId
     : (currentUser?'☁️ 已登入，但尚未加入家庭':'請先登入 Google');
 }
+
+function stopFamilyRealtime(){
+  if(typeof familyRealtimeUnsub==='function'){try{familyRealtimeUnsub();}catch(e){}}
+  familyRealtimeUnsub=null; familyRealtimeId='';
+}
+function startFamilyRealtime(){
+  if(!currentUser||!db||!currentFamilyId||!fb?.fsMod?.onSnapshot)return;
+  if(familyRealtimeId===currentFamilyId && familyRealtimeUnsub)return;
+  stopFamilyRealtime();
+  const {doc,onSnapshot}=fb.fsMod;
+  familyRealtimeId=currentFamilyId;
+  familyRealtimeUnsub=onSnapshot(
+    doc(db,'families',currentFamilyId,'seasons',CURRENT_SEASON_ID),
+    snap=>{
+      if(!snap.exists()||saving||cloudSaveQueued)return;
+      const localCfg=gameData.settings?.cloud;
+      applyingRealtimeCloud=true;
+      try{
+        if(applyCloudFamilyPayload(snap.data(),localCfg)){
+          renderAll();
+          updateFamilyCloudStatus();
+        }
+      }finally{applyingRealtimeCloud=false;}
+    },
+    err=>console.warn('家庭即時同步失敗',err)
+  );
+}
 async function pullCloud(opts={}){
   if(!currentUser||!db||pulling)return false;
   pulling=true;
@@ -6201,6 +6230,7 @@ async function pullCloud(opts={}){
       const shared=await readFamilyCloud(currentFamilyId);
       if(shared && applyCloudFamilyPayload(shared,localCfg)){
         lastCloudPullUid=currentUser.uid;
+        startFamilyRealtime();
         const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已從家庭雲端取回角色';
         updateFamilyCloudStatus();
         boot();
@@ -6226,6 +6256,7 @@ async function pullCloud(opts={}){
     const hasRealLocalHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
     if(hasRealLocalHero){
       await pushCloud({firstUpload:true});
+      if(currentFamilyId)startFamilyRealtime();
       const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已建立第一份雲端存檔';
     }else{
       const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='☁️ 此帳號沒有角色，請建立第一個勇者或加入家庭';
@@ -6239,32 +6270,32 @@ async function pullCloud(opts={}){
   }finally{pulling=false;}
 }
 async function pushCloud(opts={}){
-  if(!currentUser||!db||saving)return false;
+  if(!currentUser||!db)return false;
+  if(saving){cloudSaveQueued=true;return true;}
   const hasRealHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
-  if(!hasRealHero){
-    console.warn('略過雲端寫入：目前沒有已建立的正式角色');
-    return false;
-  }
+  if(!hasRealHero){console.warn('略過雲端寫入：目前沒有已建立的正式角色');return false;}
   saving=true;
+  let ok=false;
   try{
-    const {doc,setDoc,serverTimestamp}=fb.fsMod;
-    persistFamily();
-    const clone=JSON.parse(JSON.stringify(familyData));
-
-    // 已加入家庭就只寫家庭共同存檔。
-    if(currentFamilyId){
-      await setDoc(doc(db,'families',currentFamilyId,'seasons',CURRENT_SEASON_ID),{
-        familyData:clone,updatedAt:serverTimestamp(),updatedBy:currentUser.uid
-      },{merge:true});
-    }else{
-      // 尚未建立家庭時保留單帳號雲端相容性。
-      await setDoc(doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID),{
-        familyData:clone,updatedAt:serverTimestamp()
-      },{merge:true});
-    }
-    return true;
+    do{
+      cloudSaveQueued=false;
+      const {doc,setDoc,serverTimestamp}=fb.fsMod;
+      persistFamily();
+      const clone=JSON.parse(JSON.stringify(familyData));
+      if(currentFamilyId){
+        await setDoc(doc(db,'families',currentFamilyId,'seasons',CURRENT_SEASON_ID),{
+          familyData:clone,updatedAt:serverTimestamp(),updatedBy:currentUser.uid
+        },{merge:true});
+      }else{
+        await setDoc(doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID),{
+          familyData:clone,updatedAt:serverTimestamp()
+        },{merge:true});
+      }
+      ok=true;
+    }while(cloudSaveQueued);
+    return ok;
   }catch(e){console.error('雲端儲存失敗',e);return false;}
-  finally{saving=false;}
+  finally{saving=false;if(currentFamilyId)startFamilyRealtime();}
 }
 window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
 window.firebaseAnonymousLogin=async()=>{
@@ -6311,7 +6342,7 @@ window.firebaseAuthorizeParent=async(email)=>{
     alert('授權完成！\n\n請對方在自己的手機設定 Firebase 後，使用 '+email+' 登入 Google。\n系統會自動加入這個家庭。');
   }catch(e){
     console.error(e);
-    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.54 Firestore Rules。');
+    alert('授權失敗：'+e.message+'\n\n請確認已套用 V10.11.55 Firestore Rules。');
   }
 };
 window.firebaseGoogleLogin=async()=>{
