@@ -1282,6 +1282,54 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:0 !important;}
 }
 
+
+/* V10.11.43：後續怪物統一座標基準 */
+/* 所有普通怪物：沿用目前 W2 校正後的正式戰鬥座標 */
+.battle-enemy .battle-enemy-unit-sprite.enemy-unit-0:not(.boss-monster-sprite){
+  right:0 !important;
+  bottom:0 !important;
+}
+/* 所有 Boss：沿用大史萊姆王的 Boss 容器座標；圖片本身不再額外往上推 */
+.battle-enemy .battle-enemy-unit-sprite.enemy-unit-0.boss-monster-sprite{
+  right:0 !important;
+  bottom:0 !important;
+}
+/* 副本入口普通怪維持統一落地基準 */
+#dungeonEnemyIdle:not(.boss-dungeon-sprite){
+  bottom:28px !important;
+}
+/* 召喚物沿用 V10.11.42 校正後站位 */
+.battle-summon-layer .enemy-unit-1{right:28% !important;bottom:0 !important;}
+.battle-summon-layer .enemy-unit-2{right:43% !important;bottom:0 !important;}
+.battle-summon-layer .enemy-unit-3{right:56% !important;bottom:0 !important;}
+@media(max-width:600px){
+  .battle-enemy .battle-enemy-unit-sprite.enemy-unit-0:not(.boss-monster-sprite),
+  .battle-enemy .battle-enemy-unit-sprite.enemy-unit-0.boss-monster-sprite{
+    right:0 !important;
+    bottom:0 !important;
+  }
+}
+
+
+/* V10.11.44：哥布林王召喚物 Y 軸往上修正，X 維持靠 Boss 側 */
+.battle-summon-layer .enemy-unit-1{
+  right:28% !important;
+  bottom:48px !important;
+}
+.battle-summon-layer .enemy-unit-2{
+  right:43% !important;
+  bottom:48px !important;
+}
+.battle-summon-layer .enemy-unit-3{
+  right:56% !important;
+  bottom:48px !important;
+}
+@media(max-width:600px){
+  .battle-summon-layer .enemy-unit-1{right:25% !important;bottom:36px !important;}
+  .battle-summon-layer .enemy-unit-2{right:43% !important;bottom:36px !important;}
+  .battle-summon-layer .enemy-unit-3{right:58% !important;bottom:36px !important;}
+}
+
 </style>
 
 <style>
@@ -1400,8 +1448,18 @@ function battleBackgroundForDate(dateStr=today()){
   return currentSceneBackground(dateStr);
 }
 
+function resolvedSceneBackgroundV101143(){
+  const gmActive=sessionStorage.getItem('gmBattleTestActive')==='1';
+  const gmWeek=Math.max(1,Math.min(21,Number(sessionStorage.getItem('gmTestWeek')||1)));
+  if(gmActive){
+    const gmMap=SEMESTER_WEEK_MAP[gmWeek];
+    if(gmMap?.background)return sprite(gmMap.background);
+  }
+  return currentSceneBackground(today());
+}
+
 function sceneBackgroundHTML(extraClass=''){
-  return `<img class="scene-background ${extraClass}" src="${currentSceneBackground(today())}" alt="">`;
+  return `<img class="scene-background ${extraClass}" src="${resolvedSceneBackgroundV101143()}" alt="">`;
 }
 
 
@@ -3017,7 +3075,7 @@ const MONSTER_SKILL_DATABASE={
   goblin_heal:{id:'goblin_heal',name:'治療術',kind:'heal',target:'ally_lowest_hp',healMaxHp:.15,conditionHpBelow:.40,maxUsesPerBattle:1},
   goblin_heavy_slash:{id:'goblin_heavy_slash',name:'重斬',kind:'physical',target:'single',multiplier:1.4},
   goblin_warcry:{id:'goblin_warcry',name:'戰吼',kind:'buff',target:'self',atkMultiplier:1.20,duration:3,maxUsesPerBattle:1},
-  goblin_summon:{id:'goblin_summon',name:'召喚哥布林',kind:'summon',target:'none',mpCost:25},
+  goblin_summon:{id:'goblin_summon',name:'召喚哥布林',kind:'summon',target:'none',mpCost:40},
 
   /* Week 3 森林 */
   spider_poison_fang:{id:'spider_poison_fang',name:'毒牙',kind:'physical',target:'single',multiplier:1.0,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
@@ -3186,7 +3244,7 @@ const MONSTER_MECHANIC_DATABASE={
 
 const ENEMY_SUMMON_DATABASE={
   goblin_king:{
-    maxActiveSummons:2,maxTotalSummons:4,mp:100,maxMp:100,mpRegen:0,mpCostPerSummon:25,
+    maxActiveSummons:2,maxTotalSummons:2,mp:100,maxMp:100,mpRegen:0,mpCostPerSummon:40,
     summonCountPerCast:1,candidates:[
       {id:'goblin_slave',weight:50},{id:'goblin_soldier',weight:35},{id:'goblin_shaman',weight:15,maxActive:1}
     ],
@@ -4449,7 +4507,8 @@ function skillUsableByEnemy(unit,entry,skill){
   if(skill.kind==='summon'){
     if(unit.monsterId==='goblin_king'){
       const active=(battleStateV10.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.hp>0).length;
-      if(active>=2||unit.mp<25||(unit.skillUses.goblin_summon||0)>=4)return false;
+      const totalSummoned=Number(unit.goblinSummonTotal||0);
+      if(active>=2||unit.mp<40||totalSummoned>=2)return false;
     }
     if(unit.monsterId==='necromancer'&&(unit.skillUses.summon_three_skeletons||0)>=1)return false;
   }
@@ -4541,14 +4600,24 @@ async function performLiveEnemyTurn(unit){
   if(skill.kind==='debuff'){tryApplyMonsterStatus(skill,battleStateV10.hero);updateBattleStatuses();return;}
   if(skill.kind==='summon'){
     if(unit.monsterId==='goblin_king'){
-      if(unit.mp<25){unit.mp=0;updateBattleResource('enemy',0,unit.maxMp||100);addBattleLog('🔵 哥布林王MP已耗盡，無法再召喚。');return;}
+      unit.goblinSummonTotal=Number(unit.goblinSummonTotal||0);
+      if(unit.goblinSummonTotal>=2){
+        addBattleLog('👑 哥布林王本場已完成兩次召喚，不再召喚。');
+        return;
+      }
+      if(unit.mp<40){
+        updateBattleResource('enemy',unit.mp,unit.maxMp||100);
+        addBattleLog('🔵 哥布林王MP不足40，無法再召喚。');
+        return;
+      }
       const pool=['goblin_slave','goblin_soldier','goblin_shaman'];const id=pool[Math.floor(Math.random()*pool.length)];
       const su=summonLiveUnit(id,unit,{statScale:.82,hpScale:.52});
       if(su){
-        unit.mp=Math.max(0,unit.mp-25);
+        unit.goblinSummonTotal++;
+        unit.mp=Math.max(0,unit.mp-40);
         updateBattleResource('enemy',unit.mp,unit.maxMp||100);
-        addBattleLog(`📣 哥布林王消耗25 MP，召喚「${su.name}」！剩餘MP ${unit.mp}/${unit.maxMp||100}。`);
-        if(unit.mp===0)addBattleLog('🔵 哥布林王MP耗盡，本場不能再召喚。');
+        addBattleLog(`📣 哥布林王消耗40 MP，召喚「${su.name}」！本場 ${unit.goblinSummonTotal}/2 次，剩餘MP ${unit.mp}/${unit.maxMp||100}。`);
+        if(unit.goblinSummonTotal>=2)addBattleLog('🚫 哥布林王已達本場召喚上限，不會再召喚。');
       }else addBattleLog('📣 場上已滿，哥布林王無法召喚，MP不消耗。');
       return;
     }
@@ -4619,6 +4688,8 @@ async function finishBattleV10(win){
   document.getElementById('battleActions').style.display='none';document.getElementById('battleSubmenu').style.display='none';document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div><div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div><div>🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">戰敗不扣 EXP、金幣或能力值。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
 }
 function runBattleSequence(enemyName,enemyIcon,enemyPower,baseGold,baseExp,eventType,monsterId=null,opts={}){
+  if(!opts?.testMode)sessionStorage.removeItem('gmBattleTestActive');
+
   HERO_ATTACK_FRAMES=heroAttackFrames();const hero=opts?.testHero?{...opts.testHero,statuses:[],guarding:false}:makeHeroBattleStats();monsterId=monsterId||monsterIdByName(enemyName)||'legacy_enemy';
   const primary=makeLiveEnemy(monsterId,enemyPower,eventType,{name:enemyName,isBoss:eventType==='midterm'||eventType==='final'||MONSTER_DATABASE[monsterId]?.boss});
   battleStateV10={hero,enemy:primary,enemies:[primary],selectedEnemyUid:primary.uid,enemyName,enemyPower,baseGold,baseExp,eventType,monsterId,heroHp:hero.maxHp,enemyHp:primary.hp,heroEnergy:Math.round(hero.maxEnergy*.50),enemyEnergy:Math.round(primary.maxEnergy*.50),round:0,busy:false,ended:false,testMode:!!opts.testMode,testWeek:opts.testWeek||null,testDay:opts.testDay??null};
@@ -5560,7 +5631,7 @@ function deleteShopItem(id){if(confirm('刪除此商品？')){gameData.shopItems
 function gmRenderWeekTestMonsterOptions(){
   const w=Math.max(1,Math.min(21,Number(document.getElementById('gmTestWeek')?.value||sessionStorage.getItem('gmTestWeek')||1)));
   const d=Math.max(0,Math.min(4,Number(document.getElementById('gmTestDay')?.value||sessionStorage.getItem('gmTestDay')||0)));
-  sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));
+  sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));sessionStorage.setItem('gmBattleTestActive','1');
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w),id=map?.monsters?.[d],mon=monsterDefinitionById(id),box=document.getElementById('gmWeekTestPreview');
   if(box){
     if(map?.noBattle)box.innerHTML=`🎊 第${w}週｜${map.map}｜無戰鬥`;
@@ -5655,7 +5726,7 @@ function gmStartWeekBattleTest(){
   const w=Math.max(1,Math.min(21,Number(document.getElementById('gmTestWeek')?.value||1))),d=Math.max(0,Math.min(4,Number(document.getElementById('gmTestDay')?.value||0)));
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w);if(!map||map.noBattle){alert('這一週沒有戰鬥。');return;}
   const monsterId=map.monsters?.[d],mon=monsterDefinitionById(monsterId);if(!mon){alert('找不到這隻怪物的資料。');return;}
-  sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));
+  sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));sessionStorage.setItem('gmBattleTestActive','1');
   const encounter=gmTestEncounterInfo(w,d,mon),eventType=encounter.eventType,power=gmWeekTestPower(w,d,mon),heroMode=document.getElementById('gmTestHeroMode')?.value||'standard';
   const testHero=gmBuildTestHero(w,heroMode);
   const iconEvt=eventType==='daily'?null:{type:eventType};
