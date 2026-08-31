@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.60</title>
+<title>小學勇者大冒險 V10.11.63</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -202,6 +202,32 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .timeline-node.current{border-color:#f0883e;box-shadow:0 0 0 2px #f0883e33}
 .timeline-node .icon{font-size:28px}.timeline-node .date{font-size:11px;color:#8b949e}
 .timeline-line{height:3px;min-width:24px;background:#39414b;border-radius:999px}
+.timeline-snake{display:flex;flex-direction:column;gap:0;padding:10px 2px 4px;overflow:visible}
+.timeline-snake-row{display:flex;align-items:center;gap:6px;min-width:0}
+.timeline-snake-row.reverse{flex-direction:row-reverse}
+.timeline-snake-row .timeline-node{flex:1 1 0;min-width:0;min-height:82px;display:flex;flex-direction:column;justify-content:center}
+.timeline-snake-row .timeline-line{flex:0 0 24px;min-width:12px}
+.timeline-snake-turn{height:24px;width:3px;background:#39414b;border-radius:999px;align-self:flex-end;margin-right:45px}
+.timeline-snake-turn.left{align-self:flex-start;margin-right:0;margin-left:45px}
+.exam-energy-card{background:linear-gradient(145deg,#151b26,#0d1117);border:1px solid #39414b}
+.exam-energy-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.exam-energy-row{margin:11px 0}
+.exam-energy-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;margin-bottom:5px}
+.exam-energy-track{height:22px;border-radius:999px;background:#080b10;border:2px solid #30363d;overflow:hidden;box-shadow:inset 0 2px 5px #0008}
+.exam-energy-fill{height:100%;min-width:0;border-radius:999px;background:linear-gradient(90deg,#f85149,#f0883e);transition:width .5s ease;position:relative}
+.exam-energy-fill.mid{background:linear-gradient(90deg,#f0883e,#d29922)}
+.exam-energy-fill.high{background:linear-gradient(90deg,#2ea043,#58d68d)}
+.exam-energy-fill.full{background:linear-gradient(90deg,#1f6feb,#a371f7);box-shadow:0 0 12px #58a6ff99}
+.exam-energy-note{font-size:12px;color:#8b949e;text-align:right;margin-top:3px}
+.gm-tabs{position:sticky;top:0;z-index:25;display:flex;gap:7px;overflow-x:auto;padding:9px 4px;margin:0 0 12px;background:linear-gradient(#0d1117f5,#0d1117e8);backdrop-filter:blur(8px)}
+.gm-tab-btn{flex:0 0 auto;border:1px solid #39414b;background:#161b22;color:#c9d1d9;border-radius:999px;padding:9px 13px;font-weight:800;cursor:pointer}
+.gm-tab-btn.active{color:#fff;border-color:#58a6ff;background:linear-gradient(135deg,#1f6feb,#8957e5);box-shadow:0 0 0 2px #58a6ff22}
+.gm-tab-section.gm-tab-hidden{display:none!important}
+@media(max-width:600px){
+  .timeline-snake-row .timeline-node{min-height:78px;padding:7px 5px}
+  .timeline-snake-row .timeline-line{flex-basis:14px}
+  .timeline-snake-turn{margin-right:42px}.timeline-snake-turn.left{margin-left:42px}
+}
 .cloud-status{padding:8px;border-radius:8px;background:#0d1117;border:1px solid #30363d;font-size:12px}
 .battle-stage{
   display:grid;
@@ -1308,7 +1334,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.60</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.63</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -2127,17 +2153,23 @@ function renderSemesterTimeline(){
   ensureAdventureCalendar();
   const visible=familyData.adventureCalendar.filter(e=>calendarVisibleTo(e)).sort((a,b)=>(a.date+(a.startTime||'')).localeCompare(b.date+(b.startTime||'')));
   const overdue=visible.filter(e=>calendarEventStatus(e)==='overdue').length;
-  const upcoming=visible.filter(e=>e.date>=today()).slice(0,8);
-  const late=visible.filter(e=>calendarEventStatus(e)==='overdue').slice(-4);
-  const list=[...late,...upcoming.filter(x=>!late.some(y=>y.id===x.id))].slice(0,10);
+  // 所有事件完整顯示；依螢幕寬度分列，奇數列反向形成連續 S 型路線。
+  const columns=window.innerWidth<=600?2:window.innerWidth<=980?3:4;
+  const rows=[];for(let i=0;i<visible.length;i+=columns)rows.push(visible.slice(i,i+columns));
+  const nodeHTML=e=>{
+    const st=calendarEventStatus(e),mark=st==='done'?'✓':st==='overdue'?'❗':'';
+    return `<div class="timeline-node ${st==='overdue'?'current':''}" onclick="openCalendarEvent('${e.id}')" style="cursor:pointer">
+      <div class="icon">${calendarTypeIcon(e.type)}</div><div>${mark} ${e.name}</div>
+      <div class="date">${e.date.slice(5).replace('-','/')} ${calendarTimeText(e)}</div></div>`;
+  };
+  const snake=rows.map((row,rowIndex)=>{
+    const content=row.map((e,i)=>`${i?'<div class="timeline-line"></div>':''}${nodeHTML(e)}`).join('');
+    const turn=rowIndex<rows.length-1?`<div class="timeline-snake-turn ${rowIndex%2?'left':''}"></div>`:'';
+    return `<div class="timeline-snake-row ${rowIndex%2?'reverse':''}">${content}</div>${turn}`;
+  }).join('');
   return `<div class="card"><h3>🗺️ 學期冒險 ${overdue?`<span class="pill bad">❗${overdue} 件未完成</span>`:''}</h3>
-    <div class="small" style="margin-bottom:8px">點事件可看細節、完成或修改自己的行程。</div>
-    <div class="timeline">${list.length?list.map((e,i)=>{
-      const st=calendarEventStatus(e),mark=st==='done'?'✓':st==='overdue'?'❗':'';
-      return `${i?'<div class="timeline-line"></div>':''}<div class="timeline-node ${st==='overdue'?'current':''}" onclick="openCalendarEvent('${e.id}')" style="cursor:pointer">
-        <div class="icon">${calendarTypeIcon(e.type)}</div><div>${mark} ${e.name}</div>
-        <div class="date">${e.date.slice(5).replace('-','/')} ${calendarTimeText(e)}</div></div>`;
-    }).join(''):'<div class="small">目前沒有行程。孩子也可以新增自己的行程。</div>'}</div>
+    <div class="small" style="margin-bottom:8px">完整顯示全部事件；路線會依畫面寬度自動折返。點事件可看細節、完成或修改自己的行程。</div>
+    <div class="timeline-snake">${snake||'<div class="small">目前沒有行程。孩子也可以新增自己的行程。</div>'}</div>
     <button class="btn blue" style="margin-top:10px" onclick="kidAddCalendarEvent()">＋ 我的行程</button>
   </div>`;
 }
@@ -4941,6 +4973,7 @@ function renderHero(){
       <div class="kid-box">⚔️ ${combatPower()}</div>
     </div>
 
+    ${typeof renderExamLearningEnergyHTML==='function'?renderExamLearningEnergyHTML():''}
     <button class="ability-btn" onclick="showAbilityPanel()">📊 能力</button>
     ${renderSemesterTimeline()}`;
   startStatusClock();
@@ -5318,6 +5351,32 @@ function gmDeleteCalendarEvent(id){
   if(gmEditingCalendarId===id)gmEditingCalendarId='';persistCalendarChange();if(typeof window.applyCampaignCalendarState==='function')window.applyCampaignCalendarState();renderAll();
 }
 function gmCancelCalendarEdit(){gmEditingCalendarId='';renderGM();}
+let gmActiveTab=sessionStorage.getItem('studyRPG_gmTab')||'semester';
+const GM_TAB_LABELS={semester:'📚 學期與課表',tasks:'📝 任務與核定',calendar:'📅 行事曆',rewards:'🎁 商店與獎勵',system:'⚙️ 角色與系統'};
+function setGMTab(tab,scroll=true){
+  if(!GM_TAB_LABELS[tab])tab='semester';
+  gmActiveTab=tab;sessionStorage.setItem('studyRPG_gmTab',tab);
+  document.querySelectorAll('#panel-gm .gm-tab-section').forEach(x=>x.classList.toggle('gm-tab-hidden',x.dataset.gmTab!==tab));
+  document.querySelectorAll('#panel-gm .gm-tab-btn').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
+  if(scroll)document.getElementById('panel-gm')?.scrollIntoView({block:'start'});
+}
+function gmCardTab(card){
+  const title=(card.querySelector(':scope > h3')?.textContent||card.querySelector(':scope > strong')?.textContent||'').trim();
+  if(/學期基本|考試科目|正式學期/.test(title))return 'semester';
+  if(/任務核定|新增任務|任務清單|學習進度/.test(title))return 'tasks';
+  if(/冒險行事曆|冒險日曆/.test(title))return 'calendar';
+  if(/商店|兌換審核|抽獎池/.test(title))return 'rewards';
+  return 'system';
+}
+function applyGMTabs(){
+  const panel=document.getElementById('panel-gm');if(!panel)return;
+  const heading=panel.querySelector(':scope > h2');if(!heading)return;
+  const nav=document.createElement('div');nav.className='gm-tabs';
+  nav.innerHTML=Object.entries(GM_TAB_LABELS).map(([id,label])=>`<button class="gm-tab-btn" data-tab="${id}" onclick="setGMTab('${id}')">${label}</button>`).join('');
+  heading.insertAdjacentElement('afterend',nav);
+  [...panel.children].filter(x=>x.classList?.contains('card')).forEach(card=>{card.classList.add('gm-tab-section');card.dataset.gmTab=gmCardTab(card);});
+  setGMTab(gmActiveTab,false);
+}
 function renderGM(){
   repairRuntimeData();
   if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
@@ -5344,7 +5403,8 @@ function renderGM(){
     </div>
 
     <div class="card">
-      <h3>📅 學期行事曆</h3>
+      <h3>📅 學期基本設定</h3>
+      <div class="small">這裡只設定學期起訖與固定上課星期；考試、放假、活動及新學期事件統一在下方「冒險行事曆」管理。</div>
       <div class="calendar-grid">
         <div><label>學期開始</label><input id="gmSemStart" type="date" value="${gameData.semester?.startDate||''}"></div>
         <div><label>學期結束</label><input id="gmSemEnd" type="date" value="${gameData.semester?.endDate||''}"></div>
@@ -5353,14 +5413,7 @@ function renderGM(){
       <div class="weekday-grid">
         ${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" class="gmSchoolDay" value="${d}" ${(gameData.semester?.schoolWeekdays||[1,2,3,4,5]).includes(d)?'checked':''}>${['日','一','二','三','四','五','六'][d]}</label>`).join('')}
       </div>
-      <div class="grid3">
-        <div><label>事件日期</label><input id="gmSemEventDate" type="date"></div>
-        <div><label>事件類型</label><select id="gmSemEventType"><option value="holiday">放假</option><option value="midterm">期中考</option><option value="final">期末考</option><option value="special">特殊活動</option></select></div>
-        <div><label>事件名稱</label><input id="gmSemEventName" placeholder="例如：校慶"></div>
-      </div>
       <button class="btn blue" onclick="saveSemesterSettings()">儲存學期設定</button>
-      <button class="btn purple" onclick="addSemesterEvent()">＋ 新增事件</button>
-      <div class="small" style="margin-top:8px">${(gameData.semester?.events||[]).sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`${e.date}｜${e.name||e.type}`).join('<br>')||'尚未新增事件'}</div>
     </div>
 
 
@@ -5379,21 +5432,8 @@ function renderGM(){
       </div>
       <div style="margin-top:8px">
         今日預期戰力：<b>${expectedSemesterPower()}</b>｜
-        普通怪：<b>${generatedMonsterPower('daily','normal')}</b>｜
-        期中 Boss 預估：<b>${generatedMonsterPower('midterm','normal')}</b>｜
-        期末 Boss 預估：<b>${generatedMonsterPower('final','normal')}</b>
+        普通怪：<b>${generatedMonsterPower('daily','normal')}</b>
       </div>
-
-    <div class="card">
-      <h3>👿 Boss 有效學習量</h3>
-      ${(()=>{
-        const mid=bossLearningReport('midterm'), fin=bossLearningReport('final');
-        const pct=x=>Math.round(x*100);
-        return `<div><b>期中：</b>${mid.approved} / ${mid.required} 點（${pct(mid.ratio)}%）｜截止 ${mid.cutoff}</div>
-        <div><b>期末：</b>${fin.approved} / ${fin.required} 點（${pct(fin.ratio)}%）｜截止 ${fin.cutoff}</div>
-        <div class="small" style="margin-top:6px">計入功課／預習複習、「考卷／評量」與課內／指定閱讀；課外閱讀不計入 Boss 學業完成率。核定100%/80%/50%分別按1.0/0.8/0.5計入，退回0%不計。新任務從建立日起才開始增加需求；週末、國定假日、放假與特殊活動日預設不列入理論需求。</div>`;
-      })()}
-    </div>
 
       <div class="small" style="margin-top:6px">
         🌱 平衡基準：每日怪抓「0%～100%今日成長」之間偏高位置，再做弱化補正；100%完成會取得明顯戰鬥優勢。失敗不扣能力、EXP、金幣或裝備。
@@ -5717,6 +5757,7 @@ function renderGM(){
       <h3 class="bad">危險操作</h3>
       <button class="btn red" onclick="resetAll()">清除全部資料</button>
     </div>`;
+  applyGMTabs();
   setTimeout(gmRenderWeekTestMonsterOptions,0);
 }
 setTimeout(refreshTaskBalancePreview,0);
@@ -7741,6 +7782,29 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   window.ensureExamBossConfig=ensureExamBossConfig;
   ensureExamBossConfig();
 
+  // V10.11.61：舊學期事件只搬一次到冒險行事曆；之後所有日期判斷只讀單一事件來源。
+  function migrateLegacySemesterEvents(){
+    ensureAdventureCalendar();
+    if(familyData.calendarUnifiedV101161)return false;
+    const legacy=[...(gameData.semester?.events||[]),...(gameData.events||[])];
+    let changed=false;
+    legacy.forEach(e=>{
+      if(!e?.date||!['holiday','midterm','final','special'].includes(e.type))return;
+      const type=e.type==='special'?'activity':e.type;
+      if(familyData.adventureCalendar.some(x=>x.date===e.date&&x.type===type))return;
+      familyData.adventureCalendar.push({id:uid(),date:e.date,name:e.name||type,type,
+        examSubjectIds:['midterm','final'].includes(type)?familyData.examSubjects.map(s=>s.id):[],
+        allDay:true,startTime:'',endTime:'',note:'由舊學期事件自動合併',reminderMinutes:0,
+        targetType:'all',targetProfileIds:[],requireComplete:false,completedBy:{},
+        creatorRole:'parent',creatorProfileId:'parent'});
+      changed=true;
+    });
+    familyData.calendarUnifiedV101161=true;
+    if(changed)try{persistCalendarChange();}catch(e){}
+    return changed;
+  }
+  migrateLegacySemesterEvents();
+
   window.examSubjectOptionsHTML=function(){
     ensureExamBossConfig();
     return familyData.examSubjects.map(s=>`<option value="${escapeHtml(s.name)}"></option>`).join('');
@@ -7809,7 +7873,6 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     const semesterStart=gameData.semester?.startDate||OFFICIAL_LAUNCH_DATE;
     return familyData.adventureCalendar.filter(e=>['midterm','final'].includes(e.type)&&e.date>=semesterStart&&calendarVisibleTo(e));
   }
-  function legacyExamEvents(type){return (gameData.events||[]).filter(e=>e.active!==false&&e.type===type);}
   window.resolveDungeonEventById=function(id){
     return visibleExamEvents().find(e=>e.id===id)||(gameData.events||[]).find(e=>e.id===id)||null;
   };
@@ -7817,12 +7880,14 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   const legacyGetTodayEvent=getTodayEvent;
   getTodayEvent=function(){
     const cal=visibleExamEvents().find(e=>e.date===today());
-    return cal||legacyGetTodayEvent();
+    if(cal)return cal;
+    const legacy=legacyGetTodayEvent();
+    // 舊期中／期末事件已搬入冒險行事曆，不再允許第二套日期來源召喚 Boss。
+    return legacy&&['midterm','final'].includes(legacy.type)?null:legacy;
   };
 
   function examEventsForType(type){
-    const cal=visibleExamEvents().filter(e=>e.type===type);
-    return (cal.length?cal:legacyExamEvents(type)).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    return visibleExamEvents().filter(e=>e.type===type).slice().sort((a,b)=>a.date.localeCompare(b.date));
   }
   bossCutoffDate=function(kind='midterm'){
     const list=examEventsForType(kind);
@@ -7841,8 +7906,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return ids.length?ids:familyData.examSubjects.map(s=>s.id);
   }
   function isExamHoliday(ds){
-    if((familyData.adventureCalendar||[]).some(e=>e.date===ds&&e.type==='holiday'))return true;
-    return (gameData.semester?.events||[]).some(e=>e.date===ds&&(e.type==='holiday'||e.type==='special'));
+    return (familyData.adventureCalendar||[]).some(e=>e.date===ds&&e.type==='holiday');
   }
   function studyMinutesUntil(dateStr,subjectIds,startStr=gameData.examBossBaselineV10158?.date||today()){
     const out=Object.fromEntries(subjectIds.map(id=>[id,0]));
@@ -7955,6 +8019,24 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return {required,approved,ratio:required?Math.min(1.2,approved/required):0,byCourse};
   };
 
+  window.renderExamLearningEnergyHTML=function(){
+    ensureExamBossConfig();
+    const evt=visibleExamEvents().filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0]||null;
+    if(!evt)return '';
+    const report=examTaskCompletionReport(evt),ids=eventSubjectIds(evt);
+    const icons={'國語':'📖','英語':'🔤','英文':'🔤','數學':'🔢'};
+    const rows=ids.map(id=>{
+      const name=subjectById(id)?.name||id,r=report.byCourse[id]||{approved:0,required:0};
+      const pct=r.required?Math.max(0,Math.min(100,Math.round(r.approved/r.required*100))):0;
+      const cls=pct>=100?'full':pct>=70?'high':pct>=35?'mid':'';
+      const remaining=Math.max(0,100-pct);
+      return `<div class="exam-energy-row"><div class="exam-energy-label"><span>${icons[name]||'📚'} ${escapeHtml(name)}能量</span><span>${pct}%</span></div>
+        <div class="exam-energy-track"><div class="exam-energy-fill ${cls}" style="width:${pct}%"></div></div>
+        <div class="exam-energy-note">${r.required?(pct>=100?'✨ 能量滿格！':`還差 ${remaining}% 滿格`):'今天尚無這科任務'}</div></div>`;
+    }).join('');
+    return `<div class="card exam-energy-card"><div class="exam-energy-head"><strong>⚡ ${evt.type==='final'?'期末':'期中'}備戰能量</strong><span class="pill">${evt.date}</span></div>${rows}<div class="small">完成任務後，經家長核定才會充能。</div></div>`;
+  };
+
   window.examBossPreviewHTML=function(){
     ensureExamBossConfig();
     const render=type=>{
@@ -7963,7 +8045,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       const detail=ids.map(id=>`${escapeHtml(subjectById(id)?.name||id)} ${(mins[id]/60).toFixed(1)} 小時`).join('｜');
       const progress=ids.map(id=>{const r=report.byCourse[id]||{approved:0,required:0};return `${escapeHtml(subjectById(id)?.name||id)} ${r.required?Math.round(r.approved/r.required*100):0}%`;}).join('｜');
       const lock=evt.bossPowerByProfile?.[activeProfileId];
-      return `<b>${type==='midterm'?'期中':'期末'} ${evt.date}</b>｜${detail}<br>固定 Boss 戰力：⚔️ ${calculateExamBossPower(type,evt)} ${lock?'🔒':''}<br>家長核定後達成率：${progress}｜總計 ${Math.round(report.ratio*100)}%<br><span class="small">基準裸裝戰力 ${gameData.examBossBaselineV10158?.nakedPower||combatPower()}；裝備數值不參與 Boss 推算。</span>`;
+      return `<b>${type==='midterm'?'期中':'期末'} ${evt.date}</b>｜${detail}<br>固定 Boss 戰力：⚔️ ${calculateExamBossPower(type,evt)} ${lock?'🔒':''}<br>截至今日家長核定達成率：${progress}｜總計 ${Math.round(report.ratio*100)}%（${report.approved.toFixed(1)}／${report.required.toFixed(1)} 成長點）<br><span class="small">達成率分母只累計從新系統啟用日至今天應完成的任務，不會提前計入考試前尚未到來的日期。基準裸裝戰力 ${gameData.examBossBaselineV10158?.nakedPower||combatPower()}；裝備數值不參與 Boss 推算。</span>`;
     };
     return `${render('midterm')}<hr>${render('final')}<div class="small">任務以課表科目 ID 直接連結；未指定科目的功課／考卷／課內閱讀平均分配。待核定任務為 0%，核定 100%／80%／50% 後才計入。Boss 戰力鎖定後不會隨角色、裝備或日期浮動；只有修改考試、課表或任務設定時重算。</div>`;
   };
