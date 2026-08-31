@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.63</title>
+<title>小學勇者大冒險 V10.11.64</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1334,7 +1334,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.63</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.64</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -2404,7 +2404,8 @@ function finishCommonTask(t,extra={}){
     id:uid(),taskId:t.id,date:today(),status:'completed',
     completedAt:new Date().toISOString(),taskType:t.taskType||'complete',
     rewards:{gold:t.goldReward,exp:t.expReward,statGain},approvalStatus:'pending',
-    rollback:{gold:Number(t.goldReward)||0,exp:Number(t.expReward)||0,statGain:statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{})},...extra
+    rollback:{gold:Number(t.goldReward)||0,exp:Number(t.expReward)||0,statGain:statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{})},
+    taskSnapshot:typeof taskSnapshotForRecord==='function'?taskSnapshotForRecord(t):null,...extra
   });
   if(t.subject||t.progressType||t.progressValue){
     gameData.learningProgress.push({
@@ -2679,6 +2680,17 @@ function taskReviewTimeHTML(r,t){
   const minutes=Number(r?.durationMinutes);
   return `<div class="small" style="margin-top:5px">⏱ 開始 ${clock(r?.startedAt)}｜完成 ${clock(r?.completedAt)}｜總耗時 ${Number.isFinite(minutes)?minutes.toFixed(1)+' 分鐘':'未記錄'}</div>`;
 }
+function taskReviewChallengeHTML(r){
+  const b=r?.challengeBonus;
+  if(!b&&!r?.voluntaryChallenge&&r?.quantity==null)return '';
+  let detail='';
+  if(r.quantity!=null)detail=`實際 ${r.quantity} ${r.quantityUnit||'次'}／目標 ${r.quantityTarget||0} ${r.quantityUnit||'次'}`;
+  else if(r.score!=null)detail=`成績 ${r.score}/${r.scoreMax}`;
+  else if(Number.isFinite(Number(r.durationMinutes)))detail=`實際 ${Number(r.durationMinutes).toFixed(1)} 分鐘`;
+  else if(r.voluntaryChallenge)detail='完成後主動再做一次';
+  const bonus=b?`｜${b.label}：額外 💰${b.gold||0}、⭐${b.exp||0}`:'';
+  return `<div class="small purple" style="margin-top:5px">✨ 自主挑戰｜${detail}${bonus}</div>`;
+}
 function applyGoldWithDebt(amount){
   amount=Number(amount)||0;
   const debt=gameData.hero.pendingGoldDebt||0;
@@ -2812,6 +2824,7 @@ function weekdayNumberFor(dateStr=today()){
 }
 function isTaskScheduledToday(t,dateStr=today()){
   if(!t||t.active===false)return false;
+  if(Array.isArray(t.cancelledDates)&&t.cancelledDates.includes(dateStr))return false;
   // 一次性任務：只在指定日/建立日出現；完成後隔日不會復活。
   if(t.recurring!==true){
     const onceDate=t.date||t.createdDate||t.activeFrom||dateStr;
@@ -5011,7 +5024,10 @@ function renderTasks(){
             : (todayRec.corrected?`<div class="small purple">✨ 已訂正：${todayRec.correctedScore}/${todayRec.scoreMax}</div>`:''))
         : `<div class="quantity-box"><input id="score_${t.id}" type="number" inputmode="numeric" min="0" max="${t.scoreMax||100}" placeholder="輸入分數 / ${t.scoreMax||100}"><button class="btn" onclick="completeScoreTask('${t.id}')">送出成績</button></div>`;
     }else{
-      action=`<button class="btn big-battle-btn" ${count>=t.dailyLimit?'disabled':''} onclick="completeSimpleTask('${t.id}')">${count>=t.dailyLimit?'今天完成了':'完成！'}</button>`;
+      const challengeDone=(gameData.taskRecords||[]).some(r=>r.taskId===t.id&&r.date===today()&&r.voluntaryChallenge===true);
+      action=count>=t.dailyLimit
+        ?`<button class="btn big-battle-btn" disabled>今天完成了</button>${challengeDone?'<div class="small purple">✨ 已完成自主加碼</div>':`<button class="btn purple" onclick="completeSimpleChallenge('${t.id}')">＋ 我想再做一次</button>`}`
+        :`<button class="btn big-battle-btn" onclick="completeSimpleTask('${t.id}')">完成！</button>`;
     }
 
     html+=`<div class="card">
@@ -5351,6 +5367,9 @@ function gmDeleteCalendarEvent(id){
   if(gmEditingCalendarId===id)gmEditingCalendarId='';persistCalendarChange();if(typeof window.applyCampaignCalendarState==='function')window.applyCampaignCalendarState();renderAll();
 }
 function gmCancelCalendarEdit(){gmEditingCalendarId='';renderGM();}
+let gmEditingTaskId='';
+function gmEditTask(id){gmEditingTaskId=id;gmActiveTab='tasks';renderGM();setTimeout(()=>document.getElementById('gmTaskEditor')?.scrollIntoView({behavior:'smooth',block:'start'}),20);}
+function gmCancelTaskEdit(){gmEditingTaskId='';renderGM();}
 let gmActiveTab=sessionStorage.getItem('studyRPG_gmTab')||'semester';
 const GM_TAB_LABELS={semester:'📚 學期與課表',tasks:'📝 任務與核定',calendar:'📅 行事曆',rewards:'🎁 商店與獎勵',system:'⚙️ 角色與系統'};
 function setGMTab(tab,scroll=true){
@@ -5363,7 +5382,7 @@ function setGMTab(tab,scroll=true){
 function gmCardTab(card){
   const title=(card.querySelector(':scope > h3')?.textContent||card.querySelector(':scope > strong')?.textContent||'').trim();
   if(/學期基本|考試科目|正式學期/.test(title))return 'semester';
-  if(/任務核定|新增任務|任務清單|學習進度/.test(title))return 'tasks';
+  if(/任務核定|新增任務|修改任務|任務清單|學習進度/.test(title))return 'tasks';
   if(/冒險行事曆|冒險日曆/.test(title))return 'calendar';
   if(/商店|兌換審核|抽獎池/.test(title))return 'rewards';
   return 'system';
@@ -5377,16 +5396,30 @@ function applyGMTabs(){
   [...panel.children].filter(x=>x.classList?.contains('card')).forEach(card=>{card.classList.add('gm-tab-section');card.dataset.gmTab=gmCardTab(card);});
   setGMTab(gmActiveTab,false);
 }
+function gmPopulateTaskEditor(t){
+  if(!t)return;const value=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??'';};const check=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+  value('gmTaskName',t.name);value('gmTaskType',t.taskType||'timer');value('gmTaskCategory',t.category||'custom');value('gmTaskDifficulty',t.difficulty||'normal');value('gmRewardMode',t.rewardMode||'manual');
+  check('gmRecurringTask',t.recurring===true);value('gmTaskStartDate',t.recurring?(t.activeFrom||t.createdDate||today()):(t.date||t.createdDate||today()));value('gmTaskEndDate',t.activeUntil||'');
+  document.querySelectorAll('.gmWeekday').forEach(x=>x.checked=(t.weekdays||[]).includes(Number(x.value)));check('gmBossNonSchool',t.countForBossOnNonSchoolDay);check('gmAssignAll',false);
+  value('gmTaskDesc',t.description||'');value('gmSubject',t.courseId||'');value('gmProgressType',t.progressType||'');value('gmProgressValue',t.progressValue||'');
+  value('gmTaskGold',Number(t.goldReward)||0);value('gmTaskExp',Number(t.expReward)||0);value('gmTaskLimit',Number(t.dailyLimit)||1);
+  value('gmTimerMode',t.timerMode||'deadline');value('gmRule1Min',Number(t.fastMinutes)||30);value('gmRule2Min',Number(t.standardMinutes)||60);
+  value('gmFixedStat',t.fixedStat||'will');value('gmFixedStatValue',Number(t.fixedStatValue)||0);value('gmFixedStat2',t.fixedStat2||'');value('gmFixedStatValue2',Number(t.fixedStatValue2)||0);
+  value('gmQuantityTarget',Number(t.quantityTarget)||1);value('gmQuantityUnit',t.quantityUnit||'次');value('gmScoreMax',Number(t.scoreMax)||100);value('gmCorrectionExp',Number(t.correctionExp)||0);check('gmAllowCorrection',t.allowCorrection!==false);
+  updateTaskTypeFields();toggleRewardMode();updateTimerModeLabels();refreshAutoRewardPreview();refreshTaskBalancePreview();
+}
 function renderGM(){
   repairRuntimeData();
   if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
   if(!gameData.settings.parentPinHash){renderParentPinSetup();return;}
   if(sessionStorage.getItem('parentUnlocked')!=='1'){renderParentLock();return;}
-  const taskList=gameData.tasks.map(t=>{
+  const editTask=gmEditingTaskId?gameData.tasks.find(t=>t.id===gmEditingTaskId&&!t.archived):null;
+  const taskList=gameData.tasks.filter(t=>!t.archived).map(t=>{
     const type=t.taskType||'timer';
     const label=type==='timer'?'⏱ 計時':type==='quantity'?'🔢 數量':'✅ 完成';
     const auto=t.rewardMode==='auto'?`<div class="small good">🛡️ 自動養成｜${AUTO_TASK_RULES[t.category]?.label||'自訂'}｜${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}</div>`:'<div class="small warn">⚙️ 手動能力獎勵</div>';
-    return `<div class="card"><strong>${label}｜${t.name}</strong><div class="small">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div>${auto}${examCourseTaskSelectHTML(t)}<button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`;
+    const cancelled=(t.cancelledDates||[]).filter(d=>d>=today()).sort();
+    return `<div class="card"><strong>${label}｜${t.name}</strong><div class="small">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div>${auto}${examCourseTaskSelectHTML(t)}${cancelled.length?`<div class="small warn">⏸ 已取消：${cancelled.join('、')}</div>`:''}<button class="btn blue" onclick="gmEditTask('${t.id}')">修改</button> <button class="btn gray" onclick="gmToggleTaskCancellation('${t.id}')">取消／恢復指定日</button> <button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`;
   }).join('');
   const shopList=gameData.shopItems.map(i=>`<div class="card"><strong>${i.name}</strong><div class="small">${i.price} G</div><button class="btn red" onclick="deleteShopItem('${i.id}')">刪除</button></div>`).join('');
   const reqList=gameData.couponRequests.filter(r=>r.status==='pending').map(r=>`<div class="card"><strong>${r.itemName}</strong><button class="btn" onclick="approveCoupon('${r.id}',true)">核准並核銷</button> <button class="btn red" onclick="approveCoupon('${r.id}',false)">退回</button></div>`).join('')||'<div class="small">目前沒有待審核兌換券。</div>';
@@ -5451,14 +5484,14 @@ function renderGM(){
       <h3>📝 任務核定</h3>
       ${((gameData.taskRecords||[]).filter(r=>r.approvalStatus==='pending').slice().reverse().map(r=>{
         const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);
-        return `<div class="card review-pending"><strong>${r.date}｜${t?.name||'任務'}</strong><div class="small">獎勵已先發放；核定比例會套用到 EXP、金幣、能力值，也會影響有效學習量。</div>${taskReviewTimeHTML(r,t)}<div class="row" style="margin-top:8px"><button class="btn" onclick="reviewTaskRecord('${r.id}',1)">✅ 100%</button><button class="btn blue" onclick="reviewTaskRecord('${r.id}',.8)">🟢 80%</button><button class="btn gold" onclick="reviewTaskRecord('${r.id}',.5)">🟡 50%</button><button class="btn red" onclick="reviewTaskRecord('${r.id}',0)">❌ 退回 0%</button></div></div>`;
+        return `<div class="card review-pending"><strong>${r.date}｜${t?.name||r.taskSnapshot?.name||'任務'}</strong><div class="small">獎勵已先發放；核定比例會套用到 EXP、金幣、能力值，也會影響有效學習量。</div>${taskReviewTimeHTML(r,t)}${taskReviewChallengeHTML(r)}<div class="row" style="margin-top:8px"><button class="btn" onclick="reviewTaskRecord('${r.id}',1)">✅ 100%</button><button class="btn blue" onclick="reviewTaskRecord('${r.id}',.8)">🟢 80%</button><button class="btn gold" onclick="reviewTaskRecord('${r.id}',.5)">🟡 50%</button><button class="btn red" onclick="reviewTaskRecord('${r.id}',0)">❌ 退回 0%</button></div></div>`;
       }).join(''))||'<div class="small">目前沒有待核定任務。</div>'}
       ${gameData.hero.pendingGoldDebt?`<div class="small bad">待回收金幣：${gameData.hero.pendingGoldDebt} G（之後任務金幣會先抵扣）</div>`:''}
     </div>
 
 
-    <div class="card">
-      <h3>新增任務＋學習進度</h3>
+    <div class="card" id="gmTaskEditor">
+      <h3>${editTask?'✏️ 修改任務':'新增任務＋學習進度'}</h3>
       <label>任務名稱</label><input id="gmTaskName">
       <label>任務類型</label>
       <select id="gmTaskType" onchange="updateTaskTypeFields();refreshTaskBalancePreview()">
@@ -5489,7 +5522,11 @@ function renderGM(){
       <div id="autoRewardPreview" class="auto-reward-box"></div>
       <label><input id="gmAssignAll" type="checkbox" style="width:auto"> 同時指派給所有孩子</label>
       <label><input id="gmRecurringTask" type="checkbox" style="width:auto"> 🔁 每日／重複任務</label>
-      <div class="small">預設不勾：這是一次性任務，只在今天出現；勾選後才依下方星期設定重複出現。</div>
+      <div class="grid2">
+        <div><label>任務日期／開始日期</label><input id="gmTaskStartDate" type="date" value="${today()}"></div>
+        <div><label>結束日期（重複任務可留空）</label><input id="gmTaskEndDate" type="date"></div>
+      </div>
+      <div class="small">一次性任務只在指定日期出現；重複任務從開始日期起，依下方星期循環。</div>
       <label>重複出現日（只有勾選上方重複任務才生效）</label>
       <div class="weekday-grid">
         <label><input type="checkbox" class="gmWeekday" value="1" checked>一</label>
@@ -5522,6 +5559,7 @@ function renderGM(){
           <option value="duration">🎹 累積時間型（越久越好：鋼琴／閱讀／練習）</option>
         </select>
         <div id="timerModeHelp" class="small" style="margin-bottom:8px">第一門檻＝優秀速度；第二門檻＝一般速度。</div>
+        <div class="small purple">✨ 自主加碼：限時型在優秀門檻 50% 時間內完成；累積型超過優秀門檻 125%，額外增加基本 EXP／金幣 20%。</div>
         <div class="grid2">
           <div><label id="gmRule1Label">第一門檻（分鐘）</label><input id="gmRule1Min" type="number" value="30"></div>
           <div><label id="gmRule2Label">第二門檻（分鐘）</label><input id="gmRule2Min" type="number" value="60"></div>
@@ -5543,6 +5581,7 @@ function renderGM(){
 
       <div id="gmQuantitySettings" class="gm-type-settings" style="display:none">
         <h3>🔢 數量目標</h3>
+        <div class="small purple">✨ 做到目標 125%：額外 15%；做到 150%：額外 30% EXP／金幣。</div>
         <div class="grid2">
           <div><label>目標數量</label><input id="gmQuantityTarget" type="number" value="20"></div>
           <div><label>單位</label><input id="gmQuantityUnit" value="頁" placeholder="頁 / 次 / 下"></div>
@@ -5555,11 +5594,12 @@ function renderGM(){
           <div><label>訂正獎勵 EXP</label><input id="gmCorrectionExp" type="number" value="30" min="0"></div>
         </div>
         <div class="small good">評級：S 90–100＝100%｜A 80–89＝90%｜B 70–79＝80%｜C 60–69＝70%｜D 未滿60＝60%。低分仍有基本獎勵，鼓勵完成與訂正。</div>
+        <div class="small purple">✨ 95%以上額外 10%；滿分額外 25% EXP／金幣。</div>
         <label><input id="gmAllowCorrection" type="checkbox" checked style="width:auto"> 允許完成後輸入訂正分數並領訂正獎勵</label>
       </div>
 
       <div id="taskBalancePreview" class="balance-box balance-good"></div>
-      <button class="btn gold" onclick="gmAddTask()">新增任務</button>
+      <button class="btn gold" onclick="gmAddTask()">${editTask?'儲存修改':'新增任務'}</button>${editTask?' <button class="btn gray" onclick="gmCancelTaskEdit()">取消修改</button>':''}
     </div>
 
     <div class="card"><h3>任務清單</h3>${taskList}</div>
@@ -5758,6 +5798,7 @@ function renderGM(){
       <button class="btn red" onclick="resetAll()">清除全部資料</button>
     </div>`;
   applyGMTabs();
+  if(editTask)gmPopulateTaskEditor(editTask);
   setTimeout(gmRenderWeekTestMonsterOptions,0);
 }
 setTimeout(refreshTaskBalancePreview,0);
@@ -5834,7 +5875,12 @@ function toggleRewardMode(){
 function gmAddTask(){
   const name=document.getElementById('gmTaskName').value.trim();
   if(!name){alert('請輸入任務名稱');return;}
+  const existing=gmEditingTaskId?gameData.tasks.find(x=>x.id===gmEditingTaskId):null;
   const taskType=document.getElementById('gmTaskType').value;
+  const recurring=document.getElementById('gmRecurringTask')?.checked===true;
+  const taskStart=document.getElementById('gmTaskStartDate')?.value||today();
+  const taskEnd=document.getElementById('gmTaskEndDate')?.value||'';
+  if(taskEnd&&taskEnd<taskStart){alert('結束日期不能早於開始日期');return;}
   const rewardMode=document.getElementById('gmRewardMode')?.value||'auto';
   const category=document.getElementById('gmTaskCategory')?.value||'study';
   const difficulty=document.getElementById('gmTaskDifficulty')?.value||'normal';
@@ -5853,7 +5899,7 @@ function gmAddTask(){
   const selectedCourseId=document.getElementById('gmSubject')?.value||'';
   const selectedCourse=(familyData.examSubjects||[]).find(s=>s.id===selectedCourseId);
   const task={
-    id:uid(),name,taskType,rewardMode,category,difficulty,
+    id:existing?.id||uid(),name,taskType,rewardMode,category,difficulty,
     description:document.getElementById('gmTaskDesc').value.trim(),
     courseId:selectedCourseId,
     subject:selectedCourse?.name||'',
@@ -5862,9 +5908,9 @@ function gmAddTask(){
     goldReward:Number(document.getElementById('gmTaskGold').value)||0,
     expReward:Number(document.getElementById('gmTaskExp').value)||0,
     dailyLimit:Math.max(1,Number(document.getElementById('gmTaskLimit').value)||1),
-    active:true,
-    recurring:document.getElementById('gmRecurringTask')?.checked===true,
-    createdDate:today(),date:document.getElementById('gmRecurringTask')?.checked===true?'':today(),activeFrom:today(),activeUntil:'',
+    active:true,archived:false,
+    recurring,
+    createdDate:existing?.createdDate||today(),date:recurring?'':taskStart,activeFrom:taskStart,activeUntil:taskEnd,
     countForBossOnNonSchoolDay:document.getElementById('gmBossNonSchool')?.checked||false,
     weekdays:[...document.querySelectorAll('.gmWeekday:checked')].map(x=>Number(x.value)),statRules:rules,
     fixedStat:manualStat1,
@@ -5886,11 +5932,11 @@ function gmAddTask(){
     const br=taskBalanceReport(task.expReward,task.goldReward,previewStat);
     if(br.worst.cls==='balance-bad'&&!confirm('🔴 這組手動獎勵可能破壞數值平衡。仍要建立嗎？'))return;
   }
-  gameData.tasks.push(task);
+  if(existing)Object.assign(existing,task);else gameData.tasks.push(task);
   if(typeof window.relockAllExamBosses==='function')window.relockAllExamBosses('task-config');
   // 今日基準已鎖定時，新增加的今日任務只能向上補正，不能因刪除/退回向下重算。
-  if(typeof window.raiseDailyBalanceForAddedTaskV10115==='function')window.raiseDailyBalanceForAddedTaskV10115(task);
-  if(document.getElementById('gmAssignAll')?.checked){
+  if(!existing&&typeof window.raiseDailyBalanceForAddedTaskV10115==='function')window.raiseDailyBalanceForAddedTaskV10115(task);
+  if(!existing&&document.getElementById('gmAssignAll')?.checked){
     persistFamily();
     familyData.profiles.forEach(p=>{
       if(p.id===activeProfileId)return;
@@ -5898,9 +5944,32 @@ function gmAddTask(){
       p.data.tasks.push({...JSON.parse(JSON.stringify(task)),id:uid()});
     });
   }
+  gmEditingTaskId='';
   saveGame();renderAll();
 }
-function deleteTask(id){if(confirm('刪除此任務？')){gameData.tasks=gameData.tasks.filter(x=>x.id!==id);if(typeof window.relockAllExamBosses==='function')window.relockAllExamBosses('task-deleted');saveGame();renderAll();}}
+function deleteTask(id){
+  const t=gameData.tasks.find(x=>x.id===id);if(!t)return;
+  const hasHistory=(gameData.taskRecords||[]).some(r=>r.taskId===id);
+  if(hasHistory){
+    if(!confirm('這個任務已有完成紀錄，將改為封存。\n封存後不再出現在任務清單，但過去核定成果會保留。'))return;
+    t.archived=true;t.archivedAt=new Date().toISOString();t.activeUntil=today();t.active=false;
+  }else{
+    if(!confirm('刪除此任務？'))return;
+    gameData.tasks=gameData.tasks.filter(x=>x.id!==id);
+  }
+  if(typeof window.relockAllExamBosses==='function')window.relockAllExamBosses(hasHistory?'task-archived':'task-deleted');
+  saveGame();renderAll();
+}
+function gmToggleTaskCancellation(id){
+  const t=gameData.tasks.find(x=>x.id===id);if(!t)return;
+  const suggested=t.recurring===true?today():(t.date||t.activeFrom||today());
+  const date=prompt('輸入要取消或恢復的日期（YYYY-MM-DD）',suggested);if(!date)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert('日期格式不正確');return;}
+  t.cancelledDates=Array.isArray(t.cancelledDates)?t.cancelledDates:[];
+  const exists=t.cancelledDates.includes(date);
+  if(exists)t.cancelledDates=t.cancelledDates.filter(d=>d!==date);else t.cancelledDates.push(date);
+  t.cancelledDates.sort();saveGame();renderAll();alert(exists?`已恢復 ${date} 的任務`:`已取消 ${date} 的任務；當日不列入應完成需求`);
+}
 function gmAddShopItem(){
   const name=document.getElementById('gmShopName').value.trim();
   if(!name){alert('請輸入商品名稱');return;}
@@ -7374,6 +7443,7 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
 
   function taskAvailableOnV10114(t,dateStr=today()){
     if(!t||t.active===false)return false;
+    if(Array.isArray(t.cancelledDates)&&t.cancelledDates.includes(dateStr))return false;
     if(t.activeFrom&&dateStr<t.activeFrom)return false;
     if(t.activeUntil&&dateStr>t.activeUntil)return false;
     // 一次性任務只屬於建立/指定當日；重複任務才看 weekdays。
@@ -7990,6 +8060,22 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return out;
   }
   function dateText(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  function taskRequiredOnHistoricalDate(t,ds){
+    if(!t)return false;
+    if(t.archived){
+      const until=t.activeUntil||String(t.archivedAt||'').slice(0,10)||today();
+      if(ds>until)return false;
+    }else if(t.active===false)return false;
+    const from=t.activeFrom||t.createdDate||gameData.semester?.startDate||ds;
+    const until=t.activeUntil||'9999-12-31';
+    return ds>=from&&ds<=until;
+  }
+  function taskScheduledOnHistoricalDate(t,ds){
+    if(!t||Array.isArray(t.cancelledDates)&&t.cancelledDates.includes(ds))return false;
+    if(t.recurring!==true)return ds===(t.date||t.createdDate||t.activeFrom||ds);
+    const wd=weekdayNumberFor(ds),days=Array.isArray(t.weekdays)&&t.weekdays.length?t.weekdays:[1,2,3,4,5,6,0];
+    return days.includes(wd);
+  }
   window.examTaskCompletionReport=function(evt){
     ensureExamBossConfig();if(!evt)return {ratio:0,approved:0,required:0,byCourse:{}};
     const ids=eventSubjectIds(evt),base=gameData.examBossBaselineV10158?.date||today();
@@ -8000,7 +8086,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){
         const ds=dateText(d);if(isExamHoliday(ds))continue;
         (gameData.tasks||[]).forEach(t=>{
-          if(t.active===false||!taskIsEffectiveOn(t,ds)||!isTaskScheduledToday(t,ds))return;
+          if(!taskRequiredOnHistoricalDate(t,ds)||!taskScheduledOnHistoricalDate(t,ds))return;
           const shares=taskCourseShares(t,ids),points=taskPowerGain(t)*Math.max(1,Number(t.dailyLimit)||1);
           Object.entries(shares).forEach(([id,share])=>byCourse[id].required+=points*share);
         });
@@ -8010,7 +8096,8 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       // pending、rejected 或尚未核定比例的紀錄一律不計入。
       if(r.date<base||r.date>end||r.approvalStatus==='pending'||r.approvalStatus==='rejected')return;
       const ratio=taskApprovalRatio(r);if(ratio<=0)return;
-      const t=(gameData.tasks||[]).find(x=>x.id===r.taskId);if(!t)return;
+      if(r.voluntaryChallenge===true)return; // 自主加碼不重複灌入 Boss 學業完成率。
+      const t=(gameData.tasks||[]).find(x=>x.id===r.taskId)||r.taskSnapshot;if(!t)return;
       const shares=taskCourseShares(t,ids),points=taskPowerGain(t)*ratio;
       Object.entries(shares).forEach(([id,share])=>byCourse[id].approved+=points*share);
     });
@@ -8157,6 +8244,87 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   applyCampaignCalendarState();
   if(gameData.hero?.name)renderAll();
+})();
+</script>
+<script>
+/* V10.11.64：任務封存、任務快照與可回收的自主挑戰加碼。 */
+(function(){
+  window.taskSnapshotForRecord=function(t){
+    if(!t)return null;
+    return {id:t.id,name:t.name||'任務',taskType:t.taskType||'complete',category:t.category||'custom',courseId:t.courseId||'',
+      subject:t.subject||'',rewardMode:t.rewardMode||'manual',difficulty:t.difficulty||'normal',dailyLimit:Number(t.dailyLimit)||1,
+      fixedStat:t.fixedStat||'will',fixedStatValue:Number(t.fixedStatValue)||0,fixedStat2:t.fixedStat2||'',fixedStatValue2:Number(t.fixedStatValue2)||0,
+      manualStatRewards:{...(t.manualStatRewards||{})},fastMinutes:Number(t.fastMinutes)||0,standardMinutes:Number(t.standardMinutes)||0,
+      createdDate:t.createdDate||'',activeFrom:t.activeFrom||'',activeUntil:t.activeUntil||'',recurring:t.recurring===true,weekdays:[...(t.weekdays||[])]};
+  };
+  function challengeBonus(baseGold,baseExp,rate,label){
+    rate=Math.max(0,Number(rate)||0);
+    return {rate,label,gold:Math.max(0,Math.round((Number(baseGold)||0)*rate)),exp:Math.max(0,Math.round((Number(baseExp)||0)*rate))};
+  }
+  function quantityChallenge(amount,target,baseGold,baseExp){
+    const ratio=amount/Math.max(1,target);
+    if(ratio>=1.5)return challengeBonus(baseGold,baseExp,.30,'自主挑戰Ⅱ（150%）');
+    if(ratio>=1.25)return challengeBonus(baseGold,baseExp,.15,'自主挑戰Ⅰ（125%）');
+    return challengeBonus(baseGold,baseExp,0,'達成目標');
+  }
+  function timerChallenge(t,minutes){
+    const a=Number(t.fastMinutes)||30,b=Number(t.standardMinutes)||60,low=Math.min(a,b),high=Math.max(a,b);
+    const hit=(t.timerMode||'deadline')==='duration'?minutes>=high*1.25:minutes<=low*.5;
+    return challengeBonus(t.goldReward,t.expReward,hit ? .20 : 0,hit?((t.timerMode||'deadline')==='duration'?'自主加練（125%）':'極速自主挑戰（50%時間）'):'');
+  }
+  function scoreChallenge(score,maxScore,baseGold,baseExp){
+    const pct=score/Math.max(1,maxScore);
+    if(pct>=1)return challengeBonus(baseGold,baseExp,.25,'滿分挑戰');
+    if(pct>=.95)return challengeBonus(baseGold,baseExp,.10,'95分挑戰');
+    return challengeBonus(baseGold,baseExp,0,'');
+  }
+
+  completeQuantityTask=function(taskId){
+    const t=gameData.tasks.find(x=>x.id===taskId);if(!t)return;
+    if(completedCount(taskId)>=t.dailyLimit){alert('今天已完成了');return;}
+    const amount=Number(document.getElementById('qty_'+taskId)?.value||0),target=Math.max(1,Number(t.quantityTarget)||1);
+    if(amount<target){alert(`還差一點！目標是 ${target} ${t.quantityUnit||'次'}`);return;}
+    const bonus=quantityChallenge(amount,target,t.goldReward,t.expReward),gold=(Number(t.goldReward)||0)+bonus.gold,exp=(Number(t.expReward)||0)+bonus.exp;
+    applyGoldWithDebt(gold);addExp(exp);const statGain=applyFixedStatReward(t),gains=statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{});
+    gameData.taskRecords.push({id:uid(),taskId:t.id,date:today(),status:'completed',completedAt:new Date().toISOString(),taskType:'quantity',quantity:amount,quantityTarget:target,quantityUnit:t.quantityUnit||'次',challengeBonus:bonus.rate?bonus:null,
+      rewards:{gold,exp,baseGold:Number(t.goldReward)||0,baseExp:Number(t.expReward)||0,statGain},approvalStatus:'pending',rollback:{gold,exp,statGain:gains},taskSnapshot:taskSnapshotForRecord(t)});
+    if(t.subject||t.progressType||t.progressValue)gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:`${amount} ${t.quantityUnit||'次'}`});
+    evaluateHiddenJob(true);saveGame();alert(`🎉 達成 ${amount} ${t.quantityUnit||'次'}！${bonus.rate?'\n✨ '+bonus.label+'\n額外 💰 +'+bonus.gold+'、⭐ +'+bonus.exp:''}\n💰 總計 +${gold}\n⭐ 總計 +${exp}`);renderAll();
+  };
+
+  finishTask=function(taskId){
+    const start=gameData.activeTasks[taskId];if(!start){alert('請先開始任務');return;}
+    const t=gameData.tasks.find(x=>x.id===taskId);if(!t)return;
+    const minutes=(Date.now()-start)/60000;delete gameData.activeTasks[taskId];
+    const timed=calculateTimedRewards(t,minutes),bonus=timerChallenge(t,minutes),gold=timed.gold+bonus.gold,exp=timed.exp+bonus.exp;
+    applyGoldWithDebt(gold);addExp(exp);const gains=t.rewardMode==='auto'?applyRewardMap(taskAutoRewardMap(t,minutes)):applyRewardMap(manualRewardMapV10116(t));
+    gameData.taskRecords.push({id:uid(),taskId:t.id,date:today(),status:'completed',startedAt:new Date(start).toISOString(),completedAt:new Date().toISOString(),durationMinutes:minutes,taskType:'timer',challengeBonus:bonus.rate?bonus:null,
+      rewards:{gold,exp,baseGold:Number(t.goldReward)||0,baseExp:Number(t.expReward)||0,timerTier:timed.tier.key,statGain:{multi:true,gains}},approvalStatus:'pending',rollback:{gold,exp,statGain:gains},taskSnapshot:taskSnapshotForRecord(t)});
+    if(t.subject||t.progressType||t.progressValue)gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:t.progressValue||'完成'});
+    evaluateHiddenJob(true);saveGame();alert(`完成【${t.name}】\n耗時 ${minutes.toFixed(1)} 分鐘\n${timed.tier.label}${bonus.rate?'\n✨ '+bonus.label+'：額外 💰'+bonus.gold+'、⭐'+bonus.exp:''}\n💰 總計 +${gold}\n⭐ 總計 +${exp}${rewardText(gains)?'\n'+rewardText(gains):''}`);renderAll();
+  };
+
+  completeScoreTask=function(taskId){
+    const t=gameData.tasks.find(x=>x.id===taskId);if(!t)return;if(completedCount(taskId)>=t.dailyLimit){alert('今天已經登記過成績');return;}
+    const maxScore=Math.max(1,Number(t.scoreMax)||100),score=Number(document.getElementById('score_'+taskId)?.value);
+    if(!Number.isFinite(score)||score<0||score>maxScore){alert(`請輸入 0～${maxScore} 的分數`);return;}
+    const tier=scoreRewardTier(score,maxScore),bonus=scoreChallenge(score,maxScore,t.goldReward,t.expReward);
+    const gold=Math.round((Number(t.goldReward)||0)*tier.multiplier)+bonus.gold,exp=Math.round((Number(t.expReward)||0)*tier.multiplier)+bonus.exp;
+    applyGoldWithDebt(gold);addExp(exp);const gains=t.rewardMode==='auto'?applyRewardMap(scaledRewardMap(autoTaskRewards(t.category,t.difficulty,'complete'),tier.multiplier)):applyRewardMap(manualRewardMapV10116(t,tier.multiplier));
+    const record={id:uid(),taskId:t.id,date:today(),status:'completed',taskType:'score',completedAt:new Date().toISOString(),score,scoreMax:maxScore,scoreGrade:tier.grade,scoreMultiplier:tier.multiplier,challengeBonus:bonus.rate?bonus:null,
+      rewards:{gold,exp,statGain:{multi:true,gains}},approvalStatus:'pending',rollback:{gold,exp,statGain:gains},corrected:false,taskSnapshot:taskSnapshotForRecord(t)};gameData.taskRecords.push(record);
+    if(t.subject||t.progressType||t.progressValue)gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:`${score}/${maxScore}（${tier.grade}）`});
+    evaluateHiddenJob(true);saveGame();alert(`📝 ${t.name}\n成績 ${score}/${maxScore}｜${tier.grade}級${bonus.rate?'\n✨ '+bonus.label+'：額外 💰'+bonus.gold+'、⭐'+bonus.exp:''}\n💰 總計 +${gold}\n⭐ 總計 +${exp}`);renderAll();
+  };
+
+  window.completeSimpleChallenge=function(taskId){
+    const t=gameData.tasks.find(x=>x.id===taskId);if(!t)return;
+    const done=(gameData.taskRecords||[]).some(r=>r.taskId===taskId&&r.date===today()&&r.voluntaryChallenge===true);if(done)return alert('今天已領過自主加碼');
+    const bonus=challengeBonus(t.goldReward,t.expReward,.25,'主動再做一次');applyGoldWithDebt(bonus.gold);addExp(bonus.exp);
+    gameData.taskRecords.push({id:uid(),taskId:t.id,date:today(),status:'challenge',completedAt:new Date().toISOString(),taskType:'complete',voluntaryChallenge:true,challengeBonus:bonus,
+      rewards:{gold:bonus.gold,exp:bonus.exp,statGain:{multi:true,gains:{}}},approvalStatus:'pending',rollback:{gold:bonus.gold,exp:bonus.exp,statGain:{}},taskSnapshot:taskSnapshotForRecord(t)});
+    saveGame();alert(`✨ 自主加碼完成！\n額外 💰 +${bonus.gold}\n額外 ⭐ +${bonus.exp}\n等待家長核定`);renderAll();
+  };
 })();
 </script>
 <script>
