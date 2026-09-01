@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.65</title>
+<title>小學勇者大冒險 V10.11.66</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.65</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.66</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -5072,7 +5072,7 @@ function renderHero(){
   checkAdventureCalendarReminders();
 }
 function renderTasks(){
-  let html='<h2>📚 今日任務</h2>';
+  let html='<h2>📚 今日任務</h2>',approvedHtml='';
   gameData.tasks.filter(t=>t.active && isTaskScheduledToday(t)).forEach(t=>{
     const type=t.taskType||'timer';
     const count=completedCount(t.id);
@@ -5108,7 +5108,7 @@ function renderTasks(){
         :`<button class="btn big-battle-btn" onclick="completeSimpleTask('${t.id}')">完成！</button>`;
     }
 
-    html+=`<div class="card">
+    const taskCard=`<div class="card">
       <span class="task-type-badge">${typeLabel}</span><br>
       <strong style="font-size:18px">${t.name}</strong>
       <div class="small purple">${[t.subject,t.progressValue].filter(Boolean).join('｜')}</div>
@@ -5126,7 +5126,11 @@ function renderTasks(){
       }
       ${action}
     </div>`;
+    const records=(gameData.taskRecords||[]).filter(r=>r.taskId===t.id&&r.date===today()&&r.status==='completed');
+    const reviewed=count>=Math.max(1,Number(t.dailyLimit)||1)&&records.length>0&&records.every(r=>r.approvalStatus!=='pending');
+    if(reviewed)approvedHtml+=taskCard;else html+=taskCard;
   });
+  if(approvedHtml)html+=`<details class="card"><summary style="cursor:pointer;font-weight:900">✅ 今日已完成審核（點此展開）</summary><div style="margin-top:10px">${approvedHtml}</div></details>`;
   document.getElementById('panel-tasks').innerHTML=html;
 }
 
@@ -5810,7 +5814,6 @@ function renderGM(){
       <button class="btn purple" onclick="gmShowJobDebug()">🧭 檢視轉職判定（V10.5）</button>
     </div>
 
-    ${semesterBalanceHTML()}
 
     <div class="card">
       <h3>💰 GM 金幣調整</h3>
@@ -8157,9 +8160,10 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   window.examTaskCompletionReport=function(evt){
     ensureExamBossConfig();if(!evt)return {ratio:0,approved:0,required:0,byCourse:{}};
     const ids=eventSubjectIds(evt),base=gameData.examBossBaselineV10158?.date||today();
-    const end=today()<evt.date?today():evt.date;
+    // 分母固定使用「啟用日起至考試最後一天」的完整總需求；分子只計入截至今天已核定的任務。
+    const requirementEnd=evt.date,approvedEnd=today()<evt.date?today():evt.date;
     const byCourse=Object.fromEntries(ids.map(id=>[id,{approved:0,required:0}]));
-    const a=new Date(base+'T12:00:00'),b=new Date(end+'T12:00:00');
+    const a=new Date(base+'T12:00:00'),b=new Date(requirementEnd+'T12:00:00');
     if(Number.isFinite(a.getTime())&&Number.isFinite(b.getTime())&&b>=a){
       for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){
         const ds=dateText(d);if(isExamHoliday(ds))continue;
@@ -8172,7 +8176,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     }
     (gameData.taskRecords||[]).forEach(r=>{
       // pending、rejected 或尚未核定比例的紀錄一律不計入。
-      if(r.date<base||r.date>end||r.approvalStatus==='pending'||r.approvalStatus==='rejected')return;
+      if(r.date<base||r.date>approvedEnd||r.approvalStatus==='pending'||r.approvalStatus==='rejected')return;
       const ratio=taskApprovalRatio(r);if(ratio<=0)return;
       if(r.voluntaryChallenge===true)return; // 自主加碼不重複灌入 Boss 學業完成率。
       const t=(gameData.tasks||[]).find(x=>x.id===r.taskId)||r.taskSnapshot;if(!t)return;
@@ -8186,20 +8190,22 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   window.renderExamLearningEnergyHTML=function(){
     ensureExamBossConfig();
-    const evt=visibleExamEvents().filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0]||null;
-    if(!evt)return '';
-    const report=examTaskCompletionReport(evt),ids=eventSubjectIds(evt);
     const icons={'國語':'📖','英語':'🔤','英文':'🔤','數學':'🔢'};
-    const rows=ids.map(id=>{
-      const name=subjectById(id)?.name||id,r=report.byCourse[id]||{approved:0,required:0};
-      const pct=r.required?Math.max(0,Math.min(100,Math.round(r.approved/r.required*100))):0;
-      const cls=pct>=100?'full':pct>=70?'high':pct>=35?'mid':'';
-      const remaining=Math.max(0,100-pct);
-      return `<div class="exam-energy-row"><div class="exam-energy-label"><span>${icons[name]||'📚'} ${escapeHtml(name)}能量</span><span>${pct}%</span></div>
-        <div class="exam-energy-track"><div class="exam-energy-fill ${cls}" style="width:${pct}%"></div></div>
-        <div class="exam-energy-note">${r.required?(pct>=100?'✨ 能量滿格！':`還差 ${remaining}% 滿格`):'今天尚無這科任務'}</div></div>`;
-    }).join('');
-    return `<div class="card exam-energy-card"><div class="exam-energy-head"><strong>⚡ ${evt.type==='final'?'期末':'期中'}備戰能量</strong><span class="pill">${evt.date}</span></div>${rows}<div class="small">完成任務後，經家長核定才會充能。</div></div>`;
+    const section=type=>{
+      const list=examEventsForType(type),evt=list[list.length-1]||null;if(!evt)return '';
+      const report=examTaskCompletionReport(evt),ids=eventSubjectIds(evt);
+      const rows=ids.map(id=>{
+        const name=subjectById(id)?.name||id,r=report.byCourse[id]||{approved:0,required:0};
+        const pct=r.required?Math.max(0,Math.min(100,Math.round(r.approved/r.required*100))):0,cls=pct>=100?'full':pct>=70?'high':pct>=35?'mid':'';
+        const missing=Math.max(0,r.required-r.approved);
+        return `<div class="exam-energy-row"><div class="exam-energy-label"><span>${icons[name]||'📚'} ${escapeHtml(name)}能量</span><span>${r.approved.toFixed(1)} / ${r.required.toFixed(1)}</span></div>
+          <div class="exam-energy-track"><div class="exam-energy-fill ${cls}" style="width:${pct}%"></div></div>
+          <div class="exam-energy-note">${r.required?(pct>=100?'✨ 能量滿格！':`完成 ${pct}%｜還差 ${missing.toFixed(1)} 格`):'尚未設定這科的總需求'}</div></div>`;
+      }).join('');
+      return `<div class="exam-energy-head"><strong>⚡ ${type==='final'?'期末':'期中'}總需求</strong><span class="pill">截止 ${evt.date}</span></div>${rows}`;
+    };
+    const html=[section('midterm'),section('final')].filter(Boolean).join('<hr>');
+    return html?`<div class="card exam-energy-card"><h3>🔋 考前總能量</h3>${html}<div class="small">總需求固定計算到考試最後一天；只有家長核定後才充能，裝備不計入。</div></div>`:'';
   };
 
   window.examBossPreviewHTML=function(){
@@ -8210,7 +8216,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       const detail=ids.map(id=>`${escapeHtml(subjectById(id)?.name||id)} ${(mins[id]/60).toFixed(1)} 小時`).join('｜');
       const progress=ids.map(id=>{const r=report.byCourse[id]||{approved:0,required:0};return `${escapeHtml(subjectById(id)?.name||id)} ${r.required?Math.round(r.approved/r.required*100):0}%`;}).join('｜');
       const lock=evt.bossPowerByProfile?.[activeProfileId];
-      return `<b>${type==='midterm'?'期中':'期末'} ${evt.date}</b>｜${detail}<br>固定 Boss 戰力：⚔️ ${calculateExamBossPower(type,evt)} ${lock?'🔒':''}<br>截至今日家長核定達成率：${progress}｜總計 ${Math.round(report.ratio*100)}%（${report.approved.toFixed(1)}／${report.required.toFixed(1)} 成長點）<br><span class="small">達成率分母只累計從新系統啟用日至今天應完成的任務，不會提前計入考試前尚未到來的日期。基準裸裝戰力 ${gameData.examBossBaselineV10158?.nakedPower||combatPower()}；裝備數值不參與 Boss 推算。</span>`;
+      return `<b>${type==='midterm'?'期中':'期末'} ${evt.date}</b>｜${detail}<br>固定 Boss 戰力：⚔️ ${calculateExamBossPower(type,evt)} ${lock?'🔒':''}<br>考前總需求達成率：${progress}｜總計 ${Math.round(report.ratio*100)}%（已核定 ${report.approved.toFixed(1)}／總需求 ${report.required.toFixed(1)}）<br><span class="small">分母固定計算到考試最後一天；分子只計入截至今天已由家長核定的任務。基準裸裝戰力 ${gameData.examBossBaselineV10158?.nakedPower||combatPower()}；裝備數值不參與 Boss 推算。</span>`;
     };
     return `${render('midterm')}<hr>${render('final')}<div class="small">任務以課表科目 ID 直接連結；未指定科目的功課／考卷／課內閱讀平均分配。待核定任務為 0%，核定 100%／80%／50% 後才計入。Boss 戰力鎖定後不會隨角色、裝備或日期浮動；只有修改考試、課表或任務設定時重算。</div>`;
   };
