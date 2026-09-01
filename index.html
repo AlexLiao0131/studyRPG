@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.64</title>
+<title>小學勇者大冒險 V10.11.65</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -536,6 +536,8 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 @keyframes floatDamage{0%{opacity:0;transform:translateY(12px) scale(.8)}20%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-42px) scale(1)}}
 .battle-event-word{position:absolute;left:50%;top:22%;transform:translateX(-50%);z-index:6;font-size:34px;font-weight:1000;color:#f0f6fc;text-shadow:3px 3px #000;white-space:nowrap;animation:eventPop .75s ease forwards}
 @keyframes eventPop{0%{opacity:0;transform:translateX(-50%) scale(.6)}20%{opacity:1;transform:translateX(-50%) scale(1.15)}100%{opacity:0;transform:translateX(-50%) scale(1)}}
+.skill-visual-layer{position:absolute;inset:0;z-index:7;pointer-events:none;overflow:hidden}
+.skill-visual-img{position:absolute;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;transform:translate(-50%,-50%)}
 .battle-log{margin-top:10px;min-height:94px;background:#070b10;border:2px solid #30363d;border-radius:9px;padding:10px 12px;font-size:17px;font-weight:800;line-height:1.55}
 .battle-result{margin-top:10px;text-align:center;background:#161b22;border:2px solid #30363d;border-radius:10px;padding:14px}
 .battle-result-icon{font-size:54px}.battle-close{width:100%;min-height:54px;font-size:19px;margin-top:10px}
@@ -1334,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.64</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.65</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -3755,6 +3757,76 @@ const BATTLE_CONFIG={
 };
 let battleStateV10=null;
 
+/* V10.11.65：技能演出擴充接口。
+   預設資料庫保持空白，沒有登記素材時完全沿用既有戰鬥動畫，也不建立 <img>，因此不會顯示破圖。
+   素材命名：images/effects/skills/{技能ID}_{cast|projectile|impact|self|target}.png */
+const SKILL_VISUAL_DATABASE={};
+const skillVisualAssetCache=new Map();
+function inferSkillActionType(action={}){
+  if(action.actionType)return action.actionType;
+  if(['buff','heal'].includes(action.type)||action.effect)return 'support';
+  if(action.kind==='summon'||action.type==='summon')return 'summon';
+  if(action.ranged===true||['arrow','shot','bullet'].some(x=>String(action.id||'').includes(x)))return 'ranged';
+  if(action.type==='physical')return 'melee';
+  return 'cast';
+}
+function skillVisualConfig(action={}){
+  const cfg=action.visual||SKILL_VISUAL_DATABASE[action.id];
+  return cfg&&typeof cfg==='object'?cfg:null;
+}
+function loadSkillVisualAsset(path){
+  if(!path)return Promise.resolve(false);
+  if(skillVisualAssetCache.has(path))return skillVisualAssetCache.get(path);
+  const pending=new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>resolve(true);
+    img.onerror=()=>resolve(false);
+    img.src=sprite(path);
+  });
+  skillVisualAssetCache.set(path,pending);return pending;
+}
+function skillVisualLayer(){
+  const arena=document.getElementById('battleArena');if(!arena)return null;
+  let layer=arena.querySelector('.skill-visual-layer');
+  if(!layer){layer=document.createElement('div');layer.className='skill-visual-layer';arena.appendChild(layer);}
+  return layer;
+}
+function skillVisualPoint(side){
+  const layer=skillVisualLayer(),el=document.getElementById('battleChar_'+side);if(!layer||!el)return null;
+  const a=layer.getBoundingClientRect(),r=el.getBoundingClientRect();
+  return {x:r.left-a.left+r.width/2,y:r.top-a.top+r.height*.48};
+}
+async function showSkillVisualImage(path,point,opts={}){
+  if(!path||!point||!(await loadSkillVisualAsset(path)))return false;
+  const layer=skillVisualLayer();if(!layer)return false;
+  const img=document.createElement('img');img.className='skill-visual-img';img.src=sprite(path);img.alt='';
+  img.style.left=point.x+'px';img.style.top=point.y+'px';img.style.width=(opts.size||110)+'px';img.style.height=(opts.size||110)+'px';
+  layer.appendChild(img);
+  const duration=Number(opts.duration||360);
+  const anim=img.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.65)'},{opacity:1,offset:.2,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(1.12)'}],{duration,easing:'ease-out'});
+  await anim.finished.catch(()=>{});img.remove();return true;
+}
+async function flySkillVisualImage(path,from,to,opts={}){
+  if(!path||!from||!to||!(await loadSkillVisualAsset(path)))return false;
+  const layer=skillVisualLayer();if(!layer)return false;
+  const img=document.createElement('img');img.className='skill-visual-img';img.src=sprite(path);img.alt='';
+  img.style.left=from.x+'px';img.style.top=from.y+'px';img.style.width=(opts.size||82)+'px';img.style.height=(opts.size||82)+'px';layer.appendChild(img);
+  const dx=to.x-from.x,dy=to.y-from.y,duration=Number(opts.duration||420);
+  const frames=opts.path==='arc'?[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${dx/2}px),calc(-50% + ${dy/2-70}px))`,offset:.5},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}]:[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}];
+  const anim=img.animate(frames,{duration,easing:opts.path==='tracking'?'ease-in-out':'linear'});await anim.finished.catch(()=>{});img.remove();return true;
+}
+async function playSkillVisualSequence(side,action={}){
+  const cfg=skillVisualConfig(action);if(!cfg)return false;
+  const targetSide=side==='hero'?'enemy':'hero',from=skillVisualPoint(side),to=skillVisualPoint(targetSide);
+  let played=false;
+  played=(await showSkillVisualImage(cfg.cast,from,{size:cfg.castSize,duration:cfg.castDuration}))||played;
+  played=(await flySkillVisualImage(cfg.projectile,from,to,{size:cfg.projectileSize,duration:cfg.projectileDuration,path:cfg.path}))||played;
+  played=(await showSkillVisualImage(cfg.impact,to,{size:cfg.impactSize,duration:cfg.impactDuration}))||played;
+  played=(await showSkillVisualImage(cfg.self,from,{size:cfg.selfSize,duration:cfg.selfDuration||cfg.duration}))||played;
+  played=(await showSkillVisualImage(cfg.target,to,{size:cfg.targetSize,duration:cfg.targetDuration||cfg.duration}))||played;
+  return played;
+}
+
 
 const BEGINNER_SKILLS=[
   {id:'power_strike',name:'奮力一擊',icon:'💥',cost:20,type:'physical',multiplier:1.60,description:'ATK×1.60－敵DEF×0.5 的強力近戰攻擊。'},
@@ -4130,21 +4202,27 @@ async function playEnemyAttackFrames(unit=null){
   await battleSleep(180);
 }
 
-async function animateBattleAction(attackerSide,result,attackerUnit=null){
+async function animateBattleAction(attackerSide,result,attackerUnit=null,action=null){
   const attacker=document.getElementById('battleChar_'+attackerSide);
   const defenderSide=attackerSide==='hero'?'enemy':'hero';
   const defender=document.getElementById('battleChar_'+defenderSide);
   if(!attacker||!defender)return;
+  const actionType=inferSkillActionType(action||{});
+  attacker.dataset.actionType=actionType;
+  attacker.classList.add('skill-action-'+actionType);
   attacker.classList.remove('attack');defender.classList.remove('hit','dodge');
   void attacker.offsetWidth;
   attacker.classList.add('attack');
   try{
-    if(attackerSide==='hero')await playHeroAttackFrames(); else await playEnemyAttackFrames(attackerUnit);
+    const visualPromise=action?playSkillVisualSequence(attackerSide,action):Promise.resolve(false);
+    if(attackerSide==='hero')await Promise.all([playHeroAttackFrames(),visualPromise]); else await Promise.all([playEnemyAttackFrames(attackerUnit),visualPromise]);
     if(result.type==='dodge')defender.classList.add('dodge');
     else if(result.damage>0)defender.classList.add('hit');
     await battleSleep(220);
   }finally{
     attacker.classList.remove('attack');
+    attacker.classList.remove('skill-action-'+actionType);
+    delete attacker.dataset.actionType;
     defender.classList.remove('hit','dodge');
     // Never leave inline transforms behind after long battles.
     attacker.style.transform='';
@@ -4285,7 +4363,7 @@ async function executeAttack(attackerSide,action){
   const attacker=attackerSide==='hero'?battleStateV10.hero:battleStateV10.enemy;
   const defender=defenderSide==='hero'?battleStateV10.hero:battleStateV10.enemy;
   const result=resolveAttack(attacker,defender,action);
-  await animateBattleAction(attackerSide,result);
+  await animateBattleAction(attackerSide,result,null,action);
   if(result.damage){
     setUnitHp(defenderSide,getUnitHp(defenderSide)-result.damage);
     if(defenderSide==='hero'){
@@ -4320,7 +4398,7 @@ async function performAction(side,action){
   if(action.kind==='skill'){
     if(getUnitEnergy(side)<action.cost){addBattleLog(`⚡ ${unit.name}能量不足！`);return;}
     addBattleLog(`${action.icon||'✨'} ${unit.name}使用「${action.name}」！`);applyEnergyForAction(side,action);if(side==='hero')recordSkillUsage(action.id);
-    if(action.effect){addTimedEffect(unit,{...action.effect,name:action.name});addBattleLog(`${action.name}生效。`);updateBattleStatuses();return;}
+    if(action.effect){await playSkillVisualSequence(side,action);addTimedEffect(unit,{...action.effect,name:action.name});addBattleLog(`${action.name}生效。`);updateBattleStatuses();return;}
     if(side==='hero')return executeHeroAgainstTarget(action);
     return executeAttack(side,action);
   }
@@ -4691,7 +4769,7 @@ async function executeHeroAgainstTarget(action){
   // 鏡像決鬥：雙方都視為熟悉自己的防禦方式，因此獲得 50% 防禦穿透，並設最低傷害避免鎖死。
   const liveAction=target.monsterId==='hero_mirror'?{...action,defensePierce:.50,mirrorDuel:true}:action;
   const result=resolveAttack(battleStateV10.hero,target,liveAction);
-  await animateBattleAction('hero',result);
+  await animateBattleAction('hero',result,null,action);
   if(result.damage){const d=applyDamageToEnemy(target,result.damage);result.damage=d;showDamage('enemy','-'+d);}
   addBattleLog(actionSummary(result,target.name));renderBattleTargets();return result;
 }
@@ -4708,7 +4786,7 @@ async function executeEnemyHit(unit,skill){
       const summonFloor=Math.max(2,Math.round(Number(battleStateV10.hero.maxHp||1)*.02));
       res.damage=Math.max(res.damage,summonFloor);
     }
-    await animateBattleAction('enemy',res,unit);
+    await animateBattleAction('enemy',res,unit,skill);
     if(res.damage){
       battleStateV10.heroHp=Math.max(0,battleStateV10.heroHp-res.damage);
       updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);
@@ -6606,7 +6684,7 @@ function gainFormal(kind,n){const f=battleStateV10.formal;if(kind==='rage')f.rag
 function heroHeal(n,msg='恢復'){const mult=1+effectMod(battleStateV10.hero,'healingPct');n=Math.max(1,Math.round(n*mult));battleStateV10.heroHp=Math.min(battleStateV10.hero.maxHp,battleStateV10.heroHp+n);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);showDamage('hero','+'+n,'holy-float');addBattleLog(`💚 ${msg} ${n} HP。`);return n;}
 function virtueNow(){return Number(gameData.hero.virtue||0)*(1+effectMod(battleStateV10.hero,'virtuePct'));}
 function addSimpleStatus(target,st,src){if(!st)return;if(st.chance!=null&&Math.random()>statusChance(st.chance,target,st.type))return;const power=st.dotMatk?battleStateV10.hero.magicAttack*st.dotMatk:st.dotAtk?battleStateV10.hero.attack*st.dotAtk:0;addStatus(target,{type:st.type,name:st.type,turns:st.turns||2,power,mods:st.mods||{},effectType:'debuff',guaranteedSkip:['stun','freeze'].includes(st.type)});addBattleLog(`${src||'技能'}附加「${st.type}」！`);}
-async function hitTarget(target,a,mult=a.multiplier||1,type=a.type||'physical'){const act={...a,multiplier:mult,type};const r=resolveAttack(battleStateV10.hero,target,act);await animateBattleAction('hero',r);if(r.damage){const d=applyDamageToEnemy(target,r.damage);r.damage=d;showDamage('enemy','-'+d);}addBattleLog(actionSummary(r,target.name));if(r.damage&&a.status)addSimpleStatus(target,a.status,a.name);renderBattleTargets();return r;}
+async function hitTarget(target,a,mult=a.multiplier||1,type=a.type||'physical'){const act={...a,multiplier:mult,type};const r=resolveAttack(battleStateV10.hero,target,act);await animateBattleAction('hero',r,null,act);if(r.damage){const d=applyDamageToEnemy(target,r.damage);r.damage=d;showDamage('enemy','-'+d);}addBattleLog(actionSummary(r,target.name));if(r.damage&&a.status)addSimpleStatus(target,a.status,a.name);renderBattleTargets();return r;}
 async function hitAll(a,mult=a.multiplier||1,type=a.type||'physical'){let total=0;for(const t of (battleStateV10.enemies||[]).filter(x=>x.hp>0&&x.alive!==false)){const r=await hitTarget(t,a,mult,type);total+=r.damage||0;}return total;}
 function consumeSeal(){const f=battleStateV10.formal;if(!f.seal)return false;f.seal=false;f.sealCooldown=1;battleStateV10.hero.statuses=(battleStateV10.hero.statuses||[]).filter(s=>s.type!=='holy_seal');updateBattleStatuses();return true;}
 function setEnchant(type){const f=battleStateV10.formal;f.enchant=type;addBattleLog(`🗡️ 武器獲得${type==='fire'?'🔥火焰':type==='ice'?'❄️冰霜':type==='lightning'?'⚡雷電':'✨神聖'}附魔。`);}
@@ -6620,7 +6698,7 @@ async function formalSkillAction(a){const f=battleStateV10.formal,target=selecte
  if(a.special==='rupture'){if(f.combo<1){addBattleLog('🔴 至少需要1顆能量球。');return;}const balls=f.combo;f.combo=0;const r=await hitTarget(target,a,.75+.35*balls,'physical');if(r.damage)addSimpleStatus(target,{type:'bleed',turns:3,dotAtk:.18*balls},a.name);gainFormal('energy',battleStateV10.hero.maxEnergy*(.30*balls+(r.crit?.10:0)));return;}if(a.special==='frenzy'){if(f.combo<3){addBattleLog('🔴🔴🔴 暗影狂殺需要3顆能量球！');return;}f.combo=0;for(let i=0;i<5;i++){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(!alive.length)break;await hitTarget(alive[Math.floor(Math.random()*alive.length)],a,.65,'physical');}battleStateV10.heroEnergy=battleStateV10.hero.maxEnergy;updateFormalResourceUI();return;}
  if(a.special==='crusader'){const r=await hitTarget(target,a,1.05,'holy');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.12));if(consumeSeal())await hitTarget(target,{name:'聖印追加',type:'holy'},.75,'holy');return;}if(a.special==='holyshock'){if(confirm('神聖震擊：按「確定」治療自己（耗MP）；按「取消」攻擊敵人（回MP）。')){const cost=Math.round(f.maxMp*.18);if(f.mp<cost){addBattleLog('🔵 MP不足！');return;}f.mp-=cost;heroHeal(battleStateV10.hero.magicAttack*1.3+virtueNow(),'神聖震擊');updateFormalResourceUI();}else{const r=await hitTarget(target,a,1.2,'holy');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.15));}return;}if(a.special==='justice'){const r=await hitTarget(target,a,1.35,'physical');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.12));if(consumeSeal())addSimpleStatus(target,{type:'stun',turns:1},a.name);return;}if(a.special==='verdict'){const sealed=consumeSeal();const r=await hitTarget(target,a,2.2,'holy');if(sealed&&target.hp>0){const ratio=target.hp/target.maxHp;if(ratio<=.15&&!target.isBoss){applyDamageToEnemy(target,target.hp);addBattleLog('⚖️ 聖印裁決：斬殺！');}else if(ratio<=.15&&target.isBoss)await hitTarget(target,a,3.0,'holy');}return;}
  if(a.special==='arcane_strike'){const r=await hitTarget(target,a,1.0,'physical');if(r.damage){await hitTarget(target,a,.75,'arcane');gainFormal('mp',Math.round(f.maxMp*.12));await triggerEnchant(target);}return;}if(a.special==='ambush'){const aa={...a};if(f.uses[a.id]===1)aa.critOverride=.50;const r=await hitTarget(target,aa,1.45,'physical');if(r.crit)f.combo=Math.min(3,f.combo+1);return;}if(a.special==='weakshot'){let m=1.35;if(f.weakness[target.uid]){m=2.25;delete f.weakness[target.uid];addBattleLog('🎯 消耗弱點發現！');}await hitTarget(target,a,m,'physical');return;}if(a.special==='icefire'){let m=2.3;const ts=target.statuses||[];if(ts.some(s=>s.type==='burn'))m*=1.2;if(ts.some(s=>s.type==='freeze'))m*=1.2;await hitTarget(target,a,m,'arcane');return;}if(a.special==='execute'){const rage=f.rage;f.rage=0;const threshold=rage>=100?.25:rage>75?.20:rage>50?.15:rage>25?.10:.05;if(target.hp/target.maxHp<=threshold&&!target.isBoss){applyDamageToEnemy(target,target.hp);addBattleLog('☠️ 斬殺成功！');}else await hitTarget(target,a,1+rage/100,'physical');updateFormalResourceUI();return;}
- if(a.effect){addTimedEffect(battleStateV10.hero,{...a.effect,name:a.name});updateBattleStatuses();return;}const total=a.aoe?await hitAll(a):((await hitTarget(target,a)).damage||0);if(total&&a.healDamage)heroHeal(total*a.healDamage,a.name);if(a.armorBreak&&target)addStatus(target,{type:'armor_break',name:'破甲',turns:2,effectType:'debuff',mods:{defense:-target.defense*.25}});if(target&&['魔劍士'].includes(f.cls)&&['physical'].includes(a.type))await triggerEnchant(target);
+ if(a.effect){await playSkillVisualSequence('hero',a);addTimedEffect(battleStateV10.hero,{...a.effect,name:a.name});updateBattleStatuses();return;}const total=a.aoe?await hitAll(a):((await hitTarget(target,a)).damage||0);if(total&&a.healDamage)heroHeal(total*a.healDamage,a.name);if(a.armorBreak&&target)addStatus(target,{type:'armor_break',name:'破甲',turns:2,effectType:'debuff',mods:{defense:-target.defense*.25}});if(target&&['魔劍士'].includes(f.cls)&&['physical'].includes(a.type))await triggerEnchant(target);
 }
 const __oldPerformAction=performAction;
 performAction=async function(side,a){if(side!=='hero'||!battleStateV10?.formal||!FORMAL_CLASS_SKILLS[battleStateV10.formal.cls]?.some(x=>x.id===a.id))return __oldPerformAction(side,a);if(!formalCanPay(a)){addBattleLog('⚡/🔵 職業資源不足！');return;}return formalSkillAction(a);};
