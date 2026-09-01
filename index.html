@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.66</title>
+<title>小學勇者大冒險 V10.11.68</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.66</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.68</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -5501,7 +5501,7 @@ function renderGM(){
     const label=type==='timer'?'⏱ 計時':type==='quantity'?'🔢 數量':'✅ 完成';
     const auto=t.rewardMode==='auto'?`<div class="small good">🛡️ 自動養成｜${AUTO_TASK_RULES[t.category]?.label||'自訂'}｜${rewardText(autoTaskRewards(t.category,t.difficulty,t.taskType))}</div>`:'<div class="small warn">⚙️ 手動能力獎勵</div>';
     const cancelled=(t.cancelledDates||[]).filter(d=>d>=today()).sort();
-    return `<div class="card"><strong>${label}｜${t.name}</strong><div class="small">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div>${auto}${examCourseTaskSelectHTML(t)}${cancelled.length?`<div class="small warn">⏸ 已取消：${cancelled.join('、')}</div>`:''}<button class="btn blue" onclick="gmEditTask('${t.id}')">修改</button> <button class="btn gray" onclick="gmToggleTaskCancellation('${t.id}')">取消／恢復指定日</button> <button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div>`;
+    return `<details class="card gm-task-fold"><summary style="cursor:pointer;font-weight:900">${label}｜${t.name}<span class="small">　${t.subject||'未指定科目'}</span></summary><div style="margin-top:10px"><div class="small">${t.subject||''}｜${t.progressType||''}｜${t.progressValue||''}</div>${auto}${examCourseTaskSelectHTML(t)}${cancelled.length?`<div class="small warn">⏸ 已取消：${cancelled.join('、')}</div>`:''}<button class="btn blue" onclick="gmEditTask('${t.id}')">修改</button> <button class="btn gray" onclick="gmToggleTaskCancellation('${t.id}')">取消／恢復指定日</button> <button class="btn red" onclick="deleteTask('${t.id}')">刪除</button></div></details>`;
   }).join('');
   const shopList=gameData.shopItems.map(i=>`<div class="card"><strong>${i.name}</strong><div class="small">${i.price} G</div><button class="btn red" onclick="deleteShopItem('${i.id}')">刪除</button></div>`).join('');
   const reqList=gameData.couponRequests.filter(r=>r.status==='pending').map(r=>`<div class="card"><strong>${r.itemName}</strong><button class="btn" onclick="approveCoupon('${r.id}',true)">核准並核銷</button> <button class="btn red" onclick="approveCoupon('${r.id}',false)">退回</button></div>`).join('')||'<div class="small">目前沒有待審核兌換券。</div>';
@@ -6750,6 +6750,27 @@ renderGM=function(){__oldRenderGMFormal();if(sessionStorage.getItem('parentUnloc
   try{ sessionStorage.removeItem('parentUnlocked'); }catch(e){}
 
   const NATURAL_AWAKEN_SAFETY_DAYS=42; // 最晚第6週左右進入保險判定
+  // V10.11.67：自然轉職只能由家長完成核定後觸發。
+  // 完成任務時的預發能力、待核定、退回0%與自主加碼都不得推動轉職。
+  let awakeningReviewGate=false;
+
+  function approvedAwakeningRecords(){
+    return (gameData.taskRecords||[]).filter(r=>
+      r?.status==='completed' &&
+      r.approvalStatus==='approved' &&
+      taskApprovalRatio(r)>0 &&
+      r.voluntaryChallenge!==true
+    );
+  }
+  // 職業傾向只取核定後真正保留下來的能力成長；不讀目前仍預發在角色身上的待核定數值。
+  jobGrowthValue=function(key){
+    return approvedAwakeningRecords().reduce((sum,r)=>{
+      const saved=r.approvedRewards?.statGain?.[key];
+      if(Number.isFinite(Number(saved)))return sum+Math.max(0,Number(saved));
+      const raw=Number(r.rollback?.statGain?.[key])||0;
+      return sum+Math.max(0,Math.round(raw*taskApprovalRatio(r)));
+    },0);
+  };
 
   function formalRuleByName(name){ return (JOB_RULES||[]).find(x=>x.name===name)||null; }
   function grantFormalClassOnAwaken(cls){
@@ -6768,7 +6789,7 @@ renderGM=function(){__oldRenderGMFormal();if(sessionStorage.getItem('parentUnloc
     return (ranked.find(x=>x.qualified)||ranked[0]||{}).j||null;
   }
   function awakeningDiagnostic(){
-    const h=gameData.hero, days=daysSinceSemesterStart(), records=(gameData.taskRecords||[]).length;
+    const h=gameData.hero, days=daysSinceSemesterStart(), records=approvedAwakeningRecords().length;
     const candidate=currentJobCandidate(), stable=candidate?stableCandidateWeeks(candidate.name):0;
     const safetyReady=days>=NATURAL_AWAKEN_SAFETY_DAYS&&records>=JOB_AWAKEN_CONFIG.minTaskRecords;
     let reason='';
@@ -6785,6 +6806,7 @@ renderGM=function(){__oldRenderGMFormal();if(sessionStorage.getItem('parentUnloc
   evaluateHiddenJob=function(showNotice=true){
     const h=gameData.hero;if(!h||h.jobAwakened)return false;
     h.heroClass='見習勇者';
+    if(!awakeningReviewGate)return false;
     const d=awakeningDiagnostic();
     if(d.days<JOB_AWAKEN_CONFIG.observationDays||d.records<JOB_AWAKEN_CONFIG.minTaskRecords)return false;
     let chosen=null, safety=false;
@@ -6803,10 +6825,27 @@ renderGM=function(){__oldRenderGMFormal();if(sessionStorage.getItem('parentUnloc
   window.gmRunNaturalAwakenTest=function(){
     if(gameData.hero.jobAwakened){alert(`目前已是【${gameData.hero.heroClass}】。\n若要測未轉職判定，請使用測試角色/重置資料。`);return;}
     const before=awakeningDiagnostic();
-    const ok=evaluateHiddenJob(true);
+    awakeningReviewGate=true;
+    let ok=false;
+    try{ok=evaluateHiddenJob(true);}finally{awakeningReviewGate=false;}
     const after=awakeningDiagnostic();
     if(!ok)alert(`🧪 自然覺醒判定：尚未轉職\n\n觀察：${before.days}/${JOB_AWAKEN_CONFIG.observationDays}天\n任務：${before.records}/${JOB_AWAKEN_CONFIG.minTaskRecords}筆\n候選：${before.candidate?.name||'尚未形成'}\n穩定：${before.stable}/${JOB_AWAKEN_CONFIG.stableWeeks}週\n原因：${before.reason}\n最晚保險：第${Math.ceil(NATURAL_AWAKEN_SAFETY_DAYS/7)}週左右（${NATURAL_AWAKEN_SAFETY_DAYS}天）`);
     renderAll();
+  };
+
+  // 原核定流程會先依100/80/50/0%回收能力與獎勵並存檔；全部完成後才跑自然轉職。
+  // 因此候選職業讀到的一定是「核定後保留下來」的最終能力值。
+  const reviewTaskRecordBeforeAwaken=reviewTaskRecord;
+  reviewTaskRecord=function(recordId,ratio){
+    const before=!!gameData.hero?.jobAwakened;
+    const result=reviewTaskRecordBeforeAwaken(recordId,ratio);
+    if(!before&&!gameData.hero?.jobAwakened){
+      awakeningReviewGate=true;
+      let awakened=false;
+      try{awakened=evaluateHiddenJob(true);}finally{awakeningReviewGate=false;}
+      if(awakened)renderAll();
+    }
+    return result;
   };
 
   // 家長後台：只在「目前停留於後台」期間解鎖；一離開立刻失效。
@@ -6837,7 +6876,7 @@ renderGM=function(){__oldRenderGMFormal();if(sessionStorage.getItem('parentUnloc
       <div class="battle-debug-card" style="margin-top:8px">
         <b>目前：${gameData.hero.jobAwakened?gameData.hero.heroClass:'見習勇者'}</b><br>
         觀察天數：${d.days}/${JOB_AWAKEN_CONFIG.observationDays} 天<br>
-        任務紀錄：${d.records}/${JOB_AWAKEN_CONFIG.minTaskRecords} 筆<br>
+        已核定任務：${d.records}/${JOB_AWAKEN_CONFIG.minTaskRecords} 筆<br>
         目前候選：${d.candidate?.name||'尚未形成'}｜穩定 ${d.stable}/${JOB_AWAKEN_CONFIG.stableWeeks} 週<br>
         判定：${d.reason}<br>
         最晚覺醒保險：${NATURAL_AWAKEN_SAFETY_DAYS} 天後；候選仍不明時採目前最高成長職業
