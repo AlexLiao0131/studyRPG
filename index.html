@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.68</title>
+<title>小學勇者大冒險 V10.11.70</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.68</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.70</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -8202,17 +8202,12 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     // 分母固定使用「啟用日起至考試最後一天」的完整總需求；分子只計入截至今天已核定的任務。
     const requirementEnd=evt.date,approvedEnd=today()<evt.date?today():evt.date;
     const byCourse=Object.fromEntries(ids.map(id=>[id,{approved:0,required:0}]));
-    const a=new Date(base+'T12:00:00'),b=new Date(requirementEnd+'T12:00:00');
-    if(Number.isFinite(a.getTime())&&Number.isFinite(b.getTime())&&b>=a){
-      for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){
-        const ds=dateText(d);if(isExamHoliday(ds))continue;
-        (gameData.tasks||[]).forEach(t=>{
-          if(!taskRequiredOnHistoricalDate(t,ds)||!taskScheduledOnHistoricalDate(t,ds))return;
-          const shares=taskCourseShares(t,ids),points=taskPowerGain(t)*Math.max(1,Number(t.dailyLimit)||1);
-          Object.entries(shares).forEach(([id,share])=>byCourse[id].required+=points*share);
-        });
-      }
-    }
+    // 總需求必須和 Boss 成長預估共用同一來源：基準日至考試日的課表時數。
+    // 不再用目前已建立的任務數量當分母，避免開學第一天一筆任務就顯示滿格。
+    const minutes=studyMinutesUntil(requirementEnd,ids,base),rates=subjectPowerRates(ids);
+    ids.forEach(id=>{
+      byCourse[id].required=Math.max(0,(Number(minutes[id])||0)/60*(Number(rates[id])||0)*SEMESTER_BALANCE.targetCompletion);
+    });
     (gameData.taskRecords||[]).forEach(r=>{
       // pending、rejected 或尚未核定比例的紀錄一律不計入。
       if(r.date<base||r.date>approvedEnd||r.approvalStatus==='pending'||r.approvalStatus==='rejected')return;
@@ -8227,6 +8222,75 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return {required,approved,ratio:required?Math.min(1.2,approved/required):0,byCourse};
   };
 
+  function examEnergyStage(r){
+    const ratio=(Number(r?.required)||0)>0?(Number(r?.approved)||0)/Number(r.required):0;
+    if(ratio>=1)return 1;
+    if(ratio>=.8)return .8;
+    if(ratio>=.5)return .5;
+    return 0;
+  }
+  function examSubjectBreakRole(subject,index=0){
+    const id=String(subject?.id||'').toLowerCase(),name=String(subject?.name||'');
+    if(id==='chinese'||/國語|中文|華語/.test(name))return 'hp';
+    if(id==='english'||/英語|英文|國際文化/.test(name))return 'magic';
+    if(id==='math'||/數學|數理/.test(name))return 'physical';
+    return ['hp','magic','physical'][index%3];
+  }
+  function examEnergyStageText(stage){
+    return stage>=1?'✨ 完全破盾':stage>=.8?'💥 重度破盾（80%效果）':stage>=.5?'⚡ 護盾裂痕（50%效果）':'護盾尚未削弱';
+  }
+  function applyExamEnergyBreakToBattle(eventType){
+    if(!battleStateV10||!['midterm','final'].includes(eventType)||battleStateV10.testMode)return;
+    const events=examEventsForType(eventType),evt=events[events.length-1];if(!evt)return;
+    const report=examTaskCompletionReport(evt),ids=eventSubjectIds(evt),enemy=battleStateV10.enemy;
+    const results=[];
+    ids.forEach((id,index)=>{
+      const subject=subjectById(id)||{id,name:id},r=report.byCourse[id]||{approved:0,required:0},stage=examEnergyStage(r);
+      if(stage<=0){results.push({name:subject.name,stage,required:Number(r.required)||0,role:examSubjectBreakRole(subject,index)});return;}
+      const weaken=.12*stage,role=examSubjectBreakRole(subject,index);
+      if(role==='hp'){
+        enemy.maxHp=Math.max(1,Math.round(enemy.maxHp*(1-weaken)));enemy.hp=Math.min(enemy.hp,enemy.maxHp);battleStateV10.enemyHp=enemy.hp;
+      }else if(role==='magic'){
+        enemy.magicAttack*=1-weaken;enemy.magicDefense*=1-weaken;
+      }else{
+        enemy.attack*=1-weaken;enemy.defense*=1-weaken;
+      }
+      results.push({name:subject.name,stage,required:Number(r.required)||0,role,weaken});
+    });
+    battleStateV10.examEnergyBreak={eventId:evt.id,results};
+    renderBattleTargets();updateBattleHp('enemy',enemy.hp,enemy.maxHp);
+    const roleText={hp:'最大HP',magic:'魔攻／魔防',physical:'物攻／物防'};
+    results.forEach(x=>addBattleLog(`📚 ${x.name}：${examEnergyStageText(x.stage)}${x.stage>0?`｜Boss ${roleText[x.role]} −${Math.round(x.weaken*100)}%`:''}`));
+    const eligible=results.filter(x=>x.required>0);
+    if(eligible.length&&eligible.every(x=>x.stage>=1)){
+      const amount=Math.max(1,Math.round(battleStateV10.hero.maxHp*.15));
+      battleStateV10.examEnergyShield={hp:amount,maxHp:amount};
+      battleStateV10.hero.statuses.push({type:'exam_energy_shield',name:`📚 完全備戰護盾 ${amount}`,turns:999,effectType:'buff',mods:{},unstealable:true});
+      updateBattleStatuses();addBattleLog(`🌟 全部考科完全破盾：勇者獲得 ${amount} 點考前護盾！`);
+    }
+  }
+
+  const oldRunBattleSequenceExamEnergy=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=oldRunBattleSequenceExamEnergy(...args);
+    applyExamEnergyBreakToBattle(args[5]);
+    return result;
+  };
+  const oldExecuteEnemyHitExamEnergy=executeEnemyHit;
+  executeEnemyHit=async function(unit,skill){
+    const shield=battleStateV10?.examEnergyShield,before=Number(battleStateV10?.heroHp)||0;
+    await oldExecuteEnemyHitExamEnergy(unit,skill);
+    if(!shield||shield.hp<=0||!battleStateV10)return;
+    const lost=Math.max(0,before-(Number(battleStateV10.heroHp)||0)),absorbed=Math.min(lost,shield.hp);
+    if(absorbed<=0)return;
+    shield.hp-=absorbed;battleStateV10.heroHp=Math.min(battleStateV10.hero.maxHp,battleStateV10.heroHp+absorbed);
+    const status=battleStateV10.hero.statuses.find(s=>s.type==='exam_energy_shield');
+    if(shield.hp<=0){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>s.type!=='exam_energy_shield');addBattleLog('💫 考前護盾已耗盡。');}
+    else if(status)status.name=`📚 完全備戰護盾 ${Math.round(shield.hp)}`;
+    updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);updateBattleStatuses();
+    addBattleLog(`🛡️ 考前護盾吸收 ${Math.round(absorbed)} 傷害。`);
+  };
+
   window.renderExamLearningEnergyHTML=function(){
     ensureExamBossConfig();
     const icons={'國語':'📖','英語':'🔤','英文':'🔤','數學':'🔢'};
@@ -8239,12 +8303,12 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
         const missing=Math.max(0,r.required-r.approved);
         return `<div class="exam-energy-row"><div class="exam-energy-label"><span>${icons[name]||'📚'} ${escapeHtml(name)}能量</span><span>${r.approved.toFixed(1)} / ${r.required.toFixed(1)}</span></div>
           <div class="exam-energy-track"><div class="exam-energy-fill ${cls}" style="width:${pct}%"></div></div>
-          <div class="exam-energy-note">${r.required?(pct>=100?'✨ 能量滿格！':`完成 ${pct}%｜還差 ${missing.toFixed(1)} 格`):'尚未設定這科的總需求'}</div></div>`;
+          <div class="exam-energy-note">${r.required?`${examEnergyStageText(examEnergyStage(r))}｜完成 ${pct}%${pct<100?`｜還差 ${missing.toFixed(1)} 格`:''}`:'尚未設定這科的總需求'}</div></div>`;
       }).join('');
       return `<div class="exam-energy-head"><strong>⚡ ${type==='final'?'期末':'期中'}總需求</strong><span class="pill">截止 ${evt.date}</span></div>${rows}`;
     };
     const html=[section('midterm'),section('final')].filter(Boolean).join('<hr>');
-    return html?`<div class="card exam-energy-card"><h3>🔋 考前總能量</h3>${html}<div class="small">總需求固定計算到考試最後一天；只有家長核定後才充能，裝備不計入。</div></div>`:'';
+    return html?`<div class="card exam-energy-card"><h3>🔋 考前總能量</h3>${html}<div class="small">總需求固定計算到考試最後一天；只有家長核定後才充能，裝備不計入。50%／80%／100%會逐段削弱考試 Boss；所有考科滿格再獲得15%最大生命護盾。</div></div>`:'';
   };
 
   window.examBossPreviewHTML=function(){
