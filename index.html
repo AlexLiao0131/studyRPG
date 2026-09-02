@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.92</title>
+<title>小學勇者大冒險 V10.11.94</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.92</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.94</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -8508,10 +8508,12 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     gameData.shopItems.push(item);gameData.inventory.push({id:uid(),itemId:id,name:item.name,status:'unused',boughtDate:today(),source:'tower',affixes:chosen});return {type:'equipment',label:`${item.icon} ${item.name}｜${chosen.map(a=>a.name+' +'+a.value).join('、')}`,value:id};
   }
   window.renderHolidayTower=function(){
+    if(typeof window.isEquipmentEndgameUnlocked==='function'&&!window.isEquipmentEndgameUnlocked()){const el=document.getElementById('panel-dungeon');if(el)el.innerHTML='<div class="card boss" style="text-align:center"><div style="font-size:42px">🔒🗼</div><h2>無盡之塔尚未解鎖</h2><div class="small">必須先擊破第20週的骷髏巨龍，斬斷靈魂連結並完成第一學期主線。</div></div>';return;}
     ensureHolidayTower();const el=document.getElementById('panel-dungeon'),floor=Math.max(1,(gameData.holidayTower.bestFloor||0)+1),id=towerMonsterForFloor(floor),m=MONSTER_DATABASE[id];
     el.innerHTML=`<div class="card boss" style="text-align:center"><div style="font-size:42px">🗼</div><h2>無盡之塔・第 ${floor} 層</h2><div class="small">${familyData.campaign?.mode==='holidayTower'?'寒暑假模式':'塔模式'}｜今日剩餘 ${towerRunsLeft()} 次｜最高 ${gameData.holidayTower.bestFloor||0} 層｜第 ${currentCampaignCycle()} 週目</div><div class="card"><strong>${m?.boss?'👑 ':''}${m?.name||'古塔魔物'}</strong><div>預估戰力 ⚔️ ${towerPower(floor)}</div><div class="small">每5層 Boss；層數越高，裝備詞條越多。</div></div><button class="btn purple big-battle-btn" ${towerRunsLeft()<=0?'disabled':''} onclick="challengeHolidayTower()">${towerRunsLeft()<=0?'今日次數已用完':'挑戰第 '+floor+' 層'}</button></div>`;
   };
   window.challengeHolidayTower=function(){
+    if(typeof window.isEquipmentEndgameUnlocked==='function'&&!window.isEquipmentEndgameUnlocked())return alert('必須先完成第一學期最終戰，才能進入無盡之塔。');
     ensureHolidayTower();if(towerRunsLeft()<=0)return alert('今天的無盡之塔次數已用完');
     const floor=Math.max(1,(gameData.holidayTower.bestFloor||0)+1),id=towerMonsterForFloor(floor),m=MONSTER_DATABASE[id];gameData.holidayTower.runsUsed++;
     runBattleSequence(`${m?.name||'古塔魔物'}・${floor}F`,m?.boss?'👑':'👹',towerPower(floor),Math.max(2,Math.floor(floor/3)),Math.max(10,floor*3),'tower',id);
@@ -10024,9 +10026,11 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 /* V10.11.92：第21週 Boss 回憶戰、T0 隨機詞條裝與戰鬥觸發引擎。 */
 (function(){
   const RARITIES={
-    rare:{id:'rare',name:'稀有',icon:'🔵',weight:55,affixCount:2,powerMult:1},
-    epic:{id:'epic',name:'史詩',icon:'🟣',weight:35,affixCount:3,powerMult:1.12},
-    legendary:{id:'legendary',name:'傳說',icon:'🟠',weight:10,affixCount:4,powerMult:1.25}
+    common:{id:'common',name:'普通',icon:'⚪',color:'white',weight:30,affixCount:0,powerMult:.90},
+    uncommon:{id:'uncommon',name:'優良',icon:'🟢',color:'green',weight:35,affixCount:1,powerMult:1},
+    rare:{id:'rare',name:'稀有',icon:'🔵',color:'blue',weight:25,affixCount:2,powerMult:1.08},
+    epic:{id:'epic',name:'史詩',icon:'🟣',color:'purple',weight:10,affixCount:3,powerMult:1.18,setEligible:true},
+    legendary:{id:'legendary',name:'傳說',icon:'🟠',color:'orange',weight:0,affixCount:4,powerMult:1.30,uniqueOnly:true}
   };
   const BASES={
     t0_sword:{id:'t0_sword',name:'遠征長劍',slot:'weapon',icon:'🗡️',stats:{attack:7}},
@@ -10039,6 +10043,14 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     t0_ring:{id:'t0_ring',name:'王者戒指',slot:'accessory',icon:'💍',stats:{attack:2,crit:.03}},
     t0_charm:{id:'t0_charm',name:'靈魂護符',slot:'accessory',icon:'📿',stats:{magicAttack:2,maxHp:15}}
   };
+  Object.values(BASES).forEach(base=>{
+    base.visualId=base.visualId||base.id;
+    base.visual={
+      inventory:`images/equipment/t0/${base.slot}/${base.visualId}.png`,
+      paperDollIdle:`images/equipment/paperdoll/t0/${base.visualId}_idle.png`,
+      paperDollBattle:`images/equipment/paperdoll/t0/${base.visualId}_battle.png`
+    };
+  });
   const AFFIXES={
     assault:{id:'assault',name:'猛攻',slots:['weapon','accessory'],kind:'stat',stat:'attack',min:3,max:6,powerPerUnit:1},
     arcane:{id:'arcane',name:'祕法',slots:['weapon','head','accessory'],kind:'stat',stat:'magicAttack',min:3,max:6,powerPerUnit:1},
@@ -10061,9 +10073,15 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   window.EQUIPMENT_BASE_DATABASE_T0=BASES;
   window.EQUIPMENT_AFFIX_DATABASE=AFFIXES;
   window.EQUIPMENT_RARITY_DATABASE=RARITIES;
+  window.EQUIPMENT_SET_DATABASE=window.EQUIPMENT_SET_DATABASE||{};
+  window.EQUIPMENT_UNIQUE_DATABASE=window.EQUIPMENT_UNIQUE_DATABASE||{};
+  window.EQUIPMENT_DATABASE_SCHEMA={version:1,instanceFields:['id','tier','rarity','baseId','visualId','stats','affixes','setId','uniqueId'],assetRule:'所有隨機實例只引用 base.visualId；套圖不得使用實例 id 或隨機名稱。'};
 
   function randomEntry(arr){return arr[Math.floor(Math.random()*arr.length)];}
-  function weightedRarity(){let r=Math.random()*100;for(const x of Object.values(RARITIES)){r-=x.weight;if(r<=0)return x;}return RARITIES.rare;}
+  function weightedRarity(forceAffix=false){
+    const pool=Object.values(RARITIES).filter(x=>!x.uniqueOnly&&(!forceAffix||x.affixCount>0)),total=pool.reduce((n,x)=>n+x.weight,0);let r=Math.random()*total;
+    for(const x of pool){r-=x.weight;if(r<=0)return x;}return pool.at(-1)||RARITIES.common;
+  }
   function rollValue(a,mult=1){
     const step=Number(a.step||1),count=Math.max(0,Math.round((a.max-a.min)/step)),v=a.min+Math.floor(Math.random()*(count+1))*step;
     return Math.round(v*mult/step)*step;
@@ -10076,21 +10094,24 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return `${rarity.icon} T0・${prefix}${base.name}${suffix}`;
   }
   window.generateRandomEquipment=function(opts={}){
-    const tier=Math.max(0,Number(opts.tier)||0),rarity=RARITIES[opts.rarity]||weightedRarity();
+    const tier=Math.max(0,Number(opts.tier)||0),rarity=RARITIES[opts.rarity]||weightedRarity(!!opts.forceAffix);
     const candidates=Object.values(BASES).filter(b=>!opts.slot||b.slot===opts.slot),base=BASES[opts.baseId]||randomEntry(candidates.length?candidates:Object.values(BASES));
     const stats={...base.stats},pool=Object.values(AFFIXES).filter(a=>a.slots.includes(base.slot)),chosen=[],forced=[...(opts.forcedAffixIds||[])];
-    const count=Math.max(1,rarity.affixCount+Math.min(2,tier));
+    const count=Math.max(opts.forceAffix?1:0,rarity.affixCount+Math.min(2,tier));
     while(chosen.length<count&&pool.length){
       const forcedId=forced.shift(),index=forcedId?pool.findIndex(a=>a.id===forcedId):Math.floor(Math.random()*pool.length);
       if(index<0)continue;const a=pool.splice(index,1)[0],entry={...a};
       if(a.kind==='stat'){entry.value=rollValue(a,rarity.powerMult*(1+tier*.18));stats[a.stat]=(stats[a.stat]||0)+entry.value;entry.power=entry.value*Number(a.powerPerUnit||1);}
       chosen.push(entry);
     }
-    const item={id:'generated_equipment_'+uid(),generated:true,tier:`T${tier}`,rarity:rarity.id,rarityName:rarity.name,name:'',icon:base.icon,category:'equipment',equipSlot:base.slot,baseId:base.id,stats,affixes:chosen,price:0,dailyLimit:1,active:false,createdAt:new Date().toISOString()};
+    const item={id:'generated_equipment_'+uid(),generated:true,tier:`T${tier}`,rarity:rarity.id,rarityName:rarity.name,name:'',icon:base.icon,category:'equipment',equipSlot:base.slot,baseId:base.id,visualId:base.visualId,visual:{...base.visual},stats,affixes:chosen,setId:opts.setId||null,uniqueId:opts.uniqueId||null,price:0,dailyLimit:1,active:false,createdAt:new Date().toISOString()};
     item.name=generatedName(base,rarity,chosen,opts.customName||'');item.powerScore=equipmentPowerScore(item);
     item.description=`${item.tier} ${rarity.name}｜裝備評估 ${item.powerScore}｜${chosen.map(affixText).join('、')}`;return item;
   };
   window.generateRandomEquipmentDrop=function(opts={}){
+    if(opts.source==='tower'&&typeof window.rollTowerUniqueEquipment==='function'){
+      const unique=window.rollTowerUniqueEquipment(Number(opts.floor)||1);if(unique)return unique;
+    }
     const item=generateRandomEquipment(opts),inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source:opts.source||'boss_replay',affixes:item.affixes,tier:item.tier,generated:true};
     gameData.inventory.push(inv);return {type:'equipment',label:`${item.name}｜${item.affixes.map(affixText).join('、')}`,value:inv.id,itemData:item};
   };
@@ -10153,7 +10174,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   function replayBossPower(id){const name=MONSTER_DATABASE[id]?.name||id,records=(gameData.battleRecords||[]).filter(r=>String(r.enemyName||'').includes(name)&&Number(r.enemyPower)>0);return records.length?Math.round(Number(records.at(-1).enemyPower)):Math.max(40,Math.round(Number(gameData.examBossBaselineV10158?.nakedPower||combatPower())*1.10));}
   window.renderCelebrationBossReplay=function(){
     const el=document.getElementById('panel-dungeon');if(!el)return;const ids=replayBossIds();
-    el.innerHTML=`<div class="card boss"><div style="text-align:center;font-size:44px">🏰⚔️🎁</div><h2>第21週・王者回憶戰</h2><div class="small">凱旋週不生成每日小怪。可重刷第一學期Boss準備裝備；每次勝利必掉一件隨機T0詞條裝，不影響原本考試、任務或每日副本紀錄。</div><label>選擇回憶Boss</label><select id="celebrationReplayBoss">${ids.map(id=>`<option value="${id}">${escapeHtml(MONSTER_DATABASE[id].name)}｜歷史戰力 ${replayBossPower(id)}</option>`).join('')}</select><button class="btn purple big-battle-btn" onclick="challengeCelebrationBossReplay()">挑戰並刷取T0裝備</button><div class="card small"><b>隨機組合規則</b><br>9種裝備基底 × 3種稀有度 × 部位詞條池。稀有2條、史詩3條、傳說4條；可能抽到數值、追加攻擊、吸血、保命或召喚詞條。</div></div>`;
+    el.innerHTML=`<div class="card boss"><div style="text-align:center;font-size:44px">🏰⚔️🎁</div><h2>第21週・王者回憶戰</h2><div class="small">凱旋週不生成每日小怪。可重刷第一學期Boss準備裝備；每次勝利必掉一件隨機T0詞條裝，不影響原本考試、任務或每日副本紀錄。</div><label>選擇回憶Boss</label><select id="celebrationReplayBoss">${ids.map(id=>`<option value="${id}">${escapeHtml(MONSTER_DATABASE[id].name)}｜歷史戰力 ${replayBossPower(id)}</option>`).join('')}</select><button class="btn purple big-battle-btn" onclick="challengeCelebrationBossReplay()">挑戰並刷取T0裝備</button><div class="card small"><b>隨機組合規則</b><br>9種共用圖片基底 × 稀有度 × 部位詞條池。白裝0條、綠裝1條、藍裝2條、紫裝3條；回憶戰必掉詞條，因此自動排除白裝。橘裝只從少量獨特裝資料庫產生，不進大量隨機池。</div></div>`;
     el.insertAdjacentHTML('beforeend',skillLoadoutHTML());
   };
   window.challengeCelebrationBossReplay=function(){
@@ -10175,6 +10196,20 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     const baseId=document.getElementById('gmT0Base')?.value||'',rarity=document.getElementById('gmT0Rarity')?.value||'legendary',forced=document.getElementById('gmT0Affix')?.value||'',customName=document.getElementById('gmT0Name')?.value.trim()||'';
     const item=generateRandomEquipment({tier:0,baseId,rarity,forcedAffixIds:forced?[forced]:[],customName}),inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source:'gm_forge',affixes:item.affixes,tier:'T0',generated:true};gameData.inventory.push(inv);saveGame();renderAll();renderGM();alert(`已製造：${item.name}\n${item.affixes.map(affixText).join('\n')}`);
   };
+  window.createUniqueEquipmentDrop=function(uniqueId,source='tower'){
+    const def=window.EQUIPMENT_UNIQUE_DATABASE?.[uniqueId];if(!def)return null;
+    const base=BASES[def.baseId];if(!base)return null;
+    const affixes=(def.affixIds||[]).map(id=>AFFIXES[id]).filter(Boolean).map(a=>({...a})),stats={...base.stats,...(def.stats||{})};
+    affixes.filter(a=>a.kind==='stat').forEach(a=>{const v=Number(def.affixValues?.[a.id]??a.max??a.min??0);a.value=v;a.power=v*Number(a.powerPerUnit||1);stats[a.stat]=(stats[a.stat]||0)+v;});
+    const item={id:'unique_equipment_'+uid(),generated:true,tier:def.tier||'T0',rarity:'legendary',rarityName:'傳說',name:`🟠 ${def.name}`,icon:def.icon||base.icon,category:'equipment',equipSlot:base.slot,baseId:base.id,visualId:def.visualId||base.visualId,visual:def.visual||{inventory:`images/equipment/unique/${def.visualId||uniqueId}.png`,paperDollIdle:`images/equipment/paperdoll/unique/${def.visualId||uniqueId}_idle.png`,paperDollBattle:`images/equipment/paperdoll/unique/${def.visualId||uniqueId}_battle.png`},stats,affixes,setId:null,uniqueId,price:0,dailyLimit:1,active:false,createdAt:new Date().toISOString(),description:def.description||''};item.powerScore=equipmentPowerScore(item);
+    const inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source,affixes:item.affixes,tier:item.tier,generated:true,uniqueId};gameData.inventory.push(inv);
+    return {type:'equipment',label:`${item.name}｜傳說獨特裝備`,value:inv.id,itemData:item,unique:true};
+  };
+  window.rollTowerUniqueEquipment=function(floor){
+    const ids=Object.keys(window.EQUIPMENT_UNIQUE_DATABASE||{}).filter(id=>Number(window.EQUIPMENT_UNIQUE_DATABASE[id]?.minFloor||10)<=floor);if(!ids.length)return null;
+    const chance=floor%5===0?.12:.03;if(Math.random()>=chance)return null;
+    const weighted=ids.flatMap(id=>Array(Math.max(1,Number(window.EQUIPMENT_UNIQUE_DATABASE[id]?.weight||1))).fill(id));return createUniqueEquipmentDrop(randomEntry(weighted),'tower');
+  };
   const previousRenderGMV101192=renderGM;
   renderGM=function(){
     previousRenderGMV101192();if(sessionStorage.getItem('parentUnlocked')!=='1')return;const panel=document.getElementById('panel-gm');if(!panel||document.getElementById('gmT0Forge'))return;
@@ -10183,5 +10218,35 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   if(gameData.hero?.name){renderAll();}
 })();
 </script>
+<script>
+/* V10.11.93：第一學期通關硬鎖與裝備終局資料庫閘門。 */
+(function(){
+  gameData.storyFlags=gameData.storyFlags||{};
+  if(!gameData.storyFlags.firstSemesterCleared){
+    const cleared=(gameData.battleRecords||[]).some(r=>r.result==='win'&&r.replayBossId==='final_necromancer');
+    if(cleared)gameData.storyFlags.firstSemesterCleared=true;
+  }
+  window.isEquipmentEndgameUnlocked=function(){return gameData.storyFlags?.firstSemesterCleared===true;};
+
+  const previousFinishBattleV101193=finishBattleV10;
+  finishBattleV10=async function(win){
+    const finalClear=!!(win&&battleStateV10?.monsterId==='final_necromancer'&&!battleStateV10?.testMode);
+    if(finalClear){gameData.storyFlags=gameData.storyFlags||{};gameData.storyFlags.firstSemesterCleared=true;gameData.storyFlags.firstSemesterClearedAt=new Date().toISOString();}
+    const result=await previousFinishBattleV101193(win);
+    if(finalClear){saveGame();addBattleLog('🏆 第一學期主線完成：第21週Boss回憶戰與寒暑假無盡之塔已解鎖！');}
+    return result;
+  };
+
+  const previousRenderCelebrationBossReplayV101193=window.renderCelebrationBossReplay;
+  window.renderCelebrationBossReplay=function(){
+    if(isEquipmentEndgameUnlocked())return previousRenderCelebrationBossReplayV101193();
+    const el=document.getElementById('panel-dungeon');if(!el)return;
+    el.innerHTML='<div class="card boss" style="text-align:center"><div style="font-size:44px">🔒🏰</div><h2>王者回憶戰尚未解鎖</h2><div class="small">必須先在第20週擊破骷髏巨龍。靈魂連結斷裂、死靈法師死亡並完成第一學期主線後，才會開放T0詞條裝掉落。</div></div>';
+  };
+  const previousChallengeCelebrationBossReplayV101193=window.challengeCelebrationBossReplay;
+  window.challengeCelebrationBossReplay=function(){if(!isEquipmentEndgameUnlocked())return alert('必須先完成第一學期最終戰。');return previousChallengeCelebrationBossReplayV101193();};
+})();
+</script>
+<script src="StudyRPG_Item_Equipment_DB_V10.11.94.js"></script>
 </body>
 </html>
