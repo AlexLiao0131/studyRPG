@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.70</title>
+<title>小學勇者大冒險 V10.11.75</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.70</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.75</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -5508,6 +5508,7 @@ function renderGM(){
   ensureAdventureCalendar();
   const editCal=gmEditingCalendarId?findCalendarEvent(gmEditingCalendarId):null;
   const eventList=familyData.adventureCalendar.slice().sort((a,b)=>(a.date+(a.startTime||'')).localeCompare(b.date+(b.startTime||''))).map(e=>`<div class="card"><strong>${calendarTypeIcon(e.type)} ${e.date}｜${e.name}</strong><div class="small">${calendarTimeText(e)}｜${e.targetType==='all'?'所有孩子':'指定角色'}｜提醒 ${e.reminderMinutes?e.reminderMinutes+' 分鐘前':'關閉'}</div><button class="btn blue" onclick="gmEditCalendarEvent('${e.id}')">修改</button> <button class="btn red" onclick="gmDeleteCalendarEvent('${e.id}')">刪除</button></div>`).join('')||'<div class="small">尚未新增行事曆事件。</div>';
+  const dailyBalance=typeof window.dailyBalanceDebugV10114==='function'?window.dailyBalanceDebugV10114():null;
 
   document.getElementById('panel-gm').innerHTML=`
     <h2>🛠️ 家長控制後台</h2>
@@ -5542,16 +5543,19 @@ function renderGM(){
     <div class="card">
       <h3>📈 每日怪物自動平衡</h3>
       <div class="small">
-        每日怪以「最終戰鬥面板」為唯一玩家基準；取今日完全不做與全部任務100%完成後面板之間偏高位置，再套怪物弱化補正。
-        週數只決定怪物、地圖、AI與機制，不再直接增加數值。核定不足不會讓當日怪物跟著變弱。
+        A＝扣除今天已取得任務能力後的「完全沒做」戰力；B＝A＋今天全部已發布任務的完整能力。一般怪固定取50%，週五大怪固定取70%。
+        當天新增或提高任務會向上重算；完成、低比例核定、取消或刪除都不會讓當日怪物下降。
       </div>
       <div style="margin-top:8px">
-        今日預期戰力：<b>${expectedSemesterPower()}</b>｜
-        普通怪：<b>${generatedMonsterPower('daily','normal')}</b>
+        目前角色戰力：<b>${dailyBalance?.liveCombatPower??combatPower()}</b>｜
+        A 完全沒做：<b>${dailyBalance?.baseCombatPower??combatPower()}</b>｜
+        B 全部完成：<b>${dailyBalance?.maximumTaskPower??combatPower()}</b>｜
+        任務區間 ${Math.round((dailyBalance?.balancePosition??.5)*100)}%：<b>${dailyBalance?.referencePower??combatPower()}</b>｜
+        今日小怪：<b>${dailyBalance?.monsterPower??calibratedDailyMonsterPower()}</b>
       </div>
 
       <div class="small" style="margin-top:6px">
-        🌱 平衡基準：每日怪抓「0%～100%今日成長」之間偏高位置，再做弱化補正；100%完成會取得明顯戰鬥優勢。失敗不扣能力、EXP、金幣或裝備。
+        🌱 除週五大怪使用70%位置外，不套其他星期、週數或裝備倍率。同一天只因新增／提高任務而向上更新；完成任務不會讓怪物追著變強。失敗不扣能力、EXP、金幣或裝備。
       </div>
     </div>
 
@@ -6207,7 +6211,8 @@ function gmShowJobDebug(){
 
 function gmShowGrowthCurve(){
   const ti=todayEffectiveTaskLoad();
-  return `第${semesterProgressWeek()}週｜今日有效任務 ${ti.count} 項／負荷 ${ti.load}｜${isNonSchoolDay()?'假日模式':'平日模式'}｜AUTO怪戰力 ${calibratedDailyMonsterPower()}｜測試倍率 ${Math.round(currentBattleTestMultiplier()*100)}%`;
+  const d=typeof window.dailyBalanceDebugV10114==='function'?window.dailyBalanceDebugV10114():null;
+  return `第${semesterProgressWeek()}週｜目前角色 ${d?.liveCombatPower??combatPower()}｜A完全沒做 ${d?.baseCombatPower??combatPower()}｜B全部完成 ${d?.maximumTaskPower??combatPower()}｜任務區間 ${Math.round((d?.balancePosition??.5)*100)}%＝${d?.referencePower??combatPower()}｜AUTO怪戰力 ${d?.monsterPower??calibratedDailyMonsterPower()}｜測試倍率 ${Math.round(currentBattleTestMultiplier()*100)}%`;
 }
 
 function gmShowBattleDebug(){
@@ -7551,15 +7556,15 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
 
 
 <script>
-/* V10.11.14：最終戰鬥面板浮動 + 四段核定 + 考卷 Boss 學習量
+/* V10.11.14：每日任務中間值浮動 + 四段核定 + 考卷 Boss 學習量
    核心原則：
    A = 今日完全不做任務時的最終戰鬥面板
    B = 今日全部排定任務100%完成後的預期最終戰鬥面板
-   怪物參考 = A + (B-A)*0.75，再依遭遇角色做弱化補正；不是1:1複製玩家。
+   A＝扣回今日已取得能力的完全沒做戰力；B＝A＋今日完整任務能力。一般怪取50%，週五大怪取70%。
    當日基準建立後鎖定，80/50/0核定或刪任務都不會把怪物往下調。 */
 (function(){
-  const MID_HIGH_POSITION=.75;
-  const DAILY_WEAKEN=[.70,.74,.78,.82,.90];
+  const DAILY_BALANCE_POSITION=.50;
+  const FRIDAY_BOSS_BALANCE_POSITION=.70;
 
   function taskAvailableOnV10114(t,dateStr=today()){
     if(!t||t.active===false)return false;
@@ -7643,22 +7648,83 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
     }
   }
 
+  function taskCombatPowerV101171(t){
+    const m=perfectTaskStatMapV10114(t);
+    return Math.max(0,(Number(m.str)||0)*1.2+(Number(m.agi)||0)*1.1+(Number(m.int)||0)+(Number(m.will)||0)*.8);
+  }
+  function statGainCombatPowerV101171(value){
+    const m=value?.gains&&typeof value.gains==='object'?value.gains:(value||{});
+    return Math.max(0,(Number(m.str)||0)*1.2+(Number(m.agi)||0)*1.1+(Number(m.int)||0)+(Number(m.will)||0)*.8);
+  }
+  function recordCreditedPowerV101171(r){
+    if(!r||r.approvalStatus==='rejected')return 0;
+    if(r.approvalStatus==='pending'||r.approvalStatus==null){
+      // 現行流程會先把能力暫加到面板；待核定必須視為已進入基礎，避免再估一次。
+      return statGainCombatPowerV101171(r.rollback?.statGain||r.rewards?.statGain);
+    }
+    if(r.approvedRewards?.statGain)return statGainCombatPowerV101171(r.approvedRewards.statGain);
+    return statGainCombatPowerV101171(r.rollback?.statGain||r.rewards?.statGain)*taskApprovalRatio(r);
+  }
+  function dailyTaskPlanV101171(dateStr=today()){
+    let planned=0,credited=0,count=0;
+    const creditedByTask={},recordedTaskIds=new Set();
+    (gameData.taskRecords||[]).forEach(r=>{
+      if(r.date!==dateStr||r.voluntaryChallenge===true)return;
+      recordedTaskIds.add(r.taskId);
+      creditedByTask[r.taskId]=(creditedByTask[r.taskId]||0)+recordCreditedPowerV101171(r);
+    });
+    for(const t of (gameData.tasks||[])){
+      // 今天已有正式紀錄的任務即使稍後封存，仍屬於今天原本發布的完整區間。
+      if(!taskAvailableOnV10114(t,dateStr)&&!recordedTaskIds.has(t.id))continue;
+      const limit=Math.max(1,Number(t.dailyLimit)||1),unit=taskCombatPowerV101171(t);
+      const taskPlanned=unit*limit;
+      planned+=taskPlanned;
+      credited+=Math.min(taskPlanned,Math.max(0,creditedByTask[t.id]||0));
+      count+=limit;
+    }
+    return {planned,credited,remaining:Math.max(0,planned-credited),count};
+  }
+  function dailyBalancePositionV101173(dateStr=today()){
+    const monster=currentWeeklyMonster(dateStr);
+    return monster?.boss?FRIDAY_BOSS_BALANCE_POSITION:DAILY_BALANCE_POSITION;
+  }
+
   function ensureDailyBalanceSnapshotV10114(){
     const td=today();
     const old=gameData.dailyBalanceV10114;
-    if(old&&old.date===td&&Number.isFinite(Number(old.referencePower)))return old;
+    const plan=dailyTaskPlanV101171(td),base=Math.max(1,combatPower()),position=dailyBalancePositionV101173(td);
+    if(old&&old.date===td&&old.formulaVersion==='V10.11.75'&&Number.isFinite(Number(old.referencePower))){
+      // 當天新增或提高任務時只准向上補強；完成、低比例核定、取消或刪除都不讓怪物往下掉。
+      const previousPlan=Math.max(0,Number(old.plannedTaskPower)||0);
+      if(plan.planned>previousPlan+.001){
+        old.referencePower=Math.round((Number(old.referencePower)+(plan.planned-previousPlan)*position)*100)/100;
+        old.plannedTaskPower=Math.round(plan.planned*100)/100;
+        old.maximumTaskPower=Math.round((Number(old.maximumTaskPower||old.baseCombatPower||1)+(plan.planned-previousPlan))*100)/100;
+        old.taskCount=Math.max(Number(old.taskCount)||0,plan.count);
+        old.updatedAt=new Date().toISOString();old.updateReason='task-plan-increased';
+        try{persistFamily();}catch(e){}
+      }
+      return old;
+    }
 
-    const basePanel=makeHeroBattleStats();
-    const perfectPanel=projectedPerfectPanelV10114(td);
-    const base=panelPowerV10114(basePanel);
-    const perfect=Math.max(base,panelPowerV10114(perfectPanel));
-    const reference=base+(perfect-base)*MID_HIGH_POSITION;
+    // A＝今天完全沒做的戰力；B＝A＋全部已發布任務能力。完成進度只用來還原A，不改變固定區間。
+    const noTaskBase=Math.max(1,base-plan.credited);
+    const remaining=Math.max(0,plan.planned-plan.credited);
+    const maximum=noTaskBase+plan.planned;
+    const reference=noTaskBase+(maximum-noTaskBase)*position;
     const snap={
       date:td,
-      basePanelPower:Math.round(base*100)/100,
-      perfectPanelPower:Math.round(perfect*100)/100,
+      formulaVersion:'V10.11.75',
+      liveCombatPowerAtLock:Math.round(base*100)/100,
+      baseCombatPower:Math.round(noTaskBase*100)/100,
+      noTaskBasePower:Math.round(noTaskBase*100)/100,
+      maximumTaskPower:Math.round(maximum*100)/100,
+      plannedTaskPower:Math.round(plan.planned*100)/100,
+      creditedTaskPower:Math.round(plan.credited*100)/100,
+      remainingTaskPower:Math.round(remaining*100)/100,
+      taskCount:plan.count,
       referencePower:Math.round(reference*100)/100,
-      midHighPosition:MID_HIGH_POSITION,
+      balancePosition:position,
       createdAt:new Date().toISOString()
     };
     gameData.dailyBalanceV10114=snap;
@@ -7671,15 +7737,13 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
   // 正式覆蓋 V10.11.13 的每日怪算法。期中/期末事件仍走 resolvedDungeonPower 的既有 Boss 路徑。
   calibratedDailyMonsterPower=function(){
     const snap=ensureDailyBalanceSnapshotV10114();
-    const idx=Math.max(0,Math.min(4,dailyMonsterIndexForDate(today())));
-    const weakened=snap.referencePower*DAILY_WEAKEN[idx];
-    return Math.max(18,Math.round(weakened));
+    return Math.max(18,Math.round(snap.referencePower));
   };
 
   window.dailyBalanceDebugV10114=function(){
     const s=ensureDailyBalanceSnapshotV10114();
-    const idx=Math.max(0,Math.min(4,dailyMonsterIndexForDate(today())));
-    return {...s,weakenFactor:DAILY_WEAKEN[idx],monsterPower:calibratedDailyMonsterPower()};
+    const livePlan=dailyTaskPlanV101171(today());
+    return {...s,liveCombatPower:combatPower(),livePlannedTaskPower:Math.round(livePlan.planned*100)/100,liveCreditedTaskPower:Math.round(livePlan.credited*100)/100,monsterPower:calibratedDailyMonsterPower()};
   };
 
   // 舊存檔核定資料相容：approved=100%、rejected=0%。pending 保持待核定。
@@ -7731,30 +7795,8 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
 
   window.raiseDailyBalanceForAddedTaskV10115=function(t){
     if(!t||!taskAppliesTodayV10115(t))return;
-    const snap=gameData.dailyBalanceV10114;
-    if(!snap||snap.date!==today()||!Number.isFinite(Number(snap.referencePower)))return;
-
-    // 只計「這個新任務」造成的面板差，不重抓裝備/原始能力，也不重算既有任務。
-    const beforePanel=makeHeroBattleStats();
-    const before=panelPowerV10114(beforePanel);
-    const originalHero=gameData.hero;
-    const sim=JSON.parse(JSON.stringify(originalHero));
-    sim.stats=sim.stats||{str:0,agi:0,int:0,will:0};
-    const count=Math.max(1,Number(t.dailyLimit)||1);
-    const m=taskExpectedStatMapV10115(t);
-    for(const k of ['str','agi','int','will'])sim.stats[k]=(Number(sim.stats[k])||0)+(Number(m[k])||0)*count;
-    sim.virtue=(Number(sim.virtue)||0)+(Number(m.virtue)||0)*count;
-    addExpToSimV10115(sim,(Number(t.expReward)||0)*count);
-    let after=before;
-    try{ gameData.hero=sim; after=panelPowerV10114(makeHeroBattleStats()); }
-    finally{ gameData.hero=originalHero; }
-
-    const delta=Math.max(0,after-before);
-    if(delta<=0)return;
-    snap.perfectPanelPower=Math.round((Number(snap.perfectPanelPower||snap.basePanelPower)+delta)*100)/100;
-    snap.referencePower=Math.round((Number(snap.referencePower)+delta*POSITION)*100)/100;
-    snap.updatedByAddedTaskAt=new Date().toISOString();
-    try{persistFamily();}catch(e){}
+    // V10.11.75 起統一交給同一套 combatPower 整日固定任務區間公式。
+    if(typeof window.ensureDailyBalanceSnapshotV10114==='function')window.ensureDailyBalanceSnapshotV10114();
   };
 })();
 </script>
