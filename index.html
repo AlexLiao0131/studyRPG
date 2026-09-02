@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.91</title>
+<title>小學勇者大冒險 V10.11.92</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.91</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.92</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -8499,6 +8499,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   }
   function towerPower(floor){return Math.max(18,Math.round(combatPower()*(.78+floor*.055+(currentCampaignCycle()-1)*.08)));}
   function towerAffixItem(floor){
+    if(typeof window.generateRandomEquipmentDrop==='function')return window.generateRandomEquipmentDrop({source:'tower',tier:Math.max(0,currentCampaignCycle()-1),floor,forceAffix:true});
     const rarity=floor>=30?'傳說':floor>=20?'史詩':floor>=10?'稀有':'優良';
     const affixPool=[{name:'猛攻',stat:'attack',value:2+Math.floor(floor/5)},{name:'秘法',stat:'magicAttack',value:2+Math.floor(floor/5)},{name:'鐵壁',stat:'defense',value:2+Math.floor(floor/6)},{name:'迅捷',stat:'speed',value:1+Math.floor(floor/8)},{name:'生命',stat:'maxHp',value:10+floor*2}];
     const count=floor>=20?3:floor>=10?2:1,chosen=[];for(let i=0;i<count;i++)chosen.push(affixPool[(floor+i*2)%affixPool.length]);
@@ -10017,6 +10018,169 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     }
     return previousFinishBattleV101191(win);
   };
+})();
+</script>
+<script>
+/* V10.11.92：第21週 Boss 回憶戰、T0 隨機詞條裝與戰鬥觸發引擎。 */
+(function(){
+  const RARITIES={
+    rare:{id:'rare',name:'稀有',icon:'🔵',weight:55,affixCount:2,powerMult:1},
+    epic:{id:'epic',name:'史詩',icon:'🟣',weight:35,affixCount:3,powerMult:1.12},
+    legendary:{id:'legendary',name:'傳說',icon:'🟠',weight:10,affixCount:4,powerMult:1.25}
+  };
+  const BASES={
+    t0_sword:{id:'t0_sword',name:'遠征長劍',slot:'weapon',icon:'🗡️',stats:{attack:7}},
+    t0_staff:{id:'t0_staff',name:'星輝法杖',slot:'weapon',icon:'🪄',stats:{magicAttack:7,maxEnergy:6}},
+    t0_bow:{id:'t0_bow',name:'天空戰弓',slot:'weapon',icon:'🏹',stats:{attack:5,speed:3}},
+    t0_helm:{id:'t0_helm',name:'守望戰盔',slot:'head',icon:'🪖',stats:{defense:6,magicDefense:3}},
+    t0_circlet:{id:'t0_circlet',name:'祕法冠冕',slot:'head',icon:'👑',stats:{magicDefense:6,maxEnergy:10}},
+    t0_armor:{id:'t0_armor',name:'凱旋戰甲',slot:'body',icon:'🛡️',stats:{defense:7,maxHp:20}},
+    t0_robe:{id:'t0_robe',name:'星界法袍',slot:'body',icon:'🥋',stats:{magicDefense:7,maxEnergy:12}},
+    t0_ring:{id:'t0_ring',name:'王者戒指',slot:'accessory',icon:'💍',stats:{attack:2,crit:.03}},
+    t0_charm:{id:'t0_charm',name:'靈魂護符',slot:'accessory',icon:'📿',stats:{magicAttack:2,maxHp:15}}
+  };
+  const AFFIXES={
+    assault:{id:'assault',name:'猛攻',slots:['weapon','accessory'],kind:'stat',stat:'attack',min:3,max:6,powerPerUnit:1},
+    arcane:{id:'arcane',name:'祕法',slots:['weapon','head','accessory'],kind:'stat',stat:'magicAttack',min:3,max:6,powerPerUnit:1},
+    ironwall:{id:'ironwall',name:'鐵壁',slots:['head','body'],kind:'stat',stat:'defense',min:3,max:6,powerPerUnit:.8},
+    warding:{id:'warding',name:'護法',slots:['head','body','accessory'],kind:'stat',stat:'magicDefense',min:3,max:6,powerPerUnit:.8},
+    vitality:{id:'vitality',name:'生命',slots:['head','body','accessory'],kind:'stat',stat:'maxHp',min:15,max:30,powerPerUnit:.10},
+    swiftness:{id:'swiftness',name:'迅捷',slots:['weapon','head','accessory'],kind:'stat',stat:'speed',min:2,max:5,powerPerUnit:1},
+    precision:{id:'precision',name:'精準',slots:['weapon','accessory'],kind:'stat',stat:'crit',min:.02,max:.04,step:.01,powerPerUnit:100},
+    shadowstep:{id:'shadowstep',name:'幻步',slots:['head','body','accessory'],kind:'stat',stat:'evade',min:.02,max:.04,step:.01,powerPerUnit:110},
+    bastion:{id:'bastion',name:'壁壘',slots:['head','body'],kind:'stat',stat:'block',min:.02,max:.04,step:.01,powerPerUnit:100},
+    ember_echo:{id:'ember_echo',name:'餘燼回響',slots:['weapon','accessory'],kind:'trigger',trigger:'after_attack',effect:'echo_fire',chance:.10,multiplier:.60,power:4.5,text:'攻擊命中時10%機率追加60%火焰傷害'},
+    phantom_echo:{id:'phantom_echo',name:'幻影追擊',slots:['weapon','accessory'],kind:'trigger',trigger:'after_attack',effect:'echo_physical',chance:.08,multiplier:.70,power:4.5,text:'攻擊命中時8%機率追加70%物理傷害'},
+    blood_drink:{id:'blood_drink',name:'飲血',slots:['weapon','accessory'],kind:'trigger',trigger:'after_attack',effect:'lifesteal',ratio:.18,power:4,text:'每次行動造成傷害後，恢復該傷害18%的HP'},
+    royal_guard:{id:'royal_guard',name:'王者庇護',slots:['head','body','accessory'],kind:'trigger',trigger:'battle_start',effect:'opening_guard',power:4,text:'開戰前3回合受到傷害降低15%'},
+    phoenix_oath:{id:'phoenix_oath',name:'不死鳥誓約',slots:['body','accessory'],kind:'trigger',trigger:'lethal',effect:'death_prevent',power:7,text:'每場首次受到致命傷害時，以1HP存活'},
+    flame_spirit:{id:'flame_spirit',name:'火靈契約',slots:['weapon','head','accessory'],kind:'summon',trigger:'battle_start',effect:'summon_flame',power:7,text:'開戰召喚火靈；每次勇者攻擊後追加35%魔攻火焰傷害'},
+    blade_spirit:{id:'blade_spirit',name:'劍魂契約',slots:['weapon','body','accessory'],kind:'summon',trigger:'battle_start',effect:'summon_blade',power:7,text:'開戰召喚劍魂；每次勇者攻擊後追加35%物攻傷害'}
+  };
+  window.EQUIPMENT_TIER_DATABASE={T0:{id:'T0',name:'第一學期終局裝備',basePower:10,bases:Object.keys(BASES)}};
+  window.EQUIPMENT_BASE_DATABASE_T0=BASES;
+  window.EQUIPMENT_AFFIX_DATABASE=AFFIXES;
+  window.EQUIPMENT_RARITY_DATABASE=RARITIES;
+
+  function randomEntry(arr){return arr[Math.floor(Math.random()*arr.length)];}
+  function weightedRarity(){let r=Math.random()*100;for(const x of Object.values(RARITIES)){r-=x.weight;if(r<=0)return x;}return RARITIES.rare;}
+  function rollValue(a,mult=1){
+    const step=Number(a.step||1),count=Math.max(0,Math.round((a.max-a.min)/step)),v=a.min+Math.floor(Math.random()*(count+1))*step;
+    return Math.round(v*mult/step)*step;
+  }
+  function statPower(stats={}){const w={attack:1,magicAttack:1,defense:.8,magicDefense:.8,speed:1,maxHp:.10,maxEnergy:.15,crit:100,evade:110,block:100};return Object.entries(stats).reduce((n,[k,v])=>n+(w[k]||0)*Number(v||0),0);}
+  window.equipmentPowerScore=function(item){return Math.max(0,Math.round((statPower(item?.stats||{})+(item?.affixes||[]).filter(a=>a.kind!=='stat').reduce((n,a)=>n+Number(a.power||0),0))*10)/10);};
+  function affixText(a){if(a.text)return a.text;const pct=['crit','evade','block'].includes(a.stat);return `${a.name}：${a.stat} +${pct?Math.round(a.value*100)+'%':a.value}`;}
+  function generatedName(base,rarity,affixes,customName=''){
+    if(customName)return customName;const prefix=affixes[0]?.name||'古塔',suffix=affixes.some(a=>a.kind==='summon')?'・契靈':affixes.some(a=>a.kind==='trigger')?'・回響':'';
+    return `${rarity.icon} T0・${prefix}${base.name}${suffix}`;
+  }
+  window.generateRandomEquipment=function(opts={}){
+    const tier=Math.max(0,Number(opts.tier)||0),rarity=RARITIES[opts.rarity]||weightedRarity();
+    const candidates=Object.values(BASES).filter(b=>!opts.slot||b.slot===opts.slot),base=BASES[opts.baseId]||randomEntry(candidates.length?candidates:Object.values(BASES));
+    const stats={...base.stats},pool=Object.values(AFFIXES).filter(a=>a.slots.includes(base.slot)),chosen=[],forced=[...(opts.forcedAffixIds||[])];
+    const count=Math.max(1,rarity.affixCount+Math.min(2,tier));
+    while(chosen.length<count&&pool.length){
+      const forcedId=forced.shift(),index=forcedId?pool.findIndex(a=>a.id===forcedId):Math.floor(Math.random()*pool.length);
+      if(index<0)continue;const a=pool.splice(index,1)[0],entry={...a};
+      if(a.kind==='stat'){entry.value=rollValue(a,rarity.powerMult*(1+tier*.18));stats[a.stat]=(stats[a.stat]||0)+entry.value;entry.power=entry.value*Number(a.powerPerUnit||1);}
+      chosen.push(entry);
+    }
+    const item={id:'generated_equipment_'+uid(),generated:true,tier:`T${tier}`,rarity:rarity.id,rarityName:rarity.name,name:'',icon:base.icon,category:'equipment',equipSlot:base.slot,baseId:base.id,stats,affixes:chosen,price:0,dailyLimit:1,active:false,createdAt:new Date().toISOString()};
+    item.name=generatedName(base,rarity,chosen,opts.customName||'');item.powerScore=equipmentPowerScore(item);
+    item.description=`${item.tier} ${rarity.name}｜裝備評估 ${item.powerScore}｜${chosen.map(affixText).join('、')}`;return item;
+  };
+  window.generateRandomEquipmentDrop=function(opts={}){
+    const item=generateRandomEquipment(opts),inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source:opts.source||'boss_replay',affixes:item.affixes,tier:item.tier,generated:true};
+    gameData.inventory.push(inv);return {type:'equipment',label:`${item.name}｜${item.affixes.map(affixText).join('、')}`,value:inv.id,itemData:item};
+  };
+
+  const previousEquipmentStatTextV101192=equipmentStatText;
+  equipmentStatText=function(item){
+    const base=previousEquipmentStatTextV101192(item),affixes=(item?.affixes||[]).map(affixText);
+    return `${base}${item?.generated?`｜評估 ${equipmentPowerScore(item)}`:''}${affixes.length?`<br>${affixes.map(x=>'◆ '+escapeHtml(x)).join('<br>')}`:''}`;
+  };
+
+  function equippedGeneratedItems(){ensureItemSystem();return Object.values(gameData.hero.equipment||{}).map(id=>gameData.inventory.find(x=>x.id===id)).map(itemDefinition).filter(x=>x?.generated);}
+  function equippedCombatAffixes(){return equippedGeneratedItems().flatMap(i=>(i.affixes||[]).map(a=>({...a,itemName:i.name})));}
+  function renderEquipmentCompanions(){
+    const layer=document.getElementById('battleSummonLayer');if(!layer)return;layer.querySelectorAll('.equipment-companion').forEach(x=>x.remove());
+    (battleStateV10?.equipmentCompanions||[]).forEach((c,i)=>{const el=document.createElement('div');el.className='equipment-companion';el.style.cssText=`position:absolute;left:${36+i*8}%;bottom:${20+i*4}%;font-size:38px;filter:drop-shadow(0 4px 4px #0008)`;el.textContent=c.icon;el.title=c.name;layer.appendChild(el);});
+  }
+  const previousRenderBattleTargetsV101192=renderBattleTargets;
+  renderBattleTargets=function(){const r=previousRenderBattleTargetsV101192();renderEquipmentCompanions();return r;};
+
+  const previousRunBattleSequenceV101192=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101192(...args);if(!battleStateV10)return result;
+    const affixes=equippedCombatAffixes();battleStateV10.equipmentAffixes=affixes;battleStateV10.equipmentRuntime={deathPreventUsed:false};battleStateV10.equipmentCompanions=[];
+    affixes.forEach(a=>{
+      if(a.effect==='opening_guard'&&!battleStateV10.hero.statuses.some(s=>s.type==='equipment_opening_guard'))addStatus(battleStateV10.hero,{type:'equipment_opening_guard',name:'🛡️ 王者庇護',turns:3,effectType:'buff',mods:{damageTaken:-.15}});
+      if(a.effect==='summon_flame'&&!battleStateV10.equipmentCompanions.some(c=>c.effect===a.effect))battleStateV10.equipmentCompanions.push({effect:a.effect,name:'契約火靈',icon:'🔥',type:'fire',multiplier:.35});
+      if(a.effect==='summon_blade'&&!battleStateV10.equipmentCompanions.some(c=>c.effect===a.effect))battleStateV10.equipmentCompanions.push({effect:a.effect,name:'契約劍魂',icon:'⚔️',type:'physical',multiplier:.35});
+    });
+    if(affixes.length)addBattleLog(`💎 詞條裝備啟動：${affixes.map(a=>a.name).join('、')}`);
+    (battleStateV10.equipmentCompanions||[]).forEach(c=>addBattleLog(`${c.icon} ${c.name}受到裝備召喚，會在勇者造成傷害後追擊。`));
+    updateBattleStatuses();renderBattleTargets();return result;
+  };
+
+  async function triggerEquipmentAfterAttack(target,damage){
+    if(!battleStateV10||battleStateV10.ended||!target||target.hp<=0||damage<=0)return;
+    const affixes=battleStateV10.equipmentAffixes||[];
+    for(const a of affixes){
+      if(a.effect==='lifesteal'){const heal=Math.max(1,Math.round(damage*Number(a.ratio||0)));battleStateV10.heroHp=Math.min(battleStateV10.hero.maxHp,battleStateV10.heroHp+heal);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);addBattleLog(`🩸 飲血恢復 ${heal} HP。`);}
+      if(a.effect==='echo_fire'&&Math.random()<Number(a.chance||0))await hitTarget(target,{name:'餘燼回響',type:'fire'},Number(a.multiplier||.6),'fire');
+      if(a.effect==='echo_physical'&&Math.random()<Number(a.chance||0))await hitTarget(target,{name:'幻影追擊',type:'physical'},Number(a.multiplier||.7),'physical');
+    }
+    for(const c of (battleStateV10.equipmentCompanions||[])){
+      if(target.hp<=0)break;await hitTarget(target,{name:c.name,type:c.type},c.multiplier,c.type);addBattleLog(`${c.icon} ${c.name}完成追擊！`);
+    }
+  }
+  const previousPerformActionV101192=performAction;
+  performAction=async function(side,action){
+    if(side!=='hero'||!battleStateV10)return previousPerformActionV101192(side,action);
+    const target=selectedBattleEnemy(),before=Number(target?.hp)||0,result=await previousPerformActionV101192(side,action),damage=Math.max(0,before-(Number(target?.hp)||0));
+    if(damage>0&&!battleStateV10?.ended)await triggerEquipmentAfterAttack(target,damage);return result;
+  };
+  const previousCheckBattleEndV101192=checkBattleEnd;
+  checkBattleEnd=async function(){
+    const hasOath=(battleStateV10?.equipmentAffixes||[]).some(a=>a.effect==='death_prevent'),runtime=battleStateV10?.equipmentRuntime;
+    if(battleStateV10?.heroHp<=0&&hasOath&&runtime&&!runtime.deathPreventUsed){runtime.deathPreventUsed=true;battleStateV10.heroHp=1;updateBattleHp('hero',1,battleStateV10.hero.maxHp);addBattleLog('🔥 不死鳥誓約發動：抵抗本場第一次致命傷害，保留1 HP！');showBattleWord('不死鳥誓約！');return false;}
+    return previousCheckBattleEndV101192();
+  };
+
+  function replayBossIds(){const ids=[];(WEEKLY_MAP_DATABASE||[]).filter(w=>w.week<=20).forEach(w=>(w.monsters||[]).forEach(id=>{if(id&&MONSTER_DATABASE[id]?.boss&&!ids.includes(id))ids.push(id);}));return ids.filter(id=>id!=='grim_reaper');}
+  function replayBossPower(id){const name=MONSTER_DATABASE[id]?.name||id,records=(gameData.battleRecords||[]).filter(r=>String(r.enemyName||'').includes(name)&&Number(r.enemyPower)>0);return records.length?Math.round(Number(records.at(-1).enemyPower)):Math.max(40,Math.round(Number(gameData.examBossBaselineV10158?.nakedPower||combatPower())*1.10));}
+  window.renderCelebrationBossReplay=function(){
+    const el=document.getElementById('panel-dungeon');if(!el)return;const ids=replayBossIds();
+    el.innerHTML=`<div class="card boss"><div style="text-align:center;font-size:44px">🏰⚔️🎁</div><h2>第21週・王者回憶戰</h2><div class="small">凱旋週不生成每日小怪。可重刷第一學期Boss準備裝備；每次勝利必掉一件隨機T0詞條裝，不影響原本考試、任務或每日副本紀錄。</div><label>選擇回憶Boss</label><select id="celebrationReplayBoss">${ids.map(id=>`<option value="${id}">${escapeHtml(MONSTER_DATABASE[id].name)}｜歷史戰力 ${replayBossPower(id)}</option>`).join('')}</select><button class="btn purple big-battle-btn" onclick="challengeCelebrationBossReplay()">挑戰並刷取T0裝備</button><div class="card small"><b>隨機組合規則</b><br>9種裝備基底 × 3種稀有度 × 部位詞條池。稀有2條、史詩3條、傳說4條；可能抽到數值、追加攻擊、吸血、保命或召喚詞條。</div></div>`;
+    el.insertAdjacentHTML('beforeend',skillLoadoutHTML());
+  };
+  window.challengeCelebrationBossReplay=function(){
+    const id=document.getElementById('celebrationReplayBoss')?.value,mon=MONSTER_DATABASE[id];if(!mon)return alert('請選擇Boss');
+    runBattleSequence(`${mon.name}・回憶`,mon.finalBoss?'👑':'👹',replayBossPower(id),5,10,'replay',id);battleStateV10.celebrationReplay=true;battleStateV10.replayBossId=id;
+  };
+  const previousRenderDungeonV101192=renderDungeon;
+  renderDungeon=function(){if(isCelebrationWeek()&&currentCampaignMode()!=='holidayTower')return renderCelebrationBossReplay();return previousRenderDungeonV101192();};
+  const previousFinishBattleV101192=finishBattleV10;
+  finishBattleV10=async function(win){
+    const s=battleStateV10;if(!s?.celebrationReplay)return previousFinishBattleV101192(win);
+    const rating=calculateBattleRating(win,s.heroHp,s.hero.maxHp,s.round);let drop=null;
+    if(win){gameData.hero.gold+=s.baseGold;addExp(s.baseExp);drop=generateRandomEquipmentDrop({source:'boss_replay',tier:0,forceAffix:true});}
+    gameData.battleRecords.push({id:uid(),date:today(),enemyName:s.enemyName,power:combatPower(),enemyPower:s.enemyPower,result:win?'win':'lose',eventType:'replay',replayBossId:s.replayBossId,drop,rounds:s.round,rating});saveGame();showBattleWord(win?'🏆 回憶突破！':'💀 挑戰失敗');
+    document.getElementById('battleActions').style.display='none';document.getElementById('battleSubmenu').style.display='none';document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🎁':'💀'}</div><h2>${win?'T0裝備掉落！':'挑戰失敗'}</h2>${win?`<div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div><div>🎁 ${drop.label}</div>`:'<div class="small">可以重新選擇Boss再次挑戰。</div>'}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回回憶戰</button></div>`;
+  };
+
+  window.gmForgeT0Equipment=function(){
+    const baseId=document.getElementById('gmT0Base')?.value||'',rarity=document.getElementById('gmT0Rarity')?.value||'legendary',forced=document.getElementById('gmT0Affix')?.value||'',customName=document.getElementById('gmT0Name')?.value.trim()||'';
+    const item=generateRandomEquipment({tier:0,baseId,rarity,forcedAffixIds:forced?[forced]:[],customName}),inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source:'gm_forge',affixes:item.affixes,tier:'T0',generated:true};gameData.inventory.push(inv);saveGame();renderAll();renderGM();alert(`已製造：${item.name}\n${item.affixes.map(affixText).join('\n')}`);
+  };
+  const previousRenderGMV101192=renderGM;
+  renderGM=function(){
+    previousRenderGMV101192();if(sessionStorage.getItem('parentUnlocked')!=='1')return;const panel=document.getElementById('panel-gm');if(!panel||document.getElementById('gmT0Forge'))return;
+    const card=document.createElement('div');card.id='gmT0Forge';card.className='card';card.innerHTML=`<h3>⚒️ T0詞條裝製造台</h3><div class="small">平常由掉落系統隨機排列；只有需要指定概念時才從這裡製造。指定一條核心詞條，其餘仍隨機補滿。</div><label>自訂名稱（可留空）</label><input id="gmT0Name" placeholder="留空則自動命名"><div class="grid2"><div><label>裝備基底</label><select id="gmT0Base">${Object.values(BASES).map(b=>`<option value="${b.id}">${b.icon} ${b.name}</option>`).join('')}</select></div><div><label>稀有度</label><select id="gmT0Rarity">${Object.values(RARITIES).map(r=>`<option value="${r.id}">${r.icon} ${r.name}・${r.affixCount}詞條</option>`).join('')}</select></div></div><label>指定核心詞條</label><select id="gmT0Affix"><option value="">完全隨機</option>${Object.values(AFFIXES).map(a=>`<option value="${a.id}">${a.name}｜${escapeHtml(a.text||a.stat)}</option>`).join('')}</select><button class="btn purple" onclick="gmForgeT0Equipment()">製造並放入背包</button>`;panel.appendChild(card);
+  };
+  if(gameData.hero?.name){renderAll();}
 })();
 </script>
 </body>
