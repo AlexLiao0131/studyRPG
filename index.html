@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.83</title>
+<title>小學勇者大冒險 V10.11.91</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.83</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.91</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -4580,7 +4580,7 @@ function renderBattleTargets(){
     const baseCls=(u.alive!==false&&u.hp>0)?(selected?.uid===u.uid?'locked':''):'dead';
     const cls=baseCls+(u.soulLinked?' soul-linked':'');
     const roleIcon=u.soulLinked?'🔗 ':u.isSummon?'➕ ':u.isBoss?'👑 ':'👹 ';
-    const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 儀式核心｜會攻擊｜5回合內擊破！</span>`:'';
+    const linkBadge=u.soulLinked?`<span class="soul-link-badge">🔗 ${u.finalDragonLink?'魔龍靈魂連結｜擊破後反噬死靈法師':'儀式核心｜會攻擊｜5回合內擊破！'}</span>`:'';
     return `<button class="battle-target-card ${cls}" ${u.hp<=0?'disabled':''} onclick="selectBattleTarget('${u.uid}')"><b>${roleIcon}${u.name}</b>${linkBadge}<div>${Math.max(0,Math.round(u.hp))}/${u.maxHp}</div><div class="mini-hp"><i style="width:${pct}%"></i></div></button>`;
   }).join('');
   renderBattleEnemySprites();
@@ -4824,7 +4824,7 @@ async function performLiveEnemyTurn(unit){
   if(skill.kind==='charge'){unit.chargedSkill=skill.nextSkill;addBattleLog(`⚠️ ${unit.name}正在蓄力！下一次將使出「${MONSTER_SKILL_DATABASE[skill.nextSkill]?.name||skill.nextSkill}」。`);return;}
   if(skill.requiresCharge)unit.chargedSkill=null;
   if(skill.kind==='heal'){
-    let target=unit;if(skill.target==='ally_lowest_hp'){target=(battleStateV10.enemies||[]).filter(x=>x.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]||unit;}
+    let target=unit;if(skill.targetMonsterId){target=(battleStateV10.enemies||[]).find(x=>x.monsterId===skill.targetMonsterId&&x.hp>0&&x.alive!==false)||unit;}else if(skill.target==='ally_lowest_hp'){target=(battleStateV10.enemies||[]).filter(x=>x.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]||unit;}
     const heal=Math.max(1,Math.round(target.maxHp*skill.healMaxHp));target.hp=Math.min(target.maxHp,target.hp+heal);addBattleLog(`💚 ${target.name}恢復 ${heal} HP。`);renderBattleTargets();return;
   }
   if(['buff','shield'].includes(skill.kind)){
@@ -8376,6 +8376,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       updateBattleStatuses();addBattleLog(`🌟 全部考科完全破盾：勇者獲得 ${amount} 點考前護盾！`);
     }
   }
+  window.applyExamEnergyBreakToBattle=applyExamEnergyBreakToBattle;
 
   const oldRunBattleSequenceExamEnergy=runBattleSequence;
   runBattleSequence=function(...args){
@@ -9189,6 +9190,832 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(id==='reborn_necromancer')addBattleLog('👻 70% HP時只會召喚一次：隨機兩隻本週亡魂並建立靈魂連結。');
     if(id==='black_command_pillar')addBattleLog('⚫ 70% HP時只會喚醒一次兩具守護人偶；擊破兩具人偶可永久暴露控制核心。');
     return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.84：第13週「船的甲板」怪物技能／AI與克拉肯雙觸手。 */
+(function(){
+  Object.assign(STATUS_DATABASE,{
+    murloc_slime:{id:'murloc_slime',name:'黏液纏身',icon:'🫧',kind:'debuff',defaultTurns:2},
+    corrupt_water:{id:'corrupt_water',name:'腐化水流',icon:'🌑',kind:'debuff',defaultTurns:2},
+    kraken_ink:{id:'kraken_ink',name:'墨汁遮蔽',icon:'🦑',kind:'debuff',defaultTurns:2},
+    tentacle_bind:{id:'tentacle_bind',name:'觸手纏繞',icon:'🐙',kind:'debuff',defaultTurns:2}
+  });
+
+  MONSTER_DATABASE.kraken_tentacle_left={id:'kraken_tentacle_left',name:'克拉肯左觸手',family:'sea',sprites:{idle:'images/monsters/kraken_idle.png',battle:'images/monsters/kraken_battle.png'}};
+  MONSTER_DATABASE.kraken_tentacle_right={id:'kraken_tentacle_right',name:'克拉肯右觸手',family:'sea',sprites:{idle:'images/monsters/kraken_idle.png',battle:'images/monsters/kraken_battle.png'}};
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    pirate_cutlass:{id:'pirate_cutlass',name:'彎刀斬擊',kind:'physical',target:'single',multiplier:1.0},
+    pirate_double_cut:{id:'pirate_double_cut',name:'快速連斬',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
+    pirate_powder_shot:{id:'pirate_powder_shot',name:'火藥射擊',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
+    pirate_evasion:{id:'pirate_evasion',name:'閃避步伐',kind:'buff',target:'self',evasionBonus:.20,duration:1,cannotUseConsecutively:true},
+    murloc_hit:{id:'murloc_hit',name:'魚人打擊',kind:'physical',target:'single',multiplier:1.0},
+    murloc_leap:{id:'murloc_leap',name:'飛撲',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
+    murloc_slime_spit:{id:'murloc_slime_spit',name:'黏液噴吐',kind:'physical',target:'single',multiplier:.70,status:{id:'murloc_slime',chance:1,duration:2,speedMultiplier:.75}},
+    murloc_water_bolt:{id:'murloc_water_bolt',name:'水彈',kind:'magic',element:'water',target:'single',multiplier:1.05},
+    murloc_water_impact:{id:'murloc_water_impact',name:'水流衝擊',kind:'magic',element:'water',target:'single',multiplier:1.30,cooldown:2},
+    murloc_healing_water:{id:'murloc_healing_water',name:'治療水流',kind:'heal',target:'self',healMaxHp:.20,conditionHpBelow:.40,maxUsesPerBattle:1},
+    murloc_water_shield:{id:'murloc_water_shield',name:'水之護盾',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
+    evil_dark_water_bolt:{id:'evil_dark_water_bolt',name:'黑暗水彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
+    evil_corrupt_water:{id:'evil_corrupt_water',name:'腐化水流',kind:'magic',element:'water',target:'single',multiplier:.90,status:{id:'corrupt_water',chance:1,duration:2,mdefMultiplier:.80}},
+    evil_murloc_heal:{id:'evil_murloc_heal',name:'邪惡治療',kind:'heal',target:'ally_lowest_hp',healMaxHp:.15},
+    kraken_body_slam:{id:'kraken_body_slam',name:'深海撞擊',kind:'physical',target:'single',multiplier:1.10},
+    kraken_ink_shot:{id:'kraken_ink_shot',name:'墨汁噴射',kind:'magic',element:'water',target:'single',multiplier:.80,status:{id:'kraken_ink',chance:1,duration:2,accuracyPenalty:.20}},
+    kraken_giant_wave:{id:'kraken_giant_wave',name:'巨浪',kind:'magic',element:'water',target:'all',aoe:true,multiplier:1.30,cooldown:3},
+    kraken_raging_tsunami:{id:'kraken_raging_tsunami',name:'狂怒海嘯',kind:'magic',element:'water',target:'all',aoe:true,multiplier:1.60,conditionHpBelow:.30,maxUsesPerBattle:1},
+    tentacle_slam:{id:'tentacle_slam',name:'觸手拍擊',kind:'physical',target:'single',multiplier:.70},
+    tentacle_entangle:{id:'tentacle_entangle',name:'觸手纏繞',kind:'physical',target:'single',multiplier:.60,status:{id:'tentacle_bind',chance:1,duration:2,speedMultiplier:.75}}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    human_pirate:{skills:[{id:'pirate_cutlass',weight:3},{id:'pirate_double_cut',weight:2},{id:'pirate_powder_shot',weight:1},{id:'pirate_evasion',weight:1}]},
+    murloc:{skills:[{id:'murloc_hit',weight:3},{id:'murloc_leap',weight:2},{id:'murloc_slime_spit',weight:1}]},
+    murloc_mage:{skills:[{id:'murloc_water_bolt',weight:3},{id:'murloc_water_impact',weight:2},{id:'murloc_healing_water',weight:5,condition:'low_hp',threshold:.40},{id:'murloc_water_shield',weight:1}]},
+    evil_murloc_summoner:{skills:[{id:'evil_dark_water_bolt',weight:3},{id:'evil_corrupt_water',weight:2},{id:'evil_murloc_heal',weight:3,condition:'low_hp',threshold:.75}]},
+    kraken:{skills:[{id:'kraken_body_slam',weight:3},{id:'kraken_ink_shot',weight:2},{id:'kraken_giant_wave',weight:1},{id:'kraken_raging_tsunami',weight:8,condition:'low_hp',threshold:.30,maxUses:1}]},
+    kraken_tentacle_left:{skills:[{id:'tentacle_slam',weight:3},{id:'tentacle_entangle',weight:1}]},
+    kraken_tentacle_right:{skills:[{id:'tentacle_slam',weight:3},{id:'tentacle_entangle',weight:1}]}
+  });
+  ENEMY_SUMMON_DATABASE.evil_murloc_summoner={maxActiveSummons:2,maxTotalSummons:2,candidates:['murloc'],thresholds:[.70,.40],rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true};
+  ENEMY_SUMMON_DATABASE.kraken={maxActiveSummons:2,maxTotalSummons:2,candidates:['kraken_tentacle_left','kraken_tentacle_right'],battleStart:true,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true};
+
+  function murlocSummonsV101184(unit){
+    return (battleStateV10?.enemies||[]).filter(x=>x.isSummon&&x.summonedBy===unit.uid&&x.week13Murloc&&x.hp>0&&x.alive!==false);
+  }
+  function summonMurlocAtThresholdV101184(unit,index){
+    if(!unit||unit.monsterId!=='evil_murloc_summoner'||unit.hp<=0)return false;
+    unit.week13SummonStages=unit.week13SummonStages||{};if(unit.week13SummonStages[index])return true;
+    const summon=summonLiveUnit('murloc',unit,{statScale:.62,hpScale:.34});
+    if(!summon)return false;
+    unit.week13SummonStages[index]=true;summon.week13Murloc=true;summon.name=`召喚魚人 ${index}`;
+    addBattleLog(`📣 邪惡魚人召喚師喚來第 ${index}/2 隻魚人！`);showBattleWord('召喚魚人！');renderBattleTargets();return true;
+  }
+  function checkMurlocThresholdsV101184(unit){
+    if(!unit||unit.monsterId!=='evil_murloc_summoner'||unit.hp<=0)return;
+    const ratio=unit.hp/unit.maxHp;
+    if(ratio<=.70)summonMurlocAtThresholdV101184(unit,1);
+    if(ratio<=.40)summonMurlocAtThresholdV101184(unit,2);
+  }
+  function summonKrakenTentaclesV101184(kraken){
+    if(!kraken||kraken.monsterId!=='kraken'||kraken.week13TentaclesSummoned)return;
+    kraken.week13TentaclesSummoned=true;
+    const ids=['kraken_tentacle_left','kraken_tentacle_right'];
+    ids.forEach((id,i)=>{const t=summonLiveUnit(id,kraken,{statScale:.58,hpScale:.30});if(t){t.krakenTentacle=true;t.name=i===0?'克拉肯左觸手':'克拉肯右觸手';}});
+    addBattleLog('🐙 克拉肯與左右兩條觸手同時展開攻擊；本體從開場即可直接鎖定。');renderBattleTargets();
+  }
+  function exposeKrakenV101184(kraken){
+    if(!kraken?.week13TentaclesSummoned||kraken.week13DefenseBroken)return;
+    const alive=(battleStateV10?.enemies||[]).some(x=>x.krakenTentacle&&x.summonedBy===kraken.uid&&x.hp>0&&x.alive!==false);
+    if(alive)return;
+    kraken.week13DefenseBroken=true;
+    addStatus(kraken,{type:'kraken_exposed',name:'觸手盡斷',turns:999,effectType:'debuff',mods:{defense:-kraken.defense*.20}});
+    addBattleLog('⚔️ 左右觸手全數斬斷：克拉肯防禦永久降低20%！');showBattleWord('觸手盡斷！');renderBattleTargets();
+  }
+
+  const previousSkillUsableByEnemyV101184=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101184(unit,entry,skill))return false;
+    if(skill?.id==='murloc_slime_spit'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='murloc_slime'))return false;
+    if(skill?.id==='kraken_ink_shot'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='kraken_ink'))return false;
+    if(skill?.id==='tentacle_entangle'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='tentacle_bind'))return false;
+    if(skill?.id==='evil_murloc_heal'){
+      return murlocSummonsV101184(unit).some(x=>x.hp<x.maxHp);
+    }
+    return true;
+  };
+
+  const previousApplyDamageToEnemyV101184=applyDamageToEnemy;
+  applyDamageToEnemy=function(unit,damage){
+    const dealt=previousApplyDamageToEnemyV101184(unit,damage);
+    if(unit?.monsterId==='evil_murloc_summoner')checkMurlocThresholdsV101184(unit);
+    if(unit?.krakenTentacle&&unit.hp<=0){
+      const kraken=(battleStateV10?.enemies||[]).find(x=>x.uid===unit.summonedBy&&x.monsterId==='kraken'&&x.hp>0);
+      if(kraken)exposeKrakenV101184(kraken);
+    }
+    return dealt;
+  };
+
+  const previousRunBattleSequenceV101184=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101184(...args),id=battleStateV10?.monsterId;
+    if(id==='kraken')summonKrakenTentaclesV101184(battleStateV10.enemies?.[0]);
+    if(id==='evil_murloc_summoner')addBattleLog('📣 70%與40% HP各召喚一隻魚人；召喚師死亡時魚人一起退場。');
+    return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.85：第14週「蠻荒叢林」怪物技能／AI。 */
+(function(){
+  Object.assign(STATUS_DATABASE,{
+    python_constrict:{id:'python_constrict',name:'巨蟒纏繞',icon:'🐍',kind:'debuff',defaultTurns:3},
+    primal_fear:{id:'primal_fear',name:'威嚇',icon:'🦖',kind:'debuff',defaultTurns:2}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    flower_vine_whip:{id:'flower_vine_whip',name:'藤蔓鞭打',kind:'physical',target:'single',multiplier:.95},
+    flower_poison_pollen:{id:'flower_poison_pollen',name:'毒粉',kind:'debuff',target:'single',status:{id:'poison',chance:1,duration:3,maxHpDot:.04}},
+    flower_vine_bind:{id:'flower_vine_bind',name:'藤蔓束縛',kind:'debuff',target:'single',status:{id:'bind',chance:1,duration:2,speedMultiplier:.55,evasionMultiplier:0}},
+    crocodile_bite:{id:'crocodile_bite',name:'撕咬',kind:'physical',target:'single',multiplier:1.10,status:{id:'bleed',chance:1,duration:3,maxHpDot:.04}},
+    crocodile_tail_sweep:{id:'crocodile_tail_sweep',name:'掃尾',kind:'physical',target:'single',multiplier:1.0},
+    crocodile_death_roll:{id:'crocodile_death_roll',name:'死亡翻滾',kind:'physical',target:'single',multiplier:1.50,cooldown:2,requiresHeroStatus:'bleed'},
+    python_bite:{id:'python_bite',name:'巨蟒咬擊',kind:'physical',target:'single',multiplier:.95},
+    python_constrict:{id:'python_constrict',name:'巨蟒纏繞',kind:'physical',target:'single',multiplier:.75,status:{id:'python_constrict',chance:1,duration:3,maxHpDot:.03,speedMultiplier:.75}},
+    python_tail_strike:{id:'python_tail_strike',name:'蛇尾重擊',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
+    gorilla_punch:{id:'gorilla_punch',name:'重拳',kind:'physical',target:'single',multiplier:1.10},
+    gorilla_chest_beat:{id:'gorilla_chest_beat',name:'捶胸咆哮',kind:'buff',target:'self',atkMultiplier:1.25,duration:3,maxUsesPerBattle:1},
+    gorilla_ground_slam:{id:'gorilla_ground_slam',name:'震地猛擊',kind:'physical',target:'all',aoe:true,multiplier:1.35,cooldown:2},
+    tyranno_bite:{id:'tyranno_bite',name:'暴龍撕咬',kind:'physical',target:'single',multiplier:1.25,status:{id:'bleed',chance:1,duration:3,maxHpDot:.05}},
+    tyranno_roar:{id:'tyranno_roar',name:'威嚇怒吼',kind:'debuff',target:'single',status:{id:'primal_fear',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
+    tyranno_blood_chase:{id:'tyranno_blood_chase',name:'嗜血追擊',kind:'physical',target:'single',multiplier:1.55,cooldown:2,requiresHeroStatus:'bleed'},
+    tyranno_tail_crush:{id:'tyranno_tail_crush',name:'巨尾粉碎',kind:'physical',target:'all',aoe:true,multiplier:1.20,cooldown:2}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    man_eating_flower:{skills:[{id:'flower_vine_whip',weight:3},{id:'flower_poison_pollen',weight:1},{id:'flower_vine_bind',weight:1}]},
+    crocodile:{skills:[{id:'crocodile_bite',weight:3},{id:'crocodile_tail_sweep',weight:2},{id:'crocodile_death_roll',weight:5}]},
+    giant_python:{skills:[{id:'python_bite',weight:3},{id:'python_constrict',weight:2},{id:'python_tail_strike',weight:1}]},
+    gorilla:{skills:[{id:'gorilla_punch',weight:3},{id:'gorilla_chest_beat',weight:4,maxUses:1},{id:'gorilla_ground_slam',weight:2}]},
+    tyrannosaurus:{skills:[{id:'tyranno_bite',weight:3},{id:'tyranno_roar',weight:1},{id:'tyranno_blood_chase',weight:5},{id:'tyranno_tail_crush',weight:2}]}
+  });
+
+  const previousSkillUsableByEnemyV101185=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101185(unit,entry,skill))return false;
+    const heroStatuses=battleStateV10?.hero?.statuses||[];
+    if(skill?.requiresHeroStatus&&!heroStatuses.some(x=>x.type===skill.requiresHeroStatus&&x.turns>0))return false;
+    if(skill?.id==='flower_poison_pollen'&&heroStatuses.some(x=>x.type==='poison'))return false;
+    if(skill?.id==='flower_vine_bind'&&heroStatuses.some(x=>x.type==='bind'))return false;
+    if(skill?.id==='python_constrict'&&heroStatuses.some(x=>x.type==='python_constrict'))return false;
+    if(skill?.id==='tyranno_roar'&&heroStatuses.some(x=>x.type==='primal_fear'))return false;
+    return true;
+  };
+
+  const previousPerformLiveEnemyTurnV101185=performLiveEnemyTurn;
+  performLiveEnemyTurn=async function(unit){
+    if(unit?.monsterId==='tyrannosaurus'&&unit.hp>0&&unit.hp/unit.maxHp<=.30&&!unit.primalRageTriggered){
+      unit.primalRageTriggered=true;
+      addTimedEffect(unit,{name:'瀕死狂暴',effectType:'buff',turns:999,mods:{attack:unit.attack*.30}});
+      addBattleLog('🔥 霸王龍陷入瀕死狂暴：攻擊永久提高30%！');showBattleWord('瀕死狂暴！');renderBattleTargets();
+    }
+    return previousPerformLiveEnemyTurnV101185(unit);
+  };
+
+  const previousRunBattleSequenceV101185=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101185(...args),id=battleStateV10?.monsterId;
+    if(id==='crocodile')addBattleLog('🐊 撕咬會造成流血；只有玩家正在流血時，鱷魚才會使用死亡翻滾。');
+    if(id==='giant_python')addBattleLog('🐍 巨蟒纏繞持續3回合：每回合造成3%最大HP傷害並降低25%速度。');
+    if(id==='tyrannosaurus')addBattleLog('🦖 霸王龍會追擊流血目標；HP低於30%後只觸發一次瀕死狂暴。');
+    return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.86：第15週「幽靈沼澤」疾病／詛咒／恐懼／腐化機制。 */
+(function(){
+  Object.assign(STATUS_DATABASE,{
+    fear:{id:'fear',name:'恐懼',icon:'😱',kind:'debuff',defaultTurns:2},
+    swamp_corruption:{id:'swamp_corruption',name:'腐化',icon:'🟤',kind:'debuff',defaultTurns:3}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    bat_fang_bite:{id:'bat_fang_bite',name:'尖牙撕咬',kind:'physical',target:'single',multiplier:1.0},
+    bat_blood_drain:{id:'bat_blood_drain',name:'吸血',kind:'physical',target:'single',multiplier:.90,healFromDamage:.50},
+    bat_disease_bite:{id:'bat_disease_bite',name:'帶病撕咬',kind:'physical',target:'single',multiplier:.80,status:{id:'disease',chance:1,duration:3,healingReceivedMultiplier:.70}},
+    ghost_touch:{id:'ghost_touch',name:'幽魂觸碰',kind:'magic',element:'dark',target:'single',multiplier:1.0},
+    ghost_terror:{id:'ghost_terror',name:'恐怖現身',kind:'debuff',target:'single',status:{id:'fear',chance:1,duration:2}},
+    ghost_soul_curse:{id:'ghost_soul_curse',name:'靈魂詛咒',kind:'magic',element:'dark',target:'single',multiplier:.80,status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+    swamp_skeleton_rust_slash:{id:'swamp_skeleton_rust_slash',name:'鏽蝕斬擊',kind:'physical',target:'single',multiplier:1.10},
+    swamp_skeleton_cursed_blade:{id:'swamp_skeleton_cursed_blade',name:'詛咒刀刃',kind:'physical',target:'single',multiplier:.90,status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+    swamp_skeleton_corrupt_dust:{id:'swamp_skeleton_corrupt_dust',name:'腐化骨粉',kind:'debuff',target:'single',status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
+    swamp_skeleton_bone_smash:{id:'swamp_skeleton_bone_smash',name:'碎骨重擊',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
+    banshee_scream:{id:'banshee_scream',name:'女妖尖嘯',kind:'magic',element:'dark',target:'all',aoe:true,multiplier:.90,status:{id:'fear',chance:1,duration:2},cooldown:2,cannotUseConsecutively:true},
+    banshee_curse_song:{id:'banshee_curse_song',name:'哀歌詛咒',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+    banshee_corrupt_wave:{id:'banshee_corrupt_wave',name:'腐化聲波',kind:'magic',element:'dark',target:'single',multiplier:1.10,status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
+    banshee_soul_wail:{id:'banshee_soul_wail',name:'吸魂哀鳴',kind:'magic',element:'dark',target:'single',multiplier:.90,healFromDamage:.40},
+    reaper_scythe:{id:'reaper_scythe',name:'鐮刀斬擊',kind:'physical',target:'single',multiplier:1.20},
+    reaper_rotten_blade:{id:'reaper_rotten_blade',name:'腐爛鐮刃',kind:'physical',target:'single',multiplier:1.0,status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
+    reaper_fear_gaze:{id:'reaper_fear_gaze',name:'恐懼凝視',kind:'debuff',target:'single',status:{id:'fear',chance:1,duration:2}},
+    reaper_harvest_curse:{id:'reaper_harvest_curse',name:'收割詛咒',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+    reaper_soul_harvest:{id:'reaper_soul_harvest',name:'靈魂收割',kind:'magic',element:'dark',target:'single',multiplier:1.0,cooldown:3,requiresAnyHarvestStatus:true}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    giant_bat:{skills:[{id:'bat_fang_bite',weight:3},{id:'bat_blood_drain',weight:2},{id:'bat_disease_bite',weight:1}]},
+    ghost:{skills:[{id:'ghost_touch',weight:3},{id:'ghost_terror',weight:1},{id:'ghost_soul_curse',weight:2}]},
+    swamp_skeleton:{skills:[{id:'swamp_skeleton_rust_slash',weight:3},{id:'swamp_skeleton_cursed_blade',weight:2},{id:'swamp_skeleton_corrupt_dust',weight:1},{id:'swamp_skeleton_bone_smash',weight:1}]},
+    banshee:{skills:[{id:'banshee_scream',weight:1},{id:'banshee_curse_song',weight:2},{id:'banshee_corrupt_wave',weight:2},{id:'banshee_soul_wail',weight:3}]},
+    scarecrow_reaper:{skills:[{id:'reaper_scythe',weight:3},{id:'reaper_rotten_blade',weight:2},{id:'reaper_fear_gaze',weight:1},{id:'reaper_harvest_curse',weight:1},{id:'reaper_soul_harvest',weight:5}]}
+  });
+
+  const HARVEST_STATUS_TYPES_V101186=['disease','curse','fear','swamp_corruption'];
+  function activeHarvestStatusesV101186(){
+    const statuses=battleStateV10?.hero?.statuses||[];
+    return HARVEST_STATUS_TYPES_V101186.filter(type=>statuses.some(s=>s.type===type&&s.turns>0));
+  }
+
+  const previousLiveStatusFromSkillV101186=liveStatusFromSkill;
+  liveStatusFromSkill=function(status,target){
+    const live=previousLiveStatusFromSkillV101186(status,target);
+    if(live&&status?.healingReceivedMultiplier!=null)live.mods.healingReceived=Number(status.healingReceivedMultiplier)-1;
+    return live;
+  };
+
+  const previousHeroHealV101186=heroHeal;
+  heroHeal=function(amount,message='恢復'){
+    const received=Math.max(.10,1+effectMod(battleStateV10?.hero||{statuses:[]},'healingReceived'));
+    return previousHeroHealV101186(Number(amount||0)*received,message);
+  };
+
+  const previousSkillUsableByEnemyV101186=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101186(unit,entry,skill))return false;
+    const statuses=battleStateV10?.hero?.statuses||[];
+    if(skill?.id==='bat_disease_bite'&&statuses.some(x=>x.type==='disease'))return false;
+    if(['ghost_terror','banshee_scream','reaper_fear_gaze'].includes(skill?.id)&&statuses.some(x=>x.type==='fear'))return false;
+    if(['ghost_soul_curse','swamp_skeleton_cursed_blade','banshee_curse_song','reaper_harvest_curse'].includes(skill?.id)&&statuses.some(x=>x.type==='curse'))return false;
+    if(['swamp_skeleton_corrupt_dust','banshee_corrupt_wave','reaper_rotten_blade'].includes(skill?.id)&&statuses.some(x=>x.type==='swamp_corruption'))return false;
+    if(skill?.requiresAnyHarvestStatus&&!activeHarvestStatusesV101186().length)return false;
+    return true;
+  };
+
+  const previousTickLiveUnitV101186=tickLiveUnit;
+  tickLiveUnit=async function(unit,isHero=false){
+    const feared=isHero&&(unit?.statuses||[]).some(s=>s.type==='fear'&&s.turns>0);
+    const fearSkip=feared&&Math.random()<.35;
+    const normalSkip=await previousTickLiveUnitV101186(unit,isHero);
+    if(fearSkip){addBattleLog(`😱 ${unit.name}受到恐懼影響，本回合無法行動！`);showBattleWord('恐懼！');}
+    return normalSkip||fearSkip;
+  };
+
+  const previousHoundTurnV101186=window.performHunterHoundTurn;
+  if(typeof previousHoundTurnV101186==='function')window.performHunterHoundTurn=async function(hound){
+    const fear=(hound?.statuses||[]).some(s=>s.type==='fear'&&s.turns>0);
+    if(fear&&Math.random()<.35)addStatus(hound,{type:'stun',name:'恐懼失控',turns:1,effectType:'debuff',mods:{},guaranteedSkip:true});
+    return previousHoundTurnV101186(hound);
+  };
+
+  const previousExecuteEnemyHitV101186=executeEnemyHit;
+  executeEnemyHit=async function(unit,skill){
+    if(skill?.id!=='reaper_soul_harvest')return previousExecuteEnemyHitV101186(unit,skill);
+    const consumed=activeHarvestStatusesV101186();if(!consumed.length)return;
+    const before=Number(battleStateV10?.heroHp)||0,formal=battleStateV10?.formal,oldHound=formal?.hound;
+    if(formal)formal.hound=null;
+    try{await previousExecuteEnemyHitV101186(unit,{...skill,multiplier:1+.25*consumed.length});}
+    finally{if(formal)formal.hound=oldHound;}
+    const hit=before>Number(battleStateV10?.heroHp||0);if(!hit)return;
+    battleStateV10.hero.statuses=(battleStateV10.hero.statuses||[]).filter(s=>!consumed.includes(s.type));
+    const heal=Math.max(1,Math.round(unit.maxHp*.05*consumed.length));unit.hp=Math.min(unit.maxHp,unit.hp+heal);
+    addBattleLog(`🌾 靈魂收割消耗 ${consumed.length} 種負面狀態，恢復 ${heal} HP！`);updateBattleStatuses();renderBattleTargets();
+  };
+
+  const previousFormalSkillActionV101186=formalSkillAction;
+  formalSkillAction=async function(action){
+    const result=await previousFormalSkillActionV101186(action),hero=battleStateV10?.hero;if(!hero)return result;
+    if(action?.special==='cleanse'){
+      const before=hero.statuses.length;hero.statuses=hero.statuses.filter(s=>!['disease','curse','swamp_corruption'].includes(s.type));
+      if(hero.statuses.length<before)addBattleLog('✨ 淨化解除疾病、詛咒與腐化。');
+    }
+    if(action?.special==='freedom'){
+      const before=hero.statuses.length;hero.statuses=hero.statuses.filter(s=>!['fear','bind','machine_bind','tentacle_bind','python_constrict'].includes(s.type));
+      if(hero.statuses.length<before)addBattleLog('🪽 自由祝福解除恐懼與束縛。');
+    }
+    updateBattleStatuses();return result;
+  };
+
+  const previousRunBattleSequenceV101186=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101186(...args),id=battleStateV10?.monsterId;
+    if(id==='giant_bat')addBattleLog('🦇 疾病持續3回合，使實際治療效果降低30%。');
+    if(id==='scarecrow_reaper')addBattleLog('🌾 靈魂收割依疾病／詛咒／恐懼／腐化種類增傷；命中後消耗狀態並替Boss回血。');
+    return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.87：第16週「沉沒古城」不死蜥蜴人與九頭巨蛇機制。 */
+(function(){
+  Object.assign(STATUS_DATABASE,{
+    hydra_cauterized:{id:'hydra_cauterized',name:'傷口灼燒',icon:'🔥',kind:'debuff',defaultTurns:2},
+    ancient_corrosion:{id:'ancient_corrosion',name:'古城腐蝕',icon:'🧪',kind:'debuff',defaultTurns:2}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    skeleton_lizard_bone_spear:{id:'skeleton_lizard_bone_spear',name:'骨矛突刺',kind:'physical',target:'single',multiplier:1.10},
+    skeleton_lizard_tail_sweep:{id:'skeleton_lizard_tail_sweep',name:'骸骨掃尾',kind:'physical',target:'all',aoe:true,multiplier:1.15,cooldown:2},
+    skeleton_lizard_bone_guard:{id:'skeleton_lizard_bone_guard',name:'骨甲防禦',kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1,cannotUseConsecutively:true},
+    zombie_lizard_rotten_bite:{id:'zombie_lizard_rotten_bite',name:'腐爛撕咬',kind:'physical',target:'single',multiplier:1.0,status:{id:'disease',chance:1,duration:3,healingReceivedMultiplier:.70}},
+    zombie_lizard_claw:{id:'zombie_lizard_claw',name:'殭屍爪擊',kind:'physical',target:'single',multiplier:1.10},
+    zombie_lizard_corrupt_breath:{id:'zombie_lizard_corrupt_breath',name:'腐化吐息',kind:'magic',element:'poison',target:'single',multiplier:.85,status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
+    zombie_warrior_spear:{id:'zombie_warrior_spear',name:'腐朽長矛',kind:'physical',target:'single',multiplier:1.15},
+    zombie_warrior_combo:{id:'zombie_warrior_combo',name:'亡者連擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
+    zombie_warrior_charge:{id:'zombie_warrior_charge',name:'亡者衝鋒',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
+    zombie_priest_shadow_bolt:{id:'zombie_priest_shadow_bolt',name:'暗影法球',kind:'magic',element:'dark',target:'single',multiplier:1.0},
+    zombie_priest_corrupt_heal:{id:'zombie_priest_corrupt_heal',name:'腐化治療',kind:'heal',target:'self',healMaxHp:.25,conditionHpBelow:.45,maxUsesPerBattle:1},
+    zombie_priest_dark_blessing:{id:'zombie_priest_dark_blessing',name:'黑暗祝福',kind:'special_buff',target:'self',duration:3,maxUsesPerBattle:1},
+    zombie_priest_undead_prayer:{id:'zombie_priest_undead_prayer',name:'不死祈禱',kind:'buff',target:'self',damageTakenMultiplier:.55,duration:2,maxUsesPerBattle:1},
+    hydra_multi_bite:{id:'hydra_multi_bite',name:'群首撕咬',kind:'physical',target:'single',hits:3,multiplierPerHit:.45,dynamicHydraHeads:true},
+    hydra_venom_breath:{id:'hydra_venom_breath',name:'劇毒吐息',kind:'magic',element:'poison',target:'all',aoe:true,multiplier:1.0,status:{id:'poison',chance:1,duration:3,maxHpDot:.04},cooldown:2},
+    hydra_corrosive_breath:{id:'hydra_corrosive_breath',name:'腐蝕吐息',kind:'magic',element:'poison',target:'single',multiplier:.90,status:{id:'ancient_corrosion',chance:1,duration:2,defMultiplier:.75,mdefMultiplier:.75}},
+    hydra_tail_crush:{id:'hydra_tail_crush',name:'巨尾橫掃',kind:'physical',target:'all',aoe:true,multiplier:1.20,cooldown:2}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    skeleton_lizardman:{skills:[{id:'skeleton_lizard_bone_spear',weight:3},{id:'skeleton_lizard_tail_sweep',weight:2},{id:'skeleton_lizard_bone_guard',weight:1}]},
+    wandering_zombie_lizardman:{skills:[{id:'zombie_lizard_rotten_bite',weight:2},{id:'zombie_lizard_claw',weight:3},{id:'zombie_lizard_corrupt_breath',weight:1}]},
+    zombie_lizard_warrior:{skills:[{id:'zombie_warrior_spear',weight:3},{id:'zombie_warrior_combo',weight:2},{id:'zombie_warrior_charge',weight:1}]},
+    zombie_lizard_priest:{skills:[{id:'zombie_priest_shadow_bolt',weight:3},{id:'zombie_priest_corrupt_heal',weight:5,condition:'low_hp',threshold:.45},{id:'zombie_priest_dark_blessing',weight:2,maxUses:1},{id:'zombie_priest_undead_prayer',weight:2,maxUses:1}]},
+    hydra:{skills:[{id:'hydra_multi_bite',weight:3},{id:'hydra_venom_breath',weight:1},{id:'hydra_corrosive_breath',weight:2},{id:'hydra_tail_crush',weight:2}]}
+  });
+
+  const previousSkillUsableByEnemyV101187=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101187(unit,entry,skill))return false;
+    const statuses=battleStateV10?.hero?.statuses||[];
+    if(skill?.id==='zombie_lizard_rotten_bite'&&statuses.some(x=>x.type==='disease'))return false;
+    if(skill?.id==='zombie_lizard_corrupt_breath'&&statuses.some(x=>x.type==='swamp_corruption'))return false;
+    if(skill?.id==='hydra_venom_breath'&&statuses.some(x=>x.type==='poison'))return false;
+    if(skill?.id==='hydra_corrosive_breath'&&statuses.some(x=>x.type==='ancient_corrosion'))return false;
+    return true;
+  };
+
+  const previousApplyDamageToEnemyV101187=applyDamageToEnemy;
+  applyDamageToEnemy=function(unit,damage){
+    if(unit?.monsterId==='wandering_zombie_lizardman'&&unit.hp>0&&Number(damage)>=unit.hp&&!unit.reviveUsed){
+      const originalId=unit.monsterId;unit.monsterId='zombie';
+      const dealt=previousApplyDamageToEnemyV101187(unit,damage);unit.monsterId=originalId;
+      addBattleLog('🧟 遊蕩的殭屍蜥蜴人死而復生，本場只能發動一次！');renderBattleTargets();return dealt;
+    }
+    return previousApplyDamageToEnemyV101187(unit,damage);
+  };
+
+  const previousExecuteEnemyHitV101187=executeEnemyHit;
+  executeEnemyHit=async function(unit,skill){
+    if(skill?.id==='zombie_priest_dark_blessing'){
+      addTimedEffect(unit,{name:'黑暗祝福',effectType:'buff',turns:3,mods:{attack:unit.attack*.25,magicAttack:unit.magicAttack*.25}});
+      addBattleLog('🌑 黑暗祝福：攻擊與魔攻提高25%，持續3回合。');renderBattleTargets();return;
+    }
+    if(skill?.dynamicHydraHeads&&unit?.monsterId==='hydra'){
+      const ratio=unit.hp/unit.maxHp,hits=ratio<=.33?5:ratio<=.66?4:3;
+      await previousExecuteEnemyHitV101187(unit,{...skill,hits,multiplierPerHit:.45});
+      addBattleLog(`🐲 九頭巨蛇目前以 ${hits} 組蛇首連續撕咬。`);return;
+    }
+    return previousExecuteEnemyHitV101187(unit,skill);
+  };
+
+  const previousPerformLiveEnemyTurnV101187=performLiveEnemyTurn;
+  performLiveEnemyTurn=async function(unit){
+    if(unit?.monsterId==='zombie_lizard_warrior'&&unit.hp>0&&unit.hp/unit.maxHp<=.35&&!unit.undeadRageTriggered){
+      unit.undeadRageTriggered=true;
+      addTimedEffect(unit,{name:'亡者狂暴',effectType:'buff',turns:999,mods:{attack:unit.attack*.25,defense:-unit.defense*.15}});
+      addBattleLog('🔥 殭屍蜥蜴人戰士發動亡者狂暴：攻擊提高25%、防禦降低15%！');showBattleWord('亡者狂暴！');
+    }
+    if(unit?.monsterId==='hydra'&&unit.hp>0){
+      const blocked=(unit.statuses||[]).some(s=>['burn','hydra_cauterized'].includes(s.type)&&s.turns>0);
+      if(!blocked&&unit.hp<unit.maxHp){const heal=Math.min(unit.maxHp-unit.hp,Math.max(1,Math.round(unit.maxHp*.04)));unit.hp+=heal;addBattleLog(`♻️ 九頭巨蛇再生 ${heal} HP。`);renderBattleTargets();}
+      else if(blocked)addBattleLog('🔥 九頭巨蛇的傷口正在燃燒，本回合無法再生。');
+      if(unit.hp/unit.maxHp<=.30&&!unit.hydraRageTriggered){unit.hydraRageTriggered=true;addTimedEffect(unit,{name:'群首狂怒',effectType:'buff',turns:999,mods:{attack:unit.attack*.20,magicAttack:unit.magicAttack*.20}});addBattleLog('🐲 九頭巨蛇進入群首狂怒：攻擊與魔攻永久提高20%！');showBattleWord('群首狂怒！');}
+    }
+    return previousPerformLiveEnemyTurnV101187(unit);
+  };
+
+  function cauterizeHydraV101187(target,result,type){
+    if(target?.monsterId!=='hydra'||target.hp<=0||!result?.damage||type!=='fire')return;
+    addStatus(target,{type:'hydra_cauterized',name:'傷口灼燒',turns:2,effectType:'debuff',mods:{}});
+    addBattleLog('🔥 火焰灼燒九頭巨蛇的傷口：再生暫停2回合。');updateBattleStatuses();renderBattleTargets();
+  }
+  const previousHitTargetV101187=hitTarget;
+  hitTarget=async function(target,action,mult,type){const result=await previousHitTargetV101187(target,action,mult,type);cauterizeHydraV101187(target,result,type||action?.type);return result;};
+  const previousExecuteHeroAgainstTargetV101187=executeHeroAgainstTarget;
+  executeHeroAgainstTarget=async function(action){const target=selectedBattleEnemy(),result=await previousExecuteHeroAgainstTargetV101187(action);cauterizeHydraV101187(target,result,action?.type);return result;};
+
+  const previousRunBattleSequenceV101187=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101187(...args),id=battleStateV10?.monsterId;
+    if(id==='wandering_zombie_lizardman')addBattleLog('🧟 第一次受到致命傷害時，會以30% HP死而復生。');
+    if(id==='hydra')addBattleLog('🐲 九頭巨蛇每回合再生4% HP；燃燒可暫停再生，HP下降後群首撕咬會增加段數。');
+    return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.88：第17週「大裂谷」衝鋒與揮擊機制。 */
+(function(){
+  Object.assign(STATUS_DATABASE,{
+    rift_armor_break:{id:'rift_armor_break',name:'裂谷破甲',icon:'🪓',kind:'debuff',defaultTurns:2}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    pigman_chop:{id:'pigman_chop',name:'粗暴劈砍',kind:'physical',target:'single',multiplier:1.0},
+    pigman_headbutt:{id:'pigman_headbutt',name:'頭槌',kind:'physical',target:'single',multiplier:1.20,status:{id:'stun',chance:.20,duration:1}},
+    pigman_wild_combo:{id:'pigman_wild_combo',name:'野蠻連擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.60},
+    pigman_warrior_axe:{id:'pigman_warrior_axe',name:'戰斧斬擊',kind:'physical',target:'single',multiplier:1.10},
+    pigman_warrior_breaker:{id:'pigman_warrior_breaker',name:'破甲重斧',kind:'physical',target:'single',multiplier:1.20,status:{id:'rift_armor_break',chance:1,duration:2,defMultiplier:.80}},
+    pigman_warrior_spin:{id:'pigman_warrior_spin',name:'旋轉斬擊',kind:'physical',target:'all',aoe:true,multiplier:1.10,cooldown:2},
+    centaur_stomp:{id:'centaur_stomp',name:'馬蹄踐踏',kind:'physical',target:'single',multiplier:1.0},
+    centaur_charge:{id:'centaur_charge',name:'疾速衝鋒',kind:'physical',target:'single',multiplier:1.40,cooldown:2,speedAfter:.20},
+    centaur_back_kick:{id:'centaur_back_kick',name:'迴旋踢',kind:'physical',target:'single',multiplier:1.20},
+    centaur_knight_lance:{id:'centaur_knight_lance',name:'騎槍突刺',kind:'physical',target:'single',multiplier:1.10},
+    centaur_knight_charge_prep:{id:'centaur_knight_charge_prep',name:'準備衝鋒',kind:'charge',target:'self',nextSkill:'centaur_knight_charge'},
+    centaur_knight_charge:{id:'centaur_knight_charge',name:'騎士衝鋒',kind:'physical',target:'single',multiplier:1.80,requiresCharge:true,status:{id:'rift_armor_break',chance:1,duration:2,defMultiplier:.80}},
+    centaur_knight_guard:{id:'centaur_knight_guard',name:'騎士防禦',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
+    cyclops_mighty_swing:{id:'cyclops_mighty_swing',name:'巨力揮擊',kind:'physical',target:'single',multiplier:1.20},
+    cyclops_wide_swing:{id:'cyclops_wide_swing',name:'橫向揮擊',kind:'physical',target:'all',aoe:true,multiplier:1.10,cooldown:2},
+    cyclops_double_swing:{id:'cyclops_double_swing',name:'連續揮擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.75},
+    cyclops_charge_swing:{id:'cyclops_charge_swing',name:'蓄力揮擊',kind:'charge',target:'self',nextSkill:'cyclops_devastating_swing'},
+    cyclops_devastating_swing:{id:'cyclops_devastating_swing',name:'毀滅揮擊',kind:'physical',target:'single',multiplier:2.0,requiresCharge:true}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    pigman:{skills:[{id:'pigman_chop',weight:3},{id:'pigman_headbutt',weight:1},{id:'pigman_wild_combo',weight:2}]},
+    pigman_warrior:{skills:[{id:'pigman_warrior_axe',weight:3},{id:'pigman_warrior_breaker',weight:2},{id:'pigman_warrior_spin',weight:1}]},
+    centaur:{skills:[{id:'centaur_stomp',weight:3},{id:'centaur_charge',weight:2},{id:'centaur_back_kick',weight:2}]},
+    centaur_knight:{skills:[{id:'centaur_knight_lance',weight:3},{id:'centaur_knight_charge_prep',weight:2},{id:'centaur_knight_guard',weight:1}],chargeSequence:['centaur_knight_charge_prep','centaur_knight_charge']},
+    cyclops:{skills:[{id:'cyclops_mighty_swing',weight:3},{id:'cyclops_wide_swing',weight:2},{id:'cyclops_double_swing',weight:2},{id:'cyclops_charge_swing',weight:1}],chargeSequence:['cyclops_charge_swing','cyclops_devastating_swing']}
+  });
+
+  const previousSkillUsableByEnemyV101188=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101188(unit,entry,skill))return false;
+    if(skill?.id==='pigman_warrior_breaker'&&(battleStateV10?.hero?.statuses||[]).some(s=>s.type==='rift_armor_break'))return false;
+    return true;
+  };
+
+  const previousExecuteEnemyHitV101188=executeEnemyHit;
+  executeEnemyHit=async function(unit,skill){
+    const result=await previousExecuteEnemyHitV101188(unit,skill);
+    if(skill?.speedAfter&&unit?.hp>0){
+      addTimedEffect(unit,{name:'衝鋒加速',effectType:'buff',turns:1,mods:{speed:unit.speed*Number(skill.speedAfter)}});
+      addBattleLog(`💨 ${unit.name}衝鋒後速度提高${Math.round(Number(skill.speedAfter)*100)}%，持續1回合。`);renderBattleTargets();
+    }
+    return result;
+  };
+
+  const previousTickLiveUnitV101188=tickLiveUnit;
+  tickLiveUnit=async function(unit,isHero=false){
+    const interruptible=!isHero&&['centaur_knight','cyclops'].includes(unit?.monsterId)&&!!unit?.chargedSkill;
+    const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
+    const chargedName=unit?.chargedSkill?MONSTER_SKILL_DATABASE[unit.chargedSkill]?.name:'';
+    const skip=await previousTickLiveUnitV101188(unit,isHero);
+    if(controlled&&skip&&unit.chargedSkill){unit.chargedSkill=null;addBattleLog(`💥 ${unit.name}受到控制，「${chargedName||'蓄力攻擊'}」被打斷！`);showBattleWord('蓄力中斷！');}
+    return skip;
+  };
+
+  const previousPerformLiveEnemyTurnV101188=performLiveEnemyTurn;
+  performLiveEnemyTurn=async function(unit){
+    if(unit?.monsterId==='pigman_warrior'&&unit.hp>0&&unit.hp/unit.maxHp<=.35&&!unit.riftRageTriggered){
+      unit.riftRageTriggered=true;addTimedEffect(unit,{name:'戰鬥狂怒',effectType:'buff',turns:999,mods:{attack:unit.attack*.25}});
+      addBattleLog('🔥 豬頭人戰士發動戰鬥狂怒：攻擊永久提高25%！');showBattleWord('戰鬥狂怒！');
+    }
+    if(unit?.monsterId==='cyclops'&&unit.hp>0&&unit.hp/unit.maxHp<=.30&&!unit.cyclopsRageTriggered){
+      unit.cyclopsRageTriggered=true;addTimedEffect(unit,{name:'獨眼狂怒',effectType:'buff',turns:999,mods:{attack:unit.attack*.25,defense:-unit.defense*.20}});
+      addBattleLog('👁️ 獨眼巨人進入狂怒：揮擊傷害提高25%、防禦降低20%！');showBattleWord('獨眼狂怒！');
+    }
+    return previousPerformLiveEnemyTurnV101188(unit);
+  };
+
+  const previousRunBattleSequenceV101188=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101188(...args),id=battleStateV10?.monsterId;
+    if(id==='centaur')addBattleLog('🐎 半人馬可直接使用疾速衝鋒，衝鋒後短暫提高速度。');
+    if(id==='centaur_knight')addBattleLog('🏇 半人馬騎士會先準備衝鋒；暈眩、冰凍或麻痺可中斷蓄力。');
+    if(id==='cyclops')addBattleLog('👁️ 獨眼巨人的毀滅揮擊會先蓄力，可用控制技能打斷。');
+    return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.89：第18週「飛空艇」投擲、旋風與火炮機制。 */
+(function(){
+  Object.assign(STATUS_DATABASE,{
+    wyvern_whirlwind:{id:'wyvern_whirlwind',name:'旋風纏身',icon:'🌪️',kind:'debuff',defaultTurns:3},
+    sky_hook:{id:'sky_hook',name:'鉤索纏繞',icon:'🪝',kind:'debuff',defaultTurns:2},
+    sky_smoke:{id:'sky_smoke',name:'煙霧遮蔽',icon:'💨',kind:'debuff',defaultTurns:2}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    harpy_claw:{id:'harpy_claw',name:'爪擊',kind:'physical',target:'single',multiplier:1.0},
+    harpy_feather_darts:{id:'harpy_feather_darts',name:'羽毛飛鏢',kind:'physical',target:'single',hits:3,multiplierPerHit:.45},
+    harpy_wing_pressure:{id:'harpy_wing_pressure',name:'羽翼風壓',kind:'magic',element:'wind',target:'single',multiplier:.90,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
+    harpy_high_evasion:{id:'harpy_high_evasion',name:'高空迴避',kind:'buff',target:'self',evasionBonus:.20,duration:1,cannotUseConsecutively:true},
+    flying_goblin_rock:{id:'flying_goblin_rock',name:'石塊投擲',kind:'physical',target:'single',multiplier:1.0},
+    flying_goblin_double_throw:{id:'flying_goblin_double_throw',name:'連續投擲',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
+    flying_goblin_bomb:{id:'flying_goblin_bomb',name:'炸彈投擲',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.30,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},cooldown:2},
+    flying_goblin_smoke:{id:'flying_goblin_smoke',name:'煙霧彈投擲',kind:'debuff',target:'single',status:{id:'sky_smoke',chance:1,duration:2,accuracyPenalty:.20}},
+    wyvern_bite:{id:'wyvern_bite',name:'翼龍撕咬',kind:'physical',target:'single',multiplier:1.10},
+    wyvern_dive:{id:'wyvern_dive',name:'翼爪俯衝',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
+    wyvern_whirlwind:{id:'wyvern_whirlwind',name:'旋風',kind:'debuff',target:'single',status:{id:'wyvern_whirlwind',chance:1,duration:3,maxHpDot:.03,speedMultiplier:.80}},
+    wyvern_wing_sweep:{id:'wyvern_wing_sweep',name:'振翅橫掃',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.10,cooldown:2},
+    sky_pirate_cutlass:{id:'sky_pirate_cutlass',name:'彎刀斬擊',kind:'physical',target:'single',multiplier:1.0},
+    sky_pirate_throwing_knife:{id:'sky_pirate_throwing_knife',name:'飛刀投擲',kind:'physical',target:'single',multiplier:1.20},
+    sky_pirate_hook:{id:'sky_pirate_hook',name:'鉤索纏繞',kind:'physical',target:'single',multiplier:.80,status:{id:'sky_hook',chance:1,duration:2,speedMultiplier:.75}},
+    sky_pirate_powder_flask:{id:'sky_pirate_powder_flask',name:'火藥瓶投擲',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.10,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},cooldown:2},
+    captain_slash:{id:'captain_slash',name:'船長斬擊',kind:'physical',target:'single',multiplier:1.20},
+    captain_triple_knife:{id:'captain_triple_knife',name:'連續飛刀',kind:'physical',target:'single',hits:3,multiplierPerHit:.50},
+    captain_bomb:{id:'captain_bomb',name:'投擲炸彈',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.30,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},cooldown:2},
+    captain_load_cannon:{id:'captain_load_cannon',name:'下令裝填',kind:'charge',target:'self',nextSkill:'captain_airship_cannon'},
+    captain_airship_cannon:{id:'captain_airship_cannon',name:'飛空艇砲擊',kind:'physical',target:'all',aoe:true,multiplier:2.0,requiresCharge:true,cooldown:3,combinedCannon:true}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    harpy:{skills:[{id:'harpy_claw',weight:3},{id:'harpy_feather_darts',weight:2},{id:'harpy_wing_pressure',weight:1},{id:'harpy_high_evasion',weight:1}]},
+    flying_goblin:{skills:[{id:'flying_goblin_rock',weight:3},{id:'flying_goblin_double_throw',weight:2},{id:'flying_goblin_bomb',weight:1},{id:'flying_goblin_smoke',weight:1}]},
+    wyvern:{skills:[{id:'wyvern_bite',weight:3},{id:'wyvern_dive',weight:2},{id:'wyvern_whirlwind',weight:1},{id:'wyvern_wing_sweep',weight:1}]},
+    sky_pirate:{skills:[{id:'sky_pirate_cutlass',weight:3},{id:'sky_pirate_throwing_knife',weight:2},{id:'sky_pirate_hook',weight:1},{id:'sky_pirate_powder_flask',weight:1}]},
+    sky_pirate_captain:{skills:[{id:'captain_slash',weight:3},{id:'captain_triple_knife',weight:2},{id:'captain_bomb',weight:1},{id:'captain_load_cannon',weight:2}],chargeSequence:['captain_load_cannon','captain_airship_cannon']}
+  });
+
+  const previousSkillUsableByEnemyV101189=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101189(unit,entry,skill))return false;
+    const statuses=battleStateV10?.hero?.statuses||[];
+    if(skill?.id==='flying_goblin_smoke'&&statuses.some(s=>s.type==='sky_smoke'))return false;
+    if(skill?.id==='wyvern_whirlwind'&&statuses.some(s=>s.type==='wyvern_whirlwind'))return false;
+    if(skill?.id==='sky_pirate_hook'&&statuses.some(s=>s.type==='sky_hook'))return false;
+    if(skill?.id==='captain_load_cannon'&&Number(unit?.cooldowns?.captain_airship_cannon||0)>0)return false;
+    return true;
+  };
+
+  const previousExecuteEnemyHitV101189=executeEnemyHit;
+  executeEnemyHit=async function(unit,skill){
+    if(!skill?.combinedCannon)return previousExecuteEnemyHitV101189(unit,skill);
+    addBattleLog('💥 飛空艇主砲命中，接著引爆火藥！');
+    await previousExecuteEnemyHitV101189(unit,{id:'captain_cannon_impact',name:'主砲撞擊',kind:'physical',target:'all',aoe:true,multiplier:1.30});
+    if(battleStateV10?.heroHp>0)await previousExecuteEnemyHitV101189(unit,{id:'captain_cannon_blast',name:'火藥爆炸',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:.70,status:{id:'burn',chance:1,duration:3,maxHpDot:.04}});
+  };
+
+  const previousTickLiveUnitV101189=tickLiveUnit;
+  tickLiveUnit=async function(unit,isHero=false){
+    const interruptible=!isHero&&unit?.monsterId==='sky_pirate_captain'&&unit?.chargedSkill==='captain_airship_cannon';
+    const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
+    const skip=await previousTickLiveUnitV101189(unit,isHero);
+    if(controlled&&skip&&unit.chargedSkill){unit.chargedSkill=null;addBattleLog('💥 天空海盜船長受到控制，飛空艇砲擊裝填中斷！');showBattleWord('裝填中斷！');}
+    return skip;
+  };
+
+  const previousPerformLiveEnemyTurnV101189=performLiveEnemyTurn;
+  performLiveEnemyTurn=async function(unit){
+    if(unit?.monsterId==='sky_pirate_captain'&&unit.hp>0&&unit.hp/unit.maxHp<=.30&&!unit.desperateCaptainTriggered){
+      unit.desperateCaptainTriggered=true;
+      addTimedEffect(unit,{name:'亡命狀態',effectType:'buff',turns:999,mods:{attack:unit.attack*.20,magicAttack:unit.magicAttack*.20,speed:unit.speed*.20,defense:-unit.defense*.20}});
+      addBattleLog('🏴‍☠️ 天空海盜船長進入亡命狀態：攻擊、魔攻與速度提高20%，防禦降低20%！');showBattleWord('亡命狀態！');
+    }
+    return previousPerformLiveEnemyTurnV101189(unit);
+  };
+
+  const previousRunBattleSequenceV101189=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101189(...args),id=battleStateV10?.monsterId;
+    if(id==='harpy')addBattleLog('🪶 鷹身女妖的羽毛飛鏢會連續攻擊3次。');
+    if(id==='wyvern')addBattleLog('🌪️ 翼龍旋風持續3回合：每回合造成3%最大HP傷害並降低20%速度。');
+    if(id==='sky_pirate_captain')addBattleLog('💣 飛空艇砲擊需先裝填，可被控制中斷；命中分為130%物理撞擊與70%火焰爆炸。');
+    return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.90：第19週「天空城」技能、升空衝鋒與巨像核心機制。 */
+(function(){
+  MONSTER_DATABASE.pegasus_knight={
+    id:'pegasus_knight',name:'飛馬騎士',family:'sky_city',
+    sprites:{idle:'images/monsters/pegasus_knight_idle.png',battle:'images/monsters/pegasus_knight_battle.png'}
+  };
+  delete MONSTER_DATABASE.sky_city_guardian_knight;
+  const skyWeek=(SEMESTER_ADVENTURE_MAP||[]).find(x=>Number(x.week)===19);
+  if(skyWeek)skyWeek.monsters=['magic_armor','stone_gargoyle','sky_city_mage','pegasus_knight','sky_colossus'];
+
+  Object.assign(STATUS_DATABASE,{
+    sky_wind_bind:{id:'sky_wind_bind',name:'風之束縛',icon:'🌪️',kind:'debuff',defaultTurns:2},
+    sky_armor_break:{id:'sky_armor_break',name:'天翔破甲',icon:'🪽',kind:'debuff',defaultTurns:2}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    armor_magic_slash:{id:'armor_magic_slash',name:'魔力斬擊',kind:'magic',element:'arcane',target:'single',multiplier:1.05},
+    armor_double_slash:{id:'armor_double_slash',name:'鎧甲連斬',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
+    armor_magic_guard:{id:'armor_magic_guard',name:'魔力護甲',kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1,cannotUseConsecutively:true},
+    gargoyle_claw:{id:'gargoyle_claw',name:'石爪攻擊',kind:'physical',target:'single',multiplier:1.05},
+    gargoyle_dive:{id:'gargoyle_dive',name:'俯衝猛擊',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
+    gargoyle_guard:{id:'gargoyle_guard',name:'石像防禦',kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1,cannotUseConsecutively:true},
+    gargoyle_wing_sweep:{id:'gargoyle_wing_sweep',name:'翼擊',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.05},
+    sky_mage_arcane_bolt:{id:'sky_mage_arcane_bolt',name:'秘法彈',kind:'magic',element:'arcane',target:'single',multiplier:1.10},
+    sky_mage_chain_lightning:{id:'sky_mage_chain_lightning',name:'連鎖閃電',kind:'magic',element:'lightning',target:'single',hitsMin:2,hitsMax:3,multiplierPerHit:.45},
+    sky_mage_wind_bind:{id:'sky_mage_wind_bind',name:'風之束縛',kind:'magic',element:'wind',target:'single',multiplier:.80,status:{id:'sky_wind_bind',chance:1,duration:2,speedMultiplier:.75}},
+    sky_mage_barrier:{id:'sky_mage_barrier',name:'魔力屏障',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
+    pegasus_lance:{id:'pegasus_lance',name:'騎槍突刺',kind:'physical',target:'single',multiplier:1.10},
+    pegasus_trample:{id:'pegasus_trample',name:'飛馬踐踏',kind:'physical',target:'single',multiplier:1.20,status:{id:'stun',chance:.20,duration:1},cooldown:2},
+    pegasus_wing_whirlwind:{id:'pegasus_wing_whirlwind',name:'羽翼旋風',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
+    pegasus_takeoff:{id:'pegasus_takeoff',name:'展翼升空',kind:'charge',target:'self',nextSkill:'pegasus_sky_charge'},
+    pegasus_sky_charge:{id:'pegasus_sky_charge',name:'天翔衝鋒',kind:'physical',target:'single',requiresCharge:true,cooldown:3,combinedPegasusCharge:true},
+    colossus_fist:{id:'colossus_fist',name:'巨像重拳',kind:'physical',target:'single',multiplier:1.25},
+    colossus_beam:{id:'colossus_beam',name:'能量光束',kind:'magic',element:'arcane',target:'single',multiplier:1.20},
+    colossus_sky_quake:{id:'colossus_sky_quake',name:'天空震擊',kind:'physical',target:'all',aoe:true,multiplier:1.35,cooldown:2},
+    colossus_core_charge:{id:'colossus_core_charge',name:'核心充能',kind:'charge',target:'self',nextSkill:'colossus_destruction_cannon'},
+    colossus_destruction_cannon:{id:'colossus_destruction_cannon',name:'天空毀滅砲',kind:'magic',element:'arcane',target:'all',aoe:true,multiplier:2.0,requiresCharge:true,cooldown:3,colossusCannon:true}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    magic_armor:{skills:[{id:'armor_magic_slash',weight:3},{id:'armor_double_slash',weight:2},{id:'armor_magic_guard',weight:1}]},
+    stone_gargoyle:{skills:[{id:'gargoyle_claw',weight:3},{id:'gargoyle_dive',weight:2},{id:'gargoyle_guard',weight:1},{id:'gargoyle_wing_sweep',weight:1}]},
+    sky_city_mage:{skills:[{id:'sky_mage_arcane_bolt',weight:3},{id:'sky_mage_chain_lightning',weight:2},{id:'sky_mage_wind_bind',weight:1},{id:'sky_mage_barrier',weight:1}]},
+    pegasus_knight:{skills:[{id:'pegasus_lance',weight:3},{id:'pegasus_trample',weight:2},{id:'pegasus_wing_whirlwind',weight:1},{id:'pegasus_takeoff',weight:2}],chargeSequence:['pegasus_takeoff','pegasus_sky_charge']},
+    sky_colossus:{skills:[{id:'colossus_fist',weight:3},{id:'colossus_beam',weight:2},{id:'colossus_sky_quake',weight:2},{id:'colossus_core_charge',weight:2}],chargeSequence:['colossus_core_charge','colossus_destruction_cannon']}
+  });
+
+  const previousSkillUsableByEnemyV101190=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101190(unit,entry,skill))return false;
+    const heroStatuses=battleStateV10?.hero?.statuses||[];
+    if(skill?.id==='sky_mage_wind_bind'&&heroStatuses.some(s=>s.type==='sky_wind_bind'))return false;
+    if(skill?.id==='pegasus_wing_whirlwind'&&heroStatuses.some(s=>s.type==='slow'))return false;
+    if(skill?.id==='pegasus_takeoff'&&Number(unit?.cooldowns?.pegasus_sky_charge||0)>0)return false;
+    if(skill?.id==='colossus_core_charge'&&Number(unit?.cooldowns?.colossus_destruction_cannon||0)>0)return false;
+    return true;
+  };
+
+  const previousExecuteEnemyHitV101190=executeEnemyHit;
+  executeEnemyHit=async function(unit,skill){
+    if(skill?.combinedPegasusCharge){
+      addBattleLog('🪽 飛馬騎士自高空俯衝：騎槍命中後爆發風屬性衝擊！');
+      await previousExecuteEnemyHitV101190(unit,{id:'pegasus_charge_lance',name:'天翔騎槍',kind:'physical',target:'single',multiplier:1.30});
+      if(battleStateV10?.heroHp>0)await previousExecuteEnemyHitV101190(unit,{id:'pegasus_charge_wind',name:'天翔風爆',kind:'magic',element:'wind',target:'single',multiplier:.50,status:{id:'sky_armor_break',chance:1,duration:2,defMultiplier:.80}});
+      unit.statuses=(unit.statuses||[]).filter(s=>s.name!=='飛馬升空');renderBattleTargets();return;
+    }
+    const result=await previousExecuteEnemyHitV101190(unit,skill);
+    if(skill?.colossusCannon&&unit?.hp>0){
+      addTimedEffect(unit,{name:'核心過熱',effectType:'debuff',turns:1,mods:{damageTaken:.30}});
+      addBattleLog('🔥 天空巨像核心過熱：接下來受到傷害增加30%，持續1回合。');renderBattleTargets();
+    }
+    return result;
+  };
+
+  const previousTickLiveUnitV101190=tickLiveUnit;
+  tickLiveUnit=async function(unit,isHero=false){
+    const chargeIds={pegasus_knight:'pegasus_sky_charge',sky_colossus:'colossus_destruction_cannon'};
+    const interruptible=!isHero&&unit?.chargedSkill===chargeIds[unit?.monsterId];
+    const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
+    const chargedName=unit?.chargedSkill?MONSTER_SKILL_DATABASE[unit.chargedSkill]?.name:'';
+    const skip=await previousTickLiveUnitV101190(unit,isHero);
+    if(controlled&&skip&&unit.chargedSkill){
+      unit.chargedSkill=null;unit.statuses=(unit.statuses||[]).filter(s=>s.name!=='飛馬升空');
+      addBattleLog(`💥 ${unit.name}受到控制，「${chargedName||'蓄力技能'}」被打斷！`);showBattleWord('蓄力中斷！');renderBattleTargets();
+    }
+    return skip;
+  };
+
+  const previousPerformLiveEnemyTurnV101190=performLiveEnemyTurn;
+  performLiveEnemyTurn=async function(unit){
+    if(unit?.monsterId==='sky_colossus'&&unit.hp>0&&unit.hp/unit.maxHp<=.30&&!unit.coreOverloadTriggered){
+      unit.coreOverloadTriggered=true;
+      addTimedEffect(unit,{name:'核心超載',effectType:'buff',turns:999,mods:{attack:unit.attack*.25,magicAttack:unit.magicAttack*.25,speed:unit.speed*.15,defense:-unit.defense*.20}});
+      addBattleLog('⚡ 天空巨像進入核心超載：攻擊與魔攻提高25%、速度提高15%，防禦降低20%！');showBattleWord('核心超載！');
+    }
+    const before=unit?.lastSkillId;
+    const result=await previousPerformLiveEnemyTurnV101190(unit);
+    if(unit?.monsterId==='pegasus_knight'&&unit.lastSkillId==='pegasus_takeoff'&&before!=='pegasus_takeoff'&&unit.chargedSkill==='pegasus_sky_charge'){
+      addTimedEffect(unit,{name:'飛馬升空',effectType:'buff',turns:1,mods:{evade:.25}});
+      addBattleLog('🪽 飛馬騎士升空期間仍可被鎖定，但閃避率提高25%。');renderBattleTargets();
+    }
+    return result;
+  };
+
+  const previousRunBattleSequenceV101190=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101190(...args),id=battleStateV10?.monsterId;
+    if(id==='sky_city_mage')addBattleLog('🪄 天空城魔導士擅長連鎖閃電、風之束縛與短暫魔力屏障。');
+    if(id==='pegasus_knight')addBattleLog('🪽 飛馬騎士升空後提高25%閃避，下一回合發動兩段天翔衝鋒；控制效果可中斷。');
+    if(id==='sky_colossus')addBattleLog('⚙️ 天空毀滅砲需先充能，可被控制中斷；砲擊後核心過熱，HP低於30%則進入核心超載。');
+    return result;
+  };
+})();
+</script>
+<script>
+/* V10.11.91：第20週「燃燒平原」、期末魔龍與最終靈魂連結戰。 */
+(function(){
+  MONSTER_DATABASE.final_necromancer={id:'final_necromancer',name:'死靈法師',family:'undead',boss:true,finalBoss:true,sprites:{idle:'images/monsters/final_necromancer_idle.png',battle:'images/monsters/final_necromancer_battle.png'}};
+  MONSTER_DATABASE.skeleton_dragon={id:'skeleton_dragon',name:'骷髏巨龍',family:'undead_dragon',element:'dark',sprites:{idle:'images/monsters/skeleton_dragon_idle.png',battle:'images/monsters/skeleton_dragon_battle.png'}};
+  delete MONSTER_DATABASE.grim_reaper;
+  const finalWeek=(SEMESTER_ADVENTURE_MAP||[]).find(x=>Number(x.week)===20);
+  if(finalWeek)finalWeek.monsters=['fire_lizard','lava_giant','demon_dragon_phase1','demon_dragon_phase2','final_necromancer'];
+
+  Object.assign(STATUS_DATABASE,{
+    final_corruption:{id:'final_corruption',name:'死亡腐化',icon:'☠️',kind:'debuff',defaultTurns:3},
+    bone_roar:{id:'bone_roar',name:'亡骨恐懼',icon:'🦴',kind:'debuff',defaultTurns:2},
+    lava_break:{id:'lava_break',name:'熔岩破甲',icon:'💧',kind:'debuff',defaultTurns:2}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    fire_lizard_bite:{id:'fire_lizard_bite',name:'火蜥撕咬',kind:'physical',target:'single',multiplier:1.05},
+    fire_lizard_breath:{id:'fire_lizard_breath',name:'火焰吐息',kind:'magic',element:'fire',target:'single',multiplier:1.15,status:{id:'burn',chance:1,duration:3,maxHpDot:.04}},
+    fire_lizard_tail:{id:'fire_lizard_tail',name:'烈焰甩尾',kind:'physical',target:'single',multiplier:1.20,cooldown:2},
+    lava_giant_fist:{id:'lava_giant_fist',name:'熔岩重拳',kind:'physical',target:'single',multiplier:1.20},
+    lava_giant_quake:{id:'lava_giant_quake',name:'地面震擊',kind:'physical',target:'all',aoe:true,multiplier:1.25,cooldown:2},
+    lava_giant_eruption:{id:'lava_giant_eruption',name:'熔岩噴發',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.10,status:{id:'burn',chance:1,duration:3,maxHpDot:.04}},
+    lava_giant_armor:{id:'lava_giant_armor',name:'熔岩護甲',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
+    dragon1_claw:{id:'dragon1_claw',name:'魔龍爪擊',kind:'physical',target:'single',multiplier:1.20},
+    dragon1_tail:{id:'dragon1_tail',name:'魔龍甩尾',kind:'physical',target:'all',aoe:true,multiplier:1.10,cooldown:2},
+    dragon1_breath_prep:{id:'dragon1_breath_prep',name:'聚集龍焰',kind:'charge',target:'self',nextSkill:'dragon1_breath'},
+    dragon1_breath:{id:'dragon1_breath',name:'毀滅龍焰',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.80,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},requiresCharge:true,cooldown:3},
+    dragon2_dive:{id:'dragon2_dive',name:'魔龍俯衝',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
+    dragon2_wing_storm:{id:'dragon2_wing_storm',name:'羽翼風暴',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.15,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
+    dragon2_meteor_breath_prep:{id:'dragon2_meteor_breath_prep',name:'召集隕火',kind:'charge',target:'self',nextSkill:'dragon2_meteor_breath'},
+    dragon2_meteor_breath:{id:'dragon2_meteor_breath',name:'隕火龍息',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:2.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05},requiresCharge:true,cooldown:3},
+    skeleton_dragon_claw:{id:'skeleton_dragon_claw',name:'骸骨龍爪',kind:'physical',target:'single',multiplier:1.20},
+    skeleton_dragon_breath:{id:'skeleton_dragon_breath',name:'腐化龍息',kind:'magic',element:'dark',target:'all',aoe:true,multiplier:1.30,status:{id:'final_corruption',chance:1,duration:3,maxHpDot:.04}},
+    skeleton_dragon_tail:{id:'skeleton_dragon_tail',name:'骸骨甩尾',kind:'physical',target:'all',aoe:true,multiplier:1.10,status:{id:'stun',chance:.20,duration:1},cooldown:2},
+    skeleton_dragon_roar:{id:'skeleton_dragon_roar',name:'亡骨咆哮',kind:'debuff',target:'single',status:{id:'bone_roar',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
+    final_necro_bolt:{id:'final_necro_bolt',name:'暗影箭',kind:'magic',element:'dark',target:'single',multiplier:1.10},
+    final_necro_curse:{id:'final_necro_curse',name:'死亡詛咒',kind:'debuff',target:'single',status:{id:'final_corruption',chance:1,duration:3,maxHpDot:.04}},
+    final_necro_repair:{id:'final_necro_repair',name:'骸骨修復',kind:'heal',target:'ally_monster',targetMonsterId:'skeleton_dragon',healMaxHp:.15,cooldown:2},
+    final_necro_drain:{id:'final_necro_drain',name:'靈魂抽取',kind:'magic',element:'dark',target:'single',multiplier:1.0,healFromDamage:1.0,cooldown:2}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    fire_lizard:{skills:[{id:'fire_lizard_bite',weight:3},{id:'fire_lizard_breath',weight:2},{id:'fire_lizard_tail',weight:2}]},
+    lava_giant:{skills:[{id:'lava_giant_fist',weight:3},{id:'lava_giant_quake',weight:2},{id:'lava_giant_eruption',weight:2},{id:'lava_giant_armor',weight:1}]},
+    demon_dragon_phase1:{skills:[{id:'dragon1_claw',weight:3},{id:'dragon1_tail',weight:2},{id:'dragon1_breath_prep',weight:2}],chargeSequence:['dragon1_breath_prep','dragon1_breath']},
+    demon_dragon_phase2:{skills:[{id:'dragon2_dive',weight:3},{id:'dragon2_wing_storm',weight:2},{id:'dragon2_meteor_breath_prep',weight:2}],chargeSequence:['dragon2_meteor_breath_prep','dragon2_meteor_breath']},
+    skeleton_dragon:{skills:[{id:'skeleton_dragon_claw',weight:3},{id:'skeleton_dragon_breath',weight:2},{id:'skeleton_dragon_tail',weight:2},{id:'skeleton_dragon_roar',weight:1}]},
+    final_necromancer:{skills:[{id:'final_necro_bolt',weight:3},{id:'final_necro_curse',weight:2},{id:'final_necro_repair',weight:1},{id:'final_necro_drain',weight:2}]}
+  });
+
+  function finalLinkedDragonV101191(){return (battleStateV10?.enemies||[]).find(x=>x.monsterId==='skeleton_dragon'&&x.hp>0&&x.alive!==false)||null;}
+  function finalNecromancerV101191(){return (battleStateV10?.enemies||[]).find(x=>x.monsterId==='final_necromancer'&&x.hp>0&&x.alive!==false)||null;}
+
+  const previousSkillUsableByEnemyV101191=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101191(unit,entry,skill))return false;
+    const heroStatuses=battleStateV10?.hero?.statuses||[];
+    if(['final_necro_curse','skeleton_dragon_breath'].includes(skill?.id)&&heroStatuses.some(s=>s.type==='final_corruption'))return false;
+    if(skill?.id==='skeleton_dragon_roar'&&heroStatuses.some(s=>s.type==='bone_roar'))return false;
+    if(skill?.id==='final_necro_repair'){
+      const dragon=finalLinkedDragonV101191();if(!dragon||dragon.hp/dragon.maxHp>.85)return false;
+    }
+    if(skill?.id==='dragon1_breath_prep'&&Number(unit?.cooldowns?.dragon1_breath||0)>0)return false;
+    if(skill?.id==='dragon2_meteor_breath_prep'&&Number(unit?.cooldowns?.dragon2_meteor_breath||0)>0)return false;
+    return true;
+  };
+
+  const previousApplyDamageToEnemyV101191=applyDamageToEnemy;
+  applyDamageToEnemy=function(unit,damage){
+    const wasAlive=unit?.hp>0;
+    const dealt=previousApplyDamageToEnemyV101191(unit,damage);
+    if(wasAlive&&unit?.monsterId==='skeleton_dragon'&&unit.hp<=0&&unit.finalDragonLink&&!unit.linkBacklashDone){
+      unit.linkBacklashDone=true;const boss=finalNecromancerV101191();
+      if(boss){
+        boss.statuses=(boss.statuses||[]).filter(s=>s.type!=='dragon_soul_guard');
+        const backlash=Math.max(1,Math.round(boss.hp));previousApplyDamageToEnemyV101191(boss,backlash);
+        boss.dragonLinkBroken=true;
+        addBattleLog('💥 靈魂連結斷裂！死靈法師的生命與骷髏巨龍一同消滅！');showBattleWord('靈魂連結斷裂！');renderBattleTargets();
+      }
+    }
+    return dealt;
+  };
+
+  const previousTickLiveUnitV101191=tickLiveUnit;
+  tickLiveUnit=async function(unit,isHero=false){
+    const chargedIds={demon_dragon_phase1:'dragon1_breath',demon_dragon_phase2:'dragon2_meteor_breath'};
+    const interruptible=!isHero&&unit?.chargedSkill===chargedIds[unit?.monsterId];
+    const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
+    const name=unit?.chargedSkill?MONSTER_SKILL_DATABASE[unit.chargedSkill]?.name:'';
+    const skip=await previousTickLiveUnitV101191(unit,isHero);
+    if(controlled&&skip&&unit.chargedSkill){unit.chargedSkill=null;addBattleLog(`💥 ${unit.name}受到控制，「${name||'蓄力龍息'}」被打斷！`);showBattleWord('龍息中斷！');}
+    return skip;
+  };
+
+  const previousRunBattleSequenceV101191=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101191(...args),id=battleStateV10?.monsterId;
+    if(id==='final_necromancer'){
+      const boss=battleStateV10.enemies?.[0];const dragon=summonLiveUnit('skeleton_dragon',boss,{statScale:.90,hpScale:.85});
+      if(dragon){dragon.soulLinked=true;dragon.finalDragonLink=true;dragon.forceBasicOnly=false;dragon.name='骷髏巨龍';addStatus(boss,{type:'dragon_soul_guard',name:'魔龍靈魂連結',turns:999,effectType:'buff',mods:{damageTaken:-.70}});}
+      addBattleLog('🕯️ 死靈法師復活魔龍遺骸，骷髏巨龍加入戰鬥！');
+      addBattleLog('🔗 骷髏巨龍存在時，死靈法師受到傷害降低70%；擊破巨龍會斬斷連結並直接消滅死靈法師。');
+      if(typeof window.applyExamEnergyBreakToBattle==='function'){
+        window.applyExamEnergyBreakToBattle('final');
+        const results=battleStateV10.examEnergyBreak?.results||[];
+        results.forEach(x=>{if(!dragon||x.stage<=0)return;if(x.role==='hp'){dragon.maxHp=Math.max(1,Math.round(dragon.maxHp*(1-x.weaken)));dragon.hp=Math.min(dragon.hp,dragon.maxHp);}else if(x.role==='magic'){dragon.magicAttack*=1-x.weaken;dragon.magicDefense*=1-x.weaken;}else{dragon.attack*=1-x.weaken;dragon.defense*=1-x.weaken;}});
+        addBattleLog('📚 期末國英數考前能量同時削弱死靈法師與骷髏巨龍；全科滿格的考前護盾也會保留。');
+      }
+      renderBattleTargets();
+    }
+    if(id==='fire_lizard')addBattleLog('🔥 火焰蜥蜴擅長燃燒攻擊，火焰吐息會留下3回合灼傷。');
+    if(id==='lava_giant')addBattleLog('🌋 熔岩巨人擁有範圍震擊、燃燒與短暫熔岩護甲。');
+    if(id==='demon_dragon_phase1')addBattleLog('🐉 第一期魔龍以地面近戰為主；毀滅龍焰需先蓄力，可被控制技能中斷。');
+    if(id==='demon_dragon_phase2')addBattleLog('🐲 第二期魔龍升空作戰；隕火龍息需先蓄力，可被控制技能中斷。');
+    return result;
+  };
+
+  const previousFinishBattleV101191=finishBattleV10;
+  finishBattleV10=async function(win){
+    const id=battleStateV10?.monsterId;
+    if(win&&id==='demon_dragon_phase2'){
+      gameData.storyFlags=gameData.storyFlags||{};gameData.storyFlags.demonDragonEscaped=true;
+      addBattleLog('🐉 魔龍戰敗後化為龍形飛離；死靈法師自暗處現身，收走墜落的龍骨與殘魂……');
+    }
+    return previousFinishBattleV101191(win);
   };
 })();
 </script>
