@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.75</title>
+<title>小學勇者大冒險 V10.11.76</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.75</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.76</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -5544,7 +5544,7 @@ function renderGM(){
       <h3>📈 每日怪物自動平衡</h3>
       <div class="small">
         A＝扣除今天已取得任務能力後的「完全沒做」戰力；B＝A＋今天全部已發布任務的完整能力。一般怪固定取50%，週五大怪固定取70%。
-        當天新增或提高任務會向上重算；完成、低比例核定、取消或刪除都不會讓當日怪物下降。
+        當天新增或提高任務會向上重算；家長正式取消未完成任務會同步扣回。完成、低比例核定或刪除不能用來降低當日怪物。
       </div>
       <div style="margin-top:8px">
         目前角色戰力：<b>${dailyBalance?.liveCombatPower??combatPower()}</b>｜
@@ -5555,7 +5555,7 @@ function renderGM(){
       </div>
 
       <div class="small" style="margin-top:6px">
-        🌱 除週五大怪使用70%位置外，不套其他星期、週數或裝備倍率。同一天只因新增／提高任務而向上更新；完成任務不會讓怪物追著變強。失敗不扣能力、EXP、金幣或裝備。
+        🌱 除週五大怪使用70%位置外，不套其他星期、週數或裝備倍率。家長取消未完成任務會降低B與怪物；已有完成紀錄則必須走核定，不能事後取消。失敗不扣能力、EXP、金幣或裝備。
       </div>
     </div>
 
@@ -6052,8 +6052,18 @@ function gmToggleTaskCancellation(id){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert('日期格式不正確');return;}
   t.cancelledDates=Array.isArray(t.cancelledDates)?t.cancelledDates:[];
   const exists=t.cancelledDates.includes(date);
+  const cancelling=!exists;
+  const hasCompleted=(gameData.taskRecords||[]).some(r=>r.taskId===id&&r.date===date&&r.voluntaryChallenge!==true);
+  if(cancelling&&hasCompleted){alert('這項任務當天已有完成紀錄，不能再用取消移除。若成果不合格，請在核定時選擇 0%。');return;}
+  const scheduledBefore=isTaskScheduledToday(t,date);
+  if(date===today()&&cancelling&&typeof window.ensureDailyBalanceSnapshotV10114==='function')window.ensureDailyBalanceSnapshotV10114();
   if(exists)t.cancelledDates=t.cancelledDates.filter(d=>d!==date);else t.cancelledDates.push(date);
-  t.cancelledDates.sort();saveGame();renderAll();alert(exists?`已恢復 ${date} 的任務`:`已取消 ${date} 的任務；當日不列入應完成需求`);
+  t.cancelledDates.sort();
+  const scheduledAfter=isTaskScheduledToday(t,date);
+  if(date===today()&&scheduledBefore!==scheduledAfter&&typeof window.adjustDailyBalanceForCancellationV101176==='function'){
+    window.adjustDailyBalanceForCancellationV101176(t,scheduledAfter?'restore':'cancel');
+  }
+  saveGame();renderAll();alert(exists?`已恢復 ${date} 的任務`:`已取消 ${date} 的任務；當日不列入應完成需求，今日怪物戰力已同步扣回`);
 }
 function gmAddShopItem(){
   const name=document.getElementById('gmShopName').value.trim();
@@ -7738,6 +7748,27 @@ const old=renderGM; renderGM=function(){old();if(sessionStorage.getItem('parentU
   calibratedDailyMonsterPower=function(){
     const snap=ensureDailyBalanceSnapshotV10114();
     return Math.max(18,Math.round(snap.referencePower));
+  };
+
+  window.adjustDailyBalanceForCancellationV101176=function(t,mode){
+    if(!t||!['cancel','restore'].includes(mode))return;
+    const snap=ensureDailyBalanceSnapshotV10114();
+    if(!snap||snap.date!==today())return;
+    if(mode==='restore'){
+      // 任務已先從 cancelledDates 移除；統一公式會依增加後的完整計畫向上加回。
+      ensureDailyBalanceSnapshotV10114();return;
+    }
+    const delta=taskCombatPowerV101171(t)*Math.max(1,Number(t.dailyLimit)||1);
+    if(delta<=0)return;
+    const oldPlanned=Math.max(0,Number(snap.plannedTaskPower)||0),nextPlanned=Math.max(0,oldPlanned-delta);
+    const base=Math.max(1,Number(snap.baseCombatPower)||1),position=Number(snap.balancePosition)||dailyBalancePositionV101173(today());
+    snap.plannedTaskPower=Math.round(nextPlanned*100)/100;
+    snap.maximumTaskPower=Math.round((base+nextPlanned)*100)/100;
+    snap.remainingTaskPower=Math.max(0,Math.round((Number(snap.remainingTaskPower||0)-delta)*100)/100);
+    snap.referencePower=Math.round((base+nextPlanned*position)*100)/100;
+    snap.taskCount=Math.max(0,(Number(snap.taskCount)||0)-Math.max(1,Number(t.dailyLimit)||1));
+    snap.updatedAt=new Date().toISOString();snap.updateReason='parent-cancelled-task';
+    try{persistFamily();}catch(e){}
   };
 
   window.dailyBalanceDebugV10114=function(){
