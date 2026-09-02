@@ -142,14 +142,24 @@
     const made=generateEquipmentBatch({count,rarity,slot:slot||undefined,forceAffix:rarity!=='common'});renderGM();alert(`已生成 ${made.length} 件智慧適配裝備並放入背包。`);
   };
 
-  const oldRenderGM=window.renderGM;
-  window.renderGM=function(){
-    oldRenderGM();if(sessionStorage.getItem('parentUnlocked')!=='1')return;
+  function mountEquipmentBatchPanel(){
+    if(sessionStorage.getItem('parentUnlocked')!=='1')return;
     const panel=document.getElementById('panel-gm');if(!panel||document.getElementById('gmEquipmentBatchV101194'))return;
     const card=document.createElement('div');card.id='gmEquipmentBatchV101194';card.className='card';
     card.innerHTML='<h3>🎲 智慧裝備批量生成</h3><div class="small">依目前職業、裸裝能力、週數與同部位裝備挑選較合適的結果；不改怪物公式。橘裝禁止隨機生成。</div><div class="grid3"><div><label>數量</label><input id="gmEqBatchCount" type="number" min="1" max="100" value="10"></div><div><label>稀有度</label><select id="gmEqBatchRarity"><option value="common">⚪ 白色</option><option value="uncommon" selected>🟢 綠色</option><option value="rare">🔵 藍色</option><option value="epic">🟣 紫色</option></select></div><div><label>部位</label><select id="gmEqBatchSlot"><option value="">全部隨機</option><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div></div><button class="btn purple" onclick="gmGenerateEquipmentBatchV101194()">批量生成並放入背包</button>';
-    panel.appendChild(card);
+    card.classList.add('gm-tab-section');card.dataset.gmTab='rewards';
+    const rewardsCards=[...panel.querySelectorAll('.gm-tab-section[data-gm-tab="rewards"]')],anchor=rewardsCards.at(-1);
+    if(anchor)anchor.insertAdjacentElement('afterend',card);else panel.appendChild(card);
+    const active=sessionStorage.getItem('studyRPG_gmTab')||'semester';card.classList.toggle('gm-tab-hidden',active!=='rewards');
+  }
+  const oldRenderGM=window.renderGM;
+  window.renderGM=function(){
+    const result=oldRenderGM.apply(this,arguments);setTimeout(mountEquipmentBatchPanel,0);return result;
   };
+  const oldSetGMTab=window.setGMTab;
+  if(typeof oldSetGMTab==='function')window.setGMTab=function(tab,scroll=true){const result=oldSetGMTab(tab,scroll);mountEquipmentBatchPanel();const card=document.getElementById('gmEquipmentBatchV101194');if(card)card.classList.toggle('gm-tab-hidden',tab!=='rewards');return result;};
+  const gmPanel=document.getElementById('panel-gm');if(gmPanel)new MutationObserver(()=>mountEquipmentBatchPanel()).observe(gmPanel,{childList:true});
+  setTimeout(mountEquipmentBatchPanel,0);
 
   window.showBattleItems=function(){
     if(!battleStateV10||battleStateV10.busy)return;const box=document.getElementById('battleSubmenu');
