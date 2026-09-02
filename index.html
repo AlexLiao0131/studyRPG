@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.82</title>
+<title>小學勇者大冒險 V10.11.83</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-  <h1>⚔️ 小學勇者大冒險 V10.11.82</h1>
+  <h1>⚔️ 小學勇者大冒險 V10.11.83</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -8962,6 +8962,234 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     FORMAL_PASSIVE_HELP['獵人']='🎯 弱點：普攻命中有22%機率揭露弱點；流血目標提高為47%，流血每次跳傷另有25%機率揭露。弱點持續3回合，可供致命射擊與狙擊消耗。召喚獵犬每場限一次，獵犬有獨立HP、速度與行動回合，也會被敵人鎖定、控制或擊倒。';
     FORMAL_PASSIVE_HELP['聖騎士']='✨ 聖印：開戰持有聖印。持印普攻轉為神聖傷害並按實際傷害35%回MP，命中後把聖印轉移成目標3回合審判印記；一般普攻命中回5% MaxMP。印記使神聖承傷+15%，可同時存在於複數敵人。';
   }
+})();
+</script>
+<script>
+/* V10.11.83：第11週「燃燒的大地」與第12週「古代遺跡」怪物技能／AI。 */
+(function(){
+  Object.assign(STATUS_DATABASE,{
+    smoke_blind:{id:'smoke_blind',name:'煙霧遮蔽',icon:'💨',kind:'debuff',defaultTurns:2},
+    soul_curse:{id:'soul_curse',name:'亡魂詛咒',icon:'💀',kind:'debuff',defaultTurns:2},
+    machine_bind:{id:'machine_bind',name:'機械腕束縛',icon:'🦾',kind:'debuff',defaultTurns:2}
+  });
+
+  Object.assign(MONSTER_SKILL_DATABASE,{
+    /* Week 11 */
+    bandit_slash:{id:'bandit_slash',name:'砍擊',kind:'physical',target:'single',multiplier:1.0},
+    bandit_double_slash:{id:'bandit_double_slash',name:'連續砍擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
+    bandit_smoke:{id:'bandit_smoke',name:'煙霧彈',kind:'debuff',target:'single',status:{id:'smoke_blind',chance:1,duration:2,accuracyPenalty:.20}},
+    goblin_fierce_thrust:{id:'goblin_fierce_thrust',name:'兇狠突刺',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
+    orc_undead_rage:{id:'orc_undead_rage',name:'亡者狂暴',kind:'trigger',target:'self'},
+    orc_soul_heal:{id:'orc_soul_heal',name:'亡魂治療',kind:'heal',target:'self',healMaxHp:.20,conditionHpBelow:.40,maxUsesPerBattle:1},
+    reborn_shadow_bolt:{id:'reborn_shadow_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
+    reborn_life_drain:{id:'reborn_life_drain',name:'生命吸取',kind:'magic',element:'dark',target:'single',multiplier:.90,healFromDamage:.50},
+    reborn_soul_curse:{id:'reborn_soul_curse',name:'亡魂詛咒',kind:'debuff',target:'single',status:{id:'soul_curse',chance:1,duration:2,mdefMultiplier:.80}},
+
+    /* Week 12 */
+    stone_fist:{id:'stone_fist',name:'石拳',kind:'physical',target:'single',multiplier:1.10},
+    stone_charge:{id:'stone_charge',name:'岩石衝撞',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
+    stone_defense:{id:'stone_defense',name:'石像防禦',kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1,cannotUseConsecutively:true},
+    metal_slash:{id:'metal_slash',name:'金屬斬擊',kind:'physical',target:'single',multiplier:1.0},
+    gear_combo:{id:'gear_combo',name:'齒輪連擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.70},
+    core_overheat:{id:'core_overheat',name:'核心過熱',kind:'physical',target:'single',multiplier:1.50,cooldown:2},
+    machine_arm_hit:{id:'machine_arm_hit',name:'機械腕打擊',kind:'physical',target:'single',multiplier:1.0},
+    machine_arm_combo:{id:'machine_arm_combo',name:'連續腕擊',kind:'physical',target:'single',hitsMin:2,hitsMax:4,multiplierPerHit:.40},
+    machine_arm_bind:{id:'machine_arm_bind',name:'機械腕束縛',kind:'physical',target:'single',multiplier:.70,status:{id:'machine_bind',chance:1,duration:2,speedMultiplier:.70}},
+    doll_slash:{id:'doll_slash',name:'人偶斬擊',kind:'physical',target:'single',multiplier:1.0},
+    doll_cross_slash:{id:'doll_cross_slash',name:'交叉斬擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
+    doll_counter_stance:{id:'doll_counter_stance',name:'反擊姿態',kind:'buff',target:'self',duration:1,cannotUseConsecutively:true},
+    doll_self_repair:{id:'doll_self_repair',name:'自我修復',kind:'heal',target:'self',healMaxHp:.20,conditionHpBelow:.35,maxUsesPerBattle:1},
+    pillar_dark_beam:{id:'pillar_dark_beam',name:'黑色光束',kind:'magic',element:'dark',target:'single',multiplier:1.0},
+    pillar_energy_pulse:{id:'pillar_energy_pulse',name:'能量脈衝',kind:'magic',element:'arcane',target:'single',multiplier:1.20,cooldown:2},
+    pillar_defense_order:{id:'pillar_defense_order',name:'防衛指令',kind:'buff',target:'self',damageTakenMultiplier:.75,duration:2,cannotUseConsecutively:true},
+    pillar_attack_order:{id:'pillar_attack_order',name:'攻擊指令',kind:'command',target:'all_allies',cannotUseConsecutively:true},
+    pillar_repair_order:{id:'pillar_repair_order',name:'修復指令',kind:'command',target:'all_allies',cannotUseConsecutively:true}
+  });
+
+  Object.assign(MONSTER_AI_DATABASE,{
+    human_bandit:{skills:[{id:'bandit_slash',weight:3},{id:'bandit_double_slash',weight:2},{id:'bandit_smoke',weight:1}]},
+    reborn_necromancer:{skills:[{id:'reborn_shadow_bolt',weight:3},{id:'reborn_life_drain',weight:2},{id:'reborn_soul_curse',weight:1}]},
+    guardian_stone:{skills:[{id:'stone_fist',weight:3},{id:'stone_charge',weight:2},{id:'stone_defense',weight:1}]},
+    guardian_metal:{skills:[{id:'metal_slash',weight:3},{id:'gear_combo',weight:2},{id:'core_overheat',weight:1}]},
+    guardian_octopus_machine:{skills:[{id:'machine_arm_hit',weight:3},{id:'machine_arm_combo',weight:2},{id:'machine_arm_bind',weight:1}]},
+    guardian_doll:{skills:[{id:'doll_slash',weight:3},{id:'doll_cross_slash',weight:2},{id:'doll_counter_stance',weight:1},{id:'doll_self_repair',weight:5,condition:'low_hp',threshold:.35}]},
+    black_command_pillar:{skills:[{id:'pillar_dark_beam',weight:3},{id:'pillar_energy_pulse',weight:2},{id:'pillar_defense_order',weight:1},{id:'pillar_attack_order',weight:2},{id:'pillar_repair_order',weight:1}]}
+  });
+  Object.assign(ENEMY_SUMMON_DATABASE,{
+    reborn_necromancer:{maxActiveSummons:2,maxTotalSummons:2,candidates:['human_bandit','goblin_soldier','orc_warrior','orc_shaman'],summonOnce:true,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true},
+    black_command_pillar:{maxActiveSummons:2,maxTotalSummons:2,candidates:['guardian_doll'],summonOnce:true,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true}
+  });
+
+  function battleWeekV101183(){
+    return Math.max(1,Number(battleStateV10?.testWeek||semesterWeekIndex())||1);
+  }
+  function weightedSkillV101183(unit,entries){
+    if(unit.chargedSkill)return MONSTER_SKILL_DATABASE[unit.chargedSkill]||null;
+    const pool=entries.map(e=>({entry:e,skill:MONSTER_SKILL_DATABASE[e.id],weight:Number(e.weight||1)})).filter(x=>skillUsableByEnemy(unit,x.entry,x.skill));
+    if(!pool.length)return null;
+    let r=Math.random()*pool.reduce((n,x)=>n+x.weight,0);
+    for(const x of pool){r-=x.weight;if(r<=0)return x.skill;}
+    return pool.at(-1).skill;
+  }
+  function week11RepeatedSkillsV101183(unit){
+    if(battleWeekV101183()!==11)return null;
+    if(unit.monsterId==='goblin_soldier')return [{id:'goblin_slash',weight:3},{id:'goblin_fierce_thrust',weight:2}];
+    if(unit.monsterId==='orc_warrior')return [{id:'orc_swing',weight:3},{id:'orc_charge',weight:1}];
+    if(unit.monsterId==='orc_shaman')return [{id:'staff_hit',weight:2},{id:'chain_lightning',weight:3},{id:'orc_soul_heal',weight:5,condition:'low_hp',threshold:.40}];
+    return null;
+  }
+
+  const previousChooseLiveEnemySkillV101183=chooseLiveEnemySkill;
+  chooseLiveEnemySkill=function(unit){
+    const entries=week11RepeatedSkillsV101183(unit);
+    if(entries){
+      const picked=weightedSkillV101183(unit,entries);
+      if(picked)return picked;
+    }
+    return previousChooseLiveEnemySkillV101183(unit);
+  };
+
+  function aliveLinkedSoulsV101183(boss){
+    return (battleStateV10?.enemies||[]).filter(x=>x.isSummon&&x.week11Soul&&x.summonedBy===boss.uid&&x.hp>0&&x.alive!==false);
+  }
+  function summonWeek11SoulsV101183(boss){
+    if(!boss||boss.monsterId!=='reborn_necromancer'||boss.week11SoulsSummoned||boss.hp<=0)return;
+    boss.week11SoulsSummoned=true;boss.week11SoulLinkActive=true;
+    const pool=['human_bandit','goblin_soldier','orc_warrior','orc_shaman'];
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    const summoned=[];
+    for(const id of pool.slice(0,2)){
+      const soul=summonLiveUnit(id,boss,{statScale:.62,hpScale:.34});
+      if(soul){soul.week11Soul=true;soul.name=`亡魂・${MONSTER_DATABASE[id]?.name||soul.name}`;summoned.push(soul);}
+    }
+    if(summoned.length){
+      addBattleLog(`👻 復活的死靈法師一次召喚「${summoned.map(x=>x.name).join('」與「')}」！`);
+      addBattleLog(`🔗 靈魂連結成立：兩隻亡魂存活時減傷70%，剩一隻時減傷35%。`);showBattleWord('靈魂連結！');renderBattleTargets();
+    }else boss.week11SoulLinkActive=false;
+  }
+  function breakWeek11SoulLinkV101183(boss){
+    if(!boss?.week11SoulLinkActive||boss.week11SoulLinkBroken||aliveLinkedSoulsV101183(boss).length)return;
+    boss.week11SoulLinkBroken=true;boss.week11SoulLinkActive=false;
+    addStatus(boss,{type:'week11_link_break',name:'靈魂連結破綻',turns:1,effectType:'debuff',mods:{damageTaken:.30}});
+    addStatus(boss,{type:'stun',name:'暈眩',turns:1,effectType:'debuff',mods:{},guaranteedSkip:true});
+    addBattleLog('⛓️ 兩隻亡魂都被擊破：靈魂連結解除！復活的死靈法師暈眩1回合，並受到30%額外傷害。');showBattleWord('連結解除！');
+  }
+  function summonPillarDollsV101183(pillar){
+    if(!pillar||pillar.monsterId!=='black_command_pillar'||pillar.commandDollsSummoned||pillar.hp<=0)return;
+    pillar.commandDollsSummoned=true;
+    const made=[];
+    for(let i=0;i<2;i++){
+      const doll=summonLiveUnit('guardian_doll',pillar,{statScale:.62,hpScale:.34});
+      if(doll){doll.commandDoll=true;doll.name=`指令人偶 ${i+1}`;made.push(doll);}
+    }
+    if(made.length){addBattleLog('🗿 黑色發光石柱喚醒兩具守護人偶，開始下達戰鬥指令！');showBattleWord('防衛系統啟動！');renderBattleTargets();}
+  }
+  function exposePillarCoreV101183(pillar){
+    if(!pillar?.commandDollsSummoned||pillar.coreExposed)return;
+    const alive=(battleStateV10?.enemies||[]).some(x=>x.commandDoll&&x.summonedBy===pillar.uid&&x.hp>0&&x.alive!==false);
+    if(alive)return;
+    pillar.coreExposed=true;
+    addStatus(pillar,{type:'pillar_core_exposed',name:'控制核心暴露',turns:999,effectType:'debuff',mods:{defense:-pillar.defense*.30,magicDefense:-pillar.magicDefense*.30}});
+    addBattleLog('⚫ 兩具指令人偶全數停止：黑色發光石柱失去指令技能，防禦與魔防永久降低30%！');showBattleWord('核心暴露！');renderBattleTargets();
+  }
+
+  const previousResolveAttackV101183=resolveAttack;
+  resolveAttack=function(attacker,defender,action={}){
+    const result=previousResolveAttackV101183(attacker,defender,action);
+    if(result?.damage&&defender?.monsterId==='reborn_necromancer'&&defender.week11SoulLinkActive){
+      const count=aliveLinkedSoulsV101183(defender).length;
+      if(count>=2)result.damage=Math.max(1,Math.round(result.damage*.30));
+      else if(count===1)result.damage=Math.max(1,Math.round(result.damage*.65));
+    }
+    return result;
+  };
+
+  const previousApplyDamageToEnemyV101183=applyDamageToEnemy;
+  applyDamageToEnemy=function(unit,damage){
+    const dealt=previousApplyDamageToEnemyV101183(unit,damage);
+    if(unit?.monsterId==='reborn_necromancer'&&unit.hp>0&&unit.hp/unit.maxHp<=.70)summonWeek11SoulsV101183(unit);
+    if(unit?.week11Soul&&unit.hp<=0){
+      const boss=(battleStateV10?.enemies||[]).find(x=>x.uid===unit.summonedBy&&x.monsterId==='reborn_necromancer'&&x.hp>0);
+      if(boss)breakWeek11SoulLinkV101183(boss);
+    }
+    if(unit?.monsterId==='black_command_pillar'&&unit.hp>0&&unit.hp/unit.maxHp<=.70)summonPillarDollsV101183(unit);
+    if(unit?.commandDoll&&unit.hp<=0){
+      const pillar=(battleStateV10?.enemies||[]).find(x=>x.uid===unit.summonedBy&&x.monsterId==='black_command_pillar'&&x.hp>0);
+      if(pillar)exposePillarCoreV101183(pillar);
+    }
+    return dealt;
+  };
+
+  const previousPerformLiveEnemyTurnV101183=performLiveEnemyTurn;
+  performLiveEnemyTurn=async function(unit){
+    if(unit?.monsterId==='orc_warrior'&&battleWeekV101183()===11&&unit.hp>0&&unit.hp/unit.maxHp<=.35&&!unit.week11RageTriggered){
+      unit.week11RageTriggered=true;
+      addTimedEffect(unit,{name:'亡者狂暴',effectType:'buff',turns:999,mods:{attack:unit.attack*.30,defense:-unit.defense*.20}});
+      addBattleLog(`🔥 ${unit.name}發動亡者狂暴：攻擊提高30%、防禦降低20%！`);showBattleWord('亡者狂暴！');renderBattleTargets();
+    }
+    return previousPerformLiveEnemyTurnV101183(unit);
+  };
+
+  const previousExecuteEnemyHitV101183=executeEnemyHit;
+  executeEnemyHit=async function(unit,skill){
+    if(skill?.id==='pillar_attack_order'){
+      const dolls=(battleStateV10?.enemies||[]).filter(x=>x.commandDoll&&x.summonedBy===unit.uid&&x.hp>0&&x.alive!==false);
+      if(!dolls.length){addBattleLog('⚫ 場上已無守護人偶，攻擊指令無法執行。');return;}
+      addBattleLog(`⚔️ 攻擊指令：${dolls.length}具守護人偶立即追加攻擊！`);
+      for(const doll of dolls)await previousExecuteEnemyHitV101183(doll,{id:'pillar_order_slash',name:'指令斬擊',kind:'physical',target:'single',multiplier:.50});
+      return;
+    }
+    if(skill?.id==='pillar_repair_order'){
+      const dolls=(battleStateV10?.enemies||[]).filter(x=>x.commandDoll&&x.summonedBy===unit.uid&&x.hp>0&&x.alive!==false);
+      if(!dolls.length){addBattleLog('⚫ 場上已無守護人偶，修復指令無法執行。');return;}
+      for(const doll of dolls){const heal=Math.max(1,Math.round(doll.maxHp*.15));doll.hp=Math.min(doll.maxHp,doll.hp+heal);addBattleLog(`🔧 ${doll.name}恢復 ${heal} HP。`);}
+      renderBattleTargets();return;
+    }
+    await previousExecuteEnemyHitV101183(unit,skill);
+    if(skill?.id==='core_overheat'&&unit.hp>0){
+      addTimedEffect(unit,{name:'核心過熱',effectType:'debuff',turns:1,mods:{defense:-unit.defense*.25,magicDefense:-unit.magicDefense*.25}});
+      addBattleLog(`♨️ ${unit.name}核心過熱：防禦與魔防降低25%，持續至下次行動。`);renderBattleTargets();
+    }
+  };
+
+  async function guardianDollCounterV101183(target,result){
+    if(!target||target.monsterId!=='guardian_doll'||target.hp<=0||!result?.damage)return;
+    const stance=(target.statuses||[]).find(s=>s.name==='反擊姿態'&&s.turns>0);if(!stance)return;
+    target.statuses=target.statuses.filter(s=>s!==stance);
+    addBattleLog(`🪆 ${target.name}發動反擊姿態！`);
+    const formal=battleStateV10?.formal,oldHound=formal?.hound;if(formal)formal.hound=null;
+    try{await executeEnemyHit(target,{id:'doll_counter',name:'人偶反擊',kind:'physical',target:'single',multiplier:.60});}
+    finally{if(formal)formal.hound=oldHound;}
+    updateBattleStatuses();renderBattleTargets();
+  }
+  const previousHitTargetV101183=hitTarget;
+  hitTarget=async function(target,action,mult,type){const result=await previousHitTargetV101183(target,action,mult,type);await guardianDollCounterV101183(target,result);return result;};
+  const previousExecuteHeroAgainstTargetV101183=executeHeroAgainstTarget;
+  executeHeroAgainstTarget=async function(action){const target=selectedBattleEnemy(),result=await previousExecuteHeroAgainstTargetV101183(action);await guardianDollCounterV101183(target,result);return result;};
+
+  const previousSkillUsableByEnemyV101183=skillUsableByEnemy;
+  skillUsableByEnemy=function(unit,entry,skill){
+    if(!previousSkillUsableByEnemyV101183(unit,entry,skill))return false;
+    if(unit?.monsterId==='black_command_pillar'&&unit.coreExposed&&['pillar_attack_order','pillar_repair_order','pillar_defense_order'].includes(skill?.id))return false;
+    if(['pillar_attack_order','pillar_repair_order'].includes(skill?.id)){
+      const dolls=(battleStateV10?.enemies||[]).filter(x=>x.commandDoll&&x.summonedBy===unit.uid&&x.hp>0&&x.alive!==false);
+      if(!dolls.length)return false;
+      if(skill.id==='pillar_repair_order'&&!dolls.some(x=>x.hp<x.maxHp))return false;
+      return true;
+    }
+    if(skill?.id==='bandit_smoke'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='smoke_blind'))return false;
+    if(skill?.id==='machine_arm_bind'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='machine_bind'))return false;
+    return true;
+  };
+
+  const previousRunBattleSequenceV101183=runBattleSequence;
+  runBattleSequence=function(...args){
+    const result=previousRunBattleSequenceV101183(...args);
+    const id=battleStateV10?.monsterId;
+    if(id==='reborn_necromancer')addBattleLog('👻 70% HP時只會召喚一次：隨機兩隻本週亡魂並建立靈魂連結。');
+    if(id==='black_command_pillar')addBattleLog('⚫ 70% HP時只會喚醒一次兩具守護人偶；擊破兩具人偶可永久暴露控制核心。');
+    return result;
+  };
 })();
 </script>
 </body>
