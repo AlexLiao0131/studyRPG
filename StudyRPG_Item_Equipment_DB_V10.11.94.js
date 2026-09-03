@@ -2,9 +2,7 @@
 (function(){
   'use strict';
   const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'10.11.94'};
-  gameData.equipmentRewardPool=Array.isArray(gameData.equipmentRewardPool)?gameData.equipmentRewardPool:[];
-  gameData.hero.enhancementShards=Math.max(0,Number(gameData.hero.enhancementShards)||0);
-  gameData.equipmentDropRates=gameData.equipmentDropRates||{
+  const DEFAULT_DROP_RATES={
     weekday:{common:25,uncommon:15,rare:5,epic:0,legendary:0},
     friday:{common:20,uncommon:22,rare:15,epic:3,legendary:0},
     apocalypse:{common:0,uncommon:0,rare:100,epic:0,legendary:0},
@@ -14,6 +12,16 @@
     replay:{common:0,uncommon:0,rare:0,epic:100,legendary:0},
     tower:{common:0,uncommon:0,rare:0,epic:98.5,legendary:1.5}
   };
+  function ensureEquipmentRuntimeData(){
+    gameData.equipmentRewardPool=Array.isArray(gameData.equipmentRewardPool)?gameData.equipmentRewardPool:[];
+    gameData.hero=gameData.hero||{};gameData.hero.enhancementShards=Math.max(0,Number(gameData.hero.enhancementShards)||0);
+    const saved=gameData.equipmentDropRates&&typeof gameData.equipmentDropRates==='object'?gameData.equipmentDropRates:{};
+    gameData.equipmentDropRates={};
+    for(const [source,defaults] of Object.entries(DEFAULT_DROP_RATES))gameData.equipmentDropRates[source]={...defaults,...(saved[source]&&typeof saved[source]==='object'?saved[source]:{})};
+    return gameData;
+  }
+  window.ensureEquipmentRuntimeData=ensureEquipmentRuntimeData;
+  ensureEquipmentRuntimeData();
 
   DB.items={
     small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',aliases:['初級生命藥水'],category:'consumable',subtype:'battle',icon:'❤️',effectType:'heal_hp',effectValue:60,battleConsumable:true},
@@ -118,6 +126,7 @@
   };
 
   window.generateEquipmentBatch=function(opts={}){
+    ensureEquipmentRuntimeData();
     const count=Math.max(1,Math.min(100,Number(opts.count)||10)),out=[];
     for(let i=0;i<count;i++){
       const item=generateSmartEquipment(opts),row={id:'equipment_pool_'+uid(),name:item.name,rarity:item.rarity||opts.rarity||'common',equipSlot:item.equipSlot,icon:item.icon||'🛡️',iconId:item.visualId||'',templateData:JSON.parse(JSON.stringify(item)),enabled:true,weight:10,sources:['weekday','friday','apocalypse','demon_general','midterm','final','replay','tower'],minWeek:1,maxWeek:999,dropCount:0,createdAt:new Date().toISOString()};
@@ -173,13 +182,14 @@
   window.gmGrantPoolTest=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id),inv=grantPoolItem(row);if(!inv)return;saveGame();renderAll();renderGM();alert(`測試品【${inv.name}】已放入背包。`);};
 
   window.gmSaveEquipmentDropRates=function(){
+    ensureEquipmentRuntimeData();
     for(const source of Object.keys(SOURCE_LABEL))for(const rarity of Object.keys(RARITY_LABEL)){const el=document.getElementById(`drop_${source}_${rarity}`);if(el)gameData.equipmentDropRates[source][rarity]=Math.max(0,Math.min(100,Number(el.value)||0));}
     saveGame();renderGM();alert('裝備掉落機率已儲存。每列超過100%時，抽取時會按比例自動正規化。');
   };
-  function dropRatesHTML(){return `<div style="overflow-x:auto"><table><thead><tr><th>來源</th>${Object.values(RARITY_LABEL).map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${Object.entries(SOURCE_LABEL).map(([source,label])=>`<tr><td>${label}</td>${Object.keys(RARITY_LABEL).map(r=>`<td><input id="drop_${source}_${r}" type="number" min="0" max="100" value="${Number(gameData.equipmentDropRates[source]?.[r])||0}" style="width:64px">%</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="small">每列合計低於100%時，剩餘機率代表沒有裝備；高於100%會自動按比例換算。</div><button class="btn blue" onclick="gmSaveEquipmentDropRates()">儲存掉落機率</button>`;}
-  function renderPoolManager(){const rows=gameData.equipmentRewardPool||[];return `<div class="card"><h3>🎁 裝備獎勵池（${rows.length}）</h3><div class="small">模板可停用、調整權重、發測試品或刪除；刪除不影響已掉落裝備。</div>${rows.length?rows.map(poolRowHTML).join(''):'<div class="small">獎勵池目前是空的，請先批量生成。</div>'}</div><div class="card"><h3>🎯 掉落品質機率</h3>${dropRatesHTML()}</div>`;}
+  function dropRatesHTML(){ensureEquipmentRuntimeData();return `<div style="overflow-x:auto"><table><thead><tr><th>來源</th>${Object.values(RARITY_LABEL).map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${Object.entries(SOURCE_LABEL).map(([source,label])=>`<tr><td>${label}</td>${Object.keys(RARITY_LABEL).map(r=>`<td><input id="drop_${source}_${r}" type="number" min="0" max="100" value="${Number(gameData.equipmentDropRates[source]?.[r])||0}" style="width:64px">%</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="small">每列合計低於100%時，剩餘機率代表沒有裝備；高於100%會自動按比例換算。</div><button class="btn blue" onclick="gmSaveEquipmentDropRates()">儲存掉落機率</button>`;}
+  function renderPoolManager(){ensureEquipmentRuntimeData();const rows=gameData.equipmentRewardPool||[];return `<div class="card"><h3>🎁 裝備獎勵池（${rows.length}）</h3><div class="small">模板可停用、調整權重、發測試品或刪除；刪除不影響已掉落裝備。</div>${rows.length?rows.map(poolRowHTML).join(''):'<div class="small">獎勵池目前是空的，請先批量生成。</div>'}</div><div class="card"><h3>🎯 掉落品質機率</h3>${dropRatesHTML()}</div>`;}
 
-  function chooseRarity(source){const rates=gameData.equipmentDropRates[source]||{},entries=Object.keys(RARITY_LABEL).map(id=>[id,Math.max(0,Number(rates[id])||0)]),total=entries.reduce((n,x)=>n+x[1],0);if(total<=0)return null;let r=Math.random()*Math.max(100,total);for(const [id,w] of entries){r-=w;if(r<0)return id;}return null;}
+  function chooseRarity(source){ensureEquipmentRuntimeData();const rates=gameData.equipmentDropRates[source]||{},entries=Object.keys(RARITY_LABEL).map(id=>[id,Math.max(0,Number(rates[id])||0)]),total=entries.reduce((n,x)=>n+x[1],0);if(total<=0)return null;let r=Math.random()*Math.max(100,total);for(const [id,w] of entries){r-=w;if(r<0)return id;}return null;}
   function dropSource(){const s=window.battleStateV10||{},id=s.monsterId;if(s.towerMode||s.eventType==='tower')return'tower';if(s.celebrationReplay||s.eventType==='replay')return'replay';if(s.eventType==='final')return'final';if(s.eventType==='midterm')return'midterm';if(String(id||'').startsWith('apocalypse_'))return'apocalypse';if(id==='demon_general')return'demon_general';return new Date(today()+'T12:00:00').getDay()===5?'friday':'weekday';}
   function weightedPoolRow(source,rarity){const week=Math.max(1,Number(semesterWeekIndex?.())||1),rows=(gameData.equipmentRewardPool||[]).filter(x=>x.enabled!==false&&x.rarity===rarity&&(x.sources||[]).includes(source)&&week>=Number(x.minWeek||1)&&week<=Number(x.maxWeek||999));const total=rows.reduce((n,x)=>n+Math.max(0,Number(x.weight)||0),0);if(!rows.length||total<=0)return null;let r=Math.random()*total;for(const x of rows){r-=Math.max(0,Number(x.weight)||0);if(r<=0)return x;}return rows.at(-1);}
   window.rollEquipmentPoolDrop=function(source=dropSource(),forcedRarity=null){const rarity=forcedRarity||chooseRarity(source);if(!rarity)return null;if(rarity==='legendary'&&source==='tower'){const unique=rollTowerUniqueEquipment(Number(battleStateV10?.towerFloor)||1);if(unique)return unique;return null;}const row=weightedPoolRow(source,rarity);if(!row)return null;const inv=grantPoolItem(row,source);return {type:'equipment',label:`${RARITY_LABEL[rarity]} ${inv.name}`,value:inv.id,itemData:inv.itemData};};
@@ -199,9 +209,10 @@
   const originalItemDefinition=window.itemDefinition;
   window.itemDefinition=function(inv){return inv?.itemData||originalItemDefinition(inv);};
   const originalRenderBag=window.renderBag;
-  window.renderBag=function(){originalRenderBag();const panel=document.getElementById('panel-bag');if(!panel)return;const list=gameData.inventory.filter(inv=>itemDef(inv)?.category==='equipment');const box=document.createElement('div');box.className='card';box.innerHTML=`<h3>🔨 裝備處理</h3><div>強化碎片：<b>${gameData.hero.enhancementShards||0}</b>｜強化上限＋10</div><button class="btn gold" onclick="bulkProcessLowEquipment('sell')">批量出售白綠裝</button> <button class="btn purple" onclick="bulkProcessLowEquipment('dismantle')">批量分解白綠裝</button>${list.map(inv=>{const item=itemDef(inv),r=rarityOf(item),lv=Number(item.enhancementLevel)||0,blocked=equippedInventory(inv);return `<div class="card"><b>${RARITY_LABEL[r]||r} ${escapeHtml(inv.name)} ${lv?'＋'+lv:''}</b><div class="small">${equipmentStatText(item)}${blocked?'｜使用中':''}${inv.locked?'｜🔒已鎖定':''}</div><button class="btn gray" onclick="toggleEquipmentLock('${inv.id}')">${inv.locked?'解鎖':'鎖定'}</button> <button class="btn blue" onclick="enhanceEquipment('${inv.id}')" ${lv>=10?'disabled':''}>強化</button> <button class="btn gold" onclick="sellEquipment('${inv.id}')" ${blocked||inv.locked?'disabled':''}>出售</button> <button class="btn red" onclick="dismantleEquipment('${inv.id}')" ${blocked||inv.locked||r==='legendary'?'disabled':''}>分解</button></div>`;}).join('')}</div>`;panel.insertBefore(box,panel.children[2]||null);};
+  window.renderBag=function(){ensureEquipmentRuntimeData();originalRenderBag();const panel=document.getElementById('panel-bag');if(!panel)return;const list=gameData.inventory.filter(inv=>itemDef(inv)?.category==='equipment');const box=document.createElement('div');box.className='card';box.innerHTML=`<h3>🔨 裝備處理</h3><div>強化碎片：<b>${gameData.hero.enhancementShards||0}</b>｜強化上限＋10</div><button class="btn gold" onclick="bulkProcessLowEquipment('sell')">批量出售白綠裝</button> <button class="btn purple" onclick="bulkProcessLowEquipment('dismantle')">批量分解白綠裝</button>${list.map(inv=>{const item=itemDef(inv),r=rarityOf(item),lv=Number(item.enhancementLevel)||0,blocked=equippedInventory(inv);return `<div class="card"><b>${RARITY_LABEL[r]||r} ${escapeHtml(inv.name)} ${lv?'＋'+lv:''}</b><div class="small">${equipmentStatText(item)}${blocked?'｜使用中':''}${inv.locked?'｜🔒已鎖定':''}</div><button class="btn gray" onclick="toggleEquipmentLock('${inv.id}')">${inv.locked?'解鎖':'鎖定'}</button> <button class="btn blue" onclick="enhanceEquipment('${inv.id}')" ${lv>=10?'disabled':''}>強化</button> <button class="btn gold" onclick="sellEquipment('${inv.id}')" ${blocked||inv.locked?'disabled':''}>出售</button> <button class="btn red" onclick="dismantleEquipment('${inv.id}')" ${blocked||inv.locked||r==='legendary'?'disabled':''}>分解</button></div>`;}).join('')}</div>`;panel.insertBefore(box,panel.children[2]||null);};
 
   function mountEquipmentBatchPanel(){
+    ensureEquipmentRuntimeData();
     if(sessionStorage.getItem('parentUnlocked')!=='1')return;
     const panel=document.getElementById('panel-gm');if(!panel||document.getElementById('gmEquipmentBatchV101194'))return;
     const card=document.createElement('div');card.id='gmEquipmentBatchV101194';card.className='card';
