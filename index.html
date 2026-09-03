@@ -10726,7 +10726,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 (function(){
   'use strict';
   window.exportCompleteStudyRPGHTML=async function(){
-    const payload={version:'10.12.3',exportedAt:new Date().toISOString(),battleLayout:gameData.battleLayout||{},sceneCoordinateLayout:gameData.sceneCoordinateLayout||{},skillVisuals:gameData.skillVisuals||{}};
+    const payload={version:'10.12.4',exportedAt:new Date().toISOString(),battleLayout:gameData.battleLayout||{},sceneCoordinateLayout:gameData.sceneCoordinateLayout||{},skillVisuals:gameData.skillVisuals||{}};
     const json=JSON.stringify(payload).replace(/</g,'\\u003c');
     const baked=`<script id="studyRPGBakedDesign">/* STUDYRPG_BAKED_DESIGN_START */\n(function(){const design=${json};window.STUDYRPG_BAKED_DESIGN=design;if(typeof gameData!=='undefined'){gameData.battleLayout=JSON.parse(JSON.stringify(design.battleLayout||{}));gameData.sceneCoordinateLayout=JSON.parse(JSON.stringify(design.sceneCoordinateLayout||{}));gameData.skillVisuals=JSON.parse(JSON.stringify(design.skillVisuals||{}));setTimeout(function(){try{renderAll();window.applySavedBattleLayout?.();}catch(e){console.error('套用內建素材與座標失敗',e);}},0);}})();\n/* STUDYRPG_BAKED_DESIGN_END */<\/script>`;
     let source='';
@@ -10762,6 +10762,24 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   function slider(group,key,label,value,max=500){return `<div><label>${label}：<b id="sizeOut_${key}">${value}px</b></label><input type="range" min="40" max="${max}" step="5" value="${value}" oninput="gmObjectSizePreview('${group}','${key}',this)"></div>`;}
   function install(){ensure();const battle=document.getElementById('gmBattleLayoutStage');if(battle&&!document.getElementById('gmBattleSizeControls')){const d=selectedDevice('gmLayoutDevice'),cfg=gameData.battleLayout[d],box=document.createElement('div');box.id='gmBattleSizeControls';box.className='card grid2';box.innerHTML=slider('battle','battleHero','戰鬥英雄大小',cfg.battleHero)+slider('battle','battleEnemy','戰鬥敵人大小',cfg.battleEnemy)+`<button class="btn purple" onclick="gmSaveObjectSizes('battle')">儲存戰鬥物件大小</button>`;battle.insertAdjacentElement('beforebegin',box);}const scene=document.querySelector('.status-preview');if(scene&&!document.getElementById('gmSceneSizeControls')){const d=selectedDevice('gmSceneDevice'),cfg=gameData.sceneCoordinateLayout[d],box=document.createElement('div');box.id='gmSceneSizeControls';box.className='card';box.innerHTML='<h4>物件大小</h4><div class="pool-edit-grid">'+slider('scene','statusHero','狀態欄英雄',cfg.statusHero)+slider('scene','dungeonHero','副本入口英雄',cfg.dungeonHero)+slider('scene','dungeonEnemy','副本入口敵人',cfg.dungeonEnemy)+'</div><button class="btn purple" onclick="gmSaveObjectSizes(\'scene\')">儲存狀態／副本物件大小</button>';scene.insertAdjacentElement('beforebegin',box);}}
   const oldGM=window.renderGM;window.renderGM=function(){const r=oldGM.apply(this,arguments);setTimeout(install,0);return r;};setTimeout(install,0);applySizes();
+})();
+</script>
+<style>
+.logical-viewport-shell{position:relative;width:100%;overflow:hidden;margin:8px 0 12px;border-radius:12px;background:#080b10}.logical-viewport-canvas{position:absolute!important;left:0;top:0;transform-origin:top left!important;max-width:none!important;margin:0!important}.logical-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}
+</style>
+<script>
+/* V10.12.4：真正依邏輯解析度排版後再等比例縮小，手機不再把三種預覽擠成同一寬度。 */
+(function(){
+  'use strict';
+  const DIM={desktop:{battle:[900,300],status:[900,260],dungeon:[900,220]},tablet:{battle:[720,300],status:[720,260],dungeon:[720,220]},mobile:{battle:[390,260],status:[390,260],dungeon:[390,540]}};
+  function chosenDevice(){return document.getElementById('gmSceneDevice')?.value||document.getElementById('gmLayoutDevice')?.value||'desktop';}
+  function wrapCanvas(el,w,h,device,type){if(!el)return;let shell=el.parentElement?.classList.contains('logical-viewport-shell')?el.parentElement:null;if(!shell){shell=document.createElement('div');shell.className='logical-viewport-shell';el.parentNode.insertBefore(shell,el);shell.appendChild(el);const label=document.createElement('div');label.className='logical-scale-label';shell.appendChild(label);}el.classList.add('logical-viewport-canvas');el.style.setProperty('width',w+'px','important');el.style.setProperty('height',h+'px','important');el.style.setProperty('min-height','0','important');el.style.setProperty('max-width','none','important');if(type==='dungeon')el.style.gridTemplateColumns=device==='mobile'?'1fr':'1fr 1fr';const available=Math.max(1,shell.clientWidth),scale=Math.min(1,available/w);el.style.setProperty('transform',`scale(${scale})`,'important');shell.style.height=Math.ceil(h*scale)+'px';shell.querySelector('.logical-scale-label').textContent=`${device==='desktop'?'電腦':device==='tablet'?'平板':'手機'} ${w}×${h}｜${Math.round(scale*100)}%`;
+  }
+  function installLogicalPreviews(){
+    const sceneDevice=document.getElementById('gmSceneDevice')?.value||'desktop',layoutDevice=document.getElementById('gmLayoutDevice')?.value||'desktop';
+    const sd=DIM[sceneDevice],ld=DIM[layoutDevice];wrapCanvas(document.getElementById('gmBattleLayoutStage'),ld.battle[0],ld.battle[1],layoutDevice,'battle');wrapCanvas(document.querySelector('.battle-preview'),sd.battle[0],sd.battle[1],sceneDevice,'battle');wrapCanvas(document.querySelector('.status-preview'),sd.status[0],sd.status[1],sceneDevice,'status');wrapCanvas(document.querySelector('.dungeon-preview'),sd.dungeon[0],sd.dungeon[1],sceneDevice,'dungeon');
+  }
+  const oldGM=window.renderGM;window.renderGM=function(){const r=oldGM.apply(this,arguments);setTimeout(installLogicalPreviews,0);return r;};addEventListener('resize',installLogicalPreviews);setTimeout(installLogicalPreviews,0);
 })();
 </script>
 </body>
