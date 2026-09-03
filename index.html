@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.94 EQUIPMENT</title>
+<title>小學勇者大冒險 V10.11.94 EQUIPMENT FIX1</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT</h1>
+<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT FIX1</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -10252,6 +10252,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 /* StudyRPG V10.11.94 - embedded item/equipment database */
 (function(){
   'use strict';
+  if(typeof window.escapeHtml!=='function')window.escapeHtml=function(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));};
   const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'10.11.94-equipment'};
   const DEFAULT_DROP_RATES={
     weekday:{common:25,uncommon:15,rare:5,epic:0,legendary:0},
