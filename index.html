@@ -5457,7 +5457,7 @@ let gmEditingTaskId='';
 function gmEditTask(id){gmEditingTaskId=id;gmActiveTab='tasks';renderGM();setTimeout(()=>document.getElementById('gmTaskEditor')?.scrollIntoView({behavior:'smooth',block:'start'}),20);}
 function gmCancelTaskEdit(){gmEditingTaskId='';renderGM();}
 let gmActiveTab=sessionStorage.getItem('studyRPG_gmTab')||'semester';
-const GM_TAB_LABELS={semester:'📚 學期與課表',tasks:'📝 任務與核定',calendar:'📅 行事曆',rewards:'🎁 商店與獎勵',system:'⚙️ 角色與系統'};
+const GM_TAB_LABELS={semester:'📚 學期與課表',tasks:'📝 任務與核定',calendar:'📅 行事曆',rewards:'🎁 商店與獎勵',assets:'🎨 素材／動畫',system:'⚙️ 角色與系統'};
 function setGMTab(tab,scroll=true){
   if(!GM_TAB_LABELS[tab])tab='semester';
   gmActiveTab=tab;sessionStorage.setItem('studyRPG_gmTab',tab);
@@ -5471,6 +5471,7 @@ function gmCardTab(card){
   if(/任務核定|新增任務|修改任務|任務清單|學習進度/.test(title))return 'tasks';
   if(/冒險行事曆|冒險日曆/.test(title))return 'calendar';
   if(/商店|兌換審核|抽獎池|裝備獎勵池|智慧裝備/.test(title))return 'rewards';
+  if(/技能特效與路徑工作台|戰鬥站位與近戰路徑|素材|動畫/.test(title))return 'assets';
   return 'system';
 }
 function applyGMTabs(){
@@ -10613,6 +10614,70 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   };
   const oldRender=window.renderGM;
   window.renderGM=function(){const r=oldRender.apply(this,arguments);document.getElementById('gmT0Forge')?.remove();setTimeout(window.gmFxBind,0);const pool=(gameData.equipmentRewardPool||[]);document.querySelectorAll('[id^="poolWeight_"]').forEach(el=>{const id=el.id.slice(11),details=el.closest('details');if(details&&!details.querySelector('.v10120-edit')){const b=document.createElement('button');b.className='btn purple v10120-edit';b.textContent='完整編輯';b.onclick=()=>window.gmEditPoolRowV10120(id);details.querySelector('summary')?.after(b);}});return r;};
+  if(gameData.hero?.name)renderAll();
+})();
+</script>
+<style>
+.battle-layout-stage{position:relative;height:330px;overflow:hidden;border:1px solid #59616d;border-radius:12px;background:linear-gradient(#203b52 0 72%,#253d29 72%);touch-action:none}.battle-layout-unit{position:absolute;transform:translate(-50%,-50%);font-size:68px;filter:drop-shadow(0 6px 3px #0008);pointer-events:none}.battle-layout-point{position:absolute;width:40px;height:40px;display:grid;place-items:center;transform:translate(-50%,-50%);border-radius:50%;z-index:4;font-size:12px;font-weight:1000;cursor:grab;user-select:none;box-shadow:0 2px 9px #000a}.battle-layout-point.hero{background:#238636}.battle-layout-point.enemy{background:#da3633}.battle-layout-point.attackMid{background:#8957e5}.battle-layout-point.attackStrike{background:#d29922;color:#111}.battle-layout-path{position:absolute;inset:0;pointer-events:none}.battle-layout-path polyline{fill:none;stroke:#f0f6fc;stroke-width:1.5;stroke-dasharray:4 3}
+</style>
+<script>
+/* StudyRPG V10.12.1：響應式戰鬥站位與近戰移動路徑工作台。 */
+(function(){
+  'use strict';
+  const clone=v=>JSON.parse(JSON.stringify(v));
+  const DEFAULTS={
+    desktop:{hero:{x:18,y:68},enemy:{x:82,y:68},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},
+    tablet:{hero:{x:17,y:68},enemy:{x:83,y:68},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},
+    mobile:{hero:{x:18,y:65},enemy:{x:82,y:65},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}
+  };
+  gameData.battleLayout=gameData.battleLayout||clone(DEFAULTS);
+  for(const key of Object.keys(DEFAULTS))gameData.battleLayout[key]={...clone(DEFAULTS[key]),...(gameData.battleLayout[key]||{})};
+  let editDevice='desktop',draft=clone(gameData.battleLayout.desktop);
+  function currentDevice(){const w=window.innerWidth;return w<=600?'mobile':w<=1024?'tablet':'desktop';}
+  function layout(){return gameData.battleLayout?.[currentDevice()]||DEFAULTS[currentDevice()];}
+  function positionUnit(el,p){if(!el||!p)return;el.style.left=p.x+'%';el.style.top=p.y+'%';el.style.right='auto';el.style.bottom='auto';el.style.transform='translate(-50%,-50%)';}
+  window.applySavedBattleLayout=function(){const arena=document.getElementById('battleArena'),cfg=layout();if(!arena)return;positionUnit(document.getElementById('battleChar_hero'),cfg.hero);positionUnit(document.getElementById('battleChar_enemy'),cfg.enemy);requestAnimationFrame(()=>window.positionBattleTargetMarker?.());};
+  const oldRun=window.runBattleSequence;
+  if(typeof oldRun==='function')window.runBattleSequence=function(){const result=oldRun.apply(this,arguments);setTimeout(window.applySavedBattleLayout,0);setTimeout(window.applySavedBattleLayout,120);return result;};
+  const oldTargets=window.renderBattleTargets;
+  if(typeof oldTargets==='function')window.renderBattleTargets=function(){const result=oldTargets.apply(this,arguments);window.applySavedBattleLayout();return result;};
+  window.addEventListener('resize',()=>{if(document.getElementById('battleArena'))window.applySavedBattleLayout();});
+
+  const oldAnimate=window.animateBattleAction;
+  window.animateBattleAction=async function(attackerSide,result,attackerUnit=null,action=null){
+    const type=window.inferSkillActionType?.(action||{})||inferSkillActionType(action||{});
+    if(attackerSide!=='hero'||type!=='melee')return oldAnimate.apply(this,arguments);
+    const attacker=document.getElementById('battleChar_hero'),defender=document.getElementById('battleChar_enemy'),arena=document.getElementById('battleArena');if(!attacker||!defender||!arena)return;
+    window.applySavedBattleLayout();const cfg=layout(),start=cfg.hero,mid=cfg.attackMid,strike=cfg.attackStrike,duration=Math.max(260,Number(cfg.duration)||560),w=arena.clientWidth,h=arena.clientHeight;
+    const offset=p=>({x:(p.x-start.x)/100*w,y:(p.y-start.y)/100*h});const m=offset(mid),s=offset(strike);
+    attacker.dataset.actionType=type;attacker.classList.add('skill-action-'+type);defender.classList.remove('hit','dodge');
+    try{
+      const move=attacker.animate([
+        {transform:'translate(-50%,-50%)',offset:0},
+        {transform:`translate(calc(-50% + ${m.x}px),calc(-50% + ${m.y}px))`,offset:.38},
+        {transform:`translate(calc(-50% + ${s.x}px),calc(-50% + ${s.y}px)) scale(1.05)`,offset:.62},
+        {transform:`translate(calc(-50% + ${s.x}px),calc(-50% + ${s.y}px)) scale(1.02)`,offset:.72},
+        {transform:'translate(-50%,-50%)',offset:1}
+      ],{duration,easing:'ease-in-out'});
+      const visual=action?playSkillVisualSequence('hero',action):Promise.resolve(false);
+      await Promise.all([playHeroAttackFrames(),visual,move.finished.catch(()=>{})]);
+      if(result.type==='dodge')defender.classList.add('dodge');else if(result.damage>0)defender.classList.add('hit');await battleSleep(180);
+    }finally{attacker.classList.remove('skill-action-'+type);delete attacker.dataset.actionType;defender.classList.remove('hit','dodge');window.applySavedBattleLayout();const img=document.getElementById('battleHeroSprite');if(img){img.src=heroSpritePath('idle');img.classList.remove('hero-attack-css');img.classList.add('hero-idle-css');}}
+  };
+
+  function refreshDraft(){draft=clone(gameData.battleLayout[editDevice]||DEFAULTS[editDevice]);}
+  window.gmLayoutDevice=function(){editDevice=document.getElementById('gmLayoutDevice')?.value||'desktop';refreshDraft();renderGM();};
+  function redrawStage(){const stage=document.getElementById('gmBattleLayoutStage'),hero=document.getElementById('gmLayoutHeroIcon'),enemy=document.getElementById('gmLayoutEnemyIcon'),line=document.getElementById('gmLayoutLine');if(!stage)return;if(hero){hero.style.left=draft.hero.x+'%';hero.style.top=draft.hero.y+'%';}if(enemy){enemy.style.left=draft.enemy.x+'%';enemy.style.top=draft.enemy.y+'%';}if(line)line.setAttribute('points',`${draft.hero.x},${draft.hero.y} ${draft.attackMid.x},${draft.attackMid.y} ${draft.attackStrike.x},${draft.attackStrike.y} ${draft.hero.x},${draft.hero.y}`);}
+  function dragPoint(ev){const el=ev.currentTarget,key=el.dataset.layoutPoint,stage=el.parentElement;el.setPointerCapture(ev.pointerId);const move=e=>{const r=stage.getBoundingClientRect();draft[key]={x:Math.round(Math.max(2,Math.min(98,(e.clientX-r.left)/r.width*100))*10)/10,y:Math.round(Math.max(5,Math.min(92,(e.clientY-r.top)/r.height*100))*10)/10};el.style.left=draft[key].x+'%';el.style.top=draft[key].y+'%';redrawStage();};el.onpointermove=move;el.onpointerup=()=>el.onpointermove=null;}
+  window.gmBindBattleLayout=function(){document.querySelectorAll('[data-layout-point]').forEach(x=>x.onpointerdown=dragPoint);redrawStage();};
+  window.gmPreviewBattleLayout=async function(){const stage=document.getElementById('gmBattleLayoutStage'),hero=document.getElementById('gmLayoutHeroIcon');if(!stage||!hero)return;const w=stage.clientWidth,h=stage.clientHeight,start=draft.hero,mid=draft.attackMid,strike=draft.attackStrike,off=p=>({x:(p.x-start.x)/100*w,y:(p.y-start.y)/100*h}),m=off(mid),s=off(strike);await hero.animate([{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${m.x}px),calc(-50% + ${m.y}px))`,offset:.38},{transform:`translate(calc(-50% + ${s.x}px),calc(-50% + ${s.y}px)) scale(1.08)`,offset:.65},{transform:'translate(-50%,-50%)'}],{duration:Math.max(260,Number(document.getElementById('gmLayoutDuration')?.value)||560),easing:'ease-in-out'}).finished.catch(()=>{});};
+  window.gmSaveBattleLayout=function(){draft.duration=Math.max(260,Math.min(2000,Number(document.getElementById('gmLayoutDuration')?.value)||560));gameData.battleLayout[editDevice]=clone(draft);saveGame();alert(`已儲存${editDevice==='desktop'?'電腦':editDevice==='tablet'?'平板':'手機'}站位與近戰路徑。`);};
+  window.gmResetBattleLayout=function(){draft=clone(DEFAULTS[editDevice]);renderGM();};
+  function editorHTML(){return `<div class="card"><h3>🎬 戰鬥站位與近戰路徑</h3><div class="small">綠點＝勇者待機位置、紅點＝敵人待機位置、紫點＝移動轉折、黃點＝貼近攻擊位置。攻擊後會自動沿路返回綠點。</div><div class="grid2"><div><label>裝置版型</label><select id="gmLayoutDevice" onchange="gmLayoutDevice()"><option value="desktop" ${editDevice==='desktop'?'selected':''}>電腦</option><option value="tablet" ${editDevice==='tablet'?'selected':''}>平板</option><option value="mobile" ${editDevice==='mobile'?'selected':''}>手機</option></select></div><div><label>移動時間(ms)</label><input id="gmLayoutDuration" type="number" min="260" max="2000" value="${Number(draft.duration)||560}"></div></div><div id="gmBattleLayoutStage" class="battle-layout-stage"><svg class="battle-layout-path" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline id="gmLayoutLine" points=""></polyline></svg><div id="gmLayoutHeroIcon" class="battle-layout-unit" style="left:${draft.hero.x}%;top:${draft.hero.y}%">🧙</div><div id="gmLayoutEnemyIcon" class="battle-layout-unit" style="left:${draft.enemy.x}%;top:${draft.enemy.y}%">👹</div>${[['hero','勇者'],['enemy','敵人'],['attackMid','轉折'],['attackStrike','攻擊']].map(([k,t])=>`<div class="battle-layout-point ${k}" data-layout-point="${k}" style="left:${draft[k].x}%;top:${draft[k].y}%">${t}</div>`).join('')}</div><button class="btn blue" onclick="gmPreviewBattleLayout()">▶ 預覽近戰移動</button> <button class="btn purple" onclick="gmSaveBattleLayout()">儲存此裝置版型</button> <button class="btn gray" onclick="gmResetBattleLayout()">恢復預設</button></div>`;}
+  const oldPanel=window.renderEquipmentGMPanelHTML;
+  window.renderEquipmentGMPanelHTML=function(){return (oldPanel?.()||'')+editorHTML();};
+  const oldGM=window.renderGM;
+  window.renderGM=function(){const r=oldGM.apply(this,arguments);setTimeout(window.gmBindBattleLayout,0);return r;};
   if(gameData.hero?.name)renderAll();
 })();
 </script>
