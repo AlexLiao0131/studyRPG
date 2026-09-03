@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.95</title>
+<title>小學勇者大冒險 V10.11.96</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-<h1>⚔️ 小學勇者大冒險 V10.11.95</h1>
+<h1>⚔️ 小學勇者大冒險 V10.11.96</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -5470,7 +5470,7 @@ function gmCardTab(card){
   if(/學期基本|考試科目|正式學期/.test(title))return 'semester';
   if(/任務核定|新增任務|修改任務|任務清單|學習進度/.test(title))return 'tasks';
   if(/冒險行事曆|冒險日曆/.test(title))return 'calendar';
-  if(/商店|兌換審核|抽獎池/.test(title))return 'rewards';
+  if(/商店|兌換審核|抽獎池|裝備獎勵池|智慧裝備/.test(title))return 'rewards';
   return 'system';
 }
 function applyGMTabs(){
@@ -5713,6 +5713,7 @@ function renderGM(){
       <button class="btn gold" onclick="gmAddShopItem()">新增商品</button>
     </div>
     <div class="card"><h3>商店清單</h3>${shopList}</div>
+    ${window.renderEquipmentGMPanelHTML?.()||''}
 
     <div class="card">
       <h3>新增每日怪物</h3>
@@ -10248,10 +10249,10 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 })();
 </script>
 <script>
-/* StudyRPG V10.11.95 - embedded item/equipment database and compatibility layer */
+/* StudyRPG V10.11.96 - embedded item/equipment database and compatibility layer */
 (function(){
   'use strict';
-  const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'10.11.95'};
+  const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'10.11.96'};
   const DEFAULT_DROP_RATES={
     weekday:{common:25,uncommon:15,rare:5,epic:0,legendary:0},
     friday:{common:20,uncommon:22,rare:15,epic:3,legendary:0},
@@ -10438,6 +10439,10 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   };
   function dropRatesHTML(){ensureEquipmentRuntimeData();return `<div style="overflow-x:auto"><table><thead><tr><th>來源</th>${Object.values(RARITY_LABEL).map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${Object.entries(SOURCE_LABEL).map(([source,label])=>`<tr><td>${label}</td>${Object.keys(RARITY_LABEL).map(r=>`<td><input id="drop_${source}_${r}" type="number" min="0" max="100" value="${Number(gameData.equipmentDropRates[source]?.[r])||0}" style="width:64px">%</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="small">每列合計低於100%時，剩餘機率代表沒有裝備；高於100%會自動按比例換算。</div><button class="btn blue" onclick="gmSaveEquipmentDropRates()">儲存掉落機率</button>`;}
   function renderPoolManager(){ensureEquipmentRuntimeData();const rows=gameData.equipmentRewardPool||[];return `<div class="card"><h3>🎁 裝備獎勵池（${rows.length}）</h3><div class="small">模板可停用、調整權重、發測試品或刪除；刪除不影響已掉落裝備。</div>${rows.length?rows.map(poolRowHTML).join(''):'<div class="small">獎勵池目前是空的，請先批量生成。</div>'}</div><div class="card"><h3>🎯 掉落品質機率</h3>${dropRatesHTML()}</div>`;}
+  window.renderEquipmentGMPanelHTML=function(){
+    ensureEquipmentRuntimeData();
+    return `<div id="gmEquipmentBatchV101194" class="card"><h3>🎲 智慧裝備生成與獎勵池</h3><div class="small">依目前職業、能力與週數生成適配裝備；生成結果先加入裝備獎勵池，不會直接塞進背包。橘裝禁止隨機生成。</div><div class="grid3"><div><label>數量</label><input id="gmEqBatchCount" type="number" min="1" max="100" value="10"></div><div><label>稀有度</label><select id="gmEqBatchRarity"><option value="common">⚪ 白色</option><option value="uncommon" selected>🟢 綠色</option><option value="rare">🔵 藍色</option><option value="epic">🟣 紫色</option></select></div><div><label>部位</label><select id="gmEqBatchSlot"><option value="">全部隨機</option><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div></div><button class="btn purple" onclick="gmGenerateEquipmentBatchV101194()">批量生成並加入獎勵池</button>${renderPoolManager()}</div>`;
+  };
 
   function chooseRarity(source){ensureEquipmentRuntimeData();const rates=gameData.equipmentDropRates[source]||{},entries=Object.keys(RARITY_LABEL).map(id=>[id,Math.max(0,Number(rates[id])||0)]),total=entries.reduce((n,x)=>n+x[1],0);if(total<=0)return null;let r=Math.random()*Math.max(100,total);for(const [id,w] of entries){r-=w;if(r<0)return id;}return null;}
   function dropSource(){const s=window.battleStateV10||{},id=s.monsterId;if(s.towerMode||s.eventType==='tower')return'tower';if(s.celebrationReplay||s.eventType==='replay')return'replay';if(s.eventType==='final')return'final';if(s.eventType==='midterm')return'midterm';if(String(id||'').startsWith('apocalypse_'))return'apocalypse';if(id==='demon_general')return'demon_general';return new Date(today()+'T12:00:00').getDay()===5?'friday':'weekday';}
