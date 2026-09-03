@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.96</title>
+<title>小學勇者大冒險 V10.11.94 EQUIPMENT</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1336,7 +1336,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-<h1>⚔️ 小學勇者大冒險 V10.11.96</h1>
+<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -5375,7 +5375,7 @@ function equipmentPanel(){ensureItemSystem();return `<div class="card"><h3>🛡�
 function totalEquipmentStats(){ensureItemSystem();const out={attack:0,magicAttack:0,defense:0,magicDefense:0,speed:0,maxHp:0,maxEnergy:0,crit:0,evade:0,block:0};Object.values(gameData.hero.equipment||{}).forEach(id=>{const inv=gameData.inventory.find(x=>x.id===id),s=itemDefinition(inv)?.stats||{};Object.keys(out).forEach(k=>out[k]+=Number(s[k])||0)});return out;}
 
 function renderShop(){ensureItemSystem();ensureDailySkillBookOffers();let html='<h2>🏪 商店</h2>'+categoryTabs('shop',shopCategoryFilter);const items=gameData.shopItems.filter(i=>i.active&&(shopCategoryFilter==='all'||itemCategory(i)===shopCategoryFilter));if(!items.length)html+='<div class="card small">這個分類目前沒有商品。</div>';items.forEach(i=>{html+=`<div class="card"><strong>${i.icon||'📦'} ${i.name}</strong><span class="pill">${ITEM_CATEGORY_LABELS[itemCategory(i)]||itemCategory(i)}</span><div class="small">${i.description||''}</div>${i.category==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[i.equipSlot]||'裝備'}｜${equipmentStatText(i)}</div>`:''}<div>價格：<span class="bad">${i.price} G</span></div><button class="btn blue" onclick="buyItem('${i.id}')">購買</button></div>`});if(gameData.hero.jobAwakened)html+=`<div class="card"><h3>📘 今日職業技能書</h3>${(gameData.skillBookOffers?.items||[]).length?gameData.skillBookOffers.items.map(o=>`<div><strong>${JOB_SKILL_LIBRARY[o.id]?.name||o.id}</strong>｜${o.price} G <button class="btn purple" onclick="buySkillBook('${o.id}')">購買</button></div>`).join(''):'<div class="small">今天沒有技能書出現。</div>'}</div>`;document.getElementById('panel-shop').innerHTML=html;}
-function renderBag(){ensureItemSystem();let html='<h2>🎒 背包</h2>'+equipmentPanel()+categoryTabs('bag',bagCategoryFilter);const list=gameData.inventory.filter(inv=>bagCategoryFilter==='all'||itemCategory(inv)===bagCategoryFilter);if(!list.length)html+='<div class="card small">這個分類目前沒有物品。</div>';list.forEach(inv=>{const item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong> <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${inv.source==='dungeon'?'副本掉落':inv.source==='lottery'?'抽獎':'商店'}</div>${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`});document.getElementById('panel-bag').innerHTML=html;}
+function renderBag(){ensureItemSystem();let html='<h2>🎒 背包</h2>'+equipmentPanel()+(window.equipmentProcessingHTML?.()||'')+categoryTabs('bag',bagCategoryFilter);const list=gameData.inventory.filter(inv=>bagCategoryFilter==='all'||itemCategory(inv)===bagCategoryFilter);if(!list.length)html+='<div class="card small">這個分類目前沒有物品。</div>';list.forEach(inv=>{const item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong> <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${inv.source==='dungeon'?'副本掉落':inv.source==='lottery'?'抽獎':'商店'}</div>${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`});document.getElementById('panel-bag').innerHTML=html;}
 
 function gmShopTypeFields(){const cat=document.getElementById('gmShopCategory')?.value||'coupon',box=document.getElementById('gmShopExtra');if(!box)return;box.innerHTML=cat==='equipment'?`<div class="grid2"><div><label>裝備部位</label><select id="gmEquipSlot"><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div><div><label>能力種類</label><select id="gmEquipStat"><option value="attack">ATK</option><option value="magicAttack">MATK</option><option value="defense">DEF</option><option value="magicDefense">MDEF</option><option value="speed">SPD</option><option value="crit">暴擊率(%)</option><option value="evade">閃避率(%)</option><option value="block">格擋率(%)</option></select></div></div><label>能力數值</label><input id="gmEquipValue" type="number" value="3">`:cat==='consumable'?`<div class="grid2"><div><label>戰鬥效果</label><select id="gmEffectType"><option value="poison">中毒</option><option value="heal_hp">恢復 HP</option><option value="heal_energy">恢復能量</option></select></div><div><label>效果值</label><input id="gmEffectValue" type="number" value="50"></div></div>`:'';}
 function gmAddShopItem(){ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name){alert('請輸入商品名稱');return;}const category=document.getElementById('gmShopCategory')?.value||'coupon';const item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};if(category==='equipment'){item.equipSlot=document.getElementById('gmEquipSlot')?.value||'weapon';const k=document.getElementById('gmEquipStat')?.value||'attack';let v=Number(document.getElementById('gmEquipValue')?.value)||0;if(['crit','evade','block'].includes(k))v/=100;item.stats[k]=v;}if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}gameData.shopItems.push(item);saveGame();renderAll();}
@@ -10249,10 +10249,10 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 })();
 </script>
 <script>
-/* StudyRPG V10.11.96 - embedded item/equipment database and compatibility layer */
+/* StudyRPG V10.11.94 - embedded item/equipment database */
 (function(){
   'use strict';
-  const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'10.11.96'};
+  const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'10.11.94-equipment'};
   const DEFAULT_DROP_RATES={
     weekday:{common:25,uncommon:15,rare:5,epic:0,legendary:0},
     friday:{common:20,uncommon:22,rare:15,epic:3,legendary:0},
@@ -10411,7 +10411,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   window.gmGenerateEquipmentBatchV101194=function(){
     const count=Math.max(1,Math.min(100,Number(document.getElementById('gmEqBatchCount')?.value)||10)),rarity=document.getElementById('gmEqBatchRarity')?.value||'uncommon',slot=document.getElementById('gmEqBatchSlot')?.value||'';
-    const made=generateEquipmentBatch({count,rarity,slot:slot||undefined,forceAffix:rarity!=='common'});window.renderGM();setTimeout(mountEquipmentBatchPanel,0);alert(`已生成 ${made.length} 件裝備模板並加入獎勵池。`);
+    const made=generateEquipmentBatch({count,rarity,slot:slot||undefined,forceAffix:rarity!=='common'});renderGM();alert(`已生成 ${made.length} 件裝備模板並加入獎勵池。`);
   };
 
   const RARITY_LABEL={common:'⚪ 白',uncommon:'🟢 綠',rare:'🔵 藍',epic:'🟣 紫',legendary:'🟠 橘'};
@@ -10422,20 +10422,20 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     const item=row.templateData||{},stats=typeof equipmentStatText==='function'?equipmentStatText(item):'';
     return `<details class="card"><summary><b>${RARITY_LABEL[row.rarity]||row.rarity}｜${row.icon||'🛡️'} ${escapeHtml(row.name)}</b></summary><div class="small">${stats}<br>部位：${row.equipSlot}｜掉落次數：${row.dropCount||0}</div><div class="grid2"><div><label>權重</label><input id="poolWeight_${row.id}" type="number" min="0" value="${Number(row.weight)||0}"></div><div><label>狀態</label><select id="poolEnabled_${row.id}"><option value="1" ${row.enabled!==false?'selected':''}>啟用</option><option value="0" ${row.enabled===false?'selected':''}>停用</option></select></div></div><button class="btn blue" onclick="gmSavePoolRow('${row.id}')">儲存</button> <button class="btn gray" onclick="gmGrantPoolTest('${row.id}')">發測試品</button> <button class="btn red" onclick="gmDeletePoolRow('${row.id}')">刪除模板</button></details>`;
   }
-  window.gmSavePoolRow=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id);if(!row)return;row.weight=Math.max(0,Number(document.getElementById('poolWeight_'+id)?.value)||0);row.enabled=document.getElementById('poolEnabled_'+id)?.value!=='0';saveGame();window.renderGM();setTimeout(mountEquipmentBatchPanel,0);};
-  window.gmDeletePoolRow=function(id){if(!confirm('刪除這個獎勵池模板？玩家已取得的裝備不受影響。'))return;gameData.equipmentRewardPool=gameData.equipmentRewardPool.filter(x=>x.id!==id);saveGame();window.renderGM();setTimeout(mountEquipmentBatchPanel,0);};
+  window.gmSavePoolRow=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id);if(!row)return;row.weight=Math.max(0,Number(document.getElementById('poolWeight_'+id)?.value)||0);row.enabled=document.getElementById('poolEnabled_'+id)?.value!=='0';saveGame();renderGM();};
+  window.gmDeletePoolRow=function(id){if(!confirm('刪除這個獎勵池模板？玩家已取得的裝備不受影響。'))return;gameData.equipmentRewardPool=gameData.equipmentRewardPool.filter(x=>x.id!==id);saveGame();renderGM();};
   function grantPoolItem(row,source='pool_test'){
     if(!row)return null;const seed=row.templateData||{},fixed=seed.templateLocked===true;
     let item=fixed?JSON.parse(JSON.stringify(seed)):generateSmartEquipment({rarity:row.rarity,slot:row.equipSlot,baseId:seed.baseId,forcedAffixIds:(seed.affixes||[]).map(a=>a.id),forceAffix:row.rarity!=='common'});
     item.id='equipment_instance_'+uid();item.poolTemplateId=row.id;item.enhancementLevel=0;item.unenhancedStats={...(item.stats||{})};item.baseStatsForEnhancement={...(item.stats||{})};item.createdAt=new Date().toISOString();
     const inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source,affixes:item.affixes,tier:item.tier,generated:true,poolTemplateId:row.id,locked:false};gameData.inventory.push(inv);row.dropCount=(Number(row.dropCount)||0)+1;return inv;
   }
-  window.gmGrantPoolTest=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id),inv=grantPoolItem(row);if(!inv)return;saveGame();window.renderGM();setTimeout(mountEquipmentBatchPanel,0);alert(`測試品【${inv.name}】已放入背包。`);};
+  window.gmGrantPoolTest=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id),inv=grantPoolItem(row);if(!inv)return;saveGame();renderGM();alert(`測試品【${inv.name}】已放入背包。`);};
 
   window.gmSaveEquipmentDropRates=function(){
     ensureEquipmentRuntimeData();
     for(const source of Object.keys(SOURCE_LABEL))for(const rarity of Object.keys(RARITY_LABEL)){const el=document.getElementById(`drop_${source}_${rarity}`);if(el)gameData.equipmentDropRates[source][rarity]=Math.max(0,Math.min(100,Number(el.value)||0));}
-    saveGame();window.renderGM();setTimeout(mountEquipmentBatchPanel,0);alert('裝備掉落機率已儲存。每列超過100%時，抽取時會按比例自動正規化。');
+    saveGame();renderGM();alert('裝備掉落機率已儲存。每列超過100%時，抽取時會按比例自動正規化。');
   };
   function dropRatesHTML(){ensureEquipmentRuntimeData();return `<div style="overflow-x:auto"><table><thead><tr><th>來源</th>${Object.values(RARITY_LABEL).map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${Object.entries(SOURCE_LABEL).map(([source,label])=>`<tr><td>${label}</td>${Object.keys(RARITY_LABEL).map(r=>`<td><input id="drop_${source}_${r}" type="number" min="0" max="100" value="${Number(gameData.equipmentDropRates[source]?.[r])||0}" style="width:64px">%</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="small">每列合計低於100%時，剩餘機率代表沒有裝備；高於100%會自動按比例換算。</div><button class="btn blue" onclick="gmSaveEquipmentDropRates()">儲存掉落機率</button>`;}
   function renderPoolManager(){ensureEquipmentRuntimeData();const rows=gameData.equipmentRewardPool||[];return `<div class="card"><h3>🎁 裝備獎勵池（${rows.length}）</h3><div class="small">模板可停用、調整權重、發測試品或刪除；刪除不影響已掉落裝備。</div>${rows.length?rows.map(poolRowHTML).join(''):'<div class="small">獎勵池目前是空的，請先批量生成。</div>'}</div><div class="card"><h3>🎯 掉落品質機率</h3>${dropRatesHTML()}</div>`;}
@@ -10461,31 +10461,11 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   window.dismantleEquipment=function(id){const inv=gameData.inventory.find(x=>x.id===id),item=inv&&itemDef(inv);if(!inv||!item||equippedInventory(inv)||inv.locked)return alert('已裝備或已鎖定的裝備不能分解。');const rarity=rarityOf(item);if(rarity==='legendary')return alert('橘色裝備無法分解。');const amount={common:1,uncommon:3,rare:8,epic:20}[rarity]||1;if(['rare','epic'].includes(rarity)&&!confirm(`分解【${inv.name}】取得 ${amount} 強化碎片？`))return;gameData.hero.enhancementShards+=amount;gameData.inventory=gameData.inventory.filter(x=>x.id!==id);saveGame();renderAll();};
   window.enhanceEquipment=function(id){const inv=gameData.inventory.find(x=>x.id===id);let item=inv&&itemDef(inv);if(!inv||!item)return;if(!inv.itemData){inv.itemData=JSON.parse(JSON.stringify(item));item=inv.itemData;}const lv=Math.max(0,Number(item.enhancementLevel)||0);if(lv>=10)return alert('這件裝備已經強化到＋10。');const cost=ENHANCE_COST[lv+1];if(gameData.hero.enhancementShards<cost)return alert(`強化碎片不足，需要 ${cost}。`);if(!confirm(`消耗 ${cost} 碎片，將【${inv.name}】強化至＋${lv+1}？`))return;gameData.hero.enhancementShards-=cost;const original={...(item.unenhancedStats||item.stats||{})},base=enhancementBase(item),next=lv+1;item.unenhancedStats=original;item.stats={...original};for(const [k,v] of Object.entries(base))if(ENHANCE_KEYS.has(k))item.stats[k]=Math.round((Number(original[k])+(Number(v)||0)*.03*next)*100)/100;item.enhancementLevel=next;saveGame();renderAll();};
   window.bulkProcessLowEquipment=function(mode){const targets=gameData.inventory.filter(inv=>{const item=itemDef(inv),r=rarityOf(item);return item?.category==='equipment'&&['common','uncommon'].includes(r)&&!equippedInventory(inv)&&!inv.locked;});if(!targets.length)return alert('沒有可批量處理的白色或綠色裝備。');if(!confirm(`${mode==='sell'?'出售':'分解'} ${targets.length} 件未鎖定白綠裝？`))return;let gain=0;for(const inv of targets){const item=itemDef(inv),r=rarityOf(item);if(mode==='sell'){const score=Math.max(1,Number(equipmentPowerScore?.(item))||1);gain+=Math.max(1,Math.round(score*(r==='common'?.6:1)));}else gain+=r==='common'?1:3;}const ids=new Set(targets.map(x=>x.id));gameData.inventory=gameData.inventory.filter(x=>!ids.has(x.id));if(mode==='sell')gameData.hero.gold+=gain;else gameData.hero.enhancementShards+=gain;saveGame();renderAll();alert(`已處理 ${targets.length} 件，獲得 ${gain} ${mode==='sell'?'G':'強化碎片'}。`);};
-  const originalItemDefinition=window.itemDefinition;
-  window.itemDefinition=function(inv){return inv?.itemData||originalItemDefinition(inv);};
-  const originalRenderBag=window.renderBag;
-  window.renderBag=function(){ensureEquipmentRuntimeData();originalRenderBag();const panel=document.getElementById('panel-bag');if(!panel)return;const list=gameData.inventory.filter(inv=>itemDef(inv)?.category==='equipment');const box=document.createElement('div');box.className='card';box.innerHTML=`<h3>🔨 裝備處理</h3><div>強化碎片：<b>${gameData.hero.enhancementShards||0}</b>｜強化上限＋10</div><button class="btn gold" onclick="bulkProcessLowEquipment('sell')">批量出售白綠裝</button> <button class="btn purple" onclick="bulkProcessLowEquipment('dismantle')">批量分解白綠裝</button>${list.map(inv=>{const item=itemDef(inv),r=rarityOf(item),lv=Number(item.enhancementLevel)||0,blocked=equippedInventory(inv);return `<div class="card"><b>${RARITY_LABEL[r]||r} ${escapeHtml(inv.name)} ${lv?'＋'+lv:''}</b><div class="small">${equipmentStatText(item)}${blocked?'｜使用中':''}${inv.locked?'｜🔒已鎖定':''}</div><button class="btn gray" onclick="toggleEquipmentLock('${inv.id}')">${inv.locked?'解鎖':'鎖定'}</button> <button class="btn blue" onclick="enhanceEquipment('${inv.id}')" ${lv>=10?'disabled':''}>強化</button> <button class="btn gold" onclick="sellEquipment('${inv.id}')" ${blocked||inv.locked?'disabled':''}>出售</button> <button class="btn red" onclick="dismantleEquipment('${inv.id}')" ${blocked||inv.locked||r==='legendary'?'disabled':''}>分解</button></div>`;}).join('')}</div>`;panel.insertBefore(box,panel.children[2]||null);};
-
-  function mountEquipmentBatchPanel(){
+  window.equipmentProcessingHTML=function(){
     ensureEquipmentRuntimeData();
-    if(sessionStorage.getItem('parentUnlocked')!=='1')return;
-    const panel=document.getElementById('panel-gm');if(!panel||document.getElementById('gmEquipmentBatchV101194'))return;
-    const card=document.createElement('div');card.id='gmEquipmentBatchV101194';card.className='card';
-    card.innerHTML='<h3>🎲 智慧裝備批量生成</h3><div class="small">依目前職業、裸裝能力、週數與同部位裝備挑選較合適的結果；不改怪物公式。橘裝禁止隨機生成。</div><div class="grid3"><div><label>數量</label><input id="gmEqBatchCount" type="number" min="1" max="100" value="10"></div><div><label>稀有度</label><select id="gmEqBatchRarity"><option value="common">⚪ 白色</option><option value="uncommon" selected>🟢 綠色</option><option value="rare">🔵 藍色</option><option value="epic">🟣 紫色</option></select></div><div><label>部位</label><select id="gmEqBatchSlot"><option value="">全部隨機</option><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div></div><button class="btn purple" onclick="gmGenerateEquipmentBatchV101194()">批量生成至裝備獎勵池</button>';
-    card.querySelector('button').textContent='批量生成並加入獎勵池';card.insertAdjacentHTML('beforeend',renderPoolManager());
-    card.classList.add('gm-tab-section');card.dataset.gmTab='rewards';
-    const rewardsCards=[...panel.querySelectorAll('.gm-tab-section[data-gm-tab="rewards"]')],anchor=rewardsCards.at(-1);
-    if(anchor)anchor.insertAdjacentElement('afterend',card);else panel.appendChild(card);
-    const active=sessionStorage.getItem('studyRPG_gmTab')||'semester';card.classList.toggle('gm-tab-hidden',active!=='rewards');
-  }
-  const oldRenderGM=window.renderGM;
-  window.renderGM=function(){
-    const result=oldRenderGM.apply(this,arguments);setTimeout(mountEquipmentBatchPanel,0);return result;
+    const list=(gameData.inventory||[]).filter(inv=>itemDef(inv)?.category==='equipment');
+    return `<div class="card"><h3>🔨 裝備處理</h3><div>強化碎片：<b>${gameData.hero.enhancementShards||0}</b>｜強化上限＋10</div><button class="btn gold" onclick="bulkProcessLowEquipment('sell')">批量出售白綠裝</button> <button class="btn purple" onclick="bulkProcessLowEquipment('dismantle')">批量分解白綠裝</button>${list.map(inv=>{const item=itemDef(inv),r=rarityOf(item),lv=Number(item.enhancementLevel)||0,blocked=equippedInventory(inv);return `<details class="card"><summary><b>${RARITY_LABEL[r]||r} ${escapeHtml(inv.name)} ${lv?'＋'+lv:''}</b></summary><div class="small">${equipmentStatText(item)}${blocked?'｜使用中':''}${inv.locked?'｜🔒已鎖定':''}</div><button class="btn gray" onclick="toggleEquipmentLock('${inv.id}')">${inv.locked?'解鎖':'鎖定'}</button> <button class="btn blue" onclick="enhanceEquipment('${inv.id}')" ${lv>=10?'disabled':''}>強化</button> <button class="btn gold" onclick="sellEquipment('${inv.id}')" ${blocked||inv.locked?'disabled':''}>出售</button> <button class="btn red" onclick="dismantleEquipment('${inv.id}')" ${blocked||inv.locked||r==='legendary'?'disabled':''}>分解</button></details>`;}).join('')}</div>`;
   };
-  const oldSetGMTab=window.setGMTab;
-  if(typeof oldSetGMTab==='function')window.setGMTab=function(tab,scroll=true){const result=oldSetGMTab(tab,scroll);mountEquipmentBatchPanel();const card=document.getElementById('gmEquipmentBatchV101194');if(card)card.classList.toggle('gm-tab-hidden',tab!=='rewards');return result;};
-  const gmPanel=document.getElementById('panel-gm');if(gmPanel)new MutationObserver(()=>mountEquipmentBatchPanel()).observe(gmPanel,{childList:true});
-  setTimeout(mountEquipmentBatchPanel,0);
 
   window.showBattleItems=function(){
     if(!battleStateV10||battleStateV10.busy)return;const box=document.getElementById('battleSubmenu');
