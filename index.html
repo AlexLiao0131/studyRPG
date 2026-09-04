@@ -10879,130 +10879,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     try{const response=await fetch(location.href,{cache:'no-store'});if(response.ok)source=await response.text();}catch(e){}
     if(!source)source='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
     source=source.replace(/<script id="studyRPGBakedDesign">[\s\S]*?STUDYRPG_BAKED_DESIGN_END \*\/<\/script>/gi,'');
-    source=source.replace(/<\/body>/i,baked+'\n<script id="studyRPGMapGroundLayoutV1019">
-(function(){
-'use strict';
-const C=window.STUDYRPG_EDITOR_CONFIG||{};
-const dev=()=>window.studyRPGGroundDeviceV1019?window.studyRPGGroundDeviceV1019():(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
-const gp=(p,d,name)=>window.studyRPGGroundPointV1019?window.studyRPGGroundPointV1019(p,d,undefined,name):p;
-function imp(el,k,v){if(el)el.style.setProperty(k,v,'important')}
-function clearLegacy(el){
- if(!el)return;
- for(const k of ['right','bottom','margin','margin-left','margin-right','margin-top','margin-bottom']) imp(el,k,'auto');
- imp(el,'animation','none');
-}
-function place(el,p,d,name){
- if(!el||!p)return;
- const q=gp(p,d,name);
- clearLegacy(el);
- imp(el,'position','absolute');imp(el,'left',q.x+'%');imp(el,'top',q.y+'%');
- imp(el,'right','auto');imp(el,'bottom','auto');
- imp(el,'transform','translate(-50%,-100%)');imp(el,'transform-origin','center bottom');
-}
-function normalizeInner(img){
- if(!img)return;
- clearLegacy(img);
- imp(img,'position','absolute');
- imp(img,'left','0');imp(img,'top','0');imp(img,'right','auto');imp(img,'bottom','auto');
- imp(img,'transform','none');imp(img,'transform-origin','center bottom');
- imp(img,'max-width','none');imp(img,'max-height','none');
-}
-function monsterIdFromElement(el){
- if(!el)return'';
- const c=[...el.classList].find(x=>x.startsWith('monster-id-'));
- if(c)return c.slice('monster-id-'.length);
- const src=el.getAttribute('src')||'';
- const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_(?:idle|battle)\./);
- return m?m[1]:'';
-}
-function square(el,n){
- n=Number(n);if(!el||!(n>0))return;
- imp(el,'width',n+'px');imp(el,'height',n+'px');
- imp(el,'object-fit','contain');
-}
-function apply(){
- const d=dev(),sc=C.sceneCoordinateLayout?.[d]||{},bl=C.battleLayout?.[d]||{},os=C.objectSizes?.[d]||{};
-
- // STATUS: wrapper owns coordinate, image owns only size.
- const sw=document.querySelector('#panel-hero .hero-scene .warrior-wrap');
- place(sw,sc.statusHero,d,'statusHero');
- const hs=document.getElementById('heroSprite');
- if(hs){imp(hs,'position','relative');imp(hs,'left','auto');imp(hs,'top','auto');imp(hs,'right','auto');imp(hs,'bottom','auto');imp(hs,'transform','none');square(hs,os.statusHero)}
-
- // DUNGEON ENTRY: image itself owns foot coordinate.
- const dh=document.getElementById('dungeonHeroIdle');
- const de=document.getElementById('dungeonEnemyIdle');
- place(dh,sc.dungeonHero,d,'dungeonHero');square(dh,os.dungeonHero);
- place(de,sc.dungeonEnemy,d,'dungeonEnemy');
- if(de){
-   const id=monsterIdFromElement(de),personal=Number(C.monsters?.[id]?.idleSize?.[d]);
-   square(de,personal>0?personal:os.dungeonEnemy);
- }
-
- // BATTLE: outer battleChar owns coordinate and size.
- // Any legacy inner sprite bottom/right/translate is forcibly neutralized.
- const bh=document.getElementById('battleChar_hero');
- const be=document.getElementById('battleChar_enemy');
- place(bh,bl.hero,d,'hero_home');square(bh,os.battleHero);
- place(be,bl.enemy,d,'enemy_home');square(be,os.battleEnemy);
-
- if(bh){
-   const imgs=bh.matches('img')?[bh]:[...bh.querySelectorAll('img')];
-   imgs.forEach(img=>{normalizeInner(img);square(img,os.battleHero)});
- }
- if(be){
-   const imgs=be.matches('img')?[be]:[...be.querySelectorAll('img')];
-   imgs.forEach(img=>{normalizeInner(img);square(img,os.battleEnemy)});
- }
-
- // Some battle versions render sprites outside battleChar_* wrappers.
- const heroSprite=document.getElementById('battleHeroSprite');
- if(heroSprite && heroSprite!==bh && !bh?.contains(heroSprite)){
-   place(heroSprite,bl.hero,d,'hero_home');square(heroSprite,os.battleHero);
- }
- const selectedEnemy=document.querySelector('#battleArena .battle-enemy-unit-sprite');
- if(selectedEnemy && selectedEnemy!==be && !be?.contains(selectedEnemy)){
-   place(selectedEnemy,bl.enemy,d,'enemy_home');square(selectedEnemy,os.battleEnemy);
- }
-}
-window.studyRPGApplyMapGroundLayoutV1019=apply;
-
-function schedule(){apply();requestAnimationFrame(apply);setTimeout(apply,0);setTimeout(apply,80)}
-for(const fn of ['renderHero','renderDungeon','renderBattleTargets','openBattle','renderBattle','startBattle']){
- const old=window[fn];
- if(typeof old==='function')window[fn]=function(){const r=old.apply(this,arguments);schedule();return r}
-}
-const arena=document.getElementById('battleArena');
-if(arena && typeof MutationObserver!=='undefined'){
- new MutationObserver(()=>schedule()).observe(arena,{childList:true,subtree:true});
-}
-addEventListener('resize',schedule);
-schedule();
-})();
-</script>
-
-<style id="studyRPGBattleCoordinateResetV10191">
-#battleArena #battleChar_hero,
-#battleArena #battleChar_enemy{
-  right:auto!important;
-  bottom:auto!important;
-  margin:0!important;
-  transform-origin:center bottom!important;
-}
-#battleArena #battleChar_hero img,
-#battleArena #battleChar_enemy img,
-#battleArena #battleHeroSprite,
-#battleArena .battle-enemy-unit-sprite{
-  right:auto!important;
-  bottom:auto!important;
-  margin:0!important;
-  transform-origin:center bottom!important;
-  max-width:none!important;
-  max-height:none!important;
-}
-</style>
-
-</body>');
+    source=source.replace(/<\/body>/i,baked+'\n</body>');
     const blob=new Blob([source],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='index.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     alert('已匯出完整 index.html。上傳到 GitHub 覆蓋原檔即可；images 資料夾不用搬進 HTML。');
   };
@@ -11375,27 +11252,9 @@ window.STUDYRPG_EDITOR_CONFIG={
       "battleHero": 145,
       "battleEnemy": 145
     }
-  },
-  "mapGround": {}
+  }
 };
 /* STUDYRPG_EDITOR_CONFIG_END */
-<script id="studyRPGMapGroundCoreV1019">
-
-(function(){
-'use strict';
-const C=window.STUDYRPG_EDITOR_CONFIG||{};
-const BASE={desktop:68,tablet:68,mobile:65};
-function dev(){return innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop'}
-function week(){try{if(typeof semesterWeekIndex==='function'){const w=Number(semesterWeekIndex());if(Number.isFinite(w))return w}}catch(e){}return 1}
-function value(d=dev(),w=week()){const row=C.mapGround?.[String(w)]||C.mapGround?.[w];const v=Number(row?.[d]);return Number.isFinite(v)?v:null}
-function shiftPoint(p,d=dev(),w=week(),name=''){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};const g=value(d,w);if(g==null)return{x,y};return{x,y:Math.max(0,Math.min(100,y+(g-BASE[d])))}}
-window.studyRPGGroundDeviceV1019=dev;
-window.studyRPGGroundWeekV1019=week;
-window.studyRPGGroundValueV1019=value;
-window.studyRPGGroundPointV1019=shiftPoint;
-})();
-</script>
-
 </script>
 <script id="studyRPGSceneLayoutRuntimeV10174">
 /* V10.17.5：外部 data.js 直接使用主程式原生欄位名稱，1:1 套用，不建立第二套場景座標。
@@ -11482,7 +11341,7 @@ if(typeof BEGINNER_SKILLS!=='undefined')BEGINNER_SKILLS.forEach(s=>normalizeSkil
 if(typeof JOB_SKILL_LIBRARY!=='undefined')Object.values(JOB_SKILL_LIBRARY).forEach(s=>normalizeSkill(s,C.playerSkills));
 if(typeof MONSTER_SKILL_DATABASE!=='undefined')Object.values(MONSTER_SKILL_DATABASE).forEach(s=>normalizeSkill(s,C.monsterSkills));
 window.studyRPGResolvePresentation=function(action={},enemy=false){const db=enemy?C.monsterSkills:C.playerSkills;const base=action.presentation||{};const ext=db?.[action.id]||{};return Object.assign({enabled:false,actorAction:guessAction(action,enemy),selfFX:[],pathFX:null,targetFX:[]},clone(base),clone(ext),{enabled:!!(ext.enabled||base.enabled)});};
-function ref(name){const d=device(),bl=gameData?.battleLayout?.[d]||{};let p;if(name==='hero_home'&&bl.hero)p=bl.hero;else if(name==='enemy_home'&&bl.enemy)p=bl.enemy;else if(name==='attack_mid'&&bl.attackMid)p=bl.attackMid;else if(name==='attack_strike'&&bl.attackStrike)p=bl.attackStrike;else p=C.referencePoints?.[d]?.[name]||defaultRefs[d][name]||defaultRefs[d].hero_home;return window.studyRPGGroundPointV1019?window.studyRPGGroundPointV1019(p,d,undefined,name):p;}
+function ref(name){const d=device(),bl=gameData?.battleLayout?.[d]||{};if(name==='hero_home'&&bl.hero)return bl.hero;if(name==='enemy_home'&&bl.enemy)return bl.enemy;return C.referencePoints?.[d]?.[name]||defaultRefs[d][name]||defaultRefs[d].hero_home;}
 function monsterMotion(unit,name){const m=typeof MONSTER_DATABASE!=='undefined'?MONSTER_DATABASE[unit?.monsterId]:null;return m?.motionActions?.[name]||m?.motionActions?.melee||MON_DEFAULT.melee;}
 async function fxList(list,point){let ok=false;for(const it of (list||[])){const x=typeof it==='string'?{image:it}:it;if(!x?.image)continue;try{ok=(await showSkillVisualImage(x.image,point,{size:Number(x.size)||96,duration:Number(x.duration)||350}))||ok}catch(e){console.warn('VFX skipped',e)}}return ok;}
 const oldSeq=window.playSkillVisualSequence;
@@ -11509,7 +11368,7 @@ const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){co
 const C=window.STUDYRPG_EDITOR_CONFIG||{};
 const dev=()=>innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop';
 const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
-const point=n=>{const d=dev();let p;if(n==='hero_home')p=C.battleLayout?.[d]?.hero||defaults.hero_home;else if(n==='enemy_home')p=C.battleLayout?.[d]?.enemy||defaults.enemy_home;else if(n==='attack_mid')p=C.battleLayout?.[d]?.attackMid||defaults.enemy_front;else if(n==='attack_strike')p=C.battleLayout?.[d]?.attackStrike||defaults.enemy_front;else p=C.referencePoints?.[d]?.[n]||defaults[n]||defaults.enemy_front;return window.studyRPGGroundPointV1019?window.studyRPGGroundPointV1019(p,d,undefined,n):p;};
+const point=n=>{const d=dev();if(n==='hero_home')return C.battleLayout?.[d]?.hero||defaults.hero_home;if(n==='enemy_home')return C.battleLayout?.[d]?.enemy||defaults.enemy_home;return C.referencePoints?.[d]?.[n]||defaults[n]||defaults.enemy_front;};
 const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
 function currentElement(side){if(side==='hero')return document.getElementById('battleHeroSprite')||document.getElementById('battleChar_hero');const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;return u?document.querySelector(`[data-enemy-uid="${u.uid}"]`):document.querySelector('.battle-enemy-unit-sprite');}
 function anchorBox(side,fx){const arena=document.getElementById('battleArena');if(!arena)return null;let el=currentElement(side),r=el?.getBoundingClientRect(),a=arena.getBoundingClientRect();if(!r){const p=point(side==='hero'?'hero_home':'enemy_home');return {x:a.width*p.x/100,y:a.height*p.y/100,w:100,h:100};}let key='novice';if(side!=='hero'){const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;key=u?.monsterId||''}const ea=side==='hero'?C.heroes?.[key]?.effectAnchor:C.monsters?.[key]?.effectAnchor;const ew=Number(ea?.width||100)/100,eh=Number(ea?.height||100)/100,ey=Number(ea?.y||0)/100;return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2+r.height*ey,w:r.width*ew,h:r.height*eh};}
