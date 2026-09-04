@@ -1636,14 +1636,14 @@ function makeFreshOfficialFamily(){
     profiles:[{id:'hero_1',label:'新勇者',data:d}],
     access:{ownerUid:'',members:{}}};
 }
+// V10.17 存檔安全：正式賽季標記只做標記，永遠不再自動刪除玩家存檔。
+// 若真的需要重置，只能從 GM/家長後台的明確重置功能執行。
 function applyOfficialFreshStartIfNeeded(){
   if(!isOfficialSeasonStarted())return null;
-  if(localStorage.getItem(OFFICIAL_SEASON_MARKER)===CURRENT_SEASON_ID)return null;
-  localStorage.removeItem(FAMILY_KEY);
-  localStorage.removeItem(STORAGE_KEY);
-  sessionStorage.removeItem('activeHeroProfile');
-  localStorage.setItem(OFFICIAL_SEASON_MARKER,CURRENT_SEASON_ID);
-  return makeFreshOfficialFamily();
+  if(localStorage.getItem(OFFICIAL_SEASON_MARKER)!==CURRENT_SEASON_ID){
+    localStorage.setItem(OFFICIAL_SEASON_MARKER,CURRENT_SEASON_ID);
+  }
+  return null;
 }
 const __officialFreshFamily=applyOfficialFreshStartIfNeeded();
 
@@ -1678,11 +1678,70 @@ function getActiveProfile(){
   if(!p){p=familyData.profiles[0];activeProfileId=p.id;}
   return p;
 }
-function persistFamily(){
+const FAMILY_CLOUD_BACKUP_KEY=FAMILY_KEY+'_BACKUP_BEFORE_CLOUD';
+const FAMILY_LAST_GOOD_BACKUP_KEY=FAMILY_KEY+'_BACKUP_LAST_GOOD';
+
+function familyClientUpdatedAt(data=familyData){
+  return Math.max(0,Number(data?.updatedAtClient||0));
+}
+function cloudPayloadClientUpdatedAt(payload){
+  let n=Number(payload?.updatedAtClient||payload?.familyData?.updatedAtClient||0);
+  if(Number.isFinite(n)&&n>0)return n;
+  const ts=payload?.updatedAt;
+  try{
+    if(ts&&typeof ts.toMillis==='function')return Number(ts.toMillis())||0;
+    if(ts&&Number(ts.seconds)>0)return Number(ts.seconds)*1000+Math.floor(Number(ts.nanoseconds||0)/1e6);
+  }catch(e){}
+  return 0;
+}
+function hasMeaningfulFamilyData(data=familyData){
+  return !!(data?.profiles||[]).some(p=>{
+    const d=p?.data||{};
+    return String(d?.hero?.name||'').trim() || (d?.tasks||[]).length || (d?.taskRecords||[]).length || (d?.inventory||[]).length;
+  });
+}
+function backupFamilyBeforeCloudReplace(){
+  try{
+    if(familyData?.profiles?.length){
+      localStorage.setItem(FAMILY_CLOUD_BACKUP_KEY,JSON.stringify({savedAt:Date.now(),familyData}));
+    }
+  }catch(e){console.warn('建立雲端覆蓋前備份失敗',e);}
+}
+function backupLastGoodFamily(){
+  try{
+    if(familyData?.profiles?.length){
+      localStorage.setItem(FAMILY_LAST_GOOD_BACKUP_KEY,JSON.stringify({savedAt:Date.now(),familyData}));
+    }
+  }catch(e){console.warn('建立本機備份失敗',e);}
+}
+function ensureCloudSyncIndicator(){
+  let el=document.getElementById('cloudSyncIndicator');
+  if(el||!document.body)return el;
+  el=document.createElement('div');
+  el.id='cloudSyncIndicator';
+  el.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99999;padding:7px 10px;border-radius:999px;background:rgba(20,25,35,.88);color:#fff;font:12px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.28);pointer-events:none;max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  el.textContent='💾 本機資料已就緒';
+  document.body.appendChild(el);
+  return el;
+}
+function setCloudSyncStatus(state,msg=''){
+  const el=ensureCloudSyncIndicator();
+  const map={local:'💾 本機已儲存',syncing:'🟡 雲端同步中',synced:'☁️ 已同步',error:'🔴 雲端同步失敗',cloud:'☁️ 已載入較新的雲端資料',protected:'🛡️ 保留較新的本機資料'};
+  if(el)el.textContent=(map[state]||'💾 '+state)+(msg?'｜'+msg:'');
+  const ss=document.getElementById('setupCloudStatus');
+  if(ss&&['syncing','synced','error','protected','cloud'].includes(state))ss.textContent=(map[state]||state)+(msg?'｜'+msg:'');
+}
+
+function persistFamily(touchUpdatedAt=false){
   familyData.version=Math.max(10,Number(familyData.version)||0);familyData.seasonId=familyData.seasonId||CURRENT_SEASON_ID;familyData.activeProfileId=activeProfileId;
   const p=getActiveProfile(); p.data=gameData; p.label=gameData.hero?.name||p.label;
+  if(touchUpdatedAt)familyData.updatedAtClient=Date.now();
+  // 舊存檔第一次升級到 V10.17：賦予目前本機資料一個基準時間，避免舊雲端無條件洗掉它。
+  if(!Number(familyData.updatedAtClient))familyData.updatedAtClient=Date.now();
+  backupLastGoodFamily();
   localStorage.setItem(FAMILY_KEY,JSON.stringify(familyData));
   localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData)); // 保留舊版相容備份
+  if(touchUpdatedAt)setCloudSyncStatus('local');
 }
 function switchProfile(id){
   const p=familyData.profiles.find(x=>x.id===id); if(!p)return;
@@ -1806,6 +1865,13 @@ function migrateProfileData(d){
   if(!d.gmAudit)d.gmAudit=[];
 }
 migrateProfileData(gameData);
+// V10.17：既有 localStorage 存檔若沒有 client timestamp，在本機升級時建立一次基準時間。
+// 這能阻止舊雲端資料在新版第一次登入時無條件洗掉目前手機上的內容。
+if(!Number(familyData.updatedAtClient)){
+  familyData.updatedAtClient=Date.now();
+  try{localStorage.setItem(FAMILY_KEY,JSON.stringify(familyData));}catch(e){}
+}
+setTimeout(()=>setCloudSyncStatus('local','安全載入完成'),0);
 
 if(!gameData.gmAudit) gameData.gmAudit=[];
 
@@ -1832,7 +1898,8 @@ function loadGame(){
   }catch(e){return defaultData();}
 }
 function saveGame(){
-  persistFamily();
+  // 所有正式資料修改先安全落地本機，再非同步推送雲端。
+  persistFamily(true);
   evaluateHiddenJob(false);
   if(window.cloudSaveGame) window.cloudSaveGame(familyData);
 }
@@ -6430,6 +6497,8 @@ async function writeFamilyCloud(familyId){
   return true;
 }
 function applyCloudFamilyPayload(payload,localCfg){
+  // 真正以雲端取代前，先保留目前本機完整備份，避免任何同步判斷失誤造成不可逆資料遺失。
+  backupFamilyBeforeCloudReplace();
   if(payload?.familyData?.profiles?.length){
     familyData=payload.familyData;
     activeProfileId=familyData.profiles.some(p=>p.id===familyData.activeProfileId)
@@ -6443,11 +6512,28 @@ function applyCloudFamilyPayload(payload,localCfg){
       access:{ownerUid:'',members:{}}};
     activeProfileId='hero_1';
   }else return false;
+  const cloudTime=cloudPayloadClientUpdatedAt(payload);
+  if(cloudTime>0)familyData.updatedAtClient=Math.max(Number(familyData.updatedAtClient)||0,cloudTime);
   if(!gameData.settings)gameData.settings={parentPinHash:'',cloud:{}};
   gameData.settings.cloud=localCfg||gameData.settings.cloud||{};
   sessionStorage.setItem('activeHeroProfile',activeProfileId);
-  persistFamily();
+  persistFamily(false);
+  setCloudSyncStatus('cloud');
   return true;
+}
+
+function decideCloudReconciliation(payload){
+  const localTime=familyClientUpdatedAt();
+  const cloudTime=cloudPayloadClientUpdatedAt(payload);
+  const localHasData=hasMeaningfulFamilyData();
+  const cloudHasData=!!(payload?.familyData?.profiles?.length||payload?.gameData);
+  if(!cloudHasData)return 'local';
+  if(!localHasData)return 'cloud';
+  // V10.17 升級後一律有 local timestamp；若某份舊 payload 完全沒有 client/server timestamp，寧可保護本機。
+  if(!cloudTime&&localHasData)return 'local';
+  if(cloudTime>localTime)return 'cloud';
+  if(localTime>cloudTime)return 'local';
+  return 'same';
 }
 function updateFamilyCloudStatus(){
   const el=document.getElementById('familyCloudStatus');
@@ -6475,9 +6561,18 @@ function startFamilyRealtime(){
       const redirect=String(snap.data()?.redirectSeasonId||'');
       if(redirect&&redirect!==seasonId){familyData.seasonId=redirect;stopFamilyRealtime();pullCloud({reason:'season-redirect'});return;}
       const localCfg=gameData.settings?.cloud;
+      const payload=snap.data();
+      const decision=decideCloudReconciliation(payload);
+      if(decision==='local'){
+        setCloudSyncStatus('protected','本機版本較新');
+        // 避免 onSnapshot 內同步重入，排到下一輪再補上雲端。
+        setTimeout(()=>{if(!saving)pushCloud({reason:'realtime-local-newer'});},0);
+        return;
+      }
+      if(decision==='same')return;
       applyingRealtimeCloud=true;
       try{
-        if(applyCloudFamilyPayload(snap.data(),localCfg)){
+        if(applyCloudFamilyPayload(payload,localCfg)){
           renderAll();
           updateFamilyCloudStatus();
         }
@@ -6509,13 +6604,31 @@ async function pullCloud(opts={}){
     // 2. 已加入家庭：所有裝置、所有授權家長帳號都讀同一份家庭存檔。
     if(currentFamilyId){
       const shared=await readFamilyCloud(currentFamilyId);
-      if(shared && applyCloudFamilyPayload(shared,localCfg)){
-        lastCloudPullUid=currentUser.uid;
-        startFamilyRealtime();
-        const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已從家庭雲端取回角色';
-        updateFamilyCloudStatus();
-        boot();
-        return true;
+      if(shared){
+        const decision=decideCloudReconciliation(shared);
+        if(decision==='cloud' && applyCloudFamilyPayload(shared,localCfg)){
+          lastCloudPullUid=currentUser.uid;
+          startFamilyRealtime();
+          const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已從家庭雲端取回較新的角色資料';
+          updateFamilyCloudStatus();
+          boot();
+          return true;
+        }
+        if(decision==='local'){
+          setCloudSyncStatus('protected','本機版本較新，正在回存雲端');
+          await pushCloud({reason:'pull-local-newer'});
+          lastCloudPullUid=currentUser.uid;
+          startFamilyRealtime();
+          updateFamilyCloudStatus();
+          return true;
+        }
+        if(decision==='same'){
+          setCloudSyncStatus('synced');
+          lastCloudPullUid=currentUser.uid;
+          startFamilyRealtime();
+          updateFamilyCloudStatus();
+          return true;
+        }
       }
     }
 
@@ -6525,11 +6638,25 @@ async function pullCloud(opts={}){
     if(!legacySnap.exists()&&currentSeasonStorageId()!==CURRENT_SEASON_ID){legacyRef=doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID);legacySnap=await getDoc(legacyRef);}
     if(legacySnap.exists()){
       const payload=legacySnap.data();
-      if(applyCloudFamilyPayload(payload,localCfg)){
+      const decision=decideCloudReconciliation(payload);
+      if(decision==='cloud' && applyCloudFamilyPayload(payload,localCfg)){
         lastCloudPullUid=currentUser.uid;
-        const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已取回原有雲端角色';
+        const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已取回較新的原有雲端角色';
         updateFamilyCloudStatus();
         boot();
+        return true;
+      }
+      if(decision==='local'){
+        setCloudSyncStatus('protected','本機版本較新，正在回存雲端');
+        await pushCloud({reason:'legacy-local-newer'});
+        lastCloudPullUid=currentUser.uid;
+        updateFamilyCloudStatus();
+        return true;
+      }
+      if(decision==='same'){
+        setCloudSyncStatus('synced');
+        lastCloudPullUid=currentUser.uid;
+        updateFamilyCloudStatus();
         return true;
       }
     }
@@ -6554,6 +6681,7 @@ async function pullCloud(opts={}){
 async function pushCloud(opts={}){
   if(!currentUser||!db)return false;
   if(saving){cloudSaveQueued=true;return true;}
+  setCloudSyncStatus('syncing');
   const hasRealHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
   if(!hasRealHero){console.warn('略過雲端寫入：目前沒有已建立的正式角色');return false;}
   saving=true;
@@ -6567,19 +6695,20 @@ async function pushCloud(opts={}){
       if(currentFamilyId){
         const seasonId=currentSeasonStorageId();
         await setDoc(doc(db,'families',currentFamilyId,'seasons',seasonId),{
-          familyData:clone,updatedAt:serverTimestamp(),updatedBy:currentUser.uid
+          familyData:clone,updatedAtClient:Number(clone.updatedAtClient)||Date.now(),updatedAt:serverTimestamp(),updatedBy:currentUser.uid
         },{merge:true});
         const previous=familyData.campaign?.previousSeasonId;
         if(previous&&previous!==seasonId)await setDoc(doc(db,'families',currentFamilyId,'seasons',previous),{redirectSeasonId:seasonId,updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});
       }else{
         await setDoc(doc(db,'users',currentUser.uid,'seasons',currentSeasonStorageId()),{
-          familyData:clone,updatedAt:serverTimestamp()
+          familyData:clone,updatedAtClient:Number(clone.updatedAtClient)||Date.now(),updatedAt:serverTimestamp()
         },{merge:true});
       }
       ok=true;
     }while(cloudSaveQueued);
+    if(ok)setCloudSyncStatus('synced');
     return ok;
-  }catch(e){console.error('雲端儲存失敗',e);return false;}
+  }catch(e){console.error('雲端儲存失敗',e);setCloudSyncStatus('error',String(e?.message||e));return false;}
   finally{saving=false;if(currentFamilyId)startFamilyRealtime();}
 }
 window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
@@ -10871,9 +11000,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 })();
 </script>
 
-<script src="tools/presentation-config.js"></script>
+<script src="tools/data.js"></script>
 <script id="studyRPGPresentationRuntimeV1014">
-/* V10.14：正式戰鬥演出資料層。idle/battle 保留為素材狀態；motionActions 為獨立動作命名空間。 */
+/* V10.16：正式戰鬥演出資料層。idle/battle 保留為素材狀態；motionActions 為獨立動作命名空間。 */
 (function(){
 'use strict';
 const C=window.STUDYRPG_PRESENTATION_CONFIG||{};
@@ -10927,5 +11056,31 @@ const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){co
 })();
 </script>
 
+<style id="studyRPGUnifiedFxStyleV1016">
+#battleArena .study-vfx-node{position:absolute;z-index:30;pointer-events:none;object-fit:contain;transform-origin:center center;will-change:transform,opacity,filter,clip-path}.battle-summon-layer .study-summon-positioned{position:absolute!important;right:auto!important;bottom:auto!important;max-width:none!important;max-height:none!important;transform-origin:center bottom!important}
+</style>
+<script id="studyRPGUnifiedFxRuntimeV1016">
+(function(){
+'use strict';
+const C=window.STUDYRPG_PRESENTATION_CONFIG||{};
+const dev=()=>innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop';
+const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
+const point=n=>C.referencePoints?.[dev()]?.[n]||defaults[n]||defaults.enemy_front;
+const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
+function currentElement(side){if(side==='hero')return document.getElementById('battleHeroSprite')||document.getElementById('battleChar_hero');const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;return u?document.querySelector(`[data-enemy-uid="${u.uid}"]`):document.querySelector('.battle-enemy-unit-sprite');}
+function anchorBox(side,fx){const arena=document.getElementById('battleArena');if(!arena)return null;let el=currentElement(side),r=el?.getBoundingClientRect(),a=arena.getBoundingClientRect();if(!r){const p=point(side==='hero'?'hero_home':'enemy_home');return {x:a.width*p.x/100,y:a.height*p.y/100,w:100,h:100};}let key='novice';if(side!=='hero'){const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;key=u?.monsterId||''}const ea=side==='hero'?C.heroes?.[key]?.effectAnchor:C.monsters?.[key]?.effectAnchor;const ew=Number(ea?.width||100)/100,eh=Number(ea?.height||100)/100,ey=Number(ea?.y||0)/100;return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2+r.height*ey,w:r.width*ew,h:r.height*eh};}
+function transFrames(type,enter=true){switch(type){case'fade':return enter?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}];case'dissolve':return enter?[{opacity:0,clipPath:'inset(50% 50% 50% 50%)',filter:'blur(6px)'},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'blur(0)'}]:[{opacity:1,clipPath:'inset(0 0 0 0)'},{opacity:0,clipPath:'inset(45% 45% 45% 45%)',filter:'blur(7px)'}];case'scale':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.2)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(.2)'}];case'pop':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.4)'},{opacity:1,transform:'translate(-50%,-50%) scale(1.18)'},{transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) scale(1.25)'}];case'slide':return enter?[{opacity:0,transform:'translate(-80%,-50%)'},{opacity:1,transform:'translate(-50%,-50%)'}]:[{opacity:1,transform:'translate(-50%,-50%)'},{opacity:0,transform:'translate(-20%,-50%)'}];case'flash':return enter?[{opacity:0},{opacity:1,filter:'brightness(3)'},{filter:'brightness(1)'}]:[{opacity:1},{opacity:0,filter:'brightness(3)'}];case'rotate':return enter?[{opacity:0,transform:'translate(-50%,-50%) rotate(-180deg) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) rotate(0) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) rotate(180deg) scale(.5)'}];case'blur':return enter?[{opacity:0,filter:'blur(12px)'},{opacity:1,filter:'blur(0)'}]:[{opacity:1,filter:'blur(0)'},{opacity:0,filter:'blur(12px)'}];default:return null}}
+async function playFx(fx,defaultSide){if(!fx?.image)return false;const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=fx.scaleMode==='fixed'?96:(fx.scaleMode==='self'?anchorBox(defaultSide,fx)?.h:b.h);const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
+async function playList(list,side){let ok=false;for(const f of list||[])ok=(await playFx(typeof f==='string'?{image:f}:f,side))||ok;return ok}
+const oldSeq=window.playSkillVisualSequence;window.playSkillVisualSequence=async function(side,action={}){const p=typeof window.studyRPGResolvePresentation==='function'?window.studyRPGResolvePresentation(action,side==='enemy'):(action.presentation||{});if(!p?.enabled)return oldSeq?.(side,action)||false;let ok=await playList(p.selfFX,side);if(p.pathFX?.image){try{const from=skillVisualPoint(side),to=skillVisualPoint(side==='hero'?'enemy':'hero');ok=(await flySkillVisualImage(p.pathFX.image,from,to,{size:Math.round(82*Number(p.pathFX.scale||1)),duration:Number(p.pathFX.duration||420),path:p.pathFX.path||'straight'}))||ok}catch(e){console.warn('path fx fallback',e)}}ok=(await playList(p.targetFX,side))||ok;return ok};
+function skillPresentationForSummoner(summoner){const id=summoner?.lastSkillId;if(!id)return null;const db=summoner?.isSummon||summoner?.monsterId?(C.monsterSkills||{}):(C.playerSkills||{});return db[id]||null}
+function summonSpec(summoner,monsterId){const p=skillPresentationForSummoner(summoner);const arr=p?.summons||[];return arr.find(x=>!x.unitId||x.unitId===monsterId)||arr[0]||null}
+function animateSummonUnit(unit,spec){if(!unit||!spec)return;setTimeout(async()=>{if(spec.delay)await sleep(spec.delay);if(typeof renderBattleEnemySprites==='function')renderBattleEnemySprites();await sleep(20);const el=document.querySelector(`[data-enemy-uid="${unit.uid}"]`),arena=document.getElementById('battleArena');if(!el||!arena)return;const end=point(spec.standPoint||spec.to||'summon_center'),start=point(spec.from||'air_high'),via=point(spec.via||'air_high'),sc=Number(spec.scale||1);el.classList.add('study-summon-positioned');el.style.width=(190*sc)+'px';el.style.height=(190*sc)+'px';el.style.left=end.x+'%';el.style.top=end.y+'%';el.style.bottom='auto';el.style.right='auto';el.style.transform='translate(-50%,-100%)';const dx=(start.x-end.x)*arena.clientWidth/100,dy=(start.y-end.y)*arena.clientHeight/100;const vx=(via.x-end.x)*arena.clientWidth/100,vy=(via.y-end.y)*arena.clientHeight/100;let frames;if(spec.path==='fade')frames=[{opacity:0},{opacity:1}];else if(spec.path==='straight'||spec.path==='drop')frames=[{transform:`translate(calc(-50% + ${dx}px),calc(-100% + ${dy}px)) scale(${sc})`,opacity:0.2},{transform:`translate(-50%,-100%) scale(${sc})`,opacity:1}];else frames=[{transform:`translate(calc(-50% + ${dx}px),calc(-100% + ${dy}px)) scale(${sc})`,opacity:0},{transform:`translate(calc(-50% + ${vx}px),calc(-100% + ${vy}px)) scale(${sc})`,opacity:1,offset:.55},{transform:`translate(-50%,-100%) scale(${sc})`,opacity:1}];await el.animate(frames,{duration:Number(spec.duration||500),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});el.style.transform='translate(-50%,-100%)';},0)}
+const oldSummon=window.summonLiveUnit;if(typeof oldSummon==='function'){window.summonLiveUnit=function(monsterId,summoner,opts={}){const u=oldSummon.apply(this,arguments);if(u){const spec=summonSpec(summoner,monsterId);u.presentationSummon=spec||null;if(spec)animateSummonUnit(u,spec)}return u}}
+// 為所有技能補齊統一欄位；舊技能不啟用時仍走舊邏輯。
+function normalizeAll(s){if(!s)return;s.presentation=Object.assign({enabled:false,actorAction:'melee',selfFX:[],pathFX:null,targetFX:[],summons:[]},s.presentation||{});}
+try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL_LIBRARY||{}).forEach(normalizeAll)}catch(e){}try{Object.values(MONSTER_SKILL_DATABASE||{}).forEach(normalizeAll)}catch(e){}
+})();
+</script>
 </body>
 </html>
