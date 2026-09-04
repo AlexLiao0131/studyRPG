@@ -3880,7 +3880,8 @@ async function flySkillVisualImage(path,from,to,opts={}){
   const img=document.createElement('img');img.className='skill-visual-img';img.src=sprite(path);img.alt='';
   img.style.left=from.x+'px';img.style.top=from.y+'px';img.style.width=(opts.size||82)+'px';img.style.height=(opts.size||82)+'px';layer.appendChild(img);
   const dx=to.x-from.x,dy=to.y-from.y,duration=Number(opts.duration||420);
-  const frames=opts.path==='arc'?[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${dx/2}px),calc(-50% + ${dy/2-70}px))`,offset:.5},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}]:[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}];
+  const mx=opts.mid&&Number.isFinite(opts.mid.x)?opts.mid.x-from.x:dx/2,my=opts.mid&&Number.isFinite(opts.mid.y)?opts.mid.y-from.y:dy/2-70;
+  const frames=opts.path==='arc'?[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${mx}px),calc(-50% + ${my}px))`,offset:.5},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}]:[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}];
   const anim=img.animate(frames,{duration,easing:opts.path==='tracking'?'ease-in-out':'linear'});await anim.finished.catch(()=>{});img.remove();return true;
 }
 async function playSkillVisualSequence(side,action={}){
@@ -11000,12 +11001,314 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 })();
 </script>
 
-<script src="tools/data.js"></script>
-<script id="studyRPGPresentationRuntimeV1014">
+<script id="studyRPGEditorConfig">
+/* STUDYRPG_EDITOR_CONFIG_START */
+window.STUDYRPG_EDITOR_CONFIG={
+  "version": "10.18",
+  "referencePoints": {
+    "desktop": {
+      "hero_home": {
+        "x": 18,
+        "y": 68
+      },
+      "enemy_home": {
+        "x": 82,
+        "y": 68
+      },
+      "enemy_front": {
+        "x": 68,
+        "y": 66
+      },
+      "air_high": {
+        "x": 48,
+        "y": 28
+      },
+      "summon_left": {
+        "x": 62,
+        "y": 69
+      },
+      "summon_center": {
+        "x": 72,
+        "y": 69
+      },
+      "summon_right": {
+        "x": 82,
+        "y": 69
+      }
+    },
+    "tablet": {
+      "hero_home": {
+        "x": 17,
+        "y": 68
+      },
+      "enemy_home": {
+        "x": 83,
+        "y": 68
+      },
+      "enemy_front": {
+        "x": 67,
+        "y": 66
+      },
+      "air_high": {
+        "x": 48,
+        "y": 27
+      },
+      "summon_left": {
+        "x": 60,
+        "y": 69
+      },
+      "summon_center": {
+        "x": 72,
+        "y": 69
+      },
+      "summon_right": {
+        "x": 84,
+        "y": 69
+      }
+    },
+    "mobile": {
+      "hero_home": {
+        "x": 18,
+        "y": 65
+      },
+      "enemy_home": {
+        "x": 82,
+        "y": 65
+      },
+      "enemy_front": {
+        "x": 66,
+        "y": 63
+      },
+      "air_high": {
+        "x": 48,
+        "y": 25
+      },
+      "summon_left": {
+        "x": 54,
+        "y": 67
+      },
+      "summon_center": {
+        "x": 70,
+        "y": 67
+      },
+      "summon_right": {
+        "x": 86,
+        "y": 67
+      }
+    }
+  },
+  "stage": {
+    "desktop": {
+      "bg": {
+        "x": 50,
+        "y": 50,
+        "scale": 1,
+        "locked": true
+      }
+    },
+    "tablet": {
+      "bg": {
+        "x": 50,
+        "y": 50,
+        "scale": 1,
+        "locked": true
+      }
+    },
+    "mobile": {
+      "bg": {
+        "x": 50,
+        "y": 50,
+        "scale": 1,
+        "locked": true
+      }
+    }
+  },
+  "heroes": {},
+  "monsters": {},
+  "playerSkills": {},
+  "monsterSkills": {},
+  "sceneCoordinateLayout": {
+    "desktop": {
+      "statusHero": {
+        "x": 50,
+        "y": 66
+      },
+      "dungeonHero": {
+        "x": 50,
+        "y": 63
+      },
+      "dungeonEnemy": {
+        "x": 50,
+        "y": 63
+      }
+    },
+    "tablet": {
+      "statusHero": {
+        "x": 50,
+        "y": 66
+      },
+      "dungeonHero": {
+        "x": 50,
+        "y": 63
+      },
+      "dungeonEnemy": {
+        "x": 50,
+        "y": 63
+      }
+    },
+    "mobile": {
+      "statusHero": {
+        "x": 50,
+        "y": 62
+      },
+      "dungeonHero": {
+        "x": 50,
+        "y": 60
+      },
+      "dungeonEnemy": {
+        "x": 50,
+        "y": 60
+      }
+    }
+  },
+  "battleLayout": {
+    "desktop": {
+      "hero": {
+        "x": 18,
+        "y": 68
+      },
+      "enemy": {
+        "x": 82,
+        "y": 68
+      },
+      "attackMid": {
+        "x": 42,
+        "y": 60
+      },
+      "attackStrike": {
+        "x": 68,
+        "y": 66
+      },
+      "duration": 560
+    },
+    "tablet": {
+      "hero": {
+        "x": 17,
+        "y": 68
+      },
+      "enemy": {
+        "x": 83,
+        "y": 68
+      },
+      "attackMid": {
+        "x": 42,
+        "y": 60
+      },
+      "attackStrike": {
+        "x": 67,
+        "y": 66
+      },
+      "duration": 560
+    },
+    "mobile": {
+      "hero": {
+        "x": 18,
+        "y": 65
+      },
+      "enemy": {
+        "x": 82,
+        "y": 65
+      },
+      "attackMid": {
+        "x": 42,
+        "y": 57
+      },
+      "attackStrike": {
+        "x": 65,
+        "y": 63
+      },
+      "duration": 520
+    }
+  },
+  "objectSizes": {
+    "desktop": {
+      "statusHero": 160,
+      "dungeonHero": 180,
+      "dungeonEnemy": 180,
+      "battleHero": 190,
+      "battleEnemy": 190
+    },
+    "tablet": {
+      "statusHero": 150,
+      "dungeonHero": 165,
+      "dungeonEnemy": 165,
+      "battleHero": 175,
+      "battleEnemy": 175
+    },
+    "mobile": {
+      "statusHero": 135,
+      "dungeonHero": 135,
+      "dungeonEnemy": 135,
+      "battleHero": 145,
+      "battleEnemy": 145
+    }
+  }
+};
+/* STUDYRPG_EDITOR_CONFIG_END */
+</script>
+<script id="studyRPGSceneLayoutRuntimeV10174">
+/* V10.17.5：外部 data.js 直接使用主程式原生欄位名稱，1:1 套用，不建立第二套場景座標。
+   sceneCoordinateLayout.statusHero / dungeonHero / dungeonEnemy
+   battleLayout.hero / enemy / attackMid / attackStrike / duration
+   objectSizes.statusHero / dungeonHero / dungeonEnemy / battleHero / battleEnemy */
+(function(){
+'use strict';
+const C=window.STUDYRPG_EDITOR_CONFIG||{};
+if(typeof gameData==='undefined')return;
+const DEVICES=['desktop','tablet','mobile'];
+const fallbackCoord={desktop:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},tablet:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},mobile:{statusHero:{x:50,y:62},dungeonHero:{x:50,y:60},dungeonEnemy:{x:50,y:60}}};
+const fallbackBattle={desktop:{hero:{x:18,y:68},enemy:{x:82,y:68},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},tablet:{hero:{x:17,y:68},enemy:{x:83,y:68},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},mobile:{hero:{x:18,y:65},enemy:{x:82,y:65},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}};
+const fallbackSize={desktop:{statusHero:160,dungeonHero:180,dungeonEnemy:180,battleHero:190,battleEnemy:190},tablet:{statusHero:150,dungeonHero:165,dungeonEnemy:165,battleHero:175,battleEnemy:175},mobile:{statusHero:135,dungeonHero:135,dungeonEnemy:135,battleHero:145,battleEnemy:145}};
+const point=(v,f)=>v&&typeof v==='object'&&Number.isFinite(Number(v.x))&&Number.isFinite(Number(v.y))?{x:Number(v.x),y:Number(v.y)}:{...f};
+const size=(v,f)=>Number.isFinite(Number(v))&&Number(v)>0?Number(v):f;
+function migrateLegacySceneLayouts(){
+  // 只為相容 V10.17.3 data.js；轉成原生欄位後立即以原生欄位為準。
+  if(!C.sceneLayouts)return;
+  C.sceneCoordinateLayout=C.sceneCoordinateLayout||{};C.battleLayout=C.battleLayout||{};C.objectSizes=C.objectSizes||{};
+  for(const d of DEVICES){const s=C.sceneLayouts[d]||{},st=s.status||{},en=s.dungeonEntry||{},ba=s.dungeon||{};
+    C.sceneCoordinateLayout[d]=C.sceneCoordinateLayout[d]||{};C.battleLayout[d]=C.battleLayout[d]||{};C.objectSizes[d]=C.objectSizes[d]||{};
+    if(st.hero){C.sceneCoordinateLayout[d].statusHero=point(st.hero,fallbackCoord[d].statusHero);C.objectSizes[d].statusHero=size(st.hero.size,fallbackSize[d].statusHero)}
+    if(en.hero){C.sceneCoordinateLayout[d].dungeonHero=point(en.hero,fallbackCoord[d].dungeonHero);C.objectSizes[d].dungeonHero=size(en.hero.size,fallbackSize[d].dungeonHero)}
+    if(en.enemy){C.sceneCoordinateLayout[d].dungeonEnemy=point(en.enemy,fallbackCoord[d].dungeonEnemy);C.objectSizes[d].dungeonEnemy=size(en.enemy.size,fallbackSize[d].dungeonEnemy)}
+    if(ba.hero){C.battleLayout[d].hero=point(ba.hero,fallbackBattle[d].hero);C.objectSizes[d].battleHero=size(ba.hero.size,fallbackSize[d].battleHero)}
+    if(ba.enemy){C.battleLayout[d].enemy=point(ba.enemy,fallbackBattle[d].enemy);C.objectSizes[d].battleEnemy=size(ba.enemy.size,fallbackSize[d].battleEnemy)}
+  }
+}
+migrateLegacySceneLayouts();
+function applyConfig(){
+  gameData.sceneCoordinateLayout=gameData.sceneCoordinateLayout||{};gameData.battleLayout=gameData.battleLayout||{};gameData.objectSizes=gameData.objectSizes||{};
+  for(const d of DEVICES){
+    const sc=C.sceneCoordinateLayout?.[d]||{},bl=C.battleLayout?.[d]||{},os=C.objectSizes?.[d]||{};
+    gameData.sceneCoordinateLayout[d]=gameData.sceneCoordinateLayout[d]||{};gameData.battleLayout[d]=gameData.battleLayout[d]||{};gameData.objectSizes[d]=gameData.objectSizes[d]||{};
+    for(const k of ['statusHero','dungeonHero','dungeonEnemy']) if(sc[k]) gameData.sceneCoordinateLayout[d][k]=point(sc[k],fallbackCoord[d][k]);
+    for(const k of ['hero','enemy','attackMid','attackStrike']) if(bl[k]) gameData.battleLayout[d][k]=point(bl[k],fallbackBattle[d][k]);
+    if(Number.isFinite(Number(bl.duration))&&Number(bl.duration)>0)gameData.battleLayout[d].duration=Number(bl.duration);
+    for(const k of ['statusHero','dungeonHero','dungeonEnemy','battleHero','battleEnemy']) if(os[k]!=null) gameData.objectSizes[d][k]=size(os[k],fallbackSize[d][k]);
+  }
+  try{window.applySavedBattleLayout?.()}catch(e){}
+}
+window.studyRPGApplyExternalLayoutV10174=applyConfig;
+applyConfig();
+const oldHero=window.renderHero;if(typeof oldHero==='function')window.renderHero=function(){const r=oldHero.apply(this,arguments);setTimeout(applyConfig,0);return r};
+const oldDungeon=window.renderDungeon;if(typeof oldDungeon==='function')window.renderDungeon=function(){const r=oldDungeon.apply(this,arguments);setTimeout(applyConfig,0);return r};
+window.addEventListener('resize',()=>setTimeout(applyConfig,0));
+})();
+</script>
+<script id="studyRPGPresentationRuntimeV10174">
 /* V10.16：正式戰鬥演出資料層。idle/battle 保留為素材狀態；motionActions 為獨立動作命名空間。 */
 (function(){
 'use strict';
-const C=window.STUDYRPG_PRESENTATION_CONFIG||{};
+const C=window.STUDYRPG_EDITOR_CONFIG||{};
 const clone=v=>JSON.parse(JSON.stringify(v));
 const HERO_DEFAULT={
  idle:{spriteState:'idle',motion:'stay',duration:360},
@@ -11038,7 +11341,7 @@ if(typeof BEGINNER_SKILLS!=='undefined')BEGINNER_SKILLS.forEach(s=>normalizeSkil
 if(typeof JOB_SKILL_LIBRARY!=='undefined')Object.values(JOB_SKILL_LIBRARY).forEach(s=>normalizeSkill(s,C.playerSkills));
 if(typeof MONSTER_SKILL_DATABASE!=='undefined')Object.values(MONSTER_SKILL_DATABASE).forEach(s=>normalizeSkill(s,C.monsterSkills));
 window.studyRPGResolvePresentation=function(action={},enemy=false){const db=enemy?C.monsterSkills:C.playerSkills;const base=action.presentation||{};const ext=db?.[action.id]||{};return Object.assign({enabled:false,actorAction:guessAction(action,enemy),selfFX:[],pathFX:null,targetFX:[]},clone(base),clone(ext),{enabled:!!(ext.enabled||base.enabled)});};
-function ref(name){return C.referencePoints?.[device()]?.[name]||defaultRefs[device()][name]||defaultRefs[device()].hero_home;}
+function ref(name){const d=device(),bl=gameData?.battleLayout?.[d]||{};if(name==='hero_home'&&bl.hero)return bl.hero;if(name==='enemy_home'&&bl.enemy)return bl.enemy;return C.referencePoints?.[d]?.[name]||defaultRefs[d][name]||defaultRefs[d].hero_home;}
 function monsterMotion(unit,name){const m=typeof MONSTER_DATABASE!=='undefined'?MONSTER_DATABASE[unit?.monsterId]:null;return m?.motionActions?.[name]||m?.motionActions?.melee||MON_DEFAULT.melee;}
 async function fxList(list,point){let ok=false;for(const it of (list||[])){const x=typeof it==='string'?{image:it}:it;if(!x?.image)continue;try{ok=(await showSkillVisualImage(x.image,point,{size:Number(x.size)||96,duration:Number(x.duration)||350}))||ok}catch(e){console.warn('VFX skipped',e)}}return ok;}
 const oldSeq=window.playSkillVisualSequence;
@@ -11048,7 +11351,7 @@ function idleSprite(side,unit){if(side==='hero'){const img=document.getElementBy
 async function playMotion(side,unit,name){const el=side==='hero'?document.getElementById('battleChar_hero'):(unit?document.querySelector(`[data-enemy-uid="${unit.uid}"]`):document.getElementById('battleChar_enemy'));const arena=document.getElementById('battleArena');const d=side==='hero'?window.heroMotionAction(name):monsterMotion(unit,name);if(!el||!arena){await battleSleep(Number(d.duration)||420);return;}setSprite(side,unit,d);const home=ref(d.from||(side==='hero'?'hero_home':'enemy_home')),to=ref(d.to||'enemy_front'),via=ref(d.via||'air_high'),w=arena.clientWidth,h=arena.clientHeight,off=p=>({x:(p.x-home.x)/100*w,y:(p.y-home.y)/100*h});let frames=[{transform:''}];if(d.motion==='forward'||d.motion==='dash'){let q=off(to);frames=[{transform:''},{transform:`translate(${q.x}px,${q.y}px)`,offset:.55},{transform:''}]}else if(d.motion==='jump'){let a=off(via),q=off(to);frames=[{transform:''},{transform:`translate(${a.x}px,${a.y}px)`,offset:.35},{transform:`translate(${q.x}px,${q.y}px)`,offset:.7},{transform:''}]};try{await el.animate(frames,{duration:Math.max(120,Number(d.duration)||500),easing:d.motion==='jump'?'ease-in-out':'ease'}).finished}catch(e){await battleSleep(Number(d.duration)||420)}idleSprite(side,unit);}
 const oldAnim=window.animateBattleAction;
 window.animateBattleAction=async function(attackerSide,result,attackerUnit=null,action=null){const p=action?window.studyRPGResolvePresentation(action,attackerSide==='enemy'):null;if(!p?.enabled||!p.actorAction)return oldAnim.apply(this,arguments);const defenderSide=attackerSide==='hero'?'enemy':'hero',defender=document.getElementById('battleChar_'+defenderSide);try{await Promise.all([playMotion(attackerSide,attackerUnit,p.actorAction),window.playSkillVisualSequence(attackerSide,action)]);if(result?.type==='dodge')defender?.classList.add('dodge');else if(result?.damage>0)defender?.classList.add('hit');await battleSleep(180)}finally{defender?.classList.remove('dodge','hit');idleSprite(attackerSide,attackerUnit)}};
-function applyStage(){const st=C.stage?.[device()];if(!st)return;const h=document.getElementById('battleChar_hero'),e=document.getElementById('battleChar_enemy'),bg=document.querySelector('#battleArena .battle-scene-background');if(h)h.style.scale=String(st.heroScale||1);if(e)e.style.scale=String(st.enemyScale||1);if(bg){const b=st.bg||{};bg.style.transformOrigin='center';bg.style.transform=`translate(${Number(b.x||50)-50}%,${Number(b.y||50)-50}%) scale(${Number(b.scale)||1})`;}}
+function applyStage(){const st=C.stage?.[device()];if(!st)return;const bg=document.querySelector('#battleArena .battle-scene-background');if(bg){const b=st.bg||{};bg.style.transformOrigin='center';bg.style.transform=`translate(${Number(b.x||50)-50}%,${Number(b.y||50)-50}%) scale(${Number(b.scale)||1})`;}}
 const oldApply=window.applySavedBattleLayout;window.applySavedBattleLayout=function(){const r=oldApply?.apply(this,arguments);applyStage();return r};setTimeout(applyStage,0);addEventListener('resize',applyStage);
 /* 開發調整功能已移至 /tools；正式 GM 不再顯示舊工作台。 */
 function stripDevCards(){const panel=document.getElementById('panel-gm');if(!panel)return;const keys=['技能特效與路徑工作台','戰鬥站位與近戰路徑','完整場景、素材與其他座標','匯出完整遊戲 HTML'];panel.querySelectorAll('.card').forEach(c=>{const t=c.querySelector('h3,h4')?.textContent||'';if(keys.some(k=>t.includes(k))||c.id==='gmBattleSizeControls'||c.id==='gmSceneSizeControls')c.remove();});}
@@ -11062,17 +11365,17 @@ const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){co
 <script id="studyRPGUnifiedFxRuntimeV1016">
 (function(){
 'use strict';
-const C=window.STUDYRPG_PRESENTATION_CONFIG||{};
+const C=window.STUDYRPG_EDITOR_CONFIG||{};
 const dev=()=>innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop';
 const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
-const point=n=>C.referencePoints?.[dev()]?.[n]||defaults[n]||defaults.enemy_front;
+const point=n=>{const d=dev();if(n==='hero_home')return C.battleLayout?.[d]?.hero||defaults.hero_home;if(n==='enemy_home')return C.battleLayout?.[d]?.enemy||defaults.enemy_home;return C.referencePoints?.[d]?.[n]||defaults[n]||defaults.enemy_front;};
 const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
 function currentElement(side){if(side==='hero')return document.getElementById('battleHeroSprite')||document.getElementById('battleChar_hero');const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;return u?document.querySelector(`[data-enemy-uid="${u.uid}"]`):document.querySelector('.battle-enemy-unit-sprite');}
 function anchorBox(side,fx){const arena=document.getElementById('battleArena');if(!arena)return null;let el=currentElement(side),r=el?.getBoundingClientRect(),a=arena.getBoundingClientRect();if(!r){const p=point(side==='hero'?'hero_home':'enemy_home');return {x:a.width*p.x/100,y:a.height*p.y/100,w:100,h:100};}let key='novice';if(side!=='hero'){const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;key=u?.monsterId||''}const ea=side==='hero'?C.heroes?.[key]?.effectAnchor:C.monsters?.[key]?.effectAnchor;const ew=Number(ea?.width||100)/100,eh=Number(ea?.height||100)/100,ey=Number(ea?.y||0)/100;return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2+r.height*ey,w:r.width*ew,h:r.height*eh};}
 function transFrames(type,enter=true){switch(type){case'fade':return enter?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}];case'dissolve':return enter?[{opacity:0,clipPath:'inset(50% 50% 50% 50%)',filter:'blur(6px)'},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'blur(0)'}]:[{opacity:1,clipPath:'inset(0 0 0 0)'},{opacity:0,clipPath:'inset(45% 45% 45% 45%)',filter:'blur(7px)'}];case'scale':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.2)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(.2)'}];case'pop':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.4)'},{opacity:1,transform:'translate(-50%,-50%) scale(1.18)'},{transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) scale(1.25)'}];case'slide':return enter?[{opacity:0,transform:'translate(-80%,-50%)'},{opacity:1,transform:'translate(-50%,-50%)'}]:[{opacity:1,transform:'translate(-50%,-50%)'},{opacity:0,transform:'translate(-20%,-50%)'}];case'flash':return enter?[{opacity:0},{opacity:1,filter:'brightness(3)'},{filter:'brightness(1)'}]:[{opacity:1},{opacity:0,filter:'brightness(3)'}];case'rotate':return enter?[{opacity:0,transform:'translate(-50%,-50%) rotate(-180deg) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) rotate(0) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) rotate(180deg) scale(.5)'}];case'blur':return enter?[{opacity:0,filter:'blur(12px)'},{opacity:1,filter:'blur(0)'}]:[{opacity:1,filter:'blur(0)'},{opacity:0,filter:'blur(12px)'}];default:return null}}
-async function playFx(fx,defaultSide){if(!fx?.image)return false;const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=fx.scaleMode==='fixed'?96:(fx.scaleMode==='self'?anchorBox(defaultSide,fx)?.h:b.h);const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
+async function playFx(fx,defaultSide){if(!fx?.image)return false;if(fx.delay)await sleep(Number(fx.delay)||0);const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=fx.scaleMode==='fixed'?96:(fx.scaleMode==='self'?anchorBox(defaultSide,fx)?.h:b.h);const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
 async function playList(list,side){let ok=false;for(const f of list||[])ok=(await playFx(typeof f==='string'?{image:f}:f,side))||ok;return ok}
-const oldSeq=window.playSkillVisualSequence;window.playSkillVisualSequence=async function(side,action={}){const p=typeof window.studyRPGResolvePresentation==='function'?window.studyRPGResolvePresentation(action,side==='enemy'):(action.presentation||{});if(!p?.enabled)return oldSeq?.(side,action)||false;let ok=await playList(p.selfFX,side);if(p.pathFX?.image){try{const from=skillVisualPoint(side),to=skillVisualPoint(side==='hero'?'enemy':'hero');ok=(await flySkillVisualImage(p.pathFX.image,from,to,{size:Math.round(82*Number(p.pathFX.scale||1)),duration:Number(p.pathFX.duration||420),path:p.pathFX.path||'straight'}))||ok}catch(e){console.warn('path fx fallback',e)}}ok=(await playList(p.targetFX,side))||ok;return ok};
+const oldSeq=window.playSkillVisualSequence;window.playSkillVisualSequence=async function(side,action={}){const p=typeof window.studyRPGResolvePresentation==='function'?window.studyRPGResolvePresentation(action,side==='enemy'):(action.presentation||{});if(!p?.enabled)return oldSeq?.(side,action)||false;let ok=await playList(p.selfFX,side);if(p.pathFX?.image){try{if(p.pathFX.delay)await sleep(Number(p.pathFX.delay)||0);const arena=document.getElementById('battleArena');const pp=n=>{const q=point(n);return arena?{x:arena.clientWidth*q.x/100,y:arena.clientHeight*q.y/100}:null};const defaultFrom=skillVisualPoint(side),defaultTo=skillVisualPoint(side==='hero'?'enemy':'hero');const from=p.pathFX.fromPoint?pp(p.pathFX.fromPoint):defaultFrom,to=p.pathFX.toPoint?pp(p.pathFX.toPoint):defaultTo;ok=(await flySkillVisualImage(p.pathFX.image,from,to,{size:Math.round(82*Number(p.pathFX.scale||1)),duration:Number(p.pathFX.duration||420),path:p.pathFX.path||'straight',mid:p.pathFX.viaPoint?pp(p.pathFX.viaPoint):null}))||ok}catch(e){console.warn('path fx fallback',e)}}ok=(await playList(p.targetFX,side))||ok;return ok};
 function skillPresentationForSummoner(summoner){const id=summoner?.lastSkillId;if(!id)return null;const db=summoner?.isSummon||summoner?.monsterId?(C.monsterSkills||{}):(C.playerSkills||{});return db[id]||null}
 function summonSpec(summoner,monsterId){const p=skillPresentationForSummoner(summoner);const arr=p?.summons||[];return arr.find(x=>!x.unitId||x.unitId===monsterId)||arr[0]||null}
 function animateSummonUnit(unit,spec){if(!unit||!spec)return;setTimeout(async()=>{if(spec.delay)await sleep(spec.delay);if(typeof renderBattleEnemySprites==='function')renderBattleEnemySprites();await sleep(20);const el=document.querySelector(`[data-enemy-uid="${unit.uid}"]`),arena=document.getElementById('battleArena');if(!el||!arena)return;const end=point(spec.standPoint||spec.to||'summon_center'),start=point(spec.from||'air_high'),via=point(spec.via||'air_high'),sc=Number(spec.scale||1);el.classList.add('study-summon-positioned');el.style.width=(190*sc)+'px';el.style.height=(190*sc)+'px';el.style.left=end.x+'%';el.style.top=end.y+'%';el.style.bottom='auto';el.style.right='auto';el.style.transform='translate(-50%,-100%)';const dx=(start.x-end.x)*arena.clientWidth/100,dy=(start.y-end.y)*arena.clientHeight/100;const vx=(via.x-end.x)*arena.clientWidth/100,vy=(via.y-end.y)*arena.clientHeight/100;let frames;if(spec.path==='fade')frames=[{opacity:0},{opacity:1}];else if(spec.path==='straight'||spec.path==='drop')frames=[{transform:`translate(calc(-50% + ${dx}px),calc(-100% + ${dy}px)) scale(${sc})`,opacity:0.2},{transform:`translate(-50%,-100%) scale(${sc})`,opacity:1}];else frames=[{transform:`translate(calc(-50% + ${dx}px),calc(-100% + ${dy}px)) scale(${sc})`,opacity:0},{transform:`translate(calc(-50% + ${vx}px),calc(-100% + ${vy}px)) scale(${sc})`,opacity:1,offset:.55},{transform:`translate(-50%,-100%) scale(${sc})`,opacity:1}];await el.animate(frames,{duration:Number(spec.duration||500),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});el.style.transform='translate(-50%,-100%)';},0)}
@@ -11082,5 +11385,14 @@ function normalizeAll(s){if(!s)return;s.presentation=Object.assign({enabled:fals
 try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL_LIBRARY||{}).forEach(normalizeAll)}catch(e){}try{Object.values(MONSTER_SKILL_DATABASE||{}).forEach(normalizeAll)}catch(e){}
 })();
 </script>
-</body>
+\n<script id="studyRPGNativeLayoutConfigV10175">
+(function(){
+'use strict';
+const C=window.STUDYRPG_EDITOR_CONFIG||{};const dev=()=>innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop';
+function imp(el,k,v){el?.style.setProperty(k,v,'important')}
+function apply(){const d=dev(),sc=C.sceneCoordinateLayout?.[d],bl=C.battleLayout?.[d],os=C.objectSizes?.[d];if(sc){const wrap=document.querySelector('#panel-hero .hero-scene .warrior-wrap');if(wrap&&sc.statusHero){imp(wrap,'left',sc.statusHero.x+'%');imp(wrap,'top',sc.statusHero.y+'%');imp(wrap,'right','auto');imp(wrap,'bottom','auto');imp(wrap,'transform','translate(-50%,-50%)')}const h=document.getElementById('dungeonHeroIdle'),e=document.getElementById('dungeonEnemyIdle');for(const [el,p] of [[h,sc.dungeonHero],[e,sc.dungeonEnemy]])if(el&&p){imp(el,'position','absolute');imp(el,'left',p.x+'%');imp(el,'top',p.y+'%');imp(el,'right','auto');imp(el,'bottom','auto');imp(el,'transform','translate(-50%,-50%)')}}if(bl){for(const [el,p] of [[document.getElementById('battleChar_hero'),bl.hero],[document.getElementById('battleChar_enemy'),bl.enemy]])if(el&&p){imp(el,'left',p.x+'%');imp(el,'top',p.y+'%');imp(el,'right','auto');imp(el,'bottom','auto');imp(el,'transform','translate(-50%,-50%)')}}if(os){for(const [el,n] of [[document.getElementById('heroSprite'),os.statusHero],[document.getElementById('dungeonHeroIdle'),os.dungeonHero],[document.getElementById('dungeonEnemyIdle'),os.dungeonEnemy],[document.getElementById('battleChar_hero'),os.battleHero],[document.getElementById('battleChar_enemy'),os.battleEnemy]])if(el&&Number(n)){imp(el,'width',n+'px');imp(el,'height',n+'px')}}}
+for(const fn of ['renderHero','renderDungeon','renderBattleTargets']){const old=window[fn];if(typeof old==='function')window[fn]=function(){const r=old.apply(this,arguments);setTimeout(apply,0);return r}}
+addEventListener('resize',apply);setTimeout(apply,0);
+})();
+</script>\n</body>
 </html>
