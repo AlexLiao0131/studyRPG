@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudyRPG 演出工具 V10.17.5</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#10141b;color:#eee;font-family:system-ui,-apple-system,sans-serif}header{position:sticky;top:0;z-index:10;background:#171d27;padding:12px 16px;border-bottom:1px solid #394252;display:flex;gap:16px;align-items:center;justify-content:space-between}main{display:grid;grid-template-columns:minmax(360px,520px) 1fr;gap:12px;padding:12px}.card{background:#171d27;border:1px solid #343e4c;border-radius:12px;padding:12px;margin-bottom:10px}label{display:block;font-size:12px;color:#aeb8c7;margin:7px 0 3px}input,select,button{background:#0e131a;color:#fff;border:1px solid #465164;border-radius:8px;padding:8px;width:100%}button{cursor:pointer;background:#273248}button.primary{background:#365b91}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{font-size:11px;color:#9da8b8}.badge{background:#702f2f;border-radius:999px;padding:4px 8px;font-size:12px}.fxrow,.summonrow{border:1px solid #394252;border-radius:10px;padding:8px;margin:7px 0}.headrow{display:flex;justify-content:space-between;align-items:center;gap:8px}.headrow button{width:auto;padding:4px 9px}#stage{height:360px;position:relative;overflow:hidden;background:#080b10;border-radius:12px;border:1px solid #394252}#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center;touch-action:none}#bgResizeBox{position:absolute;border:1px dashed #ffd16688;z-index:7;pointer-events:none;display:none}.bg-resize-handle{position:absolute;width:16px;height:16px;border-radius:50%;background:#ffd166;border:2px solid #111;z-index:30;pointer-events:auto;touch-action:none;cursor:nwse-resize;transform:translate(-50%,-50%)}.bg-resize-handle[data-corner="tr"],.bg-resize-handle[data-corner="bl"]{cursor:nesw-resize}.point{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #111;transform:translate(-50%,-50%);z-index:8;touch-action:none}.point:after{content:attr(data-p);position:absolute;white-space:nowrap;font-size:9px;left:11px;top:-6px;background:#000b;padding:2px 4px;border-radius:4px}#hero,#enemy{position:absolute;transform:translate(-50%,-100%);z-index:5;pointer-events:none}#hero{font-size:64px}#enemy{font-size:72px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{width:auto}.dirty{outline:2px solid #b57d27}.repoStatus{font-size:12px;padding:7px 9px;border-radius:8px;background:#0e131a;border:1px solid #394252;margin-top:8px}.repoStatus.ok{border-color:#3b7650}.repoStatus.warn{border-color:#9b7432}.repoStatus.err{border-color:#8d3d3d}.mini{width:auto;padding:6px 10px}@media(max-width:900px){main{grid-template-columns:1fr}header{align-items:flex-start;gap:8px;flex-direction:column}.row,.row3{grid-template-columns:1fr}.card{padding:10px}}
+*{box-sizing:border-box}body{margin:0;background:#10141b;color:#eee;font-family:system-ui,-apple-system,sans-serif}header{position:sticky;top:0;z-index:10;background:#171d27;padding:12px 16px;border-bottom:1px solid #394252;display:flex;gap:16px;align-items:center;justify-content:space-between}main{display:grid;grid-template-columns:minmax(360px,520px) 1fr;gap:12px;padding:12px}.card{background:#171d27;border:1px solid #343e4c;border-radius:12px;padding:12px;margin-bottom:10px}label{display:block;font-size:12px;color:#aeb8c7;margin:7px 0 3px}input,select,button{background:#0e131a;color:#fff;border:1px solid #465164;border-radius:8px;padding:8px;width:100%}button{cursor:pointer;background:#273248}button.primary{background:#365b91}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{font-size:11px;color:#9da8b8}.badge{background:#702f2f;border-radius:999px;padding:4px 8px;font-size:12px}.fxrow,.summonrow{border:1px solid #394252;border-radius:10px;padding:8px;margin:7px 0}.headrow{display:flex;justify-content:space-between;align-items:center;gap:8px}.headrow button{width:auto;padding:4px 9px}#stage{height:360px;position:relative;overflow:hidden;background:#080b10;border-radius:12px;border:1px solid #394252}#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center;touch-action:none;user-select:none;-webkit-user-drag:none}.point{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #111;transform:translate(-50%,-50%);z-index:8;touch-action:none}.point:after{content:attr(data-p);position:absolute;white-space:nowrap;font-size:9px;left:11px;top:-6px;background:#000b;padding:2px 4px;border-radius:4px}#hero,#enemy{position:absolute;transform:translate(-50%,-100%);z-index:5;pointer-events:none}#hero{font-size:64px}#enemy{font-size:72px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{width:auto}.dirty{outline:2px solid #b57d27}.repoStatus{font-size:12px;padding:7px 9px;border-radius:8px;background:#0e131a;border:1px solid #394252;margin-top:8px}.repoStatus.ok{border-color:#3b7650}.repoStatus.warn{border-color:#9b7432}.repoStatus.err{border-color:#8d3d3d}.mini{width:auto;padding:6px 10px}@media(max-width:900px){main{grid-template-columns:1fr}header{align-items:flex-start;gap:8px;flex-direction:column}.row,.row3{grid-template-columns:1fr}.card{padding:10px}}
 </style>
 <style id="sceneEditorV10175Style">
 .scene-editor-shell{position:relative;width:100%;overflow:hidden;border-radius:12px;background:#080b10;margin-top:8px}.scene-editor-canvas{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;border:1px solid #465164;border-radius:12px;background:#080b10;touch-action:none}.scene-editor-canvas .scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}.scene-unit{position:absolute;object-fit:contain;transform:translate(-50%,-50%);filter:drop-shadow(0 5px 3px #0009);touch-action:none;user-select:none;-webkit-user-drag:none;z-index:4;cursor:grab}.scene-unit.enemy{z-index:5}.entry-grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 64px 1fr;gap:6px;align-items:stretch}.entry-card{position:relative;overflow:hidden;border:2px solid #30363d;border-radius:12px;background:#11161d}.entry-card .scene-bg{filter:saturate(.92) brightness(.72)}.entry-local{position:absolute;left:0;right:0;top:0;height:100%;overflow:hidden}.entry-vs{display:grid;place-items:center;font-size:24px;font-weight:900;color:#d0d7de}.scene-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}.scene-readout{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.scene-readout span{background:#0e131a;border:1px solid #394252;border-radius:8px;padding:5px 8px;font-size:11px}.scene-toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.scene-size-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scene-note{font-size:11px;color:#9da8b8;margin-top:7px}@media(max-width:700px){.scene-toolbar{grid-template-columns:1fr 1fr}.scene-size-grid{grid-template-columns:1fr}}
@@ -40,7 +40,7 @@
 <div class="card" id="visualPreviewCard"><div class="headrow"><b>▶ 即時技能預覽 + Timeline</b><div style="display:flex;gap:6px"><button class="mini" id="previewReset">↩ 回原位</button><button class="mini primary" id="previewPlay">▶ 預覽技能</button></div></div><div class="muted">A → Path → B 與角色 motion 同步播放。點選 FX 後可直接在畫面拖位置；滑鼠滾輪可縮放。Timeline 方塊左右拖曳可調延遲。</div><div id="skillPreviewShell" class="skill-preview-shell"><div id="skillPreviewStage" class="skill-preview-stage"></div></div><div id="previewSelection" class="repoStatus">尚未選取 FX</div><div id="timeline" class="timeline"></div></div>
 <div class="card"><div class="headrow"><b>🧰 圖片素材瀏覽器</b><span class="muted" id="assetCount"></span></div><input id="assetSearch" placeholder="搜尋圖片名稱，例如 fire / slash / slime"><div id="assetGallery" class="asset-gallery"></div></div>
 <div class="card"><div class="row"><div><label>戰鬥背景</label><select id="bg"></select></div><div><label>背景鎖定</label><button id="lock">🔒 背景鎖定</button></div></div><div><label>背景比例 %</label><input id="bs" type="number" value="100"></div><div class="muted">英雄／怪物大小不再在這裡二次縮放，統一由上方三場景的原生 objectSizes 控制。</div></div>
-<div id="stage"><img id="bgImg"><div id="bgResizeBox"></div><div class="bg-resize-handle" data-corner="tl"></div><div class="bg-resize-handle" data-corner="tr"></div><div class="bg-resize-handle" data-corner="bl"></div><div class="bg-resize-handle" data-corner="br"></div><div id="hero">🧙</div><div id="enemy">👹</div></div><div class="muted">白點可拖曳。背景解鎖後：直接拖背景移動、拖四角等比例縮放、滑鼠滾輪縮放。超出戰鬥框的部分會裁切。</div>
+<div id="stage"><img id="bgImg"><div id="hero">🧙</div><div id="enemy">👹</div></div><div class="muted">白點可拖曳。背景解鎖後可拖。召喚站位也是定位點，可供技能直接引用。</div>
 </section></main>
 <script>
 const GAME_SCENE_MANIFEST={"weeks":[{"week":1,"map":"草地","background":"images/backgrounds/week01_grassland.png","monsters":["slime_water","slime_fire","slime_grass","slime_lightning","slime_king"]},{"week":2,"map":"洞窟","background":"images/backgrounds/week02_cave.png","monsters":["goblin_slave","goblin_soldier","goblin_shaman","goblin_general","goblin_king"]},{"week":3,"map":"森林","background":"images/backgrounds/week03_forest.png","monsters":["forest_spider","forest_wolf","forest_bear","treant","dark_elf"]},{"week":4,"map":"荒地","background":"images/backgrounds/week04_wasteland.png","monsters":["orc_slave","orc_warrior","orc_shaman","orc_champion","orc_general"]},{"week":5,"map":"邪惡巫師塔","background":"images/backgrounds/week05_wizard_tower.png","monsters":["skeleton","zombie","abomination","eyeball_monster","necromancer"]},{"week":6,"map":"沙漠","background":"images/backgrounds/week06_desert.png","monsters":["lizard_mummy","giant_beetle","giant_scorpion","lizard_warrior","chimera"]},{"week":7,"map":"金字塔內部","background":"images/backgrounds/week07_pyramid.png","monsters":["lizard_warrior","lizard_mage","lizard_pharaoh","lizard_anubis","lizard_ra"]},{"week":8,"map":"魔王城郊區","background":"images/backgrounds/week08_demon_outskirts.png","monsters":["human_bandit_rogue","cult_mage","orc_general","ogre","two_headed_ogre_mage"]},{"week":9,"map":"魔王城外圍","background":"images/backgrounds/week09_demon_castle_outer.png","monsters":["apocalypse_war","apocalypse_plague","apocalypse_famine","apocalypse_death","demon_general"]},{"week":10,"map":"魔王城內部","background":"images/backgrounds/week10_demon_castle_inner.png","monsters":["gargoyle","vampire_swordsman","hero_mirror","demon_king_phase1","demon_king_phase2"]},{"week":11,"map":"燃燒的大地","background":"images/backgrounds/week11_burning_land.png","monsters":["human_bandit","goblin_soldier","orc_warrior","orc_shaman","reborn_necromancer"]},{"week":12,"map":"古代遺跡","background":"images/backgrounds/week12_ancient_ruins.png","monsters":["guardian_stone","guardian_metal","guardian_octopus_machine","guardian_doll","black_command_pillar"]},{"week":13,"map":"船的甲板","background":"images/backgrounds/week13_ship_deck.png","monsters":["human_pirate","murloc","murloc_mage","evil_murloc_summoner","kraken"]},{"week":14,"map":"蠻荒叢林","background":"images/backgrounds/week14_jungle.png","monsters":["man_eating_flower","crocodile","giant_python","gorilla","tyrannosaurus"]},{"week":15,"map":"幽靈沼澤","background":"images/backgrounds/week15_ghost_swamp.png","monsters":["giant_bat","ghost","swamp_skeleton","banshee","scarecrow_reaper"]},{"week":16,"map":"沉沒古城","background":"images/backgrounds/week16_sunken_city.png","monsters":["skeleton_lizardman","wandering_zombie_lizardman","zombie_lizard_warrior","zombie_lizard_priest","hydra"]},{"week":17,"map":"大裂谷","background":"images/backgrounds/week17_great_rift.png","monsters":["pigman","pigman_warrior","centaur","centaur_knight","cyclops"]},{"week":18,"map":"飛空艇","background":"images/backgrounds/week18_airship.png","monsters":["harpy","flying_goblin","wyvern","sky_pirate","sky_pirate_captain"]},{"week":19,"map":"天空城","background":"images/backgrounds/week19_sky_city.png","monsters":["magic_armor","stone_gargoyle","sky_city_mage","sky_city_guardian_knight","sky_colossus"]},{"week":20,"map":"燃燒平原","background":"images/backgrounds/week20_burning_plain.png","monsters":["fire_lizard","lava_giant","demon_dragon_phase1","demon_dragon_phase2","grim_reaper"]},{"week":21,"map":"皇都凱旋遊行","background":"images/backgrounds/week21_royal_parade.png","monsters":[]}],"monsters":[{"id":"poison","name":"中毒"},{"id":"burn","name":"燃燒"},{"id":"bleed","name":"流血"},{"id":"curse","name":"詛咒"},{"id":"paralysis","name":"麻痺"},{"id":"freeze","name":"冰凍"},{"id":"stun","name":"暈眩"},{"id":"defense","name":"防禦姿態"},{"id":"focus","name":"專注"},{"id":"wooden_sword","name":"木製短劍"},{"id":"travel_cap","name":"旅行皮帽"},{"id":"adventurer_clothes","name":"冒險者布衣"},{"id":"lucky_charm","name":"幸運護符"},{"id":"small_hp_potion","name":"小型生命藥水"},{"id":"small_energy_potion","name":"小型能量藥水"},{"id":"beginner_poison","name":"初級毒藥"},{"id":"slime_water","name":"水史萊姆"},{"id":"slime_fire","name":"火史萊姆"},{"id":"slime_grass","name":"草史萊姆"},{"id":"slime_lightning","name":"雷史萊姆"},{"id":"slime_king","name":"大史萊姆"},{"id":"goblin_slave","name":"哥布林奴隸"},{"id":"goblin_soldier","name":"哥布林士兵"},{"id":"goblin_shaman","name":"哥布林巫醫"},{"id":"goblin_general","name":"哥布林將軍"},{"id":"goblin_king","name":"哥布林王"},{"id":"forest_spider","name":"蜘蛛"},{"id":"forest_wolf","name":"狼"},{"id":"forest_bear","name":"熊"},{"id":"treant","name":"樹妖"},{"id":"dark_elf","name":"黑暗精靈"},{"id":"orc_slave","name":"獸人農奴"},{"id":"orc_warrior","name":"獸人戰士"},{"id":"orc_shaman","name":"獸人巫醫"},{"id":"orc_champion","name":"獸人冠軍劍士"},{"id":"orc_general","name":"獸人將軍"},{"id":"skeleton","name":"骷髏"},{"id":"zombie","name":"殭屍"},{"id":"abomination","name":"縫合怪"},{"id":"eyeball_monster","name":"眼球怪"},{"id":"necromancer","name":"死靈法師"},{"id":"lizard_mummy","name":"蜥蜴人木乃伊"},{"id":"giant_beetle","name":"大型甲蟲怪"},{"id":"giant_scorpion","name":"大型毒蠍"},{"id":"lizard_warrior","name":"蜥蜴人戰士"},{"id":"chimera","name":"奇美拉合成獸"},{"id":"lizard_mage","name":"蜥蜴人巫師"},{"id":"lizard_pharaoh","name":"蜥蜴人法老"},{"id":"lizard_anubis","name":"蜥蜴人阿努比斯"},{"id":"lizard_ra","name":"蜥蜴人太陽神拉"},{"id":"human_bandit_rogue","name":"人類土匪盜賊"},{"id":"cult_mage","name":"人類邪教巫師"},{"id":"ogre","name":"食人巨魔"},{"id":"two_headed_ogre_mage","name":"食人巨魔巫師"},{"id":"apocalypse_war","name":"天啟・戰爭騎士"},{"id":"apocalypse_plague","name":"天啟・瘟疫騎士"},{"id":"apocalypse_famine","name":"天啟・饑荒騎士"},{"id":"apocalypse_death","name":"天啟・死亡騎士"},{"id":"demon_general","name":"魔王大將"},{"id":"gargoyle","name":"石像鬼"},{"id":"vampire_swordsman","name":"吸血鬼劍士"},{"id":"hero_mirror","name":"勇者的鏡像"},{"id":"demon_king_phase1","name":"魔王・第一階段"},{"id":"demon_king_phase2","name":"魔王・第二階段"},{"id":"human_bandit","name":"人類土匪"},{"id":"reborn_necromancer","name":"復活的死靈法師"},{"id":"guardian_stone","name":"守護石像"},{"id":"guardian_metal","name":"守護金屬像"},{"id":"guardian_octopus_machine","name":"章魚型守護機械"},{"id":"guardian_doll","name":"守護人偶"},{"id":"black_command_pillar","name":"黑色發光石柱"},{"id":"human_pirate","name":"人類海盜"},{"id":"murloc","name":"魚人莫拉克"},{"id":"murloc_mage","name":"魚人莫拉克巫師"},{"id":"evil_murloc_summoner","name":"邪惡魚人召喚師"},{"id":"kraken","name":"克拉肯"},{"id":"man_eating_flower","name":"食人花"},{"id":"crocodile","name":"鱷魚"},{"id":"giant_python","name":"巨蟒"},{"id":"gorilla","name":"大猩猩"},{"id":"tyrannosaurus","name":"霸王龍"},{"id":"giant_bat","name":"大型蝙蝠"},{"id":"ghost","name":"幽靈"},{"id":"swamp_skeleton","name":"骷髏怪"},{"id":"banshee","name":"報喪女妖"},{"id":"scarecrow_reaper","name":"稻草人鐮刀收割者"},{"id":"skeleton_lizardman","name":"骷髏蜥蜴人"},{"id":"wandering_zombie_lizardman","name":"遊蕩的殭屍蜥蜴人"},{"id":"zombie_lizard_warrior","name":"殭屍蜥蜴人戰士"},{"id":"zombie_lizard_priest","name":"殭屍蜥蜴人祭司"},{"id":"hydra","name":"九頭巨蛇"},{"id":"pigman","name":"豬頭人"},{"id":"pigman_warrior","name":"豬頭人戰士"},{"id":"centaur","name":"半人馬"},{"id":"centaur_knight","name":"半人馬騎士"},{"id":"cyclops","name":"獨眼巨人"},{"id":"harpy","name":"鷹身女妖"},{"id":"flying_goblin","name":"飛行哥布林"},{"id":"wyvern","name":"翼龍"},{"id":"sky_pirate","name":"天空海盜"},{"id":"sky_pirate_captain","name":"天空海盜船長"},{"id":"magic_armor","name":"魔法鎧甲"},{"id":"stone_gargoyle","name":"石像翼魔"},{"id":"sky_city_mage","name":"天空城魔導士"},{"id":"sky_city_guardian_knight","name":"天空城守護騎士"},{"id":"sky_colossus","name":"天空巨像"},{"id":"fire_lizard","name":"火焰蜥蜴"},{"id":"lava_giant","name":"熔岩巨人"},{"id":"demon_dragon_phase1","name":"魔龍・第一階段"},{"id":"demon_dragon_phase2","name":"魔龍・第二階段"},{"id":"grim_reaper","name":"死神"},{"id":"slow","name":"緩速"},{"id":"bind","name":"束縛"},{"id":"weak","name":"虛弱"},{"id":"disease","name":"疾病"},{"id":"blind","name":"命中下降"},{"id":"rage","name":"狂暴"},{"id":"warcry","name":"戰吼"},{"id":"stone_guard","name":"石化防禦"},{"id":"golden_shield","name":"黃金護盾"},{"id":"death_mark","name":"死亡標記"},{"id":"slime_tackle","name":"史萊姆撞擊"},{"id":"water_bullet","name":"水彈"},{"id":"fire_bullet","name":"火焰彈"},{"id":"nature_heal","name":"自然治癒"},{"id":"thunder_bullet","name":"雷電彈"},{"id":"goblin_club","name":"木棒敲擊"},{"id":"goblin_slash","name":"短劍斬擊"},{"id":"goblin_guard","name":"舉盾防禦"},{"id":"goblin_magic_bolt","name":"魔力彈"},{"id":"goblin_poison_curse","name":"毒咒"},{"id":"goblin_heal","name":"治療術"},{"id":"goblin_heavy_slash","name":"重斬"},{"id":"goblin_warcry","name":"戰吼"},{"id":"goblin_summon","name":"召喚哥布林"},{"id":"spider_poison_fang","name":"毒牙"},{"id":"spider_web","name":"蛛網"},{"id":"wolf_bite","name":"撕咬"},{"id":"bear_slam","name":"熊掌猛擊"},{"id":"bear_claw","name":"撕裂爪擊"},{"id":"vine_whip","name":"藤蔓鞭打"},{"id":"vine_bind","name":"藤蔓綑綁"},{"id":"shadow_arrow","name":"暗影箭"},{"id":"double_shot","name":"二連射"},{"id":"shadow_step","name":"暗影步"},{"id":"orc_swing","name":"粗暴揮擊"},{"id":"orc_charge","name":"蓄力"},{"id":"orc_charged_smash","name":"蓄力重擊"},{"id":"chain_lightning","name":"連鎖閃電"},{"id":"staff_hit","name":"法杖敲擊"},{"id":"sword_slash","name":"劍刃斬擊"},{"id":"whirlwind","name":"旋風斬"},{"id":"general_axe","name":"巨斧斬擊"},{"id":"general_order","name":"下令進攻"},{"id":"skeleton_slash","name":"普通攻擊"},{"id":"throw_bone","name":"丟骨頭"},{"id":"zombie_bite","name":"腐爛撕咬"},{"id":"hook_smash","name":"肉鉤重擊"},{"id":"frenzy_smash","name":"瘋狂猛擊"},{"id":"evil_eye_beam","name":"魔眼光束"},{"id":"evil_gaze","name":"凝視"},{"id":"necro_shadow_bolt","name":"暗影魔彈"},{"id":"summon_three_skeletons","name":"召喚骷髏"},{"id":"mummy_claw","name":"木乃伊爪擊"},{"id":"decaying_breath","name":"腐朽氣息"},{"id":"beetle_charge","name":"衝撞"},{"id":"shell_guard","name":"甲殼防禦"},{"id":"scorpion_claw","name":"巨鉗攻擊"},{"id":"venom_sting","name":"毒尾刺"},{"id":"spear_thrust","name":"長矛突刺"},{"id":"tail_escape","name":"斷尾求生"},{"id":"lion_bite","name":"獅首猛咬"},{"id":"goat_flame","name":"羊首火焰"},{"id":"snake_venom","name":"蛇尾毒刺"},{"id":"lizard_fire_magic","name":"火焰魔法"},{"id":"sand_spell","name":"沙塵術"},{"id":"pharaoh_staff","name":"權杖攻擊"},{"id":"death_scythe","name":"死神鐮斬"},{"id":"soul_judgment","name":"靈魂審判"},{"id":"solar_flame","name":"太陽火焰"},{"id":"solar_charge","name":"聚集太陽能量"},{"id":"wrath_of_ra","name":"太陽神之怒"},{"id":"rogue_stab","name":"短刀攻擊"},{"id":"rogue_stun","name":"柄擊"},{"id":"cult_curse","name":"詛咒"},{"id":"life_drain","name":"生命吸取"},{"id":"ogre_swing","name":"巨棒揮擊"},{"id":"frost_arrow","name":"冰霜箭"},{"id":"blizzard","name":"暴風雪"},{"id":"apocalypse_slash","name":"重劍斬擊"},{"id":"war_rage","name":"戰爭狂暴"},{"id":"plague_slash","name":"腐疫斬擊"},{"id":"famine_strike","name":"虛弱打擊"},{"id":"death_slash","name":"死亡斬擊"},{"id":"demon_general_slash","name":"魔將斬擊"},{"id":"gargoyle_claw","name":"石爪攻擊"},{"id":"petrify_guard","name":"石化防禦"},{"id":"blood_blade","name":"血刃斬擊"},{"id":"vampire_slash","name":"吸血斬"},{"id":"demon_dark_bolt","name":"暗影魔彈"},{"id":"dark_burst","name":"黑暗爆發"},{"id":"mana_shield","name":"魔力護盾"},{"id":"heavy_strike","name":"重擊"},{"id":"guard_break","name":"破甲斬"},{"id":"battle_cry","name":"戰吼"},{"id":"iron_stance","name":"鋼鐵架勢"},{"id":"fireball","name":"火球術"},{"id":"ice_lance","name":"冰槍術"},{"id":"thunderbolt","name":"雷擊術"},{"id":"mana_guard","name":"魔力護盾"},{"id":"holy_light","name":"聖光"},{"id":"heal_prayer","name":"治癒祈禱"},{"id":"purify","name":"淨化"},{"id":"sanctuary","name":"聖域"},{"id":"aimed_shot","name":"瞄準射擊"},{"id":"poison_arrow","name":"毒箭"},{"id":"trap","name":"陷阱"},{"id":"eagle_eye","name":"鷹眼"},{"id":"backstab","name":"背刺"},{"id":"venom_blade","name":"毒刃"},{"id":"bleed_cut","name":"割裂"},{"id":"smoke_step","name":"煙霧步"},{"id":"holy_slash","name":"聖光斬"},{"id":"guardian_stance","name":"守護"},{"id":"lay_on_hands","name":"聖療"},{"id":"judgment","name":"審判"},{"id":"magic_slash","name":"魔力斬"},{"id":"flame_edge","name":"炎刃"},{"id":"frost_edge","name":"冰刃"},{"id":"arcane_guard","name":"奧術防護"},{"id":"basic_attack","name":"攻擊"},{"id":"smoke_blind","name":"煙霧遮蔽"},{"id":"soul_curse","name":"亡魂詛咒"},{"id":"machine_bind","name":"機械腕束縛"},{"id":"bandit_slash","name":"砍擊"},{"id":"bandit_double_slash","name":"連續砍擊"},{"id":"bandit_smoke","name":"煙霧彈"},{"id":"goblin_fierce_thrust","name":"兇狠突刺"},{"id":"orc_undead_rage","name":"亡者狂暴"},{"id":"orc_soul_heal","name":"亡魂治療"},{"id":"reborn_shadow_bolt","name":"暗影魔彈"},{"id":"reborn_life_drain","name":"生命吸取"},{"id":"reborn_soul_curse","name":"亡魂詛咒"},{"id":"stone_fist","name":"石拳"},{"id":"stone_charge","name":"岩石衝撞"},{"id":"stone_defense","name":"石像防禦"},{"id":"metal_slash","name":"金屬斬擊"},{"id":"gear_combo","name":"齒輪連擊"},{"id":"core_overheat","name":"核心過熱"},{"id":"machine_arm_hit","name":"機械腕打擊"},{"id":"machine_arm_combo","name":"連續腕擊"},{"id":"machine_arm_bind","name":"機械腕束縛"},{"id":"doll_slash","name":"人偶斬擊"},{"id":"doll_cross_slash","name":"交叉斬擊"},{"id":"doll_counter_stance","name":"反擊姿態"},{"id":"doll_self_repair","name":"自我修復"},{"id":"pillar_dark_beam","name":"黑色光束"},{"id":"pillar_energy_pulse","name":"能量脈衝"},{"id":"pillar_defense_order","name":"防衛指令"},{"id":"pillar_attack_order","name":"攻擊指令"},{"id":"pillar_repair_order","name":"修復指令"},{"id":"murloc_slime","name":"黏液纏身"},{"id":"corrupt_water","name":"腐化水流"},{"id":"kraken_ink","name":"墨汁遮蔽"},{"id":"tentacle_bind","name":"觸手纏繞"},{"id":"pirate_cutlass","name":"彎刀斬擊"},{"id":"pirate_double_cut","name":"快速連斬"},{"id":"pirate_powder_shot","name":"火藥射擊"},{"id":"pirate_evasion","name":"閃避步伐"},{"id":"murloc_hit","name":"魚人打擊"},{"id":"murloc_leap","name":"飛撲"},{"id":"murloc_slime_spit","name":"黏液噴吐"},{"id":"murloc_water_bolt","name":"水彈"},{"id":"murloc_water_impact","name":"水流衝擊"},{"id":"murloc_healing_water","name":"治療水流"},{"id":"murloc_water_shield","name":"水之護盾"},{"id":"evil_dark_water_bolt","name":"黑暗水彈"},{"id":"evil_corrupt_water","name":"腐化水流"},{"id":"evil_murloc_heal","name":"邪惡治療"},{"id":"kraken_body_slam","name":"深海撞擊"},{"id":"kraken_ink_shot","name":"墨汁噴射"},{"id":"kraken_giant_wave","name":"巨浪"},{"id":"kraken_raging_tsunami","name":"狂怒海嘯"},{"id":"tentacle_slam","name":"觸手拍擊"},{"id":"tentacle_entangle","name":"觸手纏繞"},{"id":"python_constrict","name":"巨蟒纏繞"},{"id":"primal_fear","name":"威嚇"},{"id":"flower_vine_whip","name":"藤蔓鞭打"},{"id":"flower_poison_pollen","name":"毒粉"},{"id":"flower_vine_bind","name":"藤蔓束縛"},{"id":"crocodile_bite","name":"撕咬"},{"id":"crocodile_tail_sweep","name":"掃尾"},{"id":"crocodile_death_roll","name":"死亡翻滾"},{"id":"python_bite","name":"巨蟒咬擊"},{"id":"python_tail_strike","name":"蛇尾重擊"},{"id":"gorilla_punch","name":"重拳"},{"id":"gorilla_chest_beat","name":"捶胸咆哮"},{"id":"gorilla_ground_slam","name":"震地猛擊"},{"id":"tyranno_bite","name":"暴龍撕咬"},{"id":"tyranno_roar","name":"威嚇怒吼"},{"id":"tyranno_blood_chase","name":"嗜血追擊"},{"id":"tyranno_tail_crush","name":"巨尾粉碎"},{"id":"fear","name":"恐懼"},{"id":"swamp_corruption","name":"腐化"},{"id":"bat_fang_bite","name":"尖牙撕咬"},{"id":"bat_blood_drain","name":"吸血"},{"id":"bat_disease_bite","name":"帶病撕咬"},{"id":"ghost_touch","name":"幽魂觸碰"},{"id":"ghost_terror","name":"恐怖現身"},{"id":"ghost_soul_curse","name":"靈魂詛咒"},{"id":"swamp_skeleton_rust_slash","name":"鏽蝕斬擊"},{"id":"swamp_skeleton_cursed_blade","name":"詛咒刀刃"},{"id":"swamp_skeleton_corrupt_dust","name":"腐化骨粉"},{"id":"swamp_skeleton_bone_smash","name":"碎骨重擊"},{"id":"banshee_scream","name":"女妖尖嘯"},{"id":"banshee_curse_song","name":"哀歌詛咒"},{"id":"banshee_corrupt_wave","name":"腐化聲波"},{"id":"banshee_soul_wail","name":"吸魂哀鳴"},{"id":"reaper_scythe","name":"鐮刀斬擊"},{"id":"reaper_rotten_blade","name":"腐爛鐮刃"},{"id":"reaper_fear_gaze","name":"恐懼凝視"},{"id":"reaper_harvest_curse","name":"收割詛咒"},{"id":"reaper_soul_harvest","name":"靈魂收割"},{"id":"hydra_cauterized","name":"傷口灼燒"},{"id":"ancient_corrosion","name":"古城腐蝕"},{"id":"skeleton_lizard_bone_spear","name":"骨矛突刺"},{"id":"skeleton_lizard_tail_sweep","name":"骸骨掃尾"},{"id":"skeleton_lizard_bone_guard","name":"骨甲防禦"},{"id":"zombie_lizard_rotten_bite","name":"腐爛撕咬"},{"id":"zombie_lizard_claw","name":"殭屍爪擊"},{"id":"zombie_lizard_corrupt_breath","name":"腐化吐息"},{"id":"zombie_warrior_spear","name":"腐朽長矛"},{"id":"zombie_warrior_combo","name":"亡者連擊"},{"id":"zombie_warrior_charge","name":"亡者衝鋒"},{"id":"zombie_priest_shadow_bolt","name":"暗影法球"},{"id":"zombie_priest_corrupt_heal","name":"腐化治療"},{"id":"zombie_priest_dark_blessing","name":"黑暗祝福"},{"id":"zombie_priest_undead_prayer","name":"不死祈禱"},{"id":"hydra_multi_bite","name":"群首撕咬"},{"id":"hydra_venom_breath","name":"劇毒吐息"},{"id":"hydra_corrosive_breath","name":"腐蝕吐息"},{"id":"hydra_tail_crush","name":"巨尾橫掃"},{"id":"rift_armor_break","name":"裂谷破甲"},{"id":"pigman_chop","name":"粗暴劈砍"},{"id":"pigman_headbutt","name":"頭槌"},{"id":"pigman_wild_combo","name":"野蠻連擊"},{"id":"pigman_warrior_axe","name":"戰斧斬擊"},{"id":"pigman_warrior_breaker","name":"破甲重斧"},{"id":"pigman_warrior_spin","name":"旋轉斬擊"},{"id":"centaur_stomp","name":"馬蹄踐踏"},{"id":"centaur_charge","name":"疾速衝鋒"},{"id":"centaur_back_kick","name":"迴旋踢"},{"id":"centaur_knight_lance","name":"騎槍突刺"},{"id":"centaur_knight_charge_prep","name":"準備衝鋒"},{"id":"centaur_knight_charge","name":"騎士衝鋒"},{"id":"centaur_knight_guard","name":"騎士防禦"},{"id":"cyclops_mighty_swing","name":"巨力揮擊"},{"id":"cyclops_wide_swing","name":"橫向揮擊"},{"id":"cyclops_double_swing","name":"連續揮擊"},{"id":"cyclops_charge_swing","name":"蓄力揮擊"},{"id":"cyclops_devastating_swing","name":"毀滅揮擊"},{"id":"wyvern_whirlwind","name":"旋風纏身"},{"id":"sky_hook","name":"鉤索纏繞"},{"id":"sky_smoke","name":"煙霧遮蔽"},{"id":"harpy_claw","name":"爪擊"},{"id":"harpy_feather_darts","name":"羽毛飛鏢"},{"id":"harpy_wing_pressure","name":"羽翼風壓"},{"id":"harpy_high_evasion","name":"高空迴避"},{"id":"flying_goblin_rock","name":"石塊投擲"},{"id":"flying_goblin_double_throw","name":"連續投擲"},{"id":"flying_goblin_bomb","name":"炸彈投擲"},{"id":"flying_goblin_smoke","name":"煙霧彈投擲"},{"id":"wyvern_bite","name":"翼龍撕咬"},{"id":"wyvern_dive","name":"翼爪俯衝"},{"id":"wyvern_wing_sweep","name":"振翅橫掃"},{"id":"sky_pirate_cutlass","name":"彎刀斬擊"},{"id":"sky_pirate_throwing_knife","name":"飛刀投擲"},{"id":"sky_pirate_hook","name":"鉤索纏繞"},{"id":"sky_pirate_powder_flask","name":"火藥瓶投擲"},{"id":"captain_slash","name":"船長斬擊"},{"id":"captain_triple_knife","name":"連續飛刀"},{"id":"captain_bomb","name":"投擲炸彈"},{"id":"captain_load_cannon","name":"下令裝填"},{"id":"captain_airship_cannon","name":"飛空艇砲擊"},{"id":"sky_wind_bind","name":"風之束縛"},{"id":"sky_armor_break","name":"天翔破甲"},{"id":"armor_magic_slash","name":"魔力斬擊"},{"id":"armor_double_slash","name":"鎧甲連斬"},{"id":"armor_magic_guard","name":"魔力護甲"},{"id":"gargoyle_dive","name":"俯衝猛擊"},{"id":"gargoyle_guard","name":"石像防禦"},{"id":"gargoyle_wing_sweep","name":"翼擊"},{"id":"sky_mage_arcane_bolt","name":"秘法彈"},{"id":"sky_mage_chain_lightning","name":"連鎖閃電"},{"id":"sky_mage_wind_bind","name":"風之束縛"},{"id":"sky_mage_barrier","name":"魔力屏障"},{"id":"pegasus_lance","name":"騎槍突刺"},{"id":"pegasus_trample","name":"飛馬踐踏"},{"id":"pegasus_wing_whirlwind","name":"羽翼旋風"},{"id":"pegasus_takeoff","name":"展翼升空"},{"id":"pegasus_sky_charge","name":"天翔衝鋒"},{"id":"colossus_fist","name":"巨像重拳"},{"id":"colossus_beam","name":"能量光束"},{"id":"colossus_sky_quake","name":"天空震擊"},{"id":"colossus_core_charge","name":"核心充能"},{"id":"colossus_destruction_cannon","name":"天空毀滅砲"},{"id":"final_corruption","name":"死亡腐化"},{"id":"bone_roar","name":"亡骨恐懼"},{"id":"lava_break","name":"熔岩破甲"},{"id":"fire_lizard_bite","name":"火蜥撕咬"},{"id":"fire_lizard_breath","name":"火焰吐息"},{"id":"fire_lizard_tail","name":"烈焰甩尾"},{"id":"lava_giant_fist","name":"熔岩重拳"},{"id":"lava_giant_quake","name":"地面震擊"},{"id":"lava_giant_eruption","name":"熔岩噴發"},{"id":"lava_giant_armor","name":"熔岩護甲"},{"id":"dragon1_claw","name":"魔龍爪擊"},{"id":"dragon1_tail","name":"魔龍甩尾"},{"id":"dragon1_breath_prep","name":"聚集龍焰"},{"id":"dragon1_breath","name":"毀滅龍焰"},{"id":"dragon2_dive","name":"魔龍俯衝"},{"id":"dragon2_wing_storm","name":"羽翼風暴"},{"id":"dragon2_meteor_breath_prep","name":"召集隕火"},{"id":"dragon2_meteor_breath","name":"隕火龍息"},{"id":"skeleton_dragon_claw","name":"骸骨龍爪"},{"id":"skeleton_dragon_breath","name":"腐化龍息"},{"id":"skeleton_dragon_tail","name":"骸骨甩尾"},{"id":"skeleton_dragon_roar","name":"亡骨咆哮"},{"id":"final_necro_bolt","name":"暗影箭"},{"id":"final_necro_curse","name":"死亡詛咒"},{"id":"final_necro_repair","name":"骸骨修復"},{"id":"final_necro_drain","name":"靈魂抽取"},{"id":"common","name":"普通"},{"id":"uncommon","name":"優良"},{"id":"rare","name":"稀有"},{"id":"epic","name":"史詩"},{"id":"legendary","name":"傳說"},{"id":"t0_sword","name":"遠征長劍"},{"id":"t0_staff","name":"星輝法杖"},{"id":"t0_bow","name":"天空戰弓"},{"id":"t0_helm","name":"守望戰盔"},{"id":"t0_circlet","name":"祕法冠冕"},{"id":"t0_armor","name":"凱旋戰甲"},{"id":"t0_robe","name":"星界法袍"},{"id":"t0_ring","name":"王者戒指"},{"id":"t0_charm","name":"靈魂護符"},{"id":"assault","name":"猛攻"},{"id":"arcane","name":"祕法"},{"id":"ironwall","name":"鐵壁"},{"id":"warding","name":"護法"},{"id":"vitality","name":"生命"},{"id":"swiftness","name":"迅捷"},{"id":"precision","name":"精準"},{"id":"shadowstep","name":"幻步"},{"id":"bastion","name":"壁壘"},{"id":"ember_echo","name":"餘燼回響"},{"id":"phantom_echo","name":"幻影追擊"},{"id":"blood_drink","name":"飲血"},{"id":"royal_guard","name":"王者庇護"},{"id":"phoenix_oath","name":"不死鳥誓約"},{"id":"flame_spirit","name":"火靈契約"},{"id":"blade_spirit","name":"劍魂契約"},{"id":"T0","name":"第一學期終局裝備"},{"id":"eq:warrior_mastery","name":"戰技專精"},{"id":"eq:mage_mastery","name":"元素增幅"},{"id":"eq:priest_mastery","name":"聖療回聲"},{"id":"eq:hunter_mastery","name":"狩獵印記"},{"id":"eq:rogue_mastery","name":"暗影殺意"},{"id":"eq:paladin_mastery","name":"聖裁增幅"},{"id":"eq:spellblade_mastery","name":"魔劍共鳴"}]};
@@ -51,167 +51,36 @@ let CFG={}; let dirty=new Set(); const $=id=>document.getElementById(id), clone=
 function extractConfigFromIndex(src){const m=String(src||'').match(/window\.STUDYRPG_EDITOR_CONFIG\s*=\s*([\s\S]*?);\s*\n\/\* STUDYRPG_EDITOR_CONFIG_END \*\//);if(!m)throw Error('主程式找不到 STUDYRPG_EDITOR_CONFIG 區塊');return JSON.parse(m[1]);}
 function extractLegacyConfig(src){const m=String(src||'').match(/window\.STUDYRPG_PRESENTATION_CONFIG\s*=\s*([\s\S]*);\s*$/);if(!m)throw Error('找不到可辨識的設定');return JSON.parse(m[1]);}
 function replaceConfigInIndex(src,cfg){const json=JSON.stringify(cfg,null,2);const re=/window\.STUDYRPG_EDITOR_CONFIG\s*=\s*[\s\S]*?;\s*\n\/\* STUDYRPG_EDITOR_CONFIG_END \*\//;if(!re.test(src))throw Error('主程式設定標記不存在，無法安全匯出');return src.replace(re,'window.STUDYRPG_EDITOR_CONFIG='+json+';\n/* STUDYRPG_EDITOR_CONFIG_END */');}
-function sanitizeMainSource(src){
-  let out=String(src||'');
-  // 移除上一版錯誤的直接 DOM 烘焙 runtime，保留主程式其他內容。
-  out=out.replace(/<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_START -->[\s\S]*?<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_END -->/gi,'');
-  // 移除本修正版自己舊的同步 hook，避免重複。
-  out=out.replace(/<!-- STUDYRPG_EDITOR_SAFE_SYNC_START -->[\s\S]*?<!-- STUDYRPG_EDITOR_SAFE_SYNC_END -->/gi,'');
-  return out;
+function assertExportRuntime(src){
+  const need=[
+    ['STUDYRPG_EDITOR_CONFIG_END','主程式缺少 Editor 設定區塊'],
+    ['studyRPGSceneLayoutRuntimeV10174','主程式缺少場景座標套用 Runtime'],
+    ['studyRPGPresentationRuntimeV10174','主程式缺少技能演出 Runtime'],
+    ['studyRPGNativeLayoutConfigV10175','主程式缺少原生場景/尺寸同步 Runtime'],
+    ['function applyStage()','主程式缺少背景縮放/位移 Runtime']
+  ];
+  const miss=need.filter(([k])=>!String(src).includes(k)).map(([,m])=>m);
+  if(miss.length)throw Error(miss.join('；')+'。請先載入目前正式的 V10.18 主程式。');
 }
-function buildSafeExportIndex(source,cfg){
-  let html=replaceConfigInIndex(sanitizeMainSource(source),cfg);
-  const hook=`<!-- STUDYRPG_EDITOR_SAFE_SYNC_START -->
-<script id="studyRPGEditorSafeSyncV10183">
-(function(){
-'use strict';
-function apply(){
-  try{window.studyRPGApplyExternalLayoutV10174?.();}catch(e){console.warn('[StudyRPG editor sync]',e)}
-}
-addEventListener('DOMContentLoaded',()=>setTimeout(apply,0),{once:true});
-addEventListener('load',()=>{apply();setTimeout(apply,120);setTimeout(apply,500);setTimeout(apply,1200);},{once:true});
-const oldRenderAll=window.renderAll;
-if(typeof oldRenderAll==='function')window.renderAll=function(){const r=oldRenderAll.apply(this,arguments);setTimeout(apply,0);return r};
-const oldBattle=window.renderBattleTargets;
-if(typeof oldBattle==='function')window.renderBattleTargets=function(){const r=oldBattle.apply(this,arguments);setTimeout(apply,0);return r};
-})();
-<\/script>
-<!-- STUDYRPG_EDITOR_SAFE_SYNC_END -->`;
-  if(/<\/body>/i.test(html)) html=html.replace(/<\/body>/i,hook+'\n</body>');
-  else html+=hook;
-  return html;
-}
-
-function assignedBlock(src,name){
-  const re=new RegExp('(?:^|\\n)\\s*(?:const|let|var)\\s+'+name+'\\s*=','m'),m=re.exec(src);
-  if(!m)return'';
-  const eq=src.indexOf('=',m.index),o=src.indexOf('{',eq),a=src.indexOf('[',eq);
-  let start=-1,open='',close='';
-  if(o>=0&&(a<0||o<a)){start=o;open='{';close='}'}else if(a>=0){start=a;open='[';close=']'}
-  if(start<0)return'';
-  let depth=0,q='',esc=false;
-  for(let i=start;i<src.length;i++){
-    const c=src[i];
-    if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}
-    if(c==='"'||c==="'"||c==='`'){q=c;continue}
-    if(c===open)depth++;
-    else if(c===close&&--depth===0)return src.slice(start,i+1);
+function validateExportHtml(html,cfg){
+  const parsed=extractConfigFromIndex(html);
+  const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  for(const k of ['sceneCoordinateLayout','battleLayout','objectSizes','stage','playerSkills','monsterSkills','heroes','monsters']){
+    if(!same(cfg[k],parsed[k]))throw Error('匯出驗證失敗：'+k+' 沒有正確寫進 index.html');
   }
-  return'';
+  return true;
 }
 
-const JOB_SKILL_IDS={
-  novice:['power_strike','ember','defense_stance','focus'],
-  warrior:['heavy_strike','guard_break','battle_cry','iron_stance'],
-  mage:['fireball','ice_lance','thunderbolt','mana_guard'],
-  priest:['holy_light','heal_prayer','purify','sanctuary'],
-  hunter:['aimed_shot','poison_arrow','trap','eagle_eye'],
-  rogue:['backstab','venom_blade','bleed_cut','smoke_step'],
-  paladin:['holy_slash','guardian_stance','lay_on_hands','judgment'],
-  spellblade:['magic_slash','flame_edge','frost_edge','arcane_guard']
-};
-function hydrateJobSkillMapFromIndex(src){
-  try{
-    const b=assignedBlock(src,'JOB_RULES'); if(!b)return;
-    const keyByName={'戰士':'warrior','法師':'mage','牧師':'priest','獵人':'hunter','盜賊':'rogue','聖騎士':'paladin','魔劍士':'spellblade'};
-    for(const m of b.matchAll(/name\s*:\s*['"`]([^'"`]+)['"`][\s\S]{0,500}?skills\s*:\s*\[([^\]]*)\]/g)){
-      const key=keyByName[m[1]]; if(!key)continue;
-      const ids=[...m[2].matchAll(/['"`]([A-Za-z0-9_-]+)['"`]/g)].map(x=>x[1]);
-      if(ids.length)JOB_SKILL_IDS[key]=ids;
-    }
-  }catch(e){console.warn('職業技能對照解析失敗，使用內建對照',e)}
-}
-
+function assignedBlock(src,name){const idx=src.search(new RegExp('(?:const|let|var)\\s+'+name+'\\s*='));if(idx<0)return'';const eq=src.indexOf('=',idx),start=src.indexOf('{',eq);if(start<0)return'';let depth=0,q='',esc=false;for(let i=start;i<src.length;i++){const c=src[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==='"'||c==="'"||c==='`'){q=c;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0)return src.slice(start,i+1)}return''}
 function mergeUniqueById(base,extra){const m=new Map((base||[]).map(x=>[x.id,x]));for(const x of extra||[])if(x?.id)m.set(x.id,Object.assign({},m.get(x.id)||{},x));return [...m.values()]}
 function hydrateManifestFromIndex(src){try{
-  hydrateJobSkillMapFromIndex(src);
-  const imgs=[...String(src).matchAll(/["'`](images\/[^"'`?#]+?\.(?:png|jpe?g|webp|gif|svg))["'`]/gi)]
-    .map(m=>m[1]).filter(p=>!p.includes('${')&&!p.includes('}')&&!p.includes('`'));
-  if(imgs.length)MANIFEST.assets=[...new Set([...(MANIFEST.assets||[]),...imgs])].filter(p=>!p.includes('${')&&!p.includes('}')).sort();
-
-  const mb=assignedBlock(src,'MONSTER_DATABASE');
-  if(mb){
-    const found=[];
-    for(const m of mb.matchAll(/(?:^|[,{]\s*)([A-Za-z0-9_]+)\s*:\s*\{[^{}]{0,260}?\bid\s*:\s*["'`]([^"'`]+)["'`][^{}]{0,260}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))
-      found.push({id:m[2]||m[1],name:m[3]});
-    if(found.length){
-      MANIFEST.monsters=found;
-      GAME_SCENE_MANIFEST.monsters=found;
-    }
-  }
-
-  const collectSkills=(name)=>{
-    const b=assignedBlock(src,name); if(!b)return[];
-    const a=[];
-    for(const m of b.matchAll(/\bid\s*:\s*["'`]([A-Za-z0-9_-]+)["'`][\s\S]{0,320}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))
-      a.push({id:m[1],name:m[2]});
-    return a;
-  };
-  const ps=[...collectSkills('BEGINNER_SKILLS'),...collectSkills('JOB_SKILL_LIBRARY')];
-  const ms=collectSkills('MONSTER_SKILL_DATABASE');
-  if(ps.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,ps);
-  if(ms.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,ms);
-
-  const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');
-  if(wb){
-    const weeks=[];
-    for(const m of wb.matchAll(/\{\s*week\s*:\s*(\d+)\s*,\s*map\s*:\s*["'`]([^"'`]+)["'`]\s*,\s*background\s*:\s*["'`]([^"'`]+)["'`][\s\S]{0,900}?monsters\s*:\s*\[([^\]]*)\]/g)){
-      weeks.push({week:+m[1],map:m[2],background:m[3],monsters:[...m[4].matchAll(/["'`]([^"'`]+)["'`]/g)].map(x=>x[1])});
-    }
-    if(weeks.length){
-      MANIFEST.weeks=weeks;
-      GAME_SCENE_MANIFEST.weeks=weeks;
-    }
-  }
+  const imgs=[...String(src).matchAll(/["'`](images\/[^"'`?#]+?\.(?:png|jpe?g|webp|gif|svg))["'`]/gi)].map(m=>m[1]);if(imgs.length)MANIFEST.assets=[...new Set([...(MANIFEST.assets||[]),...imgs])].sort();
+  const mb=assignedBlock(src,'MONSTER_DATABASE');if(mb){const found=[];for(const m of mb.matchAll(/(?:^|\n)\s*([A-Za-z0-9_]+)\s*:\s*\{[\s\S]{0,500}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))found.push({id:m[1],name:m[2]});if(found.length)MANIFEST.monsters=mergeUniqueById(MANIFEST.monsters,found)}
+  const collectSkills=(name)=>{const b=assignedBlock(src,name);if(!b)return[];const a=[];for(const m of b.matchAll(/\bid\s*:\s*["'`]([A-Za-z0-9_\-]+)["'`][\s\S]{0,240}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))a.push({id:m[1],name:m[2]});return a};
+  const ps=[...collectSkills('BEGINNER_SKILLS'),...collectSkills('JOB_SKILL_LIBRARY')],ms=collectSkills('MONSTER_SKILL_DATABASE');if(ps.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,ps);if(ms.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,ms);
+  const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');if(wb){for(const w of MANIFEST.weeks||[]){const re=new RegExp('(?:week\\s*:\\s*'+w.week+'|\\b'+w.week+'\\s*:)','i');const hit=re.exec(wb);if(hit){const seg=wb.slice(hit.index,hit.index+1800),bg=seg.match(/background\s*:\s*["'`]([^"'`]+)["'`]/i);if(bg)w.background=bg[1]}}}
 }catch(e){console.warn('從 index 解析素材/資料清單失敗，使用內建 fallback',e)}}
-async function loadMainIndex(){
-  const status=$('mainSourceStatus');
-  const setStatus=t=>{if(status)status.textContent=t};
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),12000);
-  try{
-    // 永遠從目前 tools/index.html 的上一層解析，不手拼 GitHub repo 名稱。
-    const url=new URL('../index.html',location.href);
-    url.searchParams.set('editor_read',Date.now());
-    setStatus('① 正在連線讀取正式 index.html…');
-    const r=await fetch(url.href,{cache:'no-store',signal:controller.signal,credentials:'same-origin'});
-    if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);
-    setStatus('② 已連線，正在下載主程式…');
-    const RAW_SOURCE=await r.text();
-    if(!RAW_SOURCE || RAW_SOURCE.length<1000)throw Error('讀到的 index.html 內容異常（'+RAW_SOURCE.length+' bytes）');
-
-    // 先完成「正式主程式載入」；不要讓龐大的素材掃描阻塞整個 Editor。
-    setStatus('③ 已下載，正在讀取編輯設定…');
-    CFG=extractConfigFromIndex(RAW_SOURCE);
-    MAIN_SOURCE=sanitizeMainSource(RAW_SOURCE);
-    SOURCE_READY=true;
-    setStatus('✅ 已讀取完整正式 index.html（'+Math.round(RAW_SOURCE.length/1024)+' KB）；場景/角色/技能正在同步。');
-
-    // 主程式本身已有 fallback manifest；額外解析怪物/技能/素材改成背景工作。
-    setTimeout(()=>{
-      try{
-        const oldSide=$('side')?.value,oldHero=$('heroActor')?.value,oldMonster=$('monster')?.value,oldSkill=$('skill')?.value;
-        hydrateManifestFromIndex(RAW_SOURCE);
-        if(oldSide)$('side').value=oldSide;if(oldHero)$('heroActor').value=oldHero;
-        renderSelectors();
-        if(oldMonster&&[...$('monster').options].some(o=>o.value===oldMonster))$('monster').value=oldMonster;
-        if(oldSkill&&[...$('skill').options].some(o=>o.value===oldSkill))$('skill').value=oldSkill;
-        loadSkill();fillSceneWeeks?.();renderAssetGallery?.();renderSceneEditor?.();renderSkillPreview?.();
-      }catch(e){console.warn('背景解析主程式清單失敗，保留內建清單',e)}
-    },30);
-    return true;
-  }catch(e){
-    SOURCE_READY=false;
-    const msg=e?.name==='AbortError'
-      ? '讀取逾時（12 秒）。請確認 GitHub Pages 的根目錄 index.html 可直接開啟。'
-      : (e?.message||String(e));
-    setStatus('⚠️ 無法讀取正式 index.html：'+msg+' 可用下方「匯入 index.html」直接載入本機檔案。');
-    console.error('loadMainIndex failed',e);
-    return false;
-  }finally{
-    clearTimeout(timer);
-  }
-}
+async function loadMainIndex(){const status=$('mainSourceStatus');try{status&&(status.textContent='正在讀取 GitHub / 本機正式 index.html…');const r=await fetch(MAIN_SOURCE_URL+'?editor_read='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);MAIN_SOURCE=await r.text();hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(MAIN_SOURCE);SOURCE_READY=true;status&&(status.textContent='✅ 已讀取正式 index.html；目前所有編輯只存在瀏覽器工作副本，不會覆蓋 GitHub。');return true}catch(e){status&&(status.textContent='⚠️ 無法 fetch 正式 index.html：'+e.message+'。可使用下方「匯入 index.html」載入本機檔案。');return false}}
 
 const IMAGE_EXT_RE=/\.(png|jpe?g|webp|gif|svg)$/i;
 const FALLBACK_ASSETS=[...MANIFEST.assets];
@@ -274,86 +143,9 @@ function refreshAssetSelectors(){
 const points=['hero_home','enemy_home','enemy_front','air_high','summon_left','summon_center','summon_right']; const heroActions=['idle','melee','cast','shoot','jump','dash','buff','hurt','death'], monActions=['idle','melee','cast','shoot','jump','dash','buff','hurt','death'];
 const transitions=['none','fade','dissolve','scale','pop','slide','flash','rotate','blur']; const lifetimes=['instant','timed','status','turn','persistent']; const anchors=['self','target','point']; const scaleModes=['self','target','fixed'];
 function mark(key){dirty.add(key);$('dirty').textContent='未儲存 '+dirty.size+' 項';document.body.classList.add('dirty')}
-const DEVICES=['desktop','tablet','mobile'];
-const COORD_DEFAULTS={desktop:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},tablet:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},mobile:{statusHero:{x:50,y:62},dungeonHero:{x:50,y:60},dungeonEnemy:{x:50,y:60}}};
-const BATTLE_DEFAULTS={desktop:{hero:{x:18,y:68},enemy:{x:82,y:68},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},tablet:{hero:{x:17,y:68},enemy:{x:83,y:68},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},mobile:{hero:{x:18,y:65},enemy:{x:82,y:65},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}};
-const SIZE_DEFAULTS={desktop:{statusHero:160,dungeonHero:180,dungeonEnemy:180,battleHero:190,battleEnemy:190},tablet:{statusHero:150,dungeonHero:165,dungeonEnemy:165,battleHero:175,battleEnemy:175},mobile:{statusHero:135,dungeonHero:135,dungeonEnemy:135,battleHero:145,battleEnemy:145}};
-function sceneDeepClone(v){return JSON.parse(JSON.stringify(v))}
-function migrateOldSceneLayouts(){if(!CFG.sceneLayouts)return;CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};for(const d of DEVICES){const s=CFG.sceneLayouts[d]||{},st=s.status||{},en=s.dungeonEntry||{},ba=s.dungeon||{};CFG.sceneCoordinateLayout[d]=CFG.sceneCoordinateLayout[d]||{};CFG.battleLayout[d]=CFG.battleLayout[d]||{};CFG.objectSizes[d]=CFG.objectSizes[d]||{};if(st.hero){CFG.sceneCoordinateLayout[d].statusHero={x:+st.hero.x,y:+st.hero.y};CFG.objectSizes[d].statusHero=+st.hero.size||SIZE_DEFAULTS[d].statusHero}if(en.hero){CFG.sceneCoordinateLayout[d].dungeonHero={x:+en.hero.x,y:+en.hero.y};CFG.objectSizes[d].dungeonHero=+en.hero.size||SIZE_DEFAULTS[d].dungeonHero}if(en.enemy){CFG.sceneCoordinateLayout[d].dungeonEnemy={x:+en.enemy.x,y:+en.enemy.y};CFG.objectSizes[d].dungeonEnemy=+en.enemy.size||SIZE_DEFAULTS[d].dungeonEnemy}if(ba.hero){CFG.battleLayout[d].hero={x:+ba.hero.x,y:+ba.hero.y};CFG.objectSizes[d].battleHero=+ba.hero.size||SIZE_DEFAULTS[d].battleHero}if(ba.enemy){CFG.battleLayout[d].enemy={x:+ba.enemy.x,y:+ba.enemy.y};CFG.objectSizes[d].battleEnemy=+ba.enemy.size||SIZE_DEFAULTS[d].battleEnemy}}delete CFG.sceneLayouts}
-function ensureNativeLayouts(){migrateOldSceneLayouts();CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};for(const d of DEVICES){CFG.sceneCoordinateLayout[d]=Object.assign(sceneDeepClone(COORD_DEFAULTS[d]),CFG.sceneCoordinateLayout[d]||{});CFG.battleLayout[d]=Object.assign(sceneDeepClone(BATTLE_DEFAULTS[d]),CFG.battleLayout[d]||{});CFG.objectSizes[d]=Object.assign({},SIZE_DEFAULTS[d],CFG.objectSizes[d]||{})}}
-function currentHeroInfo(){try{const fam=JSON.parse(localStorage.getItem('heroRPG_FAMILY_V8')||'null');const pid=sessionStorage.getItem('activeHeroProfile')||fam?.activeProfileId||fam?.profiles?.[0]?.id;const p=fam?.profiles?.find(x=>x.id===pid)||fam?.profiles?.[0];return p?.data?.hero||{}}catch(e){return{}}}
-const HERO_KEYS={'見習勇者':'novice','初心者':'novice','戰士':'warrior','法師':'mage','牧師':'priest','獵人':'hunter','盜賊':'rogue','聖騎士':'paladin','魔劍士':'spellblade'};
-function sceneHeroSrc(){
-  const h=currentHeroInfo(),key=h.jobAwakened?(HERO_KEYS[h.heroClass]||'novice'):'novice',female=h.gender==='female'?'_female':'';
-  return `../images/hero_${key}${female}_idle.png`;
-}
-function sceneImgFallback(img,fallback){
-  if(!img)return;
-  img.onerror=()=>{img.onerror=null;if(fallback&&img.src!==new URL(fallback,location.href).href)img.src=fallback;else img.style.outline='2px dashed #ff6b6b'};
-}
-function sceneWeekData(){const w=Number($('sceneWeek').value)||1;return GAME_SCENE_MANIFEST.weeks.find(x=>x.week===w)||GAME_SCENE_MANIFEST.weeks[0]}
-function sceneMonsterSrc(){const id=$('sceneMonster').value;if(id==='hero_mirror')return sceneHeroSrc();return id?`../images/monsters/${id}_idle.png`:''}
-function fillSceneWeeks(){const sel=$('sceneWeek');if(!sel)return;const old=sel.value||String(GAME_SCENE_MANIFEST.weeks[0]?.week||1);sel.innerHTML=GAME_SCENE_MANIFEST.weeks.filter(x=>x.week<=20).map(x=>`<option value="${x.week}">第${x.week}週・${x.map}</option>`).join('');sel.value=[...sel.options].some(o=>o.value===old)?old:sel.options[0]?.value;fillSceneMonsters()}
-function fillSceneMonsters(){const w=sceneWeekData(),sel=$('sceneMonster'),old=sel.value;const names=Object.fromEntries(GAME_SCENE_MANIFEST.monsters.map(m=>[m.id,m.name]));sel.innerHTML=(w?.monsters||[]).map(id=>`<option value="${id}">${names[id]||id}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
-function sceneDims(){const d=$('sceneDevice').value,s=$('sceneKind').value;if(s==='status')return d==='mobile'?[390,260]:[d==='tablet'?720:900,260];if(s==='dungeonEntry')return d==='mobile'?[390,220]:[d==='tablet'?720:900,220];return d==='mobile'?[390,260]:[d==='tablet'?720:900,300]}
-function sceneCfg(){ensureNativeLayouts();const d=$('sceneDevice').value,k=$('sceneKind').value,sc=CFG.sceneCoordinateLayout[d],bl=CFG.battleLayout[d],os=CFG.objectSizes[d];if(k==='status')return{hero:sc.statusHero,heroSizeKey:'statusHero'};if(k==='dungeonEntry')return{hero:sc.dungeonHero,enemy:sc.dungeonEnemy,heroSizeKey:'dungeonHero',enemySizeKey:'dungeonEnemy'};return{hero:bl.hero,enemy:bl.enemy,heroSizeKey:'battleHero',enemySizeKey:'battleEnemy'}}
-function fitSceneCanvas(w,h){
-  const shell=$('sceneEditorShell'),stage=$('sceneEditorStage');
-  stage.style.width=w+'px';stage.style.height=h+'px';
-  let available=shell.getBoundingClientRect().width||shell.clientWidth||shell.parentElement?.getBoundingClientRect().width||w;
-  if(available<180)available=Math.min(w,Math.max(320,window.innerWidth-40));
-  const scale=Math.min(1,available/w);
-  stage.style.transform=`scale(${scale})`;
-  shell.style.height=Math.max(180,Math.ceil(h*scale))+'px';
-  shell.style.minHeight='180px';
-  return scale;
-}
-function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px">`}
-function renderSceneEditor(){if(!$('sceneEditorStage'))return;ensureNativeLayouts();const c=sceneCfg(),kind=$('sceneKind').value,d=$('sceneDevice').value,[w,h]=sceneDims(),stage=$('sceneEditorStage'),wd=sceneWeekData(),bg='../'+(wd?.background||'images/backgrounds/week01_grassland.png'),os=CFG.objectSizes[d],hs=os[c.heroSizeKey],es=c.enemySizeKey?os[c.enemySizeKey]:0;fitSceneCanvas(w,h);
-  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid"><div class="entry-card"><img class="scene-bg" src="${bg}"><div class="entry-local" data-local="hero">${unitHtml('sceneEditorHero',sceneHeroSrc(),c.hero,hs)}</div></div><div class="entry-vs">VS</div><div class="entry-card"><img class="scene-bg" src="${bg}"><div class="entry-local" data-local="enemy">${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),c.enemy,es,'enemy')}</div></div></div><div class="scene-scale-label">${w}×${h}</div>`;
-  else stage.innerHTML=`<img class="scene-bg" src="${bg}">${unitHtml('sceneEditorHero',sceneHeroSrc(),c.hero,hs)}${kind==='dungeon'?unitHtml('sceneEditorEnemy',sceneMonsterSrc(),c.enemy,es,'enemy'):''}<div class="scene-scale-label">${w}×${h}</div>`;
-  $('sceneHeroSize').value=hs;$('sceneHeroSizeOut').textContent=hs+'px';$('sceneHeroXY').textContent=`英雄 X ${Number(c.hero.x).toFixed(1)}% / Y ${Number(c.hero.y).toFixed(1)}%`;
-  const showEnemy=kind!=='status';$('sceneEnemySizeBox').style.display=showEnemy?'block':'none';$('sceneEnemyXY').style.display=showEnemy?'inline-block':'none';if(showEnemy){$('sceneEnemySize').value=es;$('sceneEnemySizeOut').textContent=es+'px';$('sceneEnemyXY').textContent=`怪物 X ${Number(c.enemy.x).toFixed(1)}% / Y ${Number(c.enemy.y).toFixed(1)}%`}
-  sceneImgFallback($('sceneEditorHero'),'../images/hero_novice_idle.png');
-  if(showEnemy)sceneImgFallback($('sceneEditorEnemy'),sceneMonsterSrc().replace('_idle.png','_battle.png'));
-  bindSceneUnit($('sceneEditorHero'),'hero');if(showEnemy)bindSceneUnit($('sceneEditorEnemy'),'enemy');
-  if(!stage.dataset.layoutSettled){
-    stage.dataset.layoutSettled='1';
-    requestAnimationFrame(()=>fitSceneCanvas(w,h));
-  }
-}
-function bindSceneUnit(el,key){
-  if(!el)return;
-  el.onpointerdown=e=>{
-    const c=sceneCfg()[key],kind=$('sceneKind').value;
-    el.setPointerCapture(e.pointerId);
-    const zone=kind==='dungeonEntry'?el.closest('.entry-local'):$('sceneEditorStage');
-    const move=ev=>{
-      const r=zone.getBoundingClientRect();
-      c.x=+Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)).toFixed(1);
-      c.y=+Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)).toFixed(1);
-      el.style.left=c.x+'%'; el.style.top=c.y+'%';
-      $('sceneHeroXY').textContent=key==='hero'?`英雄 X ${c.x.toFixed(1)}% / Y ${c.y.toFixed(1)}%`:$('sceneHeroXY').textContent;
-      if(key==='enemy')$('sceneEnemyXY').textContent=`怪物 X ${c.x.toFixed(1)}% / Y ${c.y.toFixed(1)}%`;
-      mark(`layout:${$('sceneDevice').value}:${$('sceneKind').value}:${key}`);
-      if($('sceneKind').value==='dungeon'){renderSkillPreview?.();renderStage?.()}
-    };
-    const end=()=>{el.onpointermove=null;renderSceneEditor();renderSkillPreview?.();renderStage?.()};
-    el.onpointermove=move;el.onpointerup=end;el.onpointercancel=end;
-  };
-}
-function installSceneEditor(){ensureNativeLayouts();fillSceneWeeks();$('sceneKind').onchange=renderSceneEditor;$('sceneDevice').onchange=renderSceneEditor;$('sceneWeek').onchange=()=>{fillSceneMonsters();renderSceneEditor()};$('sceneMonster').onchange=renderSceneEditor;$('sceneHeroSize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg();CFG.objectSizes[d][c.heroSizeKey]=+e.target.value;mark(`size:${d}:${c.heroSizeKey}`);renderSceneEditor()};$('sceneEnemySize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg();if(c.enemySizeKey){CFG.objectSizes[d][c.enemySizeKey]=+e.target.value;mark(`size:${d}:${c.enemySizeKey}`);renderSceneEditor()}};addEventListener('resize',()=>renderSceneEditor());renderSceneEditor()}
-
-
 function ensure(){CFG.referencePoints=CFG.referencePoints||{};CFG.stage=CFG.stage||{};CFG.heroes=CFG.heroes||{};CFG.monsters=CFG.monsters||{};CFG.playerSkills=CFG.playerSkills||{};CFG.monsterSkills=CFG.monsterSkills||{};CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{}}
 function opt(arr,val=''){return '<option value=""></option>'+arr.map(x=>`<option value="${x}" ${x===val?'selected':''}>${x}</option>`).join('')}
-function skillList(){
-  if($('side').value!=='player')return MANIFEST.monsterSkills;
-  const key=$('heroActor')?.value||'novice',ids=JOB_SKILL_IDS[key]||JOB_SKILL_IDS.novice;
-  const byId=new Map((MANIFEST.playerSkills||[]).map(x=>[x.id,x]));
-  const picked=ids.map(id=>byId.get(id)).filter(Boolean);
-  return picked.length?picked:(MANIFEST.playerSkills||[]);
-}function bucket(){return $('side').value==='player'?CFG.playerSkills:CFG.monsterSkills}
+function skillList(){return $('side').value==='player'?MANIFEST.playerSkills:MANIFEST.monsterSkills}function bucket(){return $('side').value==='player'?CFG.playerSkills:CFG.monsterSkills}
 function actorId(){return $('side').value==='player'?($('heroActor')?.value||'novice'):$('monster').value}
 function normalizeFx(x={}){return Object.assign({image:'',anchor:'target',point:'enemy_front',scaleMode:'target',scale:1,offsetX:0,offsetY:0,delay:0,duration:350,lifetime:'instant',enter:{type:'fade',duration:120},exit:{type:'fade',duration:160},loop:{enabled:false,interval:800}},x)}
 function normalizePresentation(x={}){return Object.assign({enabled:false,actorAction:'melee',selfFX:[],pathFX:null,targetFX:[],summons:[]},x)}
@@ -362,8 +154,22 @@ function summonRow(x,i){x=Object.assign({unitId:'',from:'air_high',via:'air_high
 let draft=null;
 function commitCurrent(){if(!draft||!$('skill').value)return;draft.enabled=$('enabled').checked;draft.actorAction=$('actorAction').value;draft.pathFX=$('pathImg').value?{image:$('pathImg').value,path:$('pathMode').value,duration:+$('pathDuration').value||420,scale:(+$('pathScale').value||100)/100,delay:+$('pathDelay').value||0,fromPoint:$('pathFrom').value||'hero_home',viaPoint:$('pathVia').value||'air_high',toPoint:$('pathTo').value||'enemy_home'}:null;bucket()[$('skill').value]=clone(draft);mark('skill:'+$('side').value+':'+$('skill').value)}
 function loadSkill(){const id=$('skill').value;if(!id)return;draft=normalizePresentation(clone(bucket()[id]||{}));$('enabled').checked=!!draft.enabled;$('actorAction').value=draft.actorAction||'melee';$('pathImg').innerHTML=opt(MANIFEST.assets,draft.pathFX?.image||'');$('pathMode').value=draft.pathFX?.path||'straight';$('pathDuration').value=draft.pathFX?.duration||420;$('pathScale').value=Math.round((draft.pathFX?.scale||1)*100);$('pathDelay').value=draft.pathFX?.delay||0;for(const [id,val] of [['pathFrom',draft.pathFX?.fromPoint||'hero_home'],['pathVia',draft.pathFX?.viaPoint||'air_high'],['pathTo',draft.pathFX?.toPoint||'enemy_home']]){$(id).innerHTML=points.map(v=>`<option ${v===val?'selected':''}>${v}</option>`).join('')}renderFx();renderSummons();setTimeout(()=>{renderSkillPreview();renderTimeline()},0)}
-function renderFx(){$('aList').innerHTML=(draft.selfFX||[]).map((x,i)=>fxRow('A',x,i)).join('');$('bList').innerHTML=(draft.targetFX||[]).map((x,i)=>fxRow('B',x,i)).join('');document.querySelectorAll('[data-kind]').forEach(el=>el.onchange=()=>{const arr=el.dataset.kind==='A'?draft.selfFX:draft.targetFX, x=arr[+el.dataset.i]=normalizeFx(arr[+el.dataset.i]);const k=el.dataset.k,v=el.value;if(k==='scale')x.scale=(+v||100)/100;else if(['offsetX','offsetY','delay','duration'].includes(k))x[k]=+v||0;else if(k==='enterType')x.enter.type=v;else if(k==='exitType')x.exit.type=v;else if(k==='enterDuration')x.enter.duration=+v||0;else if(k==='exitDuration')x.exit.duration=+v||0;else x[k]=v;commitCurrent()});document.querySelectorAll('[data-preview-fx]').forEach(b=>b.onclick=()=>{selectedFx={kind:b.dataset.previewFx,index:+b.dataset.i};renderSkillPreview();renderTimeline()});document.querySelectorAll('[data-up-fx]').forEach(b=>b.onclick=()=>moveFx(b.dataset.upFx,+b.dataset.i,-1));document.querySelectorAll('[data-down-fx]').forEach(b=>b.onclick=()=>moveFx(b.dataset.downFx,+b.dataset.i,1));document.querySelectorAll('[data-del-fx]').forEach(b=>b.onclick=()=>{(b.dataset.delFx==='A'?draft.selfFX:draft.targetFX).splice(+b.dataset.i,1);selectedFx=null;renderFx();commitCurrent();renderSkillPreview();renderTimeline()})}
-function renderSummons(){$('summonList').innerHTML=(draft.summons||[]).map(summonRow).join('');document.querySelectorAll('[data-sk]').forEach(el=>el.onchange=()=>{const x=draft.summons[+el.dataset.si],k=el.dataset.sk;if(k==='scale')x.scale=(+el.value||100)/100;else if(['delay','duration'].includes(k))x[k]=+el.value||0;else x[k]=el.value;commitCurrent()});document.querySelectorAll('[data-del-summon]').forEach(b=>b.onclick=()=>{draft.summons.splice(+b.dataset.delSummon,1);renderSummons();commitCurrent()})}
+function renderFx(){
+  $('aList').innerHTML=(draft.selfFX||[]).map((x,i)=>fxRow('A',x,i)).join('');$('bList').innerHTML=(draft.targetFX||[]).map((x,i)=>fxRow('B',x,i)).join('');
+  document.querySelectorAll('[data-kind]').forEach(el=>{
+    const apply=()=>{const arr=el.dataset.kind==='A'?draft.selfFX:draft.targetFX,x=arr[+el.dataset.i]=normalizeFx(arr[+el.dataset.i]),k=el.dataset.k,v=el.value;if(k==='scale')x.scale=(+v||100)/100;else if(['offsetX','offsetY','delay','duration'].includes(k))x[k]=+v||0;else if(k==='enterType')x.enter.type=v;else if(k==='exitType')x.exit.type=v;else if(k==='enterDuration')x.enter.duration=+v||0;else if(k==='exitDuration')x.exit.duration=+v||0;else x[k]=v;commitCurrent();renderSkillPreview();renderTimeline()};
+    if(el.tagName==='INPUT')el.oninput=apply;else el.onchange=apply
+  });
+  document.querySelectorAll('[data-preview-fx]').forEach(b=>b.onclick=()=>{selectedFx={kind:b.dataset.previewFx,index:+b.dataset.i};renderSkillPreview();renderTimeline()});
+  document.querySelectorAll('[data-up-fx]').forEach(b=>b.onclick=()=>moveFx(b.dataset.upFx,+b.dataset.i,-1));
+  document.querySelectorAll('[data-down-fx]').forEach(b=>b.onclick=()=>moveFx(b.dataset.downFx,+b.dataset.i,1));
+  document.querySelectorAll('[data-del-fx]').forEach(b=>b.onclick=()=>{(b.dataset.delFx==='A'?draft.selfFX:draft.targetFX).splice(+b.dataset.i,1);selectedFx=null;renderFx();commitCurrent();renderSkillPreview();renderTimeline()})
+}
+function renderSummons(){
+  $('summonList').innerHTML=(draft.summons||[]).map(summonRow).join('');
+  document.querySelectorAll('[data-sk]').forEach(el=>{const apply=()=>{const x=draft.summons[+el.dataset.si],k=el.dataset.sk;if(k==='scale')x.scale=(+el.value||100)/100;else if(['delay','duration'].includes(k))x[k]=+el.value||0;else x[k]=el.value;commitCurrent();renderSkillPreview();renderTimeline()};if(el.tagName==='INPUT')el.oninput=apply;else el.onchange=apply});
+  document.querySelectorAll('[data-del-summon]').forEach(b=>b.onclick=()=>{draft.summons.splice(+b.dataset.delSummon,1);renderSummons();commitCurrent();renderSkillPreview();renderTimeline()})
+}
 function renderSelectors(){$('monsterBox').style.display=$('side').value==='monster'?'block':'none';$('heroBox').style.display=$('side').value==='player'?'block':'none';$('monster').innerHTML=MANIFEST.monsters.map(x=>`<option value="${x.id}">${x.name} (${x.id})</option>`).join('');$('skill').innerHTML=skillList().map(x=>`<option value="${x.id}">${x.name} (${x.id})</option>`).join('');$('actorAction').innerHTML=($('side').value==='player'?heroActions:monActions).map(x=>`<option>${x}</option>`).join('');$('motionName').innerHTML=($('side').value==='player'?heroActions:monActions).map(x=>`<option>${x}</option>`).join('');loadSkill();loadMotion();loadAnchor()}
 function motionStore(){ensure();if($('side').value==='player'){const id=actorId();CFG.heroes[id]=CFG.heroes[id]||{};return CFG.heroes[id].motionActions=CFG.heroes[id].motionActions||{}}const id=$('monster').value;CFG.monsters[id]=CFG.monsters[id]||{};return CFG.monsters[id].motionActions=CFG.monsters[id].motionActions||{}}
 function defMotion(n){const mo=$('side').value==='monster';return {spriteState:mo?(n==='idle'?'idle':'battle'):(['idle','buff'].includes(n)?'idle':'attack'),motion:n==='jump'?'jump':n==='dash'?'dash':n==='melee'?'forward':'stay',from:mo?'enemy_home':'hero_home',via:'air_high',to:'enemy_front',returnTo:mo?'enemy_home':'hero_home',duration:n==='jump'?700:520}}
@@ -373,23 +179,169 @@ function loadAnchor(){ensure();const id=actorId();let a;if($('side').value==='pl
 function commitAnchor(){const id=actorId(),a={width:+$('anchorW').value||100,height:+$('anchorH').value||100,y:+$('anchorY').value||0};if($('side').value==='player'){CFG.heroes[id]=CFG.heroes[id]||{};CFG.heroes[id].effectAnchor=a}else{CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].effectAnchor=a}mark('anchor:'+id)}
 function ensureDevice(){ensureNativeLayouts?.();ensure();const d=$('device').value;CFG.referencePoints[d]=CFG.referencePoints[d]||{};const defs={enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};for(const p of Object.keys(defs))CFG.referencePoints[d][p]=CFG.referencePoints[d][p]||defs[p];CFG.stage[d]=CFG.stage[d]||{bg:{x:50,y:50,scale:1,locked:true}};CFG.stage[d].bg=CFG.stage[d].bg||{x:50,y:50,scale:1,locked:true};return d}
 function makePoints(){$('stage').querySelectorAll('.point').forEach(x=>x.remove());for(const p of points){const e=document.createElement('div');e.className='point';e.dataset.p=p;$('stage').appendChild(e)}bindDrag()}
-function refForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;return CFG.referencePoints[d][name]}
-function applyBgVisual(){const d=ensureDevice(),b=CFG.stage[d].bg,img=$('bgImg');img.style.transform=`translate(${Number(b.x||50)-50}%,${Number(b.y||50)-50}%) scale(${Number(b.scale)||1})`;requestAnimationFrame(renderBgResizeBox)}
-function renderBgResizeBox(){const stg=$('stage'),img=$('bgImg'),box=$('bgResizeBox'),handles=[...document.querySelectorAll('.bg-resize-handle')],d=ensureDevice(),b=CFG.stage[d].bg;if(!stg||!img||!box)return;const visible=!b.locked;box.style.display=visible?'block':'none';handles.forEach(h=>h.style.display=visible?'block':'none');if(!visible)return;const sr=stg.getBoundingClientRect(),ir=img.getBoundingClientRect();const left=ir.left-sr.left,top=ir.top-sr.top,w=ir.width,h=ir.height;box.style.left=left+'px';box.style.top=top+'px';box.style.width=w+'px';box.style.height=h+'px';const pts={tl:[left,top],tr:[left+w,top],bl:[left,top+h],br:[left+w,top+h]};handles.forEach(el=>{const p=pts[el.dataset.corner];el.style.left=p[0]+'px';el.style.top=p[1]+'px'})}
-function renderStage(){const d=ensureDevice(),st=CFG.stage[d];document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');$('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';$('hero').textContent='';$('enemy').textContent='';$('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';$('enemy').style.width=(CFG.objectSizes[d]?.battleEnemy||190)+'px';$('enemy').style.height=(CFG.objectSizes[d]?.battleEnemy||190)+'px';$('hero').style.background=`center/contain no-repeat url(${sceneHeroSrc()})`;$('enemy').style.background=`center/contain no-repeat url(${sceneMonsterSrc()||''})`;$('bs').value=Math.round((st.bg.scale||1)*1000)/10;$('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';$('bgImg').style.cursor=st.bg.locked?'default':'grab';$('bgImg').src='../'+$('bg').value;applyBgVisual()}
-function commitStage(){const d=ensureDevice(),st=CFG.stage[d];st.bg.scale=Math.max(.2,Math.min(8,(+$('bs').value||100)/100));$('bs').value=Math.round(st.bg.scale*1000)/10;mark('stage:'+d);applyBgVisual()}
-function bindDrag(){const stg=$('stage');document.querySelectorAll('.point').forEach(el=>el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);el.onpointermove=ev=>{const r=stg.getBoundingClientRect(),x=Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)),d=ensureDevice();const name=el.dataset.p,q={x:+x.toFixed(1),y:+y.toFixed(1)};if(name==='hero_home')CFG.battleLayout[d].hero=q;else if(name==='enemy_home')CFG.battleLayout[d].enemy=q;else CFG.referencePoints[d][name]=q;el.style.left=x+'%';el.style.top=y+'%';mark('points:'+d+':'+name)};const end=()=>{el.onpointermove=null;renderStage();renderSceneEditor()};el.onpointerup=end;el.onpointercancel=end});
-  const img=$('bgImg');
-  img.onpointerdown=e=>{const d=ensureDevice(),b=CFG.stage[d].bg;if(b.locked)return;e.preventDefault();const sx=e.clientX,sy=e.clientY,ox=Number(b.x||50),oy=Number(b.y||50),r=stg.getBoundingClientRect();img.setPointerCapture(e.pointerId);img.style.cursor='grabbing';img.onpointermove=ev=>{b.x=+(ox+(ev.clientX-sx)/r.width*100).toFixed(2);b.y=+(oy+(ev.clientY-sy)/r.height*100).toFixed(2);mark('stage:'+d);applyBgVisual()};const end=()=>{img.onpointermove=null;img.style.cursor=b.locked?'default':'grab';renderBgResizeBox()};img.onpointerup=end;img.onpointercancel=end};
-  img.onwheel=e=>{const d=ensureDevice(),b=CFG.stage[d].bg;if(b.locked)return;e.preventDefault();const factor=e.deltaY<0?1.06:1/1.06;b.scale=Math.max(.2,Math.min(8,Number(b.scale||1)*factor));$('bs').value=Math.round(b.scale*1000)/10;mark('stage:'+d);applyBgVisual()};
-  document.querySelectorAll('.bg-resize-handle').forEach(handle=>{handle.onpointerdown=e=>{const d=ensureDevice(),b=CFG.stage[d].bg;if(b.locked)return;e.preventDefault();e.stopPropagation();const sr=stg.getBoundingClientRect(),ir=img.getBoundingClientRect(),cx=ir.left+ir.width/2,cy=ir.top+ir.height/2,startDist=Math.hypot(e.clientX-cx,e.clientY-cy)||1,startScale=Number(b.scale||1);handle.setPointerCapture(e.pointerId);handle.onpointermove=ev=>{const dist=Math.hypot(ev.clientX-cx,ev.clientY-cy);b.scale=Math.max(.2,Math.min(8,startScale*(dist/startDist)));$('bs').value=Math.round(b.scale*1000)/10;mark('stage:'+d);applyBgVisual()};const end=()=>{handle.onpointermove=null;renderBgResizeBox()};handle.onpointerup=end;handle.onpointercancel=end}});
-  window.addEventListener('resize',()=>requestAnimationFrame(renderBgResizeBox));
+
+function currentBgCfg(deviceId){
+  ensureNativeLayouts();
+  const d=deviceId||ensureDevice();
+  CFG.stage[d]=CFG.stage[d]||{bg:{x:50,y:50,scale:1,locked:true}};
+  CFG.stage[d].bg=Object.assign({x:50,y:50,scale:1,locked:true},CFG.stage[d].bg||{});
+  return CFG.stage[d].bg;
 }
-$('motionName').onchange=loadMotion;for(const id of ['spriteState','motion','from','via','to','returnTo','motionDuration'])$(id).onchange=commitMotion;for(const id of ['anchorW','anchorH','anchorY'])$(id).onchange=commitAnchor;$('device').onchange=renderStage;$('bg').onchange=renderStage;$('bs').oninput=commitStage;$('bs').onchange=commitStage;$('lock').onclick=()=>{const d=ensureDevice();CFG.stage[d].bg.locked=!CFG.stage[d].bg.locked;mark('stage:'+d);renderStage()};
-$('saveAll').onclick=()=>{commitCurrent();localStorage.setItem('studyRPGPresentationDraftV1018',JSON.stringify({cfg:CFG,source:sanitizeMainSource(MAIN_SOURCE)}));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已批次儲存全部變更到瀏覽器草稿。正式 GitHub index.html 沒有被修改。')};
-$('export').onclick=()=>{commitCurrent();if(!MAIN_SOURCE){alert('尚未載入正式 index.html，不能匯出。');return}try{const html=buildSafeExportIndex(MAIN_SOURCE,CFG),u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1500)}catch(err){alert('匯出失敗：'+err.message)}};
-$('import').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);if(/<html|<!doctype/i.test(txt)){hydrateManifestFromIndex(txt);CFG=extractConfigFromIndex(txt);MAIN_SOURCE=sanitizeMainSource(txt);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入你選擇的 index.html 工作副本。'}else{CFG=extractLegacyConfig(txt);$('mainSourceStatus').textContent='✅ 已匯入舊 data.js 設定；匯出時會寫入目前載入的 index.html。'}dirty.clear();ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();$('dirty').textContent='未儲存 0 項'}catch(err){alert(err.message)}};r.readAsText(f)};
-$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const raw=String(r.result);hydrateManifestFromIndex(raw);CFG=extractConfigFromIndex(raw);MAIN_SOURCE=sanitizeMainSource(raw);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入本機正式 index.html；只編輯工作副本。';ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(err){alert(err.message)}};r.readAsText(f)};
+function bgTransform(deviceId){
+  const b=currentBgCfg(deviceId);
+  return `translate(${Number(b.x||50)-50}%,${Number(b.y||50)-50}%) scale(${Number(b.scale)||1})`;
+}
+function currentBackgroundPath(){
+  return $('bg')?.value||sceneWeekData?.()?.background||'images/backgrounds/week01_grassland.png';
+}
+function syncPreviewBackground(){
+  const d=$('device')?.value||ensureDevice(),src=editorImg(currentBackgroundPath()),tf=bgTransform(d);
+  const main=$('bgImg');if(main){main.src=src;main.style.transform=tf}
+  const pv=document.querySelector('#skillPreviewStage .pv-bg');if(pv){pv.src=src;pv.style.transformOrigin='center';pv.style.transform=tf}
+  const sd=$('sceneDevice')?.value||d,stf=bgTransform(sd);
+  document.querySelectorAll('#sceneEditorStage .scene-bg').forEach(img=>{img.src=src;img.style.transformOrigin='center';img.style.transform=stf});
+}
+function syncBattlePreviewFromLayout(){
+  const d=$('device')?.value||'desktop',bl=CFG.battleLayout?.[d],os=CFG.objectSizes?.[d];
+  if(!bl||!os)return;
+  const h=$('pvHero'),e=$('pvEnemy');
+  if(h&&bl.hero){h.style.left=bl.hero.x+'%';h.style.top=bl.hero.y+'%';h.style.width=(os.battleHero||190)+'px';h.style.height=(os.battleHero||190)+'px'}
+  if(e&&bl.enemy){e.style.left=bl.enemy.x+'%';e.style.top=bl.enemy.y+'%';e.style.width=(os.battleEnemy||190)+'px';e.style.height=(os.battleEnemy||190)+'px'}
+  document.querySelectorAll('#skillPreviewStage .pv-point').forEach(el=>{const p=pnt(el.dataset.label);if(p){el.style.left=p.x+'%';el.style.top=p.y+'%'}});
+  syncPreviewBackground();
+}
+
+function refForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;return CFG.referencePoints[d][name]}function renderStage(){
+  const d=ensureDevice(),st=CFG.stage[d];
+  document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});
+  const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');
+  $('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';
+  $('hero').textContent='';$('enemy').textContent='';
+  $('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';
+  $('enemy').style.width=(CFG.objectSizes[d]?.battleEnemy||190)+'px';$('enemy').style.height=(CFG.objectSizes[d]?.battleEnemy||190)+'px';
+  $('hero').style.background=`center/contain no-repeat url(${sceneHeroSrc()})`;
+  $('enemy').style.background=`center/contain no-repeat url(${sceneMonsterSrc()||''})`;
+  $('bs').value=Math.round((st.bg.scale||1)*100);
+  $('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';
+  $('bgImg').src=editorImg(currentBackgroundPath());
+  $('bgImg').style.transform=bgTransform(d);
+  syncPreviewBackground();
+}
+function commitStage(){
+  const d=ensureDevice(),st=CFG.stage[d];
+  st.bg.scale=Math.max(.1,Math.min(8,(+$('bs').value||100)/100));
+  $('bs').value=Math.round(st.bg.scale*100);
+  mark('stage:'+d);
+  renderStage();
+}
+function bindDrag(){
+  const stg=$('stage');
+  document.querySelectorAll('.point').forEach(el=>el.onpointerdown=e=>{
+    el.setPointerCapture(e.pointerId);
+    el.onpointermove=ev=>{
+      const r=stg.getBoundingClientRect(),x=Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)),d=ensureDevice();
+      const name=el.dataset.p,q={x:+x.toFixed(1),y:+y.toFixed(1)};
+      if(name==='hero_home')CFG.battleLayout[d].hero=q;else if(name==='enemy_home')CFG.battleLayout[d].enemy=q;else CFG.referencePoints[d][name]=q;
+      el.style.left=x+'%';el.style.top=y+'%';mark('points:'+d+':'+name);syncBattlePreviewFromLayout();
+    };
+    const end=()=>{el.onpointermove=null;renderStage();renderSceneEditor();renderSkillPreview();renderTimeline()};
+    el.onpointerup=end;el.onpointercancel=end
+  });
+  $('bgImg').onpointerdown=e=>{
+    const d=ensureDevice(),b=currentBgCfg(d);if(b.locked)return;
+    e.preventDefault();const sx=e.clientX,sy=e.clientY,ox=Number(b.x||50),oy=Number(b.y||50),r=stg.getBoundingClientRect();
+    $('bgImg').setPointerCapture(e.pointerId);
+    $('bgImg').onpointermove=ev=>{
+      b.x=+(ox+(ev.clientX-sx)/r.width*100).toFixed(2);b.y=+(oy+(ev.clientY-sy)/r.height*100).toFixed(2);
+      mark('stage:'+d);$('bgImg').style.transform=bgTransform(d);syncPreviewBackground();
+    };
+    const end=()=>{$('bgImg').onpointermove=null;renderStage();renderSceneEditor();renderSkillPreview()};
+    $('bgImg').onpointerup=end;$('bgImg').onpointercancel=end;
+  };
+  $('bgImg').onwheel=e=>{
+    const d=ensureDevice(),b=currentBgCfg(d);if(b.locked)return;
+    e.preventDefault();b.scale=Math.max(.1,Math.min(8,Number(b.scale||1)*(e.deltaY<0?1.06:1/1.06)));
+    $('bs').value=Math.round(b.scale*100);mark('stage:'+d);$('bgImg').style.transform=bgTransform(d);syncPreviewBackground();
+  };
+}
+function fill(){$('bg').innerHTML=MANIFEST.assets.filter(x=>x.includes('images/backgrounds/')).map(x=>`<option value="${x}">${x}</option>`).join('');$('pathImg').innerHTML=opt(MANIFEST.assets);makePoints();renderSelectors();renderStage();bindDrag()}
+
+
+/* V10.17.5：三場景 1:1 編輯器。直接編輯主程式原生欄位，不使用 sceneLayouts 中介座標。 */
+const DEVICES=['desktop','tablet','mobile'];
+const COORD_DEFAULTS={desktop:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},tablet:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},mobile:{statusHero:{x:50,y:62},dungeonHero:{x:50,y:60},dungeonEnemy:{x:50,y:60}}};
+const BATTLE_DEFAULTS={desktop:{hero:{x:18,y:68},enemy:{x:82,y:68},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},tablet:{hero:{x:17,y:68},enemy:{x:83,y:68},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},mobile:{hero:{x:18,y:65},enemy:{x:82,y:65},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}};
+const SIZE_DEFAULTS={desktop:{statusHero:160,dungeonHero:180,dungeonEnemy:180,battleHero:190,battleEnemy:190},tablet:{statusHero:150,dungeonHero:165,dungeonEnemy:165,battleHero:175,battleEnemy:175},mobile:{statusHero:135,dungeonHero:135,dungeonEnemy:135,battleHero:145,battleEnemy:145}};
+function sceneDeepClone(v){return JSON.parse(JSON.stringify(v))}
+function migrateOldSceneLayouts(){if(!CFG.sceneLayouts)return;CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};for(const d of DEVICES){const s=CFG.sceneLayouts[d]||{},st=s.status||{},en=s.dungeonEntry||{},ba=s.dungeon||{};CFG.sceneCoordinateLayout[d]=CFG.sceneCoordinateLayout[d]||{};CFG.battleLayout[d]=CFG.battleLayout[d]||{};CFG.objectSizes[d]=CFG.objectSizes[d]||{};if(st.hero){CFG.sceneCoordinateLayout[d].statusHero={x:+st.hero.x,y:+st.hero.y};CFG.objectSizes[d].statusHero=+st.hero.size||SIZE_DEFAULTS[d].statusHero}if(en.hero){CFG.sceneCoordinateLayout[d].dungeonHero={x:+en.hero.x,y:+en.hero.y};CFG.objectSizes[d].dungeonHero=+en.hero.size||SIZE_DEFAULTS[d].dungeonHero}if(en.enemy){CFG.sceneCoordinateLayout[d].dungeonEnemy={x:+en.enemy.x,y:+en.enemy.y};CFG.objectSizes[d].dungeonEnemy=+en.enemy.size||SIZE_DEFAULTS[d].dungeonEnemy}if(ba.hero){CFG.battleLayout[d].hero={x:+ba.hero.x,y:+ba.hero.y};CFG.objectSizes[d].battleHero=+ba.hero.size||SIZE_DEFAULTS[d].battleHero}if(ba.enemy){CFG.battleLayout[d].enemy={x:+ba.enemy.x,y:+ba.enemy.y};CFG.objectSizes[d].battleEnemy=+ba.enemy.size||SIZE_DEFAULTS[d].battleEnemy}}delete CFG.sceneLayouts}
+function ensureNativeLayouts(){migrateOldSceneLayouts();CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};for(const d of DEVICES){CFG.sceneCoordinateLayout[d]=Object.assign(sceneDeepClone(COORD_DEFAULTS[d]),CFG.sceneCoordinateLayout[d]||{});CFG.battleLayout[d]=Object.assign(sceneDeepClone(BATTLE_DEFAULTS[d]),CFG.battleLayout[d]||{});CFG.objectSizes[d]=Object.assign({},SIZE_DEFAULTS[d],CFG.objectSizes[d]||{})}}
+function currentHeroInfo(){try{const fam=JSON.parse(localStorage.getItem('heroRPG_FAMILY_V8')||'null');const pid=sessionStorage.getItem('activeHeroProfile')||fam?.activeProfileId||fam?.profiles?.[0]?.id;const p=fam?.profiles?.find(x=>x.id===pid)||fam?.profiles?.[0];return p?.data?.hero||{}}catch(e){return{}}}
+const HERO_KEYS={'見習勇者':'novice','初心者':'novice','戰士':'warrior','法師':'mage','牧師':'priest','獵人':'hunter','盜賊':'rogue','聖騎士':'paladin','魔劍士':'spellblade'};
+function sceneHeroSrc(){const h=currentHeroInfo(),key=h.jobAwakened?(HERO_KEYS[h.heroClass]||'novice'):'novice',female=h.gender==='female'?'_female':'';return `../images/hero_${key}${female}_idle.png`}
+function sceneWeekData(){const w=Number($('sceneWeek').value)||1;return GAME_SCENE_MANIFEST.weeks.find(x=>x.week===w)||GAME_SCENE_MANIFEST.weeks[0]}
+function sceneMonsterSrc(){const id=$('sceneMonster').value;if(id==='hero_mirror')return sceneHeroSrc();return id?`../images/monsters/${id}_idle.png`:''}
+function fillSceneWeeks(){const sel=$('sceneWeek');if(!sel)return;const old=sel.value||String(GAME_SCENE_MANIFEST.weeks[0]?.week||1);sel.innerHTML=GAME_SCENE_MANIFEST.weeks.filter(x=>x.week<=20).map(x=>`<option value="${x.week}">第${x.week}週・${x.map}</option>`).join('');sel.value=[...sel.options].some(o=>o.value===old)?old:sel.options[0]?.value;fillSceneMonsters()}
+function fillSceneMonsters(){const w=sceneWeekData(),sel=$('sceneMonster'),old=sel.value;const names=Object.fromEntries(GAME_SCENE_MANIFEST.monsters.map(m=>[m.id,m.name]));sel.innerHTML=(w?.monsters||[]).map(id=>`<option value="${id}">${names[id]||id}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
+function sceneDims(){const d=$('sceneDevice').value,s=$('sceneKind').value;if(s==='status')return d==='mobile'?[390,260]:[d==='tablet'?720:900,260];if(s==='dungeonEntry')return d==='mobile'?[390,220]:[d==='tablet'?720:900,220];return d==='mobile'?[390,260]:[d==='tablet'?720:900,300]}
+function sceneCfg(){ensureNativeLayouts();const d=$('sceneDevice').value,k=$('sceneKind').value,sc=CFG.sceneCoordinateLayout[d],bl=CFG.battleLayout[d],os=CFG.objectSizes[d];if(k==='status')return{hero:sc.statusHero,heroSizeKey:'statusHero'};if(k==='dungeonEntry')return{hero:sc.dungeonHero,enemy:sc.dungeonEnemy,heroSizeKey:'dungeonHero',enemySizeKey:'dungeonEnemy'};return{hero:bl.hero,enemy:bl.enemy,heroSizeKey:'battleHero',enemySizeKey:'battleEnemy'}}
+function fitSceneCanvas(w,h){const shell=$('sceneEditorShell'),stage=$('sceneEditorStage');stage.style.width=w+'px';stage.style.height=h+'px';const scale=Math.min(1,Math.max(0.05,shell.clientWidth/w));stage.style.transform=`scale(${scale})`;shell.style.height=Math.ceil(h*scale)+'px';return scale}
+function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px">`}
+function renderSceneEditor(){if(!$('sceneEditorStage'))return;ensureNativeLayouts();const c=sceneCfg(),kind=$('sceneKind').value,d=$('sceneDevice').value,[w,h]=sceneDims(),stage=$('sceneEditorStage'),wd=sceneWeekData(),bg=editorImg(currentBackgroundPath()||wd?.background||'images/backgrounds/week01_grassland.png'),os=CFG.objectSizes[d],hs=os[c.heroSizeKey],es=c.enemySizeKey?os[c.enemySizeKey]:0;fitSceneCanvas(w,h);
+  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid"><div class="entry-card"><img class="scene-bg" src="${bg}"><div class="entry-local" data-local="hero">${unitHtml('sceneEditorHero',sceneHeroSrc(),c.hero,hs)}</div></div><div class="entry-vs">VS</div><div class="entry-card"><img class="scene-bg" src="${bg}"><div class="entry-local" data-local="enemy">${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),c.enemy,es,'enemy')}</div></div></div><div class="scene-scale-label">${w}×${h}</div>`;
+  else stage.innerHTML=`<img class="scene-bg" src="${bg}">${unitHtml('sceneEditorHero',sceneHeroSrc(),c.hero,hs)}${kind==='dungeon'?unitHtml('sceneEditorEnemy',sceneMonsterSrc(),c.enemy,es,'enemy'):''}<div class="scene-scale-label">${w}×${h}</div>`;
+  $('sceneHeroSize').value=hs;$('sceneHeroSizeOut').textContent=hs+'px';$('sceneHeroXY').textContent=`英雄 X ${Number(c.hero.x).toFixed(1)}% / Y ${Number(c.hero.y).toFixed(1)}%`;
+  const showEnemy=kind!=='status';$('sceneEnemySizeBox').style.display=showEnemy?'block':'none';$('sceneEnemyXY').style.display=showEnemy?'inline-block':'none';if(showEnemy){$('sceneEnemySize').value=es;$('sceneEnemySizeOut').textContent=es+'px';$('sceneEnemyXY').textContent=`怪物 X ${Number(c.enemy.x).toFixed(1)}% / Y ${Number(c.enemy.y).toFixed(1)}%`}
+  document.querySelectorAll('#sceneEditorStage .scene-bg').forEach(img=>{img.style.transformOrigin='center';img.style.transform=bgTransform(d)});bindSceneUnit($('sceneEditorHero'),'hero');if(showEnemy)bindSceneUnit($('sceneEditorEnemy'),'enemy');
+}
+function bindSceneUnit(el,key){
+  if(!el)return;
+  el.onpointerdown=e=>{
+    e.preventDefault();const c=sceneCfg()[key],kind=$('sceneKind').value,zone=kind==='dungeonEntry'?el.closest('.entry-local'):$('sceneEditorStage'),r=zone.getBoundingClientRect();
+    el.setPointerCapture(e.pointerId);el.style.cursor='grabbing';
+    el.onpointermove=ev=>{
+      c.x=+Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)).toFixed(1);c.y=+Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)).toFixed(1);
+      mark(`layout:${$('sceneDevice').value}:${$('sceneKind').value}:${key}`);el.style.left=c.x+'%';el.style.top=c.y+'%';
+      if(key==='hero')$('sceneHeroXY').textContent=`英雄 X ${c.x.toFixed(1)}% / Y ${c.y.toFixed(1)}%`;else $('sceneEnemyXY').textContent=`怪物 X ${c.x.toFixed(1)}% / Y ${c.y.toFixed(1)}%`;
+      if(kind==='dungeon'&&$('sceneDevice').value===$('device').value)syncBattlePreviewFromLayout();
+    };
+    const end=()=>{el.onpointermove=null;el.style.cursor='grab';renderSceneEditor();if(kind==='dungeon'){renderSkillPreview();renderTimeline()}};
+    el.onpointerup=end;el.onpointercancel=end
+  }
+}
+function installSceneEditor(){
+  ensureNativeLayouts();fillSceneWeeks();
+  $('sceneKind').onchange=()=>{renderSceneEditor();syncPreviewBackground()};
+  $('sceneDevice').onchange=()=>{renderSceneEditor();syncPreviewBackground()};
+  $('sceneWeek').onchange=()=>{fillSceneMonsters();const wd=sceneWeekData();if(wd?.background&&[...$('bg').options].some(o=>o.value===wd.background))$('bg').value=wd.background;renderSceneEditor();renderSkillPreview();renderStage()};
+  $('sceneMonster').onchange=()=>{renderSceneEditor();renderSkillPreview()};
+  $('sceneHeroSize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg(),n=+e.target.value;CFG.objectSizes[d][c.heroSizeKey]=n;mark(`size:${d}:${c.heroSizeKey}`);$('sceneHeroSizeOut').textContent=n+'px';const el=$('sceneEditorHero');if(el){el.style.width=n+'px';el.style.height=n+'px'}if($('sceneKind').value==='dungeon'&&d===$('device').value)syncBattlePreviewFromLayout()};
+  $('sceneEnemySize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg(),n=+e.target.value;if(c.enemySizeKey){CFG.objectSizes[d][c.enemySizeKey]=n;mark(`size:${d}:${c.enemySizeKey}`);$('sceneEnemySizeOut').textContent=n+'px';const el=$('sceneEditorEnemy');if(el){el.style.width=n+'px';el.style.height=n+'px'}if($('sceneKind').value==='dungeon'&&d===$('device').value)syncBattlePreviewFromLayout()}};
+  addEventListener('resize',()=>{renderSceneEditor();renderSkillPreview()});renderSceneEditor()
+}
+
+$('side').onchange=()=>{commitCurrent();renderSelectors();renderSkillPreview();renderTimeline()};
+$('heroActor').onchange=()=>{commitCurrent();loadMotion();loadAnchor();renderSkillPreview();renderTimeline();renderSceneEditor()};
+$('monster').onchange=()=>{commitCurrent();loadSkill();loadMotion();loadAnchor();renderSkillPreview()};
+$('skill').onchange=()=>{commitCurrent();loadSkill();renderSkillPreview();renderTimeline()};
+$('enabled').onchange=()=>{commitCurrent();renderSkillPreview();renderTimeline()};
+$('actorAction').onchange=()=>{commitCurrent();loadMotion();renderSkillPreview();renderTimeline()};
+for(const id of ['pathImg','pathMode','pathFrom','pathVia','pathTo'])$(id).onchange=()=>{commitCurrent();renderSkillPreview();renderTimeline()};
+for(const id of ['pathDuration','pathScale','pathDelay'])$(id).oninput=()=>{commitCurrent();renderSkillPreview();renderTimeline()};
+$('addA').onclick=()=>{draft.selfFX.push(normalizeFx({anchor:'self',scaleMode:'self'}));renderFx();commitCurrent();renderSkillPreview();renderTimeline()};
+$('addB').onclick=()=>{draft.targetFX.push(normalizeFx({anchor:'target',scaleMode:'target'}));renderFx();commitCurrent();renderSkillPreview();renderTimeline()};
+$('addSummon').onclick=()=>{draft.summons.push({unitId:'',from:'air_high',via:'air_high',to:'summon_center',standPoint:'summon_center',path:'arc',scale:1,delay:0,duration:500,enter:'fade'});renderSummons();commitCurrent();renderSkillPreview();renderTimeline()};
+$('motionName').onchange=()=>{loadMotion();renderSkillPreview();renderTimeline()};
+for(const id of ['spriteState','motion','from','via','to','returnTo'])$(id).onchange=()=>{commitMotion();renderSkillPreview();renderTimeline()};
+$('motionDuration').oninput=()=>{commitMotion();renderSkillPreview();renderTimeline()};
+for(const id of ['anchorW','anchorH','anchorY'])$(id).oninput=()=>{commitAnchor();renderSkillPreview()};
+$('device').onchange=()=>{renderStage();renderSkillPreview();renderTimeline()};
+$('bg').onchange=()=>{renderStage();renderSceneEditor();renderSkillPreview()};
+$('bs').oninput=commitStage;
+$('lock').onclick=()=>{const d=ensureDevice();CFG.stage[d].bg.locked=!CFG.stage[d].bg.locked;mark('stage:'+d);renderStage()};
+$('saveAll').onclick=()=>{commitCurrent();localStorage.setItem('studyRPGPresentationDraftV1018',JSON.stringify({cfg:CFG,source:MAIN_SOURCE}));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已批次儲存全部變更到瀏覽器草稿。正式 GitHub index.html 沒有被修改。')};
+$('export').onclick=()=>{commitCurrent();if(!MAIN_SOURCE){alert('尚未載入正式 index.html，不能匯出。');return}try{assertExportRuntime(MAIN_SOURCE);const html=replaceConfigInIndex(MAIN_SOURCE,CFG);validateExportHtml(html,CFG);const u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);$('mainSourceStatus').textContent='✅ 匯出完成並驗證：座標、尺寸、背景、技能設定都已寫入新的 index.html。'}catch(err){alert('匯出失敗：'+err.message)}};
+$('import').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);if(/<html|<!doctype/i.test(txt)){MAIN_SOURCE=txt;hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(txt);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入你選擇的 index.html 工作副本。'}else{CFG=extractLegacyConfig(txt);$('mainSourceStatus').textContent='✅ 已匯入舊 data.js 設定；匯出時會寫入目前載入的 index.html。'}dirty.clear();ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();$('dirty').textContent='未儲存 0 項'}catch(err){alert(err.message)}};r.readAsText(f)};
+$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{MAIN_SOURCE=String(r.result);hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(MAIN_SOURCE);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入本機正式 index.html；只編輯工作副本。';ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(err){alert(err.message)}};r.readAsText(f)};
 $('reloadMainIndex').onclick=async()=>{if(await loadMainIndex()){ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();}};
 (async function bootDirectIndexEditor(){
   await loadMainIndex();
@@ -430,7 +382,7 @@ function fitPreview(){const shell=$('skillPreviewShell'),st=$('skillPreviewStage
 function fxAnchor(fx){const sp=sidePoints();let name=fx.anchor==='self'?sp.self:fx.anchor==='target'?sp.target:(fx.point||'enemy_front');const base=pnt(name);return{name,base}}
 function fxSize(fx){const d=$('device').value||'desktop',os=CFG.objectSizes[d]||{},selfSide=$('side').value==='monster'?'enemy':'hero';let base=96;if(fx.scaleMode==='fixed')base=96;else if(fx.scaleMode==='self')base=selfSide==='hero'?(os.battleHero||190):(os.battleEnemy||190);else {const target=selfSide==='hero'?'enemy':'hero';base=target==='hero'?(os.battleHero||190):(os.battleEnemy||190)}return Math.max(12,base*Number(fx.scale||1))}
 function staticFxHtml(kind,fx,i){fx=normalizeFx(fx);if(!fx.image)return'';const a=fxAnchor(fx),x=a.base.x+Number(fx.offsetX||0),y=a.base.y+Number(fx.offsetY||0),sz=fxSize(fx),sel=selectedFx&&selectedFx.kind===kind&&selectedFx.index===i?' selected':'';return `<img class="pv-fx${sel}" data-pv-kind="${kind}" data-pv-i="${i}" src="${editorImg(fx.image)}" style="left:${x}%;top:${y}%;width:${sz}px;height:${sz}px;opacity:.72">`}
-function renderSkillPreview(){if(!$('skillPreviewStage'))return;commitCurrent();const [w,h]=fitPreview(),d=$('device').value||'desktop',bl=CFG.battleLayout[d],os=CFG.objectSizes[d],wd=sceneWeekData(),bg=editorImg(wd?.background||$('bg').value),hero=skillHeroSrc('idle'),enemy=sceneMonsterSrc();const heroPos=bl.hero,enemyPos=bl.enemy;let html=`<img class="pv-bg" src="${bg}"><img id="pvHero" class="pv-unit" src="${hero}" style="left:${heroPos.x}%;top:${heroPos.y}%;width:${os.battleHero||190}px;height:${os.battleHero||190}px"><img id="pvEnemy" class="pv-unit" src="${enemy}" style="left:${enemyPos.x}%;top:${enemyPos.y}%;width:${os.battleEnemy||190}px;height:${os.battleEnemy||190}px">`;const aid=actorId(),aa=$('side').value==='player'?(CFG.heroes?.[aid]?.effectAnchor||{width:100,height:100,y:0}):(CFG.monsters?.[aid]?.effectAnchor||{width:100,height:100,y:0}),ap=$('side').value==='monster'?enemyPos:heroPos,asz=$('side').value==='monster'?(os.battleEnemy||190):(os.battleHero||190);html+=`<div id="pvAnchorBox" class="pv-anchor-box" style="left:${ap.x}%;top:calc(${ap.y}% + ${asz*Number(aa.y||0)/100}px);width:${asz*Number(aa.width||100)/100}px;height:${asz*Number(aa.height||100)/100}px"></div>`;
+function renderSkillPreview(){if(!$('skillPreviewStage'))return;commitCurrent();const [w,h]=fitPreview(),d=$('device').value||'desktop',bl=CFG.battleLayout[d],os=CFG.objectSizes[d],wd=sceneWeekData(),bg=editorImg(currentBackgroundPath()||wd?.background),hero=skillHeroSrc('idle'),enemy=sceneMonsterSrc();const heroPos=bl.hero,enemyPos=bl.enemy;let html=`<img class="pv-bg" src="${bg}" style="transform-origin:center;transform:${bgTransform(d)}"><img id="pvHero" class="pv-unit" src="${hero}" style="left:${heroPos.x}%;top:${heroPos.y}%;width:${os.battleHero||190}px;height:${os.battleHero||190}px"><img id="pvEnemy" class="pv-unit" src="${enemy}" style="left:${enemyPos.x}%;top:${enemyPos.y}%;width:${os.battleEnemy||190}px;height:${os.battleEnemy||190}px">`;const aid=actorId(),aa=$('side').value==='player'?(CFG.heroes?.[aid]?.effectAnchor||{width:100,height:100,y:0}):(CFG.monsters?.[aid]?.effectAnchor||{width:100,height:100,y:0}),ap=$('side').value==='monster'?enemyPos:heroPos,asz=$('side').value==='monster'?(os.battleEnemy||190):(os.battleHero||190);html+=`<div id="pvAnchorBox" class="pv-anchor-box" style="left:${ap.x}%;top:calc(${ap.y}% + ${asz*Number(aa.y||0)/100}px);width:${asz*Number(aa.width||100)/100}px;height:${asz*Number(aa.height||100)/100}px"></div>`;
  for(const n of ['hero_home','enemy_home','enemy_front','air_high','summon_left','summon_center','summon_right']){const p=pnt(n);html+=`<span class="pv-point" style="left:${p.x}%;top:${p.y}%" data-label="${n}"></span>`}
  (draft?.selfFX||[]).forEach((f,i)=>html+=staticFxHtml('A',f,i));(draft?.targetFX||[]).forEach((f,i)=>html+=staticFxHtml('B',f,i));$('skillPreviewStage').innerHTML=html;bindPreviewFx();bindAnchorBox();updateSelectionInfo();highlightFxRow();}
 function highlightFxRow(){document.querySelectorAll('.fxrow').forEach(x=>x.classList.remove('selected-fx'));if(!selectedFx)return;const btn=document.querySelector(`[data-preview-fx="${selectedFx.kind}"][data-i="${selectedFx.index}"]`);btn?.closest('.fxrow')?.classList.add('selected-fx')}
@@ -446,7 +398,7 @@ async function playPreview(){commitCurrent();previewToken++;const token=previewT
 $('previewPlay').onclick=playPreview;$('previewReset').onclick=()=>{previewToken++;renderSkillPreview()};
 function timelineItems(){const out=[],motion=motionStore()[draft?.actorAction]||defMotion(draft?.actorAction||'melee');out.push({type:'motion',label:'Motion',start:0,dur:Number(motion.duration||520)});let t=0;(draft?.selfFX||[]).forEach((f,i)=>{f=normalizeFx(f);t+=Number(f.delay||0);out.push({type:'fx',kind:'A',index:i,label:'A'+(i+1),start:t,dur:Number(f.duration||350)});t+=Number(f.duration||350)});if(draft?.pathFX?.image){const p=draft.pathFX;t+=Number(p.delay||0);out.push({type:'path',label:'Path',start:t,dur:Number(p.duration||420)});t+=Number(p.duration||420)}(draft?.targetFX||[]).forEach((f,i)=>{f=normalizeFx(f);t+=Number(f.delay||0);out.push({type:'fx',kind:'B',index:i,label:'B'+(i+1),start:t,dur:Number(f.duration||350)});t+=Number(f.duration||350)});(draft?.summons||[]).forEach((x,i)=>out.push({type:'summon',index:i,label:'召喚'+(i+1),start:Number(x.delay||0),dur:Number(x.duration||500)}));return out}
 function renderTimeline(){if(!$('timeline')||!draft)return;const items=timelineItems(),max=Math.max(1200,...items.map(x=>x.start+x.dur)),px=680/max;let html=`<div class="tl-row"><div></div><div class="tl-ruler">${[0,.25,.5,.75,1].map(q=>`<span style="position:absolute;left:${q*100}%;font-size:9px;color:#8290a5">${Math.round(max*q)}ms</span>`).join('')}</div></div>`;for(const x of items){const left=x.start/max*100,width=Math.max(2,x.dur/max*100),cls=x.type==='motion'?' motion':x.type==='path'?' path':x.type==='summon'?' summon':'';html+=`<div class="tl-row"><div class="tl-label">${x.label}</div><div class="tl-track"><div class="tl-bar${cls}" data-tl-type="${x.type}" data-kind="${x.kind||''}" data-i="${x.index??''}" style="left:${left}%;width:${width}%">${x.label} ${x.dur}ms</div></div></div>`}$('timeline').innerHTML=html;document.querySelectorAll('.tl-bar').forEach(bar=>{if(bar.dataset.tlType==='motion')return;bar.onpointerdown=e=>{const track=bar.parentElement,r=track.getBoundingClientRect(),type=bar.dataset.tlType,kind=bar.dataset.kind,i=+bar.dataset.i;bar.setPointerCapture(e.pointerId);bar.onpointermove=ev=>{const wanted=Math.max(0,(ev.clientX-r.left)/r.width*max);if(type==='fx'){const a=fxArr(kind),f=a?.[i];if(!f)return;let prevEnd=0;for(const it of timelineItems()){if(it.type==='fx'&&it.kind===kind&&it.index===i){prevEnd=it.start-Number(f.delay||0);break}}f.delay=Math.max(0,Math.round(wanted-prevEnd))}else if(type==='path'&&draft.pathFX){let prev=0;for(const it of timelineItems()){if(it.type==='path'){prev=it.start-Number(draft.pathFX.delay||0);break}}draft.pathFX.delay=Math.max(0,Math.round(wanted-prev));$('pathDelay').value=draft.pathFX.delay}else if(type==='summon'){const x=draft.summons?.[i];if(x)x.delay=Math.round(wanted)}commitCurrent()};const end=()=>{bar.onpointermove=null;renderFx();renderSummons();renderTimeline()};bar.onpointerup=end;bar.onpointercancel=end}})}
-function renderAssetGallery(){if(!$('assetGallery'))return;const q=($('assetSearch').value||'').toLowerCase().trim(),arr=(MANIFEST.assets||[]).filter(x=>x&&!x.includes('${')&&!x.includes('}')&&(!q||x.toLowerCase().includes(q))).slice(0,300);$('assetCount').textContent=`${arr.length}/${MANIFEST.assets.length}`;$('assetGallery').innerHTML=arr.map(p=>`<div class="asset-item" data-asset="${p}"><img loading="lazy" src="${editorImg(p)}"><div>${p.split('/').pop()}</div></div>`).join('');document.querySelectorAll('[data-asset]').forEach(el=>el.onclick=()=>{const p=el.dataset.asset;if(selectedFx){const f=fxArr(selectedFx.kind)?.[selectedFx.index];if(f){f.image=p;commitCurrent();renderFx();renderSkillPreview();renderTimeline();toast('已套用到 '+selectedFx.kind+(selectedFx.index+1));return}}$('pathImg').value=p;commitCurrent();renderSkillPreview();renderTimeline();toast('未選 A/B，已套用到 Path')})}
+function renderAssetGallery(){if(!$('assetGallery'))return;const q=($('assetSearch').value||'').toLowerCase().trim(),arr=(MANIFEST.assets||[]).filter(x=>!q||x.toLowerCase().includes(q)).slice(0,300);$('assetCount').textContent=`${arr.length}/${MANIFEST.assets.length}`;$('assetGallery').innerHTML=arr.map(p=>`<div class="asset-item" data-asset="${p}"><img loading="lazy" src="${editorImg(p)}"><div>${p.split('/').pop()}</div></div>`).join('');document.querySelectorAll('[data-asset]').forEach(el=>el.onclick=()=>{const p=el.dataset.asset;if(selectedFx){const f=fxArr(selectedFx.kind)?.[selectedFx.index];if(f){f.image=p;commitCurrent();renderFx();renderSkillPreview();renderTimeline();toast('已套用到 '+selectedFx.kind+(selectedFx.index+1));return}}$('pathImg').value=p;commitCurrent();renderSkillPreview();renderTimeline();toast('未選 A/B，已套用到 Path')})}
 $('assetSearch').oninput=renderAssetGallery;
 // Re-render visual tools whenever the editor selectors or configuration change.
 for(const id of ['side','heroActor','monster','skill','device','sceneWeek','sceneMonster','bg','actorAction','motionName','pathImg','pathMode','pathDuration','pathScale','pathDelay','pathFrom','pathVia','pathTo'])$(id)?.addEventListener('change',()=>setTimeout(()=>{renderSkillPreview();renderTimeline()},0));
