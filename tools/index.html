@@ -51,6 +51,37 @@ let CFG={}; let dirty=new Set(); const $=id=>document.getElementById(id), clone=
 function extractConfigFromIndex(src){const m=String(src||'').match(/window\.STUDYRPG_EDITOR_CONFIG\s*=\s*([\s\S]*?);\s*\n\/\* STUDYRPG_EDITOR_CONFIG_END \*\//);if(!m)throw Error('主程式找不到 STUDYRPG_EDITOR_CONFIG 區塊');return JSON.parse(m[1]);}
 function extractLegacyConfig(src){const m=String(src||'').match(/window\.STUDYRPG_PRESENTATION_CONFIG\s*=\s*([\s\S]*);\s*$/);if(!m)throw Error('找不到可辨識的設定');return JSON.parse(m[1]);}
 function replaceConfigInIndex(src,cfg){const json=JSON.stringify(cfg,null,2);const re=/window\.STUDYRPG_EDITOR_CONFIG\s*=\s*[\s\S]*?;\s*\n\/\* STUDYRPG_EDITOR_CONFIG_END \*\//;if(!re.test(src))throw Error('主程式設定標記不存在，無法安全匯出');return src.replace(re,'window.STUDYRPG_EDITOR_CONFIG='+json+';\n/* STUDYRPG_EDITOR_CONFIG_END */');}
+function sanitizeMainSource(src){
+  let out=String(src||'');
+  // 移除上一版錯誤的直接 DOM 烘焙 runtime，保留主程式其他內容。
+  out=out.replace(/<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_START -->[\s\S]*?<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_END -->/gi,'');
+  // 移除本修正版自己舊的同步 hook，避免重複。
+  out=out.replace(/<!-- STUDYRPG_EDITOR_SAFE_SYNC_START -->[\s\S]*?<!-- STUDYRPG_EDITOR_SAFE_SYNC_END -->/gi,'');
+  return out;
+}
+function buildSafeExportIndex(source,cfg){
+  let html=replaceConfigInIndex(sanitizeMainSource(source),cfg);
+  const hook=`<!-- STUDYRPG_EDITOR_SAFE_SYNC_START -->
+<script id="studyRPGEditorSafeSyncV10183">
+(function(){
+'use strict';
+function apply(){
+  try{window.studyRPGApplyExternalLayoutV10174?.();}catch(e){console.warn('[StudyRPG editor sync]',e)}
+}
+addEventListener('DOMContentLoaded',()=>setTimeout(apply,0),{once:true});
+addEventListener('load',()=>{apply();setTimeout(apply,120);setTimeout(apply,500);setTimeout(apply,1200);},{once:true});
+const oldRenderAll=window.renderAll;
+if(typeof oldRenderAll==='function')window.renderAll=function(){const r=oldRenderAll.apply(this,arguments);setTimeout(apply,0);return r};
+const oldBattle=window.renderBattleTargets;
+if(typeof oldBattle==='function')window.renderBattleTargets=function(){const r=oldBattle.apply(this,arguments);setTimeout(apply,0);return r};
+})();
+<\/script>
+<!-- STUDYRPG_EDITOR_SAFE_SYNC_END -->`;
+  if(/<\/body>/i.test(html)) html=html.replace(/<\/body>/i,hook+'\n</body>');
+  else html+=hook;
+  return html;
+}
+
 function assignedBlock(src,name){const idx=src.search(new RegExp('(?:const|let|var)\\s+'+name+'\\s*='));if(idx<0)return'';const eq=src.indexOf('=',idx),start=src.indexOf('{',eq);if(start<0)return'';let depth=0,q='',esc=false;for(let i=start;i<src.length;i++){const c=src[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==='"'||c==="'"||c==='`'){q=c;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0)return src.slice(start,i+1)}return''}
 function mergeUniqueById(base,extra){const m=new Map((base||[]).map(x=>[x.id,x]));for(const x of extra||[])if(x?.id)m.set(x.id,Object.assign({},m.get(x.id)||{},x));return [...m.values()]}
 function hydrateManifestFromIndex(src){try{
@@ -60,7 +91,7 @@ function hydrateManifestFromIndex(src){try{
   const ps=[...collectSkills('BEGINNER_SKILLS'),...collectSkills('JOB_SKILL_LIBRARY')],ms=collectSkills('MONSTER_SKILL_DATABASE');if(ps.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,ps);if(ms.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,ms);
   const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');if(wb){for(const w of MANIFEST.weeks||[]){const re=new RegExp('(?:week\\s*:\\s*'+w.week+'|\\b'+w.week+'\\s*:)','i');const hit=re.exec(wb);if(hit){const seg=wb.slice(hit.index,hit.index+1800),bg=seg.match(/background\s*:\s*["'`]([^"'`]+)["'`]/i);if(bg)w.background=bg[1]}}}
 }catch(e){console.warn('從 index 解析素材/資料清單失敗，使用內建 fallback',e)}}
-async function loadMainIndex(){const status=$('mainSourceStatus');try{status&&(status.textContent='正在讀取 GitHub / 本機正式 index.html…');const r=await fetch(MAIN_SOURCE_URL+'?editor_read='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);MAIN_SOURCE=await r.text();hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(MAIN_SOURCE);SOURCE_READY=true;status&&(status.textContent='✅ 已讀取正式 index.html；目前所有編輯只存在瀏覽器工作副本，不會覆蓋 GitHub。');return true}catch(e){status&&(status.textContent='⚠️ 無法 fetch 正式 index.html：'+e.message+'。可使用下方「匯入 index.html」載入本機檔案。');return false}}
+async function loadMainIndex(){const status=$('mainSourceStatus');try{status&&(status.textContent='正在讀取 GitHub / 本機正式 index.html…');const r=await fetch(MAIN_SOURCE_URL+'?editor_read='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const RAW_SOURCE=await r.text();hydrateManifestFromIndex(RAW_SOURCE);CFG=extractConfigFromIndex(RAW_SOURCE);MAIN_SOURCE=sanitizeMainSource(RAW_SOURCE);SOURCE_READY=true;status&&(status.textContent='✅ 已讀取正式 index.html；目前所有編輯只存在瀏覽器工作副本，不會覆蓋 GitHub。');return true}catch(e){status&&(status.textContent='⚠️ 無法 fetch 正式 index.html：'+e.message+'。可使用下方「匯入 index.html」載入本機檔案。');return false}}
 
 const IMAGE_EXT_RE=/\.(png|jpe?g|webp|gif|svg)$/i;
 const FALLBACK_ASSETS=[...MANIFEST.assets];
@@ -158,103 +189,10 @@ function bindDrag(){const stg=$('stage');document.querySelectorAll('.point').for
   window.addEventListener('resize',()=>requestAnimationFrame(renderBgResizeBox));
 }
 $('motionName').onchange=loadMotion;for(const id of ['spriteState','motion','from','via','to','returnTo','motionDuration'])$(id).onchange=commitMotion;for(const id of ['anchorW','anchorH','anchorY'])$(id).onchange=commitAnchor;$('device').onchange=renderStage;$('bg').onchange=renderStage;$('bs').oninput=commitStage;$('bs').onchange=commitStage;$('lock').onclick=()=>{const d=ensureDevice();CFG.stage[d].bg.locked=!CFG.stage[d].bg.locked;mark('stage:'+d);renderStage()};
-
-function buildBakedExportIndex(source,cfg){
-  let html=replaceConfigInIndex(source,cfg);
-  const json=JSON.stringify(cfg).replace(/</g,'\\u003c');
-  const markerStart='<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_START -->';
-  const markerEnd='<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_END -->';
-  const oldRe=/<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_START -->[\s\S]*?<!-- STUDYRPG_EDITOR_BAKED_RUNTIME_END -->/g;
-  html=html.replace(oldRe,'');
-  const baked=`${markerStart}
-<script id="studyRPGEditorBakedRuntimeV10182">
-(function(){
-'use strict';
-const C=${json};
-const DEVICES=['desktop','tablet','mobile'];
-const clone=v=>JSON.parse(JSON.stringify(v));
-const dev=()=>innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop';
-function imp(el,k,v){if(el&&v!=null)el.style.setProperty(k,String(v),'important')}
-function mergeNativeData(){
-  try{
-    if(typeof gameData==='undefined'||!gameData)return;
-    gameData.sceneCoordinateLayout=gameData.sceneCoordinateLayout||{};
-    gameData.battleLayout=gameData.battleLayout||{};
-    gameData.objectSizes=gameData.objectSizes||{};
-    for(const d of DEVICES){
-      const sc=C.sceneCoordinateLayout?.[d]||{};
-      const bl=C.battleLayout?.[d]||{};
-      const os=C.objectSizes?.[d]||{};
-      gameData.sceneCoordinateLayout[d]=Object.assign({},gameData.sceneCoordinateLayout[d]||{},clone(sc));
-      gameData.battleLayout[d]=Object.assign({},gameData.battleLayout[d]||{},clone(bl));
-      gameData.objectSizes[d]=Object.assign({},gameData.objectSizes[d]||{},clone(os));
-    }
-  }catch(e){console.warn('[Editor baked] merge data skipped',e)}
-}
-function applyDOM(){
-  try{
-    const d=dev(),sc=C.sceneCoordinateLayout?.[d]||{},bl=C.battleLayout?.[d]||{},os=C.objectSizes?.[d]||{};
-    const status=document.querySelector('#panel-hero .hero-scene .warrior-wrap');
-    if(status&&sc.statusHero){imp(status,'left',sc.statusHero.x+'%');imp(status,'top',sc.statusHero.y+'%');imp(status,'right','auto');imp(status,'bottom','auto');imp(status,'transform','translate(-50%,-50%)')}
-    const dh=document.getElementById('dungeonHeroIdle'),de=document.getElementById('dungeonEnemyIdle');
-    for(const [el,p] of [[dh,sc.dungeonHero],[de,sc.dungeonEnemy]]) if(el&&p){imp(el,'position','absolute');imp(el,'left',p.x+'%');imp(el,'top',p.y+'%');imp(el,'right','auto');imp(el,'bottom','auto');imp(el,'transform','translate(-50%,-50%)')}
-    const bh=document.getElementById('battleChar_hero'),be=document.getElementById('battleChar_enemy');
-    for(const [el,p] of [[bh,bl.hero],[be,bl.enemy]]) if(el&&p){imp(el,'left',p.x+'%');imp(el,'top',p.y+'%');imp(el,'right','auto');imp(el,'bottom','auto');imp(el,'transform','translate(-50%,-50%)')}
-    for(const [el,n] of [
-      [document.getElementById('heroSprite'),os.statusHero],
-      [dh,os.dungeonHero],[de,os.dungeonEnemy],
-      [bh,os.battleHero],[be,os.battleEnemy]
-    ]) if(el&&Number(n)>0){imp(el,'width',Number(n)+'px');imp(el,'height',Number(n)+'px')}
-    const st=C.stage?.[d]?.bg;
-    const bg=document.querySelector('#battleArena .battle-scene-background');
-    if(bg&&st){
-      imp(bg,'transform-origin','center center');
-      imp(bg,'transform','translate('+(Number(st.x??50)-50)+'%,'+(Number(st.y??50)-50)+'%) scale('+(Number(st.scale)||1)+')');
-    }
-  }catch(e){console.warn('[Editor baked] apply DOM skipped',e)}
-}
-function applyAll(){
-  mergeNativeData();
-  applyDOM();
-  try{window.applySavedBattleLayout?.()}catch(e){}
-}
-if(!window.__studyRPGEditorBakedHooks){
-  window.__studyRPGEditorBakedHooks=true;
-  for(const name of ['renderAll','renderHero','renderDungeon','renderBattleTargets','applySavedBattleLayout','boot']){
-    const old=window[name];
-    if(typeof old==='function'){
-      window[name]=function(){
-        const r=old.apply(this,arguments);
-        setTimeout(applyAll,0);
-        return r;
-      };
-    }
-  }
-  let queued=false;
-  const mo=new MutationObserver(()=>{
-    if(queued)return;
-    queued=true;
-    requestAnimationFrame(()=>{queued=false;applyDOM()});
-  });
-  if(document.body)mo.observe(document.body,{childList:true,subtree:true});
-  else addEventListener('DOMContentLoaded',()=>mo.observe(document.body,{childList:true,subtree:true}),{once:true});
-  addEventListener('resize',()=>requestAnimationFrame(applyAll));
-}
-applyAll();
-/* 捕捉 Firebase / 非同步載入後的第二次資料覆寫；只在啟動前幾秒重套，不永久輪詢。 */
-let n=0;const t=setInterval(()=>{applyAll();if(++n>=24)clearInterval(t)},250);
-})();
-<\/script>
-${markerEnd}`;
-  if(/<\/body>/i.test(html)) html=html.replace(/<\/body>/i,baked+'\n</body>');
-  else html+=baked;
-  return html;
-}
-
-$('saveAll').onclick=()=>{commitCurrent();localStorage.setItem('studyRPGPresentationDraftV1018',JSON.stringify({cfg:CFG,source:MAIN_SOURCE}));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已批次儲存全部變更到瀏覽器草稿。正式 GitHub index.html 沒有被修改。')};
-$('export').onclick=()=>{commitCurrent();if(!MAIN_SOURCE){alert('尚未載入正式 index.html，不能匯出。');return}try{const html=buildBakedExportIndex(MAIN_SOURCE,CFG),u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);toast?.('已匯出：座標/尺寸/背景會直接烘焙進 index.html')}catch(err){alert('匯出失敗：'+err.message)}};
-$('import').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);if(/<html|<!doctype/i.test(txt)){MAIN_SOURCE=txt;hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(txt);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入你選擇的 index.html 工作副本。'}else{CFG=extractLegacyConfig(txt);$('mainSourceStatus').textContent='✅ 已匯入舊 data.js 設定；匯出時會寫入目前載入的 index.html。'}dirty.clear();ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();$('dirty').textContent='未儲存 0 項'}catch(err){alert(err.message)}};r.readAsText(f)};
-$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{MAIN_SOURCE=String(r.result);hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(MAIN_SOURCE);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入本機正式 index.html；只編輯工作副本。';ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(err){alert(err.message)}};r.readAsText(f)};
+$('saveAll').onclick=()=>{commitCurrent();localStorage.setItem('studyRPGPresentationDraftV1018',JSON.stringify({cfg:CFG,source:sanitizeMainSource(MAIN_SOURCE)}));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已批次儲存全部變更到瀏覽器草稿。正式 GitHub index.html 沒有被修改。')};
+$('export').onclick=()=>{commitCurrent();if(!MAIN_SOURCE){alert('尚未載入正式 index.html，不能匯出。');return}try{const html=buildSafeExportIndex(MAIN_SOURCE,CFG),u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1500)}catch(err){alert('匯出失敗：'+err.message)}};
+$('import').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);if(/<html|<!doctype/i.test(txt)){hydrateManifestFromIndex(txt);CFG=extractConfigFromIndex(txt);MAIN_SOURCE=sanitizeMainSource(txt);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入你選擇的 index.html 工作副本。'}else{CFG=extractLegacyConfig(txt);$('mainSourceStatus').textContent='✅ 已匯入舊 data.js 設定；匯出時會寫入目前載入的 index.html。'}dirty.clear();ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();$('dirty').textContent='未儲存 0 項'}catch(err){alert(err.message)}};r.readAsText(f)};
+$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const raw=String(r.result);hydrateManifestFromIndex(raw);CFG=extractConfigFromIndex(raw);MAIN_SOURCE=sanitizeMainSource(raw);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入本機正式 index.html；只編輯工作副本。';ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(err){alert(err.message)}};r.readAsText(f)};
 $('reloadMainIndex').onclick=async()=>{if(await loadMainIndex()){ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();}};
 (async function bootDirectIndexEditor(){
   await loadMainIndex();
