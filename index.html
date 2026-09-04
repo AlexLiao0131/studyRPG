@@ -10879,7 +10879,34 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     try{const response=await fetch(location.href,{cache:'no-store'});if(response.ok)source=await response.text();}catch(e){}
     if(!source)source='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
     source=source.replace(/<script id="studyRPGBakedDesign">[\s\S]*?STUDYRPG_BAKED_DESIGN_END \*\/<\/script>/gi,'');
-    source=source.replace(/<\/body>/i,baked+'\n</body>');
+    source=source.replace(/<\/body>/i,baked+'\n<script id="studyRPGMapGroundLayoutV1019">
+
+(function(){
+'use strict';
+const C=window.STUDYRPG_EDITOR_CONFIG||{};
+const dev=()=>window.studyRPGGroundDeviceV1019?window.studyRPGGroundDeviceV1019():(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
+const gp=(p,d,name)=>window.studyRPGGroundPointV1019?window.studyRPGGroundPointV1019(p,d,undefined,name):p;
+function imp(el,k,v){el?.style.setProperty(k,v,'important')}
+function monsterIdFromElement(el){if(!el)return'';const c=[...el.classList].find(x=>x.startsWith('monster-id-'));if(c)return c.slice('monster-id-'.length);const src=el.getAttribute('src')||'';const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_idle\./);return m?m[1]:''}
+function place(el,p,d,name){if(!el||!p)return;const q=gp(p,d,name);imp(el,'position','absolute');imp(el,'left',q.x+'%');imp(el,'top',q.y+'%');imp(el,'right','auto');imp(el,'bottom','auto');imp(el,'transform','translate(-50%,-100%)');imp(el,'transform-origin','center bottom')}
+function apply(){
+ const d=dev(),sc=C.sceneCoordinateLayout?.[d]||{},bl=C.battleLayout?.[d]||{},os=C.objectSizes?.[d]||{};
+ place(document.querySelector('#panel-hero .hero-scene .warrior-wrap'),sc.statusHero,d,'statusHero');
+ place(document.getElementById('dungeonHeroIdle'),sc.dungeonHero,d,'dungeonHero');
+ const de=document.getElementById('dungeonEnemyIdle');place(de,sc.dungeonEnemy,d,'dungeonEnemy');
+ place(document.getElementById('battleChar_hero'),bl.hero,d,'hero_home');
+ place(document.getElementById('battleChar_enemy'),bl.enemy,d,'enemy_home');
+ const hs=document.getElementById('heroSprite');if(hs&&Number(os.statusHero)){imp(hs,'width',os.statusHero+'px');imp(hs,'height',os.statusHero+'px')}
+ const dh=document.getElementById('dungeonHeroIdle');if(dh&&Number(os.dungeonHero)){imp(dh,'width',os.dungeonHero+'px');imp(dh,'height',os.dungeonHero+'px')}
+ if(de){const id=monsterIdFromElement(de),personal=Number(C.monsters?.[id]?.idleSize?.[d]),sz=personal>0?personal:Number(os.dungeonEnemy);if(sz>0){imp(de,'width',sz+'px');imp(de,'height',sz+'px')}}
+ for(const [el,n] of [[document.getElementById('battleChar_hero'),os.battleHero],[document.getElementById('battleChar_enemy'),os.battleEnemy]])if(el&&Number(n)){imp(el,'width',n+'px');imp(el,'height',n+'px')}
+}
+window.studyRPGApplyMapGroundLayoutV1019=apply;
+for(const fn of ['renderHero','renderDungeon','renderBattleTargets']){const old=window[fn];if(typeof old==='function')window[fn]=function(){const r=old.apply(this,arguments);setTimeout(apply,0);return r}}
+addEventListener('resize',()=>setTimeout(apply,0));setTimeout(apply,0);
+})();
+</script>
+</body>');
     const blob=new Blob([source],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='index.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     alert('已匯出完整 index.html。上傳到 GitHub 覆蓋原檔即可；images 資料夾不用搬進 HTML。');
   };
@@ -11016,24 +11043,24 @@ window.STUDYRPG_EDITOR_CONFIG={
         "y": 68
       },
       "enemy_front": {
-        "x": 86.9,
-        "y": 72.9
+        "x": 68,
+        "y": 66
       },
       "air_high": {
-        "x": 46.7,
-        "y": 59.6
+        "x": 48,
+        "y": 28
       },
       "summon_left": {
-        "x": 58.5,
-        "y": 46.4
+        "x": 62,
+        "y": 69
       },
       "summon_center": {
-        "x": 66.2,
-        "y": 46.5
+        "x": 72,
+        "y": 69
       },
       "summon_right": {
-        "x": 50.5,
-        "y": 46.4
+        "x": 82,
+        "y": 69
       }
     },
     "tablet": {
@@ -11123,261 +11150,63 @@ window.STUDYRPG_EDITOR_CONFIG={
       }
     }
   },
-  "heroes": {
-    "novice": {
-      "motionActions": {},
-      "effectAnchor": {
-        "width": 100,
-        "height": 80,
-        "y": 0
-      }
-    }
-  },
-  "monsters": {
-    "slime_water": {
-      "motionActions": {},
-      "effectAnchor": {
-        "width": 100,
-        "height": 100,
-        "y": 0
-      }
-    },
-    "goblin_king": {
-      "motionActions": {},
-      "effectAnchor": {
-        "width": 100,
-        "height": 200,
-        "y": 0
-      }
-    }
-  },
-  "playerSkills": {
-    "power_strike": {
-      "enabled": false,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [
-        {
-          "image": "",
-          "anchor": "target",
-          "point": "enemy_front",
-          "scaleMode": "target",
-          "scale": 1,
-          "offsetX": 0,
-          "offsetY": 0,
-          "delay": 0,
-          "duration": 350,
-          "lifetime": "instant",
-          "enter": {
-            "type": "fade",
-            "duration": 120
-          },
-          "exit": {
-            "type": "fade",
-            "duration": 160
-          },
-          "loop": {
-            "enabled": false,
-            "interval": 800
-          }
-        }
-      ],
-      "summons": []
-    },
-    "ember": {
-      "enabled": true,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": []
-    },
-    "goblin_summon": {
-      "enabled": false,
-      "actorAction": "idle",
-      "selfFX": [
-        {
-          "image": "",
-          "anchor": "self",
-          "point": "enemy_front",
-          "scaleMode": "self",
-          "scale": 1,
-          "offsetX": 0,
-          "offsetY": 0,
-          "delay": 0,
-          "duration": 350,
-          "lifetime": "instant",
-          "enter": {
-            "type": "fade",
-            "duration": 120
-          },
-          "exit": {
-            "type": "fade",
-            "duration": 160
-          },
-          "loop": {
-            "enabled": false,
-            "interval": 800
-          }
-        }
-      ],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": [
-        {
-          "unitId": "goblin_slave",
-          "from": "air_high",
-          "via": "air_high",
-          "to": "summon_center",
-          "standPoint": "summon_center",
-          "path": "arc",
-          "scale": 1,
-          "delay": 0,
-          "duration": 500,
-          "enter": "fade"
-        }
-      ]
-    }
-  },
-  "monsterSkills": {
-    "ember": {
-      "enabled": true,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": []
-    },
-    "slime_tackle": {
-      "enabled": false,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": []
-    },
-    "goblin_summon": {
-      "enabled": false,
-      "actorAction": "idle",
-      "selfFX": [
-        {
-          "image": "",
-          "anchor": "self",
-          "point": "enemy_front",
-          "scaleMode": "self",
-          "scale": 1,
-          "offsetX": 0,
-          "offsetY": 0,
-          "delay": 0,
-          "duration": 350,
-          "lifetime": "instant",
-          "enter": {
-            "type": "fade",
-            "duration": 120
-          },
-          "exit": {
-            "type": "fade",
-            "duration": 160
-          },
-          "loop": {
-            "enabled": false,
-            "interval": 800
-          }
-        }
-      ],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": [
-        {
-          "unitId": "goblin_slave",
-          "from": "air_high",
-          "via": "air_high",
-          "to": "summon_center",
-          "standPoint": "summon_center",
-          "path": "arc",
-          "scale": 1,
-          "delay": 0,
-          "duration": 500,
-          "enter": "fade"
-        }
-      ]
-    },
-    "power_strike": {
-      "enabled": false,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": [
-        {
-          "unitId": "goblin_slave",
-          "from": "air_high",
-          "via": "air_high",
-          "to": "summon_center",
-          "standPoint": "summon_center",
-          "path": "arc",
-          "scale": 1,
-          "delay": 0,
-          "duration": 500,
-          "enter": "fade"
-        }
-      ]
-    }
-  },
+  "heroes": {},
+  "monsters": {},
+  "playerSkills": {},
+  "monsterSkills": {},
   "sceneCoordinateLayout": {
     "desktop": {
       "statusHero": {
-        "x": 47.2,
-        "y": 53.5
+        "x": 50,
+        "y": 66
       },
       "dungeonHero": {
-        "x": 43,
-        "y": 40
+        "x": 50,
+        "y": 63
       },
       "dungeonEnemy": {
-        "x": 50.6,
-        "y": 0
+        "x": 50,
+        "y": 63
       }
     },
     "tablet": {
       "statusHero": {
-        "x": 49.6,
-        "y": 49.6
+        "x": 50,
+        "y": 66
       },
       "dungeonHero": {
-        "x": 45.7,
-        "y": 42.1
+        "x": 50,
+        "y": 63
       },
       "dungeonEnemy": {
-        "x": 53,
-        "y": 0
+        "x": 50,
+        "y": 63
       }
     },
     "mobile": {
       "statusHero": {
-        "x": 47.4,
-        "y": 52.7
+        "x": 50,
+        "y": 62
       },
       "dungeonHero": {
-        "x": 50.7,
-        "y": 46.5
+        "x": 50,
+        "y": 60
       },
       "dungeonEnemy": {
-        "x": 17.8,
-        "y": 0
+        "x": 50,
+        "y": 60
       }
     }
   },
   "battleLayout": {
     "desktop": {
       "hero": {
-        "x": 13.2,
-        "y": 50.2
+        "x": 18,
+        "y": 68
       },
       "enemy": {
-        "x": 76.3,
-        "y": 15.5
+        "x": 82,
+        "y": 68
       },
       "attackMid": {
         "x": 42,
@@ -11391,12 +11220,12 @@ window.STUDYRPG_EDITOR_CONFIG={
     },
     "tablet": {
       "hero": {
-        "x": 16.5,
-        "y": 53.7
+        "x": 17,
+        "y": 68
       },
       "enemy": {
-        "x": 73.9,
-        "y": 0
+        "x": 83,
+        "y": 68
       },
       "attackMid": {
         "x": 42,
@@ -11410,12 +11239,12 @@ window.STUDYRPG_EDITOR_CONFIG={
     },
     "mobile": {
       "hero": {
-        "x": 19.7,
-        "y": 56.5
+        "x": 18,
+        "y": 65
       },
       "enemy": {
-        "x": 70.8,
-        "y": 0
+        "x": 82,
+        "y": 65
       },
       "attackMid": {
         "x": 42,
@@ -11431,28 +11260,46 @@ window.STUDYRPG_EDITOR_CONFIG={
   "objectSizes": {
     "desktop": {
       "statusHero": 160,
-      "dungeonHero": 170,
-      "dungeonEnemy": 350,
-      "battleHero": 175,
-      "battleEnemy": 385
+      "dungeonHero": 180,
+      "dungeonEnemy": 180,
+      "battleHero": 190,
+      "battleEnemy": 190
     },
     "tablet": {
       "statusHero": 150,
       "dungeonHero": 165,
-      "dungeonEnemy": 350,
-      "battleHero": 160,
-      "battleEnemy": 495
+      "dungeonEnemy": 165,
+      "battleHero": 175,
+      "battleEnemy": 175
     },
     "mobile": {
       "statusHero": 135,
       "dungeonHero": 135,
-      "dungeonEnemy": 405,
-      "battleHero": 115,
-      "battleEnemy": 420
+      "dungeonEnemy": 135,
+      "battleHero": 145,
+      "battleEnemy": 145
     }
-  }
+  },
+  "mapGround": {}
 };
 /* STUDYRPG_EDITOR_CONFIG_END */
+<script id="studyRPGMapGroundCoreV1019">
+
+(function(){
+'use strict';
+const C=window.STUDYRPG_EDITOR_CONFIG||{};
+const BASE={desktop:68,tablet:68,mobile:65};
+function dev(){return innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop'}
+function week(){try{if(typeof semesterWeekIndex==='function'){const w=Number(semesterWeekIndex());if(Number.isFinite(w))return w}}catch(e){}return 1}
+function value(d=dev(),w=week()){const row=C.mapGround?.[String(w)]||C.mapGround?.[w];const v=Number(row?.[d]);return Number.isFinite(v)?v:null}
+function shiftPoint(p,d=dev(),w=week(),name=''){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};const g=value(d,w);if(g==null)return{x,y};return{x,y:Math.max(0,Math.min(100,y+(g-BASE[d])))}}
+window.studyRPGGroundDeviceV1019=dev;
+window.studyRPGGroundWeekV1019=week;
+window.studyRPGGroundValueV1019=value;
+window.studyRPGGroundPointV1019=shiftPoint;
+})();
+</script>
+
 </script>
 <script id="studyRPGSceneLayoutRuntimeV10174">
 /* V10.17.5：外部 data.js 直接使用主程式原生欄位名稱，1:1 套用，不建立第二套場景座標。
@@ -11539,7 +11386,7 @@ if(typeof BEGINNER_SKILLS!=='undefined')BEGINNER_SKILLS.forEach(s=>normalizeSkil
 if(typeof JOB_SKILL_LIBRARY!=='undefined')Object.values(JOB_SKILL_LIBRARY).forEach(s=>normalizeSkill(s,C.playerSkills));
 if(typeof MONSTER_SKILL_DATABASE!=='undefined')Object.values(MONSTER_SKILL_DATABASE).forEach(s=>normalizeSkill(s,C.monsterSkills));
 window.studyRPGResolvePresentation=function(action={},enemy=false){const db=enemy?C.monsterSkills:C.playerSkills;const base=action.presentation||{};const ext=db?.[action.id]||{};return Object.assign({enabled:false,actorAction:guessAction(action,enemy),selfFX:[],pathFX:null,targetFX:[]},clone(base),clone(ext),{enabled:!!(ext.enabled||base.enabled)});};
-function ref(name){const d=device(),bl=gameData?.battleLayout?.[d]||{};if(name==='hero_home'&&bl.hero)return bl.hero;if(name==='enemy_home'&&bl.enemy)return bl.enemy;return C.referencePoints?.[d]?.[name]||defaultRefs[d][name]||defaultRefs[d].hero_home;}
+function ref(name){const d=device(),bl=gameData?.battleLayout?.[d]||{};let p;if(name==='hero_home'&&bl.hero)p=bl.hero;else if(name==='enemy_home'&&bl.enemy)p=bl.enemy;else if(name==='attack_mid'&&bl.attackMid)p=bl.attackMid;else if(name==='attack_strike'&&bl.attackStrike)p=bl.attackStrike;else p=C.referencePoints?.[d]?.[name]||defaultRefs[d][name]||defaultRefs[d].hero_home;return window.studyRPGGroundPointV1019?window.studyRPGGroundPointV1019(p,d,undefined,name):p;}
 function monsterMotion(unit,name){const m=typeof MONSTER_DATABASE!=='undefined'?MONSTER_DATABASE[unit?.monsterId]:null;return m?.motionActions?.[name]||m?.motionActions?.melee||MON_DEFAULT.melee;}
 async function fxList(list,point){let ok=false;for(const it of (list||[])){const x=typeof it==='string'?{image:it}:it;if(!x?.image)continue;try{ok=(await showSkillVisualImage(x.image,point,{size:Number(x.size)||96,duration:Number(x.duration)||350}))||ok}catch(e){console.warn('VFX skipped',e)}}return ok;}
 const oldSeq=window.playSkillVisualSequence;
@@ -11566,7 +11413,7 @@ const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){co
 const C=window.STUDYRPG_EDITOR_CONFIG||{};
 const dev=()=>innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop';
 const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
-const point=n=>{const d=dev();if(n==='hero_home')return C.battleLayout?.[d]?.hero||defaults.hero_home;if(n==='enemy_home')return C.battleLayout?.[d]?.enemy||defaults.enemy_home;return C.referencePoints?.[d]?.[n]||defaults[n]||defaults.enemy_front;};
+const point=n=>{const d=dev();let p;if(n==='hero_home')p=C.battleLayout?.[d]?.hero||defaults.hero_home;else if(n==='enemy_home')p=C.battleLayout?.[d]?.enemy||defaults.enemy_home;else if(n==='attack_mid')p=C.battleLayout?.[d]?.attackMid||defaults.enemy_front;else if(n==='attack_strike')p=C.battleLayout?.[d]?.attackStrike||defaults.enemy_front;else p=C.referencePoints?.[d]?.[n]||defaults[n]||defaults.enemy_front;return window.studyRPGGroundPointV1019?window.studyRPGGroundPointV1019(p,d,undefined,n):p;};
 const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
 function currentElement(side){if(side==='hero')return document.getElementById('battleHeroSprite')||document.getElementById('battleChar_hero');const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;return u?document.querySelector(`[data-enemy-uid="${u.uid}"]`):document.querySelector('.battle-enemy-unit-sprite');}
 function anchorBox(side,fx){const arena=document.getElementById('battleArena');if(!arena)return null;let el=currentElement(side),r=el?.getBoundingClientRect(),a=arena.getBoundingClientRect();if(!r){const p=point(side==='hero'?'hero_home':'enemy_home');return {x:a.width*p.x/100,y:a.height*p.y/100,w:100,h:100};}let key='novice';if(side!=='hero'){const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;key=u?.monsterId||''}const ea=side==='hero'?C.heroes?.[key]?.effectAnchor:C.monsters?.[key]?.effectAnchor;const ew=Number(ea?.width||100)/100,eh=Number(ea?.height||100)/100,ey=Number(ea?.y||0)/100;return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2+r.height*ey,w:r.width*ew,h:r.height*eh};}
