@@ -91,7 +91,50 @@ function hydrateManifestFromIndex(src){try{
   const ps=[...collectSkills('BEGINNER_SKILLS'),...collectSkills('JOB_SKILL_LIBRARY')],ms=collectSkills('MONSTER_SKILL_DATABASE');if(ps.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,ps);if(ms.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,ms);
   const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');if(wb){for(const w of MANIFEST.weeks||[]){const re=new RegExp('(?:week\\s*:\\s*'+w.week+'|\\b'+w.week+'\\s*:)','i');const hit=re.exec(wb);if(hit){const seg=wb.slice(hit.index,hit.index+1800),bg=seg.match(/background\s*:\s*["'`]([^"'`]+)["'`]/i);if(bg)w.background=bg[1]}}}
 }catch(e){console.warn('從 index 解析素材/資料清單失敗，使用內建 fallback',e)}}
-async function loadMainIndex(){const status=$('mainSourceStatus');try{status&&(status.textContent='正在讀取 GitHub / 本機正式 index.html…');const r=await fetch(MAIN_SOURCE_URL+'?editor_read='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const RAW_SOURCE=await r.text();hydrateManifestFromIndex(RAW_SOURCE);CFG=extractConfigFromIndex(RAW_SOURCE);MAIN_SOURCE=sanitizeMainSource(RAW_SOURCE);SOURCE_READY=true;status&&(status.textContent='✅ 已讀取正式 index.html；目前所有編輯只存在瀏覽器工作副本，不會覆蓋 GitHub。');return true}catch(e){status&&(status.textContent='⚠️ 無法 fetch 正式 index.html：'+e.message+'。可使用下方「匯入 index.html」載入本機檔案。');return false}}
+async function loadMainIndex(){
+  const status=$('mainSourceStatus');
+  const setStatus=t=>{if(status)status.textContent=t};
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),12000);
+  try{
+    // 永遠從目前 tools/index.html 的上一層解析，不手拼 GitHub repo 名稱。
+    const url=new URL('../index.html',location.href);
+    url.searchParams.set('editor_read',Date.now());
+    setStatus('① 正在連線讀取正式 index.html…');
+    const r=await fetch(url.href,{cache:'no-store',signal:controller.signal,credentials:'same-origin'});
+    if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);
+    setStatus('② 已連線，正在下載主程式…');
+    const RAW_SOURCE=await r.text();
+    if(!RAW_SOURCE || RAW_SOURCE.length<1000)throw Error('讀到的 index.html 內容異常（'+RAW_SOURCE.length+' bytes）');
+
+    // 先完成「正式主程式載入」；不要讓龐大的素材掃描阻塞整個 Editor。
+    setStatus('③ 已下載，正在讀取編輯設定…');
+    CFG=extractConfigFromIndex(RAW_SOURCE);
+    MAIN_SOURCE=sanitizeMainSource(RAW_SOURCE);
+    SOURCE_READY=true;
+    setStatus('✅ 已讀取正式 index.html（'+Math.round(RAW_SOURCE.length/1024)+' KB）；編輯器已可使用。');
+
+    // 主程式本身已有 fallback manifest；額外解析怪物/技能/素材改成背景工作。
+    setTimeout(()=>{
+      try{
+        hydrateManifestFromIndex(RAW_SOURCE);
+        refreshAssetSelectors?.();
+        renderAssetGallery?.();
+      }catch(e){console.warn('背景解析主程式清單失敗，保留內建清單',e)}
+    },30);
+    return true;
+  }catch(e){
+    SOURCE_READY=false;
+    const msg=e?.name==='AbortError'
+      ? '讀取逾時（12 秒）。請確認 GitHub Pages 的根目錄 index.html 可直接開啟。'
+      : (e?.message||String(e));
+    setStatus('⚠️ 無法讀取正式 index.html：'+msg+' 可用下方「匯入 index.html」直接載入本機檔案。');
+    console.error('loadMainIndex failed',e);
+    return false;
+  }finally{
+    clearTimeout(timer);
+  }
+}
 
 const IMAGE_EXT_RE=/\.(png|jpe?g|webp|gif|svg)$/i;
 const FALLBACK_ASSETS=[...MANIFEST.assets];
