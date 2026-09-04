@@ -11150,15 +11150,60 @@ window.STUDYRPG_EDITOR_CONFIG={
       }
     }
   },
-  "heroes": {},
-  "monsters": {},
-  "playerSkills": {},
+  "heroes": {
+    "novice": {
+      "motionActions": {},
+      "effectAnchor": {
+        "width": 100,
+        "height": 100,
+        "y": 0
+      }
+    }
+  },
+  "monsters": {
+    "slime_fire": {
+      "idleSize": {}
+    },
+    "slime_water": {
+      "idleSize": {}
+    },
+    "goblin_slave": {
+      "idleSize": {
+        "desktop": 380
+      }
+    },
+    "goblin_soldier": {
+      "idleSize": {
+        "desktop": 375
+      }
+    },
+    "goblin_general": {
+      "idleSize": {
+        "desktop": 375
+      }
+    },
+    "goblin_king": {
+      "idleSize": {
+        "desktop": 500
+      }
+    }
+  },
+  "playerSkills": {
+    "power_strike": {
+      "enabled": false,
+      "actorAction": "melee",
+      "selfFX": [],
+      "pathFX": null,
+      "targetFX": [],
+      "summons": []
+    }
+  },
   "monsterSkills": {},
   "sceneCoordinateLayout": {
     "desktop": {
       "statusHero": {
-        "x": 50,
-        "y": 66
+        "x": 39.7,
+        "y": 69.2
       },
       "dungeonHero": {
         "x": 50,
@@ -11263,7 +11308,7 @@ window.STUDYRPG_EDITOR_CONFIG={
       "dungeonHero": 180,
       "dungeonEnemy": 180,
       "battleHero": 190,
-      "battleEnemy": 190
+      "battleEnemy": 500
     },
     "tablet": {
       "statusHero": 150,
@@ -11280,7 +11325,18 @@ window.STUDYRPG_EDITOR_CONFIG={
       "battleEnemy": 145
     }
   },
-  "mapGround": {}
+  "mapGround": {
+    "1": {
+      "desktop": 89.5,
+      "tablet": 86.5,
+      "mobile": 88
+    },
+    "2": {
+      "mobile": 80,
+      "tablet": 79.5,
+      "desktop": 85
+    }
+  }
 };
 /* STUDYRPG_EDITOR_CONFIG_END */
 <script id="studyRPGMapGroundCoreV1019">
