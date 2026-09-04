@@ -10880,32 +10880,128 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(!source)source='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
     source=source.replace(/<script id="studyRPGBakedDesign">[\s\S]*?STUDYRPG_BAKED_DESIGN_END \*\/<\/script>/gi,'');
     source=source.replace(/<\/body>/i,baked+'\n<script id="studyRPGMapGroundLayoutV1019">
-
 (function(){
 'use strict';
 const C=window.STUDYRPG_EDITOR_CONFIG||{};
 const dev=()=>window.studyRPGGroundDeviceV1019?window.studyRPGGroundDeviceV1019():(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
 const gp=(p,d,name)=>window.studyRPGGroundPointV1019?window.studyRPGGroundPointV1019(p,d,undefined,name):p;
-function imp(el,k,v){el?.style.setProperty(k,v,'important')}
-function monsterIdFromElement(el){if(!el)return'';const c=[...el.classList].find(x=>x.startsWith('monster-id-'));if(c)return c.slice('monster-id-'.length);const src=el.getAttribute('src')||'';const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_idle\./);return m?m[1]:''}
-function place(el,p,d,name){if(!el||!p)return;const q=gp(p,d,name);imp(el,'position','absolute');imp(el,'left',q.x+'%');imp(el,'top',q.y+'%');imp(el,'right','auto');imp(el,'bottom','auto');imp(el,'transform','translate(-50%,-100%)');imp(el,'transform-origin','center bottom')}
+function imp(el,k,v){if(el)el.style.setProperty(k,v,'important')}
+function clearLegacy(el){
+ if(!el)return;
+ for(const k of ['right','bottom','margin','margin-left','margin-right','margin-top','margin-bottom']) imp(el,k,'auto');
+ imp(el,'animation','none');
+}
+function place(el,p,d,name){
+ if(!el||!p)return;
+ const q=gp(p,d,name);
+ clearLegacy(el);
+ imp(el,'position','absolute');imp(el,'left',q.x+'%');imp(el,'top',q.y+'%');
+ imp(el,'right','auto');imp(el,'bottom','auto');
+ imp(el,'transform','translate(-50%,-100%)');imp(el,'transform-origin','center bottom');
+}
+function normalizeInner(img){
+ if(!img)return;
+ clearLegacy(img);
+ imp(img,'position','absolute');
+ imp(img,'left','0');imp(img,'top','0');imp(img,'right','auto');imp(img,'bottom','auto');
+ imp(img,'transform','none');imp(img,'transform-origin','center bottom');
+ imp(img,'max-width','none');imp(img,'max-height','none');
+}
+function monsterIdFromElement(el){
+ if(!el)return'';
+ const c=[...el.classList].find(x=>x.startsWith('monster-id-'));
+ if(c)return c.slice('monster-id-'.length);
+ const src=el.getAttribute('src')||'';
+ const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_(?:idle|battle)\./);
+ return m?m[1]:'';
+}
+function square(el,n){
+ n=Number(n);if(!el||!(n>0))return;
+ imp(el,'width',n+'px');imp(el,'height',n+'px');
+ imp(el,'object-fit','contain');
+}
 function apply(){
  const d=dev(),sc=C.sceneCoordinateLayout?.[d]||{},bl=C.battleLayout?.[d]||{},os=C.objectSizes?.[d]||{};
- place(document.querySelector('#panel-hero .hero-scene .warrior-wrap'),sc.statusHero,d,'statusHero');
- place(document.getElementById('dungeonHeroIdle'),sc.dungeonHero,d,'dungeonHero');
- const de=document.getElementById('dungeonEnemyIdle');place(de,sc.dungeonEnemy,d,'dungeonEnemy');
- place(document.getElementById('battleChar_hero'),bl.hero,d,'hero_home');
- place(document.getElementById('battleChar_enemy'),bl.enemy,d,'enemy_home');
- const hs=document.getElementById('heroSprite');if(hs&&Number(os.statusHero)){imp(hs,'width',os.statusHero+'px');imp(hs,'height',os.statusHero+'px')}
- const dh=document.getElementById('dungeonHeroIdle');if(dh&&Number(os.dungeonHero)){imp(dh,'width',os.dungeonHero+'px');imp(dh,'height',os.dungeonHero+'px')}
- if(de){const id=monsterIdFromElement(de),personal=Number(C.monsters?.[id]?.idleSize?.[d]),sz=personal>0?personal:Number(os.dungeonEnemy);if(sz>0){imp(de,'width',sz+'px');imp(de,'height',sz+'px')}}
- for(const [el,n] of [[document.getElementById('battleChar_hero'),os.battleHero],[document.getElementById('battleChar_enemy'),os.battleEnemy]])if(el&&Number(n)){imp(el,'width',n+'px');imp(el,'height',n+'px')}
+
+ // STATUS: wrapper owns coordinate, image owns only size.
+ const sw=document.querySelector('#panel-hero .hero-scene .warrior-wrap');
+ place(sw,sc.statusHero,d,'statusHero');
+ const hs=document.getElementById('heroSprite');
+ if(hs){imp(hs,'position','relative');imp(hs,'left','auto');imp(hs,'top','auto');imp(hs,'right','auto');imp(hs,'bottom','auto');imp(hs,'transform','none');square(hs,os.statusHero)}
+
+ // DUNGEON ENTRY: image itself owns foot coordinate.
+ const dh=document.getElementById('dungeonHeroIdle');
+ const de=document.getElementById('dungeonEnemyIdle');
+ place(dh,sc.dungeonHero,d,'dungeonHero');square(dh,os.dungeonHero);
+ place(de,sc.dungeonEnemy,d,'dungeonEnemy');
+ if(de){
+   const id=monsterIdFromElement(de),personal=Number(C.monsters?.[id]?.idleSize?.[d]);
+   square(de,personal>0?personal:os.dungeonEnemy);
+ }
+
+ // BATTLE: outer battleChar owns coordinate and size.
+ // Any legacy inner sprite bottom/right/translate is forcibly neutralized.
+ const bh=document.getElementById('battleChar_hero');
+ const be=document.getElementById('battleChar_enemy');
+ place(bh,bl.hero,d,'hero_home');square(bh,os.battleHero);
+ place(be,bl.enemy,d,'enemy_home');square(be,os.battleEnemy);
+
+ if(bh){
+   const imgs=bh.matches('img')?[bh]:[...bh.querySelectorAll('img')];
+   imgs.forEach(img=>{normalizeInner(img);square(img,os.battleHero)});
+ }
+ if(be){
+   const imgs=be.matches('img')?[be]:[...be.querySelectorAll('img')];
+   imgs.forEach(img=>{normalizeInner(img);square(img,os.battleEnemy)});
+ }
+
+ // Some battle versions render sprites outside battleChar_* wrappers.
+ const heroSprite=document.getElementById('battleHeroSprite');
+ if(heroSprite && heroSprite!==bh && !bh?.contains(heroSprite)){
+   place(heroSprite,bl.hero,d,'hero_home');square(heroSprite,os.battleHero);
+ }
+ const selectedEnemy=document.querySelector('#battleArena .battle-enemy-unit-sprite');
+ if(selectedEnemy && selectedEnemy!==be && !be?.contains(selectedEnemy)){
+   place(selectedEnemy,bl.enemy,d,'enemy_home');square(selectedEnemy,os.battleEnemy);
+ }
 }
 window.studyRPGApplyMapGroundLayoutV1019=apply;
-for(const fn of ['renderHero','renderDungeon','renderBattleTargets']){const old=window[fn];if(typeof old==='function')window[fn]=function(){const r=old.apply(this,arguments);setTimeout(apply,0);return r}}
-addEventListener('resize',()=>setTimeout(apply,0));setTimeout(apply,0);
+
+function schedule(){apply();requestAnimationFrame(apply);setTimeout(apply,0);setTimeout(apply,80)}
+for(const fn of ['renderHero','renderDungeon','renderBattleTargets','openBattle','renderBattle','startBattle']){
+ const old=window[fn];
+ if(typeof old==='function')window[fn]=function(){const r=old.apply(this,arguments);schedule();return r}
+}
+const arena=document.getElementById('battleArena');
+if(arena && typeof MutationObserver!=='undefined'){
+ new MutationObserver(()=>schedule()).observe(arena,{childList:true,subtree:true});
+}
+addEventListener('resize',schedule);
+schedule();
 })();
 </script>
+
+<style id="studyRPGBattleCoordinateResetV10191">
+#battleArena #battleChar_hero,
+#battleArena #battleChar_enemy{
+  right:auto!important;
+  bottom:auto!important;
+  margin:0!important;
+  transform-origin:center bottom!important;
+}
+#battleArena #battleChar_hero img,
+#battleArena #battleChar_enemy img,
+#battleArena #battleHeroSprite,
+#battleArena .battle-enemy-unit-sprite{
+  right:auto!important;
+  bottom:auto!important;
+  margin:0!important;
+  transform-origin:center bottom!important;
+  max-width:none!important;
+  max-height:none!important;
+}
+</style>
+
 </body>');
     const blob=new Blob([source],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='index.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     alert('已匯出完整 index.html。上傳到 GitHub 覆蓋原檔即可；images 資料夾不用搬進 HTML。');
@@ -11150,60 +11246,15 @@ window.STUDYRPG_EDITOR_CONFIG={
       }
     }
   },
-  "heroes": {
-    "novice": {
-      "motionActions": {},
-      "effectAnchor": {
-        "width": 100,
-        "height": 100,
-        "y": 0
-      }
-    }
-  },
-  "monsters": {
-    "slime_fire": {
-      "idleSize": {}
-    },
-    "slime_water": {
-      "idleSize": {}
-    },
-    "goblin_slave": {
-      "idleSize": {
-        "desktop": 380
-      }
-    },
-    "goblin_soldier": {
-      "idleSize": {
-        "desktop": 375
-      }
-    },
-    "goblin_general": {
-      "idleSize": {
-        "desktop": 375
-      }
-    },
-    "goblin_king": {
-      "idleSize": {
-        "desktop": 500
-      }
-    }
-  },
-  "playerSkills": {
-    "power_strike": {
-      "enabled": false,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": []
-    }
-  },
+  "heroes": {},
+  "monsters": {},
+  "playerSkills": {},
   "monsterSkills": {},
   "sceneCoordinateLayout": {
     "desktop": {
       "statusHero": {
-        "x": 39.7,
-        "y": 69.2
+        "x": 50,
+        "y": 66
       },
       "dungeonHero": {
         "x": 50,
@@ -11308,7 +11359,7 @@ window.STUDYRPG_EDITOR_CONFIG={
       "dungeonHero": 180,
       "dungeonEnemy": 180,
       "battleHero": 190,
-      "battleEnemy": 500
+      "battleEnemy": 190
     },
     "tablet": {
       "statusHero": 150,
@@ -11325,18 +11376,7 @@ window.STUDYRPG_EDITOR_CONFIG={
       "battleEnemy": 145
     }
   },
-  "mapGround": {
-    "1": {
-      "desktop": 89.5,
-      "tablet": 86.5,
-      "mobile": 88
-    },
-    "2": {
-      "mobile": 80,
-      "tablet": 79.5,
-      "desktop": 85
-    }
-  }
+  "mapGround": {}
 };
 /* STUDYRPG_EDITOR_CONFIG_END */
 <script id="studyRPGMapGroundCoreV1019">
