@@ -11150,31 +11150,9 @@ window.STUDYRPG_EDITOR_CONFIG={
       }
     }
   },
-  "heroes": {
-    "novice": {
-      "motionActions": {},
-      "effectAnchor": {
-        "width": 100,
-        "height": 100,
-        "y": 0
-      }
-    }
-  },
-  "monsters": {
-    "slime_water": {
-      "idleSize": {}
-    }
-  },
-  "playerSkills": {
-    "power_strike": {
-      "enabled": false,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": []
-    }
-  },
+  "heroes": {},
+  "monsters": {},
+  "playerSkills": {},
   "monsterSkills": {},
   "sceneCoordinateLayout": {
     "desktop": {
@@ -11304,23 +11282,25 @@ window.STUDYRPG_EDITOR_CONFIG={
   },
   "mapGround": {
     "1": {
-      "desktop": 85,
-      "mobile": 84
+      "desktop": {"dungeon": 85},
+      "mobile": {"dungeon": 84}
     }
   }
 };
 /* STUDYRPG_EDITOR_CONFIG_END */
 </script>
 
-<script id="studyRPGGroundCoreV10176">
+<script id="studyRPGGroundCoreV101712">
 (function(){
 'use strict';
+/* V10.17.12：地板高度 = 週次 × 裝置 × 場景。舊 numeric 格式仍可讀取。 */
 const C=window.STUDYRPG_EDITOR_CONFIG||{},BASE={desktop:68,tablet:68,mobile:65};
 function dev(){return innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop'}
 function week(){try{if(typeof semesterWeekIndex==='function'){const w=Number(semesterWeekIndex());if(Number.isFinite(w))return w}}catch(e){}return 1}
-function ground(d=dev(),w=week()){const row=C.mapGround?.[String(w)]||C.mapGround?.[w],v=Number(row?.[d]);return Number.isFinite(v)?v:null}
-function point(p,d=dev(),w=week(),name=''){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};const g=ground(d,w);return{x,y:g==null?y:Math.max(0,Math.min(100,y+(g-BASE[d])))}}
-window.studyRPGGroundDeviceV10176=dev;window.studyRPGGroundWeekV10176=week;window.studyRPGGroundValueV10176=ground;window.studyRPGGroundPointV10176=point;
+function sceneForName(name=''){if(name==='statusHero')return'status';if(name==='dungeonHero'||name==='dungeonEnemy')return'dungeonEntry';return'dungeon'}
+function ground(d=dev(),w=week(),scene='dungeon'){const row=C.mapGround?.[String(w)]||C.mapGround?.[w],cell=row?.[d];if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}const legacy=Number(cell);return Number.isFinite(legacy)?legacy:null}
+function point(p,d=dev(),w=week(),name='',scene){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};const g=ground(d,w,scene||sceneForName(name));return{x,y:g==null?y:Math.max(0,Math.min(100,y+(g-BASE[d])))}}
+window.studyRPGGroundDeviceV10176=dev;window.studyRPGGroundWeekV10176=week;window.studyRPGGroundSceneForNameV101712=sceneForName;window.studyRPGGroundValueV10176=ground;window.studyRPGGroundPointV10176=point;
 })();
 </script>
 
