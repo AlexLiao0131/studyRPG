@@ -4666,6 +4666,91 @@ function renderBattleEnemySprites(){
 }
 
 
+/* V10.17.13：鎖定箭靶跟隨怪物「實際可見像素」頭頂，不再跟著透明 PNG 畫布。 */
+const __studyRPGTargetAlphaBoundsCache=new Map();
+
+function __studyRPGVisibleAlphaBounds(img){
+  if(!(img instanceof HTMLImageElement)||!img.complete||!img.naturalWidth||!img.naturalHeight){
+    return Promise.resolve(null);
+  }
+  const key=img.currentSrc||img.src||'';
+  if(!key)return Promise.resolve(null);
+  if(__studyRPGTargetAlphaBoundsCache.has(key))return __studyRPGTargetAlphaBoundsCache.get(key);
+
+  const promise=new Promise(resolve=>{
+    try{
+      /* 只為找透明邊界，縮到最多 256px 可大幅降低手機負擔。 */
+      const maxSide=256;
+      const ratio=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+      const cw=Math.max(1,Math.round(img.naturalWidth*ratio));
+      const ch=Math.max(1,Math.round(img.naturalHeight*ratio));
+      const canvas=document.createElement('canvas');
+      canvas.width=cw; canvas.height=ch;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      if(!ctx){resolve(null);return;}
+      ctx.clearRect(0,0,cw,ch);
+      ctx.drawImage(img,0,0,cw,ch);
+      const data=ctx.getImageData(0,0,cw,ch).data;
+      let minX=cw,minY=ch,maxX=-1,maxY=-1;
+      /* alpha > 12：忽略極淡透明毛邊。 */
+      for(let y=0;y<ch;y++){
+        for(let x=0;x<cw;x++){
+          if(data[(y*cw+x)*4+3]>12){
+            if(x<minX)minX=x;
+            if(y<minY)minY=y;
+            if(x>maxX)maxX=x;
+            if(y>maxY)maxY=y;
+          }
+        }
+      }
+      if(maxX<minX||maxY<minY){resolve(null);return;}
+      resolve({
+        left:minX/cw,
+        top:minY/ch,
+        right:(maxX+1)/cw,
+        bottom:(maxY+1)/ch
+      });
+    }catch(e){
+      /* 若瀏覽器因 Canvas/CORS 限制無法讀 alpha，回退 DOM 定位，不影響戰鬥。 */
+      resolve(null);
+    }
+  });
+  __studyRPGTargetAlphaBoundsCache.set(key,promise);
+  return promise;
+}
+
+function __studyRPGTargetFallbackPoint(spriteEl,arena){
+  const a=arena.getBoundingClientRect();
+  const r=spriteEl.getBoundingClientRect();
+  return {
+    x:r.left-a.left+r.width/2,
+    y:r.top-a.top+4
+  };
+}
+
+function __studyRPGTargetPointFromVisiblePixels(img,arena,bounds){
+  const a=arena.getBoundingClientRect();
+  const r=img.getBoundingClientRect();
+  const nw=Number(img.naturalWidth)||r.width;
+  const nh=Number(img.naturalHeight)||r.height;
+  if(!(r.width>0&&r.height>0&&nw>0&&nh>0&&bounds))return null;
+
+  /* 對應目前正式怪物 object-fit:contain + object-position:center bottom。 */
+  const scale=Math.min(r.width/nw,r.height/nh);
+  const drawW=nw*scale,drawH=nh*scale;
+  const drawLeft=r.left+(r.width-drawW)/2;
+  const drawTop=r.top+(r.height-drawH); // center bottom
+
+  const visibleLeft=drawLeft+bounds.left*drawW;
+  const visibleRight=drawLeft+bounds.right*drawW;
+  const visibleTop=drawTop+bounds.top*drawH;
+
+  return {
+    x:(visibleLeft+visibleRight)/2-a.left,
+    y:visibleTop-a.top-6
+  };
+}
+
 function positionBattleTargetMarker(){
   const marker=document.getElementById('battleTargetMarker');
   const arena=document.getElementById('battleArena');
@@ -4674,16 +4759,39 @@ function positionBattleTargetMarker(){
     if(marker)marker.style.display='none';
     return;
   }
+
   const spriteEl=document.querySelector(`[data-enemy-uid="${selected.uid}"]`);
   if(!spriteEl){
     marker.style.display='none';
     return;
   }
-  const a=arena.getBoundingClientRect();
-  const r=spriteEl.getBoundingClientRect();
-  marker.style.left=(r.left-a.left+r.width/2)+'px';
-  marker.style.top=(r.top-a.top+Math.max(18,r.height*.18))+'px';
+
+  /* 先立即放到 DOM 頭頂，避免等待像素分析時箭靶閃爍。 */
+  const fallback=__studyRPGTargetFallbackPoint(spriteEl,arena);
+  marker.style.left=fallback.x+'px';
+  marker.style.top=fallback.y+'px';
   marker.style.display='block';
+
+  if(!(spriteEl instanceof HTMLImageElement))return;
+
+  const uid=String(selected.uid);
+  const srcAtRequest=spriteEl.currentSrc||spriteEl.src||'';
+  __studyRPGVisibleAlphaBounds(spriteEl).then(bounds=>{
+    if(!bounds)return;
+    const currentSelected=selectedBattleEnemy();
+    const liveMarker=document.getElementById('battleTargetMarker');
+    const liveArena=document.getElementById('battleArena');
+    const liveSprite=document.querySelector(`[data-enemy-uid="${uid}"]`);
+    if(!liveMarker||!liveArena||!liveSprite||currentSelected?.uid!==uid)return;
+    if(!(liveSprite instanceof HTMLImageElement))return;
+    if((liveSprite.currentSrc||liveSprite.src||'')!==srcAtRequest)return;
+
+    const p=__studyRPGTargetPointFromVisiblePixels(liveSprite,liveArena,bounds);
+    if(!p)return;
+    liveMarker.style.left=p.x+'px';
+    liveMarker.style.top=p.y+'px';
+    liveMarker.style.display='block';
+  });
 }
 
 function renderBattleTargets(){
