@@ -1,12 +1,12 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudyRPG 演出工具 V10.17.5</title>
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudyRPG 演出工具 V10.17.10</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#10141b;color:#eee;font-family:system-ui,-apple-system,sans-serif}header{position:sticky;top:0;z-index:10;background:#171d27;padding:12px 16px;border-bottom:1px solid #394252;display:flex;gap:16px;align-items:center;justify-content:space-between}main{display:grid;grid-template-columns:minmax(360px,520px) 1fr;gap:12px;padding:12px}.card{background:#171d27;border:1px solid #343e4c;border-radius:12px;padding:12px;margin-bottom:10px}label{display:block;font-size:12px;color:#aeb8c7;margin:7px 0 3px}input,select,button{background:#0e131a;color:#fff;border:1px solid #465164;border-radius:8px;padding:8px;width:100%}button{cursor:pointer;background:#273248}button.primary{background:#365b91}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{font-size:11px;color:#9da8b8}.badge{background:#702f2f;border-radius:999px;padding:4px 8px;font-size:12px}.fxrow,.summonrow{border:1px solid #394252;border-radius:10px;padding:8px;margin:7px 0}.headrow{display:flex;justify-content:space-between;align-items:center;gap:8px}.headrow button{width:auto;padding:4px 9px}#stage{height:auto;aspect-ratio:3/1;position:relative;overflow:hidden;background:#080b10;border-radius:12px;border:1px solid #394252}#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center;touch-action:none}.point{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #111;transform:translate(-50%,-50%);z-index:8;touch-action:none}.point:after{content:attr(data-p);position:absolute;white-space:nowrap;font-size:9px;left:11px;top:-6px;background:#000b;padding:2px 4px;border-radius:4px}#hero,#enemy{position:absolute;transform:translate(-50%,-100%);z-index:5;pointer-events:none}#hero{font-size:64px}#enemy{font-size:72px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{width:auto}.dirty{outline:2px solid #b57d27}.repoStatus{font-size:12px;padding:7px 9px;border-radius:8px;background:#0e131a;border:1px solid #394252;margin-top:8px}.repoStatus.ok{border-color:#3b7650}.repoStatus.warn{border-color:#9b7432}.repoStatus.err{border-color:#8d3d3d}.mini{width:auto;padding:6px 10px}@media(max-width:900px){main{grid-template-columns:1fr}header{align-items:flex-start;gap:8px;flex-direction:column}.row,.row3{grid-template-columns:1fr}.card{padding:10px}}
 </style>
 <style id="sceneEditorV10175Style">
-.scene-editor-shell{position:relative;width:100%;overflow:hidden;border-radius:12px;background:#080b10;margin-top:8px}.scene-editor-canvas{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;border:1px solid #465164;border-radius:12px;background:#080b10;touch-action:none}.scene-editor-canvas .scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}.scene-unit{position:absolute;object-fit:contain;transform:translate(-50%,-100%);filter:drop-shadow(0 5px 3px #0009);touch-action:none;user-select:none;-webkit-user-drag:none;z-index:4;cursor:grab}.scene-ground-controls{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin:8px 0}.scene-ground-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(255,255,255,.9);z-index:7;pointer-events:none}.scene-ground-line::after{content:'GROUND';position:absolute;right:6px;top:-18px;font-size:10px;background:#111b;padding:1px 4px;border-radius:4px}.scene-unit.enemy{z-index:5}.scene-foot-point{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #111;transform:translate(-50%,-50%);z-index:8;pointer-events:none}.entry-grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 64px 1fr;gap:6px;align-items:stretch}.entry-card{position:relative;overflow:hidden;border:2px solid #30363d;border-radius:12px;background:#11161d}.entry-card .scene-bg{filter:saturate(.92) brightness(.72)}.entry-local{position:absolute;left:0;right:0;top:0;height:100%;overflow:hidden}.entry-vs{display:grid;place-items:center;font-size:24px;font-weight:900;color:#d0d7de}.scene-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}.scene-readout{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.scene-readout span{background:#0e131a;border:1px solid #394252;border-radius:8px;padding:5px 8px;font-size:11px}.scene-toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.scene-size-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scene-note{font-size:11px;color:#9da8b8;margin-top:7px}@media(max-width:700px){.scene-toolbar{grid-template-columns:1fr 1fr}.scene-size-grid{grid-template-columns:1fr}}
+.scene-editor-shell{position:relative;width:100%;overflow:hidden;border-radius:12px;background:#080b10;margin-top:8px}.scene-editor-canvas{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;border:1px solid #465164;border-radius:12px;background:#080b10;touch-action:none}.scene-editor-canvas .scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}.scene-unit{position:absolute;object-fit:contain;transform:translate(-50%,-100%);filter:drop-shadow(0 5px 3px #0009);touch-action:none;user-select:none;-webkit-user-drag:none;z-index:4;cursor:grab}.scene-ground-controls{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin:8px 0}.scene-ground-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(255,255,255,.92);z-index:7;pointer-events:none}.scene-ground-line::after{content:'GROUND';position:absolute;right:6px;top:-18px;font-size:10px;background:#111c;padding:1px 4px;border-radius:4px}.scene-unit.enemy{z-index:5}.entry-grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 64px 1fr;gap:6px;align-items:stretch}.entry-card{position:relative;overflow:hidden;border:2px solid #30363d;border-radius:12px;background:#11161d}.entry-card .scene-bg{filter:saturate(.92) brightness(.72)}.entry-local{position:absolute;left:0;right:0;top:0;height:100%;overflow:hidden}.entry-vs{display:grid;place-items:center;font-size:24px;font-weight:900;color:#d0d7de}.scene-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}.scene-readout{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.scene-readout span{background:#0e131a;border:1px solid #394252;border-radius:8px;padding:5px 8px;font-size:11px}.scene-toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.scene-size-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scene-note{font-size:11px;color:#9da8b8;margin-top:7px}@media(max-width:700px){.scene-toolbar{grid-template-columns:1fr 1fr}.scene-size-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<header><div><b>🛠️ StudyRPG 演出工具 V10.17.5</b><div class="muted">所有技能共用 FX；召喚物可調站位/路徑；全部先存草稿，最後一次批次儲存。</div></div><div><span class="badge" id="dirty">未儲存 0 項</span></div></header>
+<header><div><b>🛠️ StudyRPG 演出工具 V10.17.10</b><div class="muted">所有技能共用 FX；召喚物可調站位/路徑；全部先存草稿，最後一次批次儲存。</div></div><div><span class="badge" id="dirty">未儲存 0 項</span></div></header>
 <main><section>
 <div class="card"><div class="headrow"><b>🖼️ GitHub 圖片庫</b><button class="mini" id="scanGithub">重新掃描</button></div><div id="repoStatus" class="repoStatus">正在自動讀取 GitHub /images/…</div><div class="muted" style="margin-top:6px">放到 GitHub 的 images/ 裡，重新整理修改器就會自動出現。手機、電腦都直接開這個網頁，不用 Python、不用 BAT。</div></div>
 <div class="card"><div class="row"><div><label>編輯對象</label><select id="side"><option value="player">英雄技能</option><option value="monster">怪物技能</option></select></div><div><label>裝置</label><select id="device"><option>desktop</option><option>tablet</option><option>mobile</option></select></div></div><div id="heroBox"><label>英雄職業</label><select id="heroActor"><option value="novice">見習勇者</option><option value="warrior">戰士</option><option value="mage">法師</option><option value="priest">牧師</option><option value="hunter">獵人</option><option value="rogue">盜賊</option><option value="paladin">聖騎士</option><option value="spellblade">魔劍士</option></select></div><div id="monsterBox" style="display:none"><label>怪物</label><select id="monster"></select></div><label>技能</label><select id="skill"></select><label><input id="enabled" type="checkbox" style="width:auto"> 啟用新版演出（未啟用仍跑舊版）</label><label>呼叫角色 motionAction</label><select id="actorAction"></select></div>
@@ -17,22 +17,22 @@
 <div class="card"><b>角色 motionActions</b><div class="row"><div><label>動作</label><select id="motionName"></select></div><div><label>spriteState</label><input id="spriteState"></div></div><div class="row3"><div><label>motion</label><select id="motion"><option>stay</option><option>forward</option><option>jump</option><option>dash</option></select></div><div><label>時間 ms</label><input id="motionDuration" type="number"></div><div></div></div><div class="row"><div><label>from</label><select id="from"></select></div><div><label>via</label><select id="via"></select></div><div><label>to</label><select id="to"></select></div><div><label>returnTo</label><select id="returnTo"></select></div></div></div>
 <div class="card"><b>怪物/角色身體特效參考框</b><div class="muted">DOT / Buff / Debuff 的 followTarget / followSelf 會依這個比例縮放。</div><div class="row3"><div><label>寬 %</label><input id="anchorW" type="number" value="100"></div><div><label>高 %</label><input id="anchorH" type="number" value="100"></div><div><label>Y 偏移 %</label><input id="anchorY" type="number" value="0"></div></div></div>
 <div class="card"><b>🔗 正式主程式來源</b><div id="mainSourceStatus" class="repoStatus">尚未讀取 index.html</div><div class="muted">修改器直接讀取同一個 GitHub repo 的正式 <code>index.html</code>。拖曳、技能、FX、召喚、Timeline、座標與尺寸只改記憶體工作副本；最後才匯出新的完整 index.html。</div><div style="height:6px"></div><input id="mainIndexImport" type="file" accept=".html"><div style="height:4px"></div><button id="reloadMainIndex">↻ 重新讀取正式 index.html</button></div>
-<div class="card"><div class="row"><button id="undoBtn">↶ Undo</button><button id="deleteSelectedBtn">⌫ 刪除目前選取</button></div><div style="height:6px"></div><button class="primary" id="saveAll">💾 儲存全部變更</button><div style="height:6px"></div><button id="export">⬇️ 匯出完整 index.html</button><label>匯入 index.html / 舊 data.js</label><input id="import" type="file" accept=".html,.js"></div>
+<div class="card"><div class="row"><button id="undoBtn">↶ Undo</button><button id="deleteSelectedBtn">⌫ 刪除目前選取</button></div><div style="height:6px"></div><button class="primary" id="saveAll">💾 儲存全部變更</button><div style="height:6px"></div><button id="export">⬇️ 匯出完整 index.html</button><label>匯入完整 index.html</label><input id="import" type="file" accept=".html,text/html"></div>
 </section><section>
 
 <div class="card" id="sceneIdleEditorCard">
   <div class="headrow"><b>🎯 場景 Idle 座標</b><span class="muted">直接拖角色</span></div>
   <div class="scene-toolbar">
-    <div><label>場景</label><select id="sceneKind"><option value="status">狀態</option><option value="dungeonEntry">副本入口</option><option value="dungeon">副本</option></select></div>
+    <div><label>場景</label><select id="sceneKind"><option value="status">狀態（站立位置）</option><option value="dungeonEntry">副本入口（站立位置）</option><option value="dungeon">副本（戰鬥站位）</option></select><div class="muted" id="sceneCoordinateMeaningV10179">座標分工：狀態→statusHero；副本入口→dungeonHero/dungeonEnemy；副本→hero_home/enemy_home。attack_mid / attack_strike 只管攻擊路徑。</div></div>
     <div><label>裝置</label><select id="sceneDevice"><option value="desktop">電腦</option><option value="tablet">平板</option><option value="mobile">手機</option></select></div>
     <div><label>週次／背景</label><select id="sceneWeek"></select></div>
     <div><label>怪物</label><select id="sceneMonster"></select></div>
   </div>
   <div class="scene-ground-controls">
     <div><label>本週地板高度：<b id="sceneGroundOut">未設定</b></label><input id="sceneGroundY" type="range" min="30" max="95" step="0.5"></div>
-    <button class="mini" id="sceneGroundReset" type="button">↩ 本週恢復預設</button>
+    <button class="mini" id="sceneGroundReset" type="button">↩ 恢復預設</button>
   </div>
-  <div class="muted">地板線依「週次 × 裝置」獨立儲存；狀態／副本入口／副本／白點／技能預覽共用。</div>
+  <div class="muted">地板線依「週次 × 裝置」分開儲存；狀態／副本入口／副本／白點／技能預覽共用。</div>
   <div class="scene-size-grid">
     <div><label>英雄 Idle 大小：<b id="sceneHeroSizeOut"></b></label><input id="sceneHeroSize" type="range" min="40" max="500" step="5"></div>
     <div id="sceneEnemySizeBox"><label>怪物 Idle 大小：<b id="sceneEnemySizeOut"></b></label><input id="sceneEnemySize" type="range" min="40" max="500" step="5"></div>
@@ -54,16 +54,7 @@ let MANIFEST={"assets": ["images/backgrounds/week01_grassland.png", "images/back
 let MAIN_SOURCE='';let MAIN_SOURCE_URL='../index.html';let SOURCE_READY=false;
 let CFG={}; let dirty=new Set(); const $=id=>document.getElementById(id), clone=x=>JSON.parse(JSON.stringify(x));
 function extractConfigFromIndex(src){const m=String(src||'').match(/window\.STUDYRPG_EDITOR_CONFIG\s*=\s*([\s\S]*?);\s*\n\/\* STUDYRPG_EDITOR_CONFIG_END \*\//);if(!m)throw Error('主程式找不到 STUDYRPG_EDITOR_CONFIG 區塊');return JSON.parse(m[1]);}
-function extractLegacyConfig(src){const m=String(src||'').match(/window\.STUDYRPG_PRESENTATION_CONFIG\s*=\s*([\s\S]*);\s*$/);if(!m)throw Error('找不到可辨識的設定');return JSON.parse(m[1]);}
-function replaceConfigInIndex(src,cfg){const json=JSON.stringify(cfg,null,2);const re=/window\.STUDYRPG_EDITOR_CONFIG\s*=\s*[\s\S]*?;\s*\n\/\* STUDYRPG_EDITOR_CONFIG_END \*\//;if(!re.test(src))throw Error('主程式設定標記不存在，無法安全匯出');return src.replace(re,'window.STUDYRPG_EDITOR_CONFIG='+json+';\n/* STUDYRPG_EDITOR_CONFIG_END */');}
-function verifyExport(html,cfg){
-  const back=extractConfigFromIndex(html);
-  for(const k of ['sceneCoordinateLayout','battleLayout','objectSizes','stage','mapGround','playerSkills','monsterSkills','heroes','monsters']){
-    if(JSON.stringify(back[k])!==JSON.stringify(cfg[k]))throw Error('匯出驗證失敗：'+k);
-  }
-  return true;
-}
-
+function replaceConfigInIndex(src,cfg){const json=JSON.stringify(cfg,null,2);const re=/window\.STUDYRPG_EDITOR_CONFIG\s*=\s*[\s\S]*?;\s*\n\/\* STUDYRPG_EDITOR_CONFIG_END \*\//;if(!re.test(src))throw Error('主程式設定標記不存在，無法安全匯出');return src.replace(re,'window.STUDYRPG_EDITOR_CONFIG='+json+';\n/* STUDYRPG_EDITOR_CONFIG_END */');}function verifyExportedIndex(html,cfg){const text=String(html||'');if(!/<!doctype\s+html|<html[\s>]/i.test(text))throw Error('匯出結果不是完整 HTML');if(/(?:src|href)\s*=\s*["'][^"']*data\.js(?:[?#][^"']*)?["']/i.test(text))throw Error('匯出結果仍引用舊外部設定檔');const parsed=extractConfigFromIndex(text);if(JSON.stringify(parsed)!==JSON.stringify(cfg))throw Error('匯出後設定驗證失敗，已阻止下載');return true;}
 function assignedBlock(src,name){const idx=src.search(new RegExp('(?:const|let|var)\\s+'+name+'\\s*='));if(idx<0)return'';const eq=src.indexOf('=',idx),start=src.indexOf('{',eq);if(start<0)return'';let depth=0,q='',esc=false;for(let i=start;i<src.length;i++){const c=src[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==='"'||c==="'"||c==='`'){q=c;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0)return src.slice(start,i+1)}return''}
 function mergeUniqueById(base,extra){const m=new Map((base||[]).map(x=>[x.id,x]));for(const x of extra||[])if(x?.id)m.set(x.id,Object.assign({},m.get(x.id)||{},x));return [...m.values()]}
 function hydrateManifestFromIndex(src){try{
@@ -73,33 +64,7 @@ function hydrateManifestFromIndex(src){try{
   const ps=[...collectSkills('BEGINNER_SKILLS'),...collectSkills('JOB_SKILL_LIBRARY')],ms=collectSkills('MONSTER_SKILL_DATABASE');if(ps.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,ps);if(ms.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,ms);
   const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');if(wb){for(const w of MANIFEST.weeks||[]){const re=new RegExp('(?:week\\s*:\\s*'+w.week+'|\\b'+w.week+'\\s*:)','i');const hit=re.exec(wb);if(hit){const seg=wb.slice(hit.index,hit.index+1800),bg=seg.match(/background\s*:\s*["'`]([^"'`]+)["'`]/i);if(bg)w.background=bg[1]}}}
 }catch(e){console.warn('從 index 解析素材/資料清單失敗，使用內建 fallback',e)}}
-async function loadMainIndex(){
-  const status=$('mainSourceStatus'),set=t=>{if(status)status.textContent=t};
-  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
-  try{
-    // tools/ -> repo root index.html. Resolve from the actual current page URL.
-    const url=new URL('../index.html',location.href);
-    url.searchParams.set('editor_read',Date.now());
-    set('正在讀取正式 index.html…');
-    const r=await fetch(url.href,{cache:'no-store',credentials:'same-origin',signal:ctrl.signal});
-    if(!r.ok)throw Error('HTTP '+r.status);
-    const raw=await r.text();
-    if(!raw||raw.length<10000)throw Error('index.html 內容異常：只讀到 '+raw.length+' bytes');
-    // Critical order: config first. Large manifest parsing must not prevent the editor from opening.
-    CFG=extractConfigFromIndex(raw);
-    MAIN_SOURCE=raw;
-    SOURCE_READY=true;
-    set('✅ 已讀取正式 index.html（'+Math.round(raw.length/1024)+' KB）；編輯器已可使用。');
-    // Asset/monster/skill extraction is optional enrichment and runs after the editor is usable.
-    setTimeout(()=>{try{hydrateManifestFromIndex(raw);fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(e){console.warn('資料清單背景解析失敗，保留內建清單',e)}},0);
-    return true;
-  }catch(e){
-    SOURCE_READY=false;
-    set('⚠️ 正式 index.html 讀取失敗：'+(e?.name==='AbortError'?'逾時 15 秒':e.message)+'。可直接使用下方「匯入 index.html」選擇本機主程式。');
-    console.error('loadMainIndex',e);
-    return false;
-  }finally{clearTimeout(timer)}
-}
+async function loadMainIndex(){const status=$('mainSourceStatus');try{status&&(status.textContent='正在讀取 GitHub / 本機正式 index.html…');const r=await fetch(MAIN_SOURCE_URL+'?editor_read='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);MAIN_SOURCE=await r.text();hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(MAIN_SOURCE);SOURCE_READY=true;localStorage.removeItem('studyRPGPresentationDraftV1018');status&&(status.textContent='✅ 已讀取正式 index.html；目前所有編輯只存在瀏覽器工作副本，不會覆蓋 GitHub。');return true}catch(e){status&&(status.textContent='⚠️ 無法 fetch 正式 index.html：'+e.message+'。可使用下方「匯入 index.html」載入本機檔案。');return false}}
 
 const IMAGE_EXT_RE=/\.(png|jpe?g|webp|gif|svg)$/i;
 const FALLBACK_ASSETS=[...MANIFEST.assets];
@@ -178,88 +143,16 @@ function renderSummons(){$('summonList').innerHTML=(draft.summons||[]).map(summo
 function renderSelectors(){$('monsterBox').style.display=$('side').value==='monster'?'block':'none';$('heroBox').style.display=$('side').value==='player'?'block':'none';$('monster').innerHTML=MANIFEST.monsters.map(x=>`<option value="${x.id}">${x.name} (${x.id})</option>`).join('');$('skill').innerHTML=skillList().map(x=>`<option value="${x.id}">${x.name} (${x.id})</option>`).join('');$('actorAction').innerHTML=($('side').value==='player'?heroActions:monActions).map(x=>`<option>${x}</option>`).join('');$('motionName').innerHTML=($('side').value==='player'?heroActions:monActions).map(x=>`<option>${x}</option>`).join('');loadSkill();loadMotion();loadAnchor()}
 function motionStore(){ensure();if($('side').value==='player'){const id=actorId();CFG.heroes[id]=CFG.heroes[id]||{};return CFG.heroes[id].motionActions=CFG.heroes[id].motionActions||{}}const id=$('monster').value;CFG.monsters[id]=CFG.monsters[id]||{};return CFG.monsters[id].motionActions=CFG.monsters[id].motionActions||{}}
 function defMotion(n){const mo=$('side').value==='monster';return {spriteState:mo?(n==='idle'?'idle':'battle'):(['idle','buff'].includes(n)?'idle':'attack'),motion:n==='jump'?'jump':n==='dash'?'dash':n==='melee'?'forward':'stay',from:mo?'enemy_home':'hero_home',via:n==='melee'?'attack_mid':'air_high',to:n==='melee'?'attack_strike':'enemy_front',returnTo:mo?'enemy_home':'hero_home',duration:n==='jump'?700:520}}
-function loadMotion(){const n=$('motionName').value||'idle',stored=motionStore()[n],x=clone(stored||defMotion(n));if(n==='melee'&&stored&&stored.motion==='forward'&&stored.to==='enemy_front'&&(stored.via==='air_high'||!stored.via)){x.via='attack_mid';x.to='attack_strike'}$('spriteState').value=x.spriteState||'';$('motion').value=x.motion||'stay';for(const k of ['from','via','to','returnTo']){$ (k).innerHTML=points.map(v=>`<option ${v===x[k]?'selected':''}>${v}</option>`).join('')}$('motionDuration').value=x.duration||520}
+function loadMotion(){const n=$('motionName').value||'idle',x=clone(motionStore()[n]||defMotion(n));$('spriteState').value=x.spriteState||'';$('motion').value=x.motion||'stay';for(const k of ['from','via','to','returnTo']){$ (k).innerHTML=points.map(v=>`<option ${v===x[k]?'selected':''}>${v}</option>`).join('')}$('motionDuration').value=x.duration||520}
 function commitMotion(){const n=$('motionName').value;if(!n)return;motionStore()[n]={spriteState:$('spriteState').value,motion:$('motion').value,from:$('from').value,via:$('via').value,to:$('to').value,returnTo:$('returnTo').value,duration:+$('motionDuration').value||520};mark('motion:'+actorId()+':'+n)}
 function loadAnchor(){ensure();const id=actorId();let a;if($('side').value==='player'){const id=actorId();CFG.heroes[id]=CFG.heroes[id]||{};a=CFG.heroes[id].effectAnchor=CFG.heroes[id].effectAnchor||{width:100,height:100,y:0}}else{CFG.monsters[id]=CFG.monsters[id]||{};a=CFG.monsters[id].effectAnchor=CFG.monsters[id].effectAnchor||{width:100,height:100,y:0}}$('anchorW').value=a.width;$('anchorH').value=a.height;$('anchorY').value=a.y}
 function commitAnchor(){const id=actorId(),a={width:+$('anchorW').value||100,height:+$('anchorH').value||100,y:+$('anchorY').value||0};if($('side').value==='player'){CFG.heroes[id]=CFG.heroes[id]||{};CFG.heroes[id].effectAnchor=a}else{CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].effectAnchor=a}mark('anchor:'+id)}
 function ensureDevice(){ensureNativeLayouts?.();ensure();const d=$('device').value;CFG.referencePoints[d]=CFG.referencePoints[d]||{};const defs={enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};for(const p of Object.keys(defs))CFG.referencePoints[d][p]=CFG.referencePoints[d][p]||defs[p];CFG.stage[d]=CFG.stage[d]||{bg:{x:50,y:50,scale:1,locked:true}};CFG.stage[d].bg=CFG.stage[d].bg||{x:50,y:50,scale:1,locked:true};return d}
 function makePoints(){$('stage').querySelectorAll('.point').forEach(x=>x.remove());for(const p of points){const e=document.createElement('div');e.className='point';e.dataset.p=p;$('stage').appendChild(e)}bindDrag()}
-
-function editorBgCfg(d){
-  ensureNativeLayouts();
-  d=d||ensureDevice();
-  CFG.stage[d]=CFG.stage[d]||{bg:{x:50,y:50,scale:1,locked:true}};
-  CFG.stage[d].bg=Object.assign({x:50,y:50,scale:1,locked:true},CFG.stage[d].bg||{});
-  return CFG.stage[d].bg;
-}
-function editorBgTransform(d){
-  const b=editorBgCfg(d);
-  return `translate(${Number(b.x??50)-50}%,${Number(b.y??50)-50}%) scale(${Number(b.scale)||1})`;
-}
-function syncSkillPreviewFromDraft(){
-  const d=$('device')?.value||'desktop', bl=CFG.battleLayout?.[d], os=CFG.objectSizes?.[d];
-  if(!bl||!os)return;
-  const h=$('pvHero'),e=$('pvEnemy');
-  if(h&&bl.hero){h.style.left=bl.hero.x+'%';h.style.top=bl.hero.y+'%';h.style.width=(os.battleHero||190)+'px';h.style.height=(os.battleHero||190)+'px'}
-  if(e&&bl.enemy){e.style.left=bl.enemy.x+'%';e.style.top=bl.enemy.y+'%';e.style.width=(os.battleEnemy||190)+'px';e.style.height=(os.battleEnemy||190)+'px'}
-  const bg=document.querySelector('#skillPreviewStage .pv-bg');
-  if(bg){bg.style.transformOrigin='center';bg.style.transform=editorBgTransform(d)}
-}
-function syncBackgroundPreview(){
-  const d=$('device')?.value||'desktop',tf=editorBgTransform(d);
-  const bg=$('bgImg');if(bg)bg.style.transform=tf;
-  const pv=document.querySelector('#skillPreviewStage .pv-bg');if(pv){pv.style.transformOrigin='center';pv.style.transform=tf}
-}
-function refBaseForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;if(name==='attack_mid')return CFG.battleLayout[d].attackMid;if(name==='attack_strike')return CFG.battleLayout[d].attackStrike;return CFG.referencePoints[d][name]}function refForEditor(d,name){return shiftForGround(refBaseForEditor(d,name),d,activeEditorWeek(),name)}function fitPointStage(){
-  const d=$('device').value||'desktop';
-  const [w,h]=d==='mobile'?[390,260]:d==='tablet'?[720,300]:[900,300];
-  const st=$('stage');
-  st.style.height='auto';
-  st.style.aspectRatio=w+' / '+h;
-}
-function renderStage(){const d=ensureDevice(),st=CFG.stage[d];fitPointStage();let gl=$('pointGroundLine');if(!gl){gl=document.createElement('div');gl.id='pointGroundLine';gl.className='scene-ground-line';$('stage').appendChild(gl)}gl.style.top=groundY(d)+'%';document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');$('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';$('hero').textContent='';$('enemy').textContent='';$('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';$('enemy').style.width=(CFG.objectSizes[d]?.battleEnemy||190)+'px';$('enemy').style.height=(CFG.objectSizes[d]?.battleEnemy||190)+'px';$('hero').style.background=`center/contain no-repeat url(${sceneHeroSrc()})`;$('enemy').style.background=`center/contain no-repeat url(${sceneMonsterSrc()||''})`;$('bs').value=(st.bg.scale||1)*100;$('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';$('bgImg').src='../'+$('bg').value;$('bgImg').style.transform=editorBgTransform(d);syncBackgroundPreview()}
-function commitStage(){
-  const d=ensureDevice(),st=CFG.stage[d];
-  st.bg.scale=Math.max(.1,Math.min(8,(+$('bs').value||100)/100));
-  $('bs').value=Math.round(st.bg.scale*100);
-  mark('stage:'+d);
-  renderStage();
-  syncBackgroundPreview();
-}
-function bindDrag(){
-  const stg=$('stage');
-  document.querySelectorAll('.point').forEach(el=>el.onpointerdown=e=>{
-    el.setPointerCapture(e.pointerId);
-    el.onpointermove=ev=>{
-      const r=stg.getBoundingClientRect(),x=Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)),d=ensureDevice();
-      const name=el.dataset.p,q={x:+x.toFixed(1),y:+Math.max(0,Math.min(100,unshiftGroundY(y,d,activeEditorWeek(),name))).toFixed(1)};
-      if(name==='hero_home')CFG.battleLayout[d].hero=q;else if(name==='enemy_home')CFG.battleLayout[d].enemy=q;else CFG.referencePoints[d][name]=q;
-      el.style.left=x+'%';el.style.top=y+'%';mark('points:'+d+':'+name);syncSkillPreviewFromDraft();
-    };
-    const end=()=>{el.onpointermove=null;renderStage();renderSkillPreview();renderTimeline()};
-    el.onpointerup=end;el.onpointercancel=end
-  });
-  $('bgImg').onpointerdown=e=>{
-    const d=ensureDevice(),b=editorBgCfg(d);if(b.locked)return;
-    e.preventDefault();const sx=e.clientX,sy=e.clientY,ox=Number(b.x??50),oy=Number(b.y??50),r=stg.getBoundingClientRect();
-    $('bgImg').setPointerCapture(e.pointerId);
-    $('bgImg').onpointermove=ev=>{
-      b.x=+(ox+(ev.clientX-sx)/r.width*100).toFixed(2);
-      b.y=+(oy+(ev.clientY-sy)/r.height*100).toFixed(2);
-      mark('stage:'+d);$('bgImg').style.transform=editorBgTransform(d);syncBackgroundPreview();
-    };
-    const end=()=>{$('bgImg').onpointermove=null;renderStage();renderSkillPreview()};
-    $('bgImg').onpointerup=end;$('bgImg').onpointercancel=end
-  };
-  $('bgImg').onwheel=e=>{
-    const d=ensureDevice(),b=editorBgCfg(d);if(b.locked)return;
-    e.preventDefault();
-    b.scale=Math.max(.1,Math.min(8,Number(b.scale||1)*(e.deltaY<0?1.06:1/1.06)));
-    $('bs').value=Math.round(b.scale*100);mark('stage:'+d);
-    $('bgImg').style.transform=editorBgTransform(d);syncBackgroundPreview();
-  };
-}
-function fill(){$('bg').innerHTML=MANIFEST.assets.filter(x=>x.includes('images/backgrounds/')).map(x=>`<option value="${x}">${x}</option>`).join('');$('pathImg').innerHTML=opt(MANIFEST.assets);makePoints();renderSelectors();renderStage();bindDrag()}
+function refBaseForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;if(name==='attack_mid')return CFG.battleLayout[d].attackMid;if(name==='attack_strike')return CFG.battleLayout[d].attackStrike;return CFG.referencePoints[d][name]}function refForEditor(d,name){return groundShift(refBaseForEditor(d,name),d,activeEditorWeek(),name)}function fitPointStage(){const d=$('device').value||'desktop',[w,h]=d==='mobile'?[390,260]:d==='tablet'?[720,300]:[900,300],st=$('stage');st.style.aspectRatio=w+' / '+h}function renderStage(){const d=ensureDevice(),st=CFG.stage[d];fitPointStage();let gl=$('pointGroundLine');if(!gl){gl=document.createElement('div');gl.id='pointGroundLine';gl.className='scene-ground-line';$('stage').appendChild(gl)}gl.style.top=groundY(d)+'%';document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');$('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';$('hero').textContent='';$('enemy').textContent='';$('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';$('enemy').style.width=(CFG.objectSizes[d]?.battleEnemy||190)+'px';$('enemy').style.height=(CFG.objectSizes[d]?.battleEnemy||190)+'px';$('hero').style.background=`center/contain no-repeat url(${sceneHeroSrc()})`;$('enemy').style.background=`center/contain no-repeat url(${sceneMonsterSrc()||''})`;$('bs').value=(st.bg.scale||1)*100;$('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';$('bgImg').src='../'+$('bg').value;$('bgImg').style.transform=editorBgTransform(d)}
+function commitStage(){const d=ensureDevice(),st=CFG.stage[d];st.bg.scale=(+$('bs').value||100)/100;renderStage();mark('stage:'+d)}
+function bindDrag(){const stg=$('stage');document.querySelectorAll('.point').forEach(el=>el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);el.onpointermove=ev=>{const r=stg.getBoundingClientRect(),x=Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)),d=ensureDevice();const name=el.dataset.p,q={x:+x.toFixed(1),y:+Math.max(0,Math.min(100,groundUnshiftY(y,d,activeEditorWeek(),name))).toFixed(1)};if(name==='hero_home')CFG.battleLayout[d].hero=q;else if(name==='enemy_home')CFG.battleLayout[d].enemy=q;else if(name==='attack_mid')CFG.battleLayout[d].attackMid=q;else if(name==='attack_strike')CFG.battleLayout[d].attackStrike=q;else CFG.referencePoints[d][name]=q;el.style.left=x+'%';el.style.top=y+'%';mark('points:'+d+':'+name)};const end=()=>{el.onpointermove=null;renderStage();renderSceneEditor()};el.onpointerup=end;el.onpointercancel=end});$('bgImg').onpointerdown=e=>{const d=ensureDevice(),b=CFG.stage[d].bg;if(b.locked)return;const sx=e.clientX,sy=e.clientY,ox=b.x||50,oy=b.y||50,r=stg.getBoundingClientRect();$('bgImg').setPointerCapture(e.pointerId);$('bgImg').onpointermove=ev=>{b.x=ox+(ev.clientX-sx)/r.width*100;b.y=oy+(ev.clientY-sy)/r.height*100;mark('stage:'+d);renderStage()};$('bgImg').onpointerup=()=>$('bgImg').onpointermove=null}}
+function fill(){$('bg').innerHTML=MANIFEST.assets.filter(x=>x.includes('images/backgrounds/')).map(x=>`<option value="${x}">${x}</option>`).join('');$('pathImg').innerHTML=opt(MANIFEST.assets);makePoints();renderSelectors();renderStage()}
 
 
 /* V10.17.5：三場景 1:1 編輯器。直接編輯主程式原生欄位，不使用 sceneLayouts 中介座標。 */
@@ -275,82 +168,47 @@ const HERO_KEYS={'見習勇者':'novice','初心者':'novice','戰士':'warrior'
 function sceneHeroSrc(){const h=currentHeroInfo(),key=h.jobAwakened?(HERO_KEYS[h.heroClass]||'novice'):'novice',female=h.gender==='female'?'_female':'';return `../images/hero_${key}${female}_idle.png`}
 function sceneWeekData(){const w=Number($('sceneWeek').value)||1;return GAME_SCENE_MANIFEST.weeks.find(x=>x.week===w)||GAME_SCENE_MANIFEST.weeks[0]}
 function sceneMonsterSrc(){const id=$('sceneMonster').value;if(id==='hero_mirror')return sceneHeroSrc();return id?`../images/monsters/${id}_idle.png`:''}
-function monsterIdleSize(d,id,fallback){
-  CFG.monsters=CFG.monsters||{};
-  CFG.monsters[id]=CFG.monsters[id]||{};
-  CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};
-  const v=Number(CFG.monsters[id].idleSize[d]);
-  return Number.isFinite(v)&&v>0?v:fallback;
-}
-function setMonsterIdleSize(d,id,v){
-  CFG.monsters=CFG.monsters||{};
-  CFG.monsters[id]=CFG.monsters[id]||{};
-  CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};
-  CFG.monsters[id].idleSize[d]=Number(v);
-}
 function fillSceneWeeks(){const sel=$('sceneWeek');if(!sel)return;const old=sel.value||String(GAME_SCENE_MANIFEST.weeks[0]?.week||1);sel.innerHTML=GAME_SCENE_MANIFEST.weeks.filter(x=>x.week<=20).map(x=>`<option value="${x.week}">第${x.week}週・${x.map}</option>`).join('');sel.value=[...sel.options].some(o=>o.value===old)?old:sel.options[0]?.value;fillSceneMonsters()}
 function fillSceneMonsters(){const w=sceneWeekData(),sel=$('sceneMonster'),old=sel.value;const names=Object.fromEntries(GAME_SCENE_MANIFEST.monsters.map(m=>[m.id,m.name]));sel.innerHTML=(w?.monsters||[]).map(id=>`<option value="${id}">${names[id]||id}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
-
 const GROUND_BASE={desktop:68,tablet:68,mobile:65};
 function activeEditorWeek(){return Number($('sceneWeek')?.value)||1}
 function groundStored(d,w=activeEditorWeek()){const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];const v=Number(row?.[d]);return Number.isFinite(v)?v:null}
 function groundY(d,w=activeEditorWeek()){const v=groundStored(d,w);return v==null?GROUND_BASE[d]:v}
 function groundDelta(d,w=activeEditorWeek()){return groundY(d,w)-GROUND_BASE[d]}
-function shiftForGround(p,d,w=activeEditorWeek(),name=''){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};return{x,y:Math.max(0,Math.min(100,y+groundDelta(d,w)))}}
-function unshiftGroundY(y,d,w=activeEditorWeek(),name=''){return name==='air_high'?y:y-groundDelta(d,w)}
+function groundShift(p,d,w=activeEditorWeek(),name=''){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};return{x,y:Math.max(0,Math.min(100,y+groundDelta(d,w)))}}
+function groundUnshiftY(y,d,w=activeEditorWeek(),name=''){return name==='air_high'?y:y-groundDelta(d,w)}
 function setGroundY(d,w,v){CFG.mapGround=CFG.mapGround||{};CFG.mapGround[String(w)]=CFG.mapGround[String(w)]||{};CFG.mapGround[String(w)][d]=Number(v)}
 function clearGroundY(d,w){const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];if(!row)return;delete row[d];if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}}
 function groundLineHtml(d){return `<div class="scene-ground-line" style="top:${groundY(d)}%"></div>`}
 function renderGroundControl(){if(!$('sceneGroundY'))return;const d=$('sceneDevice').value,w=activeEditorWeek(),stored=groundStored(d,w),v=stored==null?GROUND_BASE[d]:stored;$('sceneGroundY').value=v;$('sceneGroundOut').textContent=(stored==null?'預設 ':'')+Number(v).toFixed(1)+'%'}
+function monsterIdleSize(d,id,fallback){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};const v=Number(CFG.monsters[id].idleSize[d]);return Number.isFinite(v)&&v>0?v:fallback}
+function setMonsterIdleSize(d,id,v){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};CFG.monsters[id].idleSize[d]=Number(v)}
+function editorBgTransform(d){const b=CFG.stage?.[d]?.bg||{};return `translate(${Number(b.x??50)-50}%,${Number(b.y??50)-50}%) scale(${Number(b.scale)||1})`}
 function sceneDims(){const d=$('sceneDevice').value;return d==='mobile'?[390,260]:d==='tablet'?[720,300]:[900,300]}
-function sceneCfg(){ensureNativeLayouts();const d=$('sceneDevice').value,k=$('sceneKind').value,sc=CFG.sceneCoordinateLayout[d],bl=CFG.battleLayout[d],os=CFG.objectSizes[d];if(k==='status')return{hero:sc.statusHero,heroSizeKey:'statusHero'};if(k==='dungeonEntry')return{hero:sc.dungeonHero,enemy:sc.dungeonEnemy,heroSizeKey:'dungeonHero',enemySizeKey:'dungeonEnemy'};return{hero:bl.hero,enemy:bl.enemy,heroSizeKey:'battleHero',enemySizeKey:'battleEnemy'}}
+function sceneCfg(){ensureNativeLayouts();const d=$('sceneDevice').value,k=$('sceneKind').value,sc=CFG.sceneCoordinateLayout[d],bl=CFG.battleLayout[d],os=CFG.objectSizes[d];if(k==='status')return{hero:sc.statusHero,heroSizeKey:'statusHero'};if(k==='dungeonEntry')return{hero:sc.dungeonHero,enemy:sc.dungeonEnemy,heroSizeKey:'dungeonHero',enemySizeKey:'dungeonEnemy'};return{hero:bl.hero,enemy:bl.enemy,heroSizeKey:'battleHero',enemySizeKey:'battleEnemy'}} function syncSceneSizeControls(){ensureNativeLayouts();const d=$('sceneDevice').value,c=sceneCfg(),kind=$('sceneKind').value,mid=$('sceneMonster').value,os=CFG.objectSizes[d]||{};const hv=Number(os[c.heroSizeKey])||0;if($('sceneHeroSize')){$('sceneHeroSize').value=hv;$('sceneHeroSize').disabled=!c.heroSizeKey}let ev=0;if(c.enemySizeKey){const base=Number(os[c.enemySizeKey])||0;ev=(kind==='dungeonEntry'&&mid)?monsterIdleSize(d,mid,base):base}if($('sceneEnemySize')){$('sceneEnemySize').value=ev;$('sceneEnemySize').disabled=!c.enemySizeKey}const ho=$('sceneHeroSizeOut');if(ho)ho.textContent=hv?hv+' px':'—';const eo=$('sceneEnemySizeOut');if(eo)eo.textContent=ev?ev+' px':'—'}
 function fitSceneCanvas(w,h){const shell=$('sceneEditorShell'),stage=$('sceneEditorStage');stage.style.width=w+'px';stage.style.height=h+'px';const scale=Math.min(1,Math.max(0.05,shell.clientWidth/w));stage.style.transform=`scale(${scale})`;shell.style.height=Math.ceil(h*scale)+'px';return scale}
-function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px"><span class="scene-foot-point" style="left:${p.x}%;top:${p.y}%"></span>`}
-function syncSceneBackgroundTransform(d){
-  const tf=editorBgTransform(d);
-  document.querySelectorAll('#sceneEditorStage .scene-bg').forEach(bg=>{
-    bg.style.transformOrigin='center';
-    bg.style.transform=tf;
-  });
-}
-function renderSceneEditor(){if(!$('sceneEditorStage'))return;ensureNativeLayouts();const c=sceneCfg(),kind=$('sceneKind').value,d=$('sceneDevice').value,[w,h]=sceneDims(),stage=$('sceneEditorStage'),wd=sceneWeekData(),bg='../'+(wd?.background||'images/backgrounds/week01_grassland.png'),os=CFG.objectSizes[d],hs=os[c.heroSizeKey],baseEs=c.enemySizeKey?os[c.enemySizeKey]:0,mid=$('sceneMonster').value,es=(c.enemySizeKey&&kind==='dungeonEntry'&&mid)?monsterIdleSize(d,mid,baseEs):baseEs,hp=shiftForGround(c.hero,d,activeEditorWeek(),'hero'),ep=c.enemy?shiftForGround(c.enemy,d,activeEditorWeek(),'enemy'):null;fitSceneCanvas(w,h);
-  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid"><div class="entry-card"><img class="scene-bg" src="${bg}"><div class="entry-local" data-local="hero">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}</div></div><div class="entry-vs">VS</div><div class="entry-card"><img class="scene-bg" src="${bg}"><div class="entry-local" data-local="enemy">${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy')}</div></div></div>${groundLineHtml(d)}<div class="scene-scale-label">${w}×${h}</div>`;
-  else stage.innerHTML=`<img class="scene-bg" src="${bg}">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${kind==='dungeon'?unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy'):''}${groundLineHtml(d)}<div class="scene-scale-label">${w}×${h}</div>`;
-  syncSceneBackgroundTransform(d);
-  renderGroundControl();$('sceneHeroSize').value=hs;$('sceneHeroSizeOut').textContent=hs+'px';$('sceneHeroXY').textContent=`英雄 X ${Number(c.hero.x).toFixed(1)}% / Y ${Number(c.hero.y).toFixed(1)}%`;
-  const showEnemy=kind!=='status';$('sceneEnemySizeBox').style.display=showEnemy?'block':'none';$('sceneEnemyXY').style.display=showEnemy?'inline-block':'none';if(showEnemy){$('sceneEnemySize').value=es;$('sceneEnemySizeOut').textContent=(kind==='dungeonEntry'&&mid?mid+' · ':'')+es+'px';$('sceneEnemyXY').textContent=`怪物 X ${Number(c.enemy.x).toFixed(1)}% / Y ${Number(c.enemy.y).toFixed(1)}%`}
+function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px">`}
+function renderSceneEditor(){if(!$('sceneEditorStage'))return;ensureNativeLayouts();syncSceneSizeControls();const c=sceneCfg(),kind=$('sceneKind').value,d=$('sceneDevice').value,[w,h]=sceneDims(),stage=$('sceneEditorStage'),wd=sceneWeekData(),bg='../'+(wd?.background||'images/backgrounds/week01_grassland.png'),os=CFG.objectSizes[d],hs=os[c.heroSizeKey],baseEs=c.enemySizeKey?os[c.enemySizeKey]:0,mid=$('sceneMonster').value,es=(c.enemySizeKey&&kind==='dungeonEntry'&&mid)?monsterIdleSize(d,mid,baseEs):baseEs,hp=groundShift(c.hero,d,activeEditorWeek(),'hero'),ep=c.enemy?groundShift(c.enemy,d,activeEditorWeek(),'enemy'):null;fitSceneCanvas(w,h);
+  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid"><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-local" data-local="hero">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}</div></div><div class="entry-vs">VS</div><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-local" data-local="enemy">${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy')}</div></div></div>${groundLineHtml(d)}<div class="scene-scale-label">${w}×${h}</div>`;
+  else stage.innerHTML=`<img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${kind==='dungeon'?unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy'):''}${groundLineHtml(d)}<div class="scene-scale-label">${w}×${h}</div>`;
+  renderGroundControl();$('sceneHeroSize').value=hs;$('sceneHeroSizeOut').textContent=hs+'px';$('sceneHeroXY').textContent=`英雄 X ${Number(hp.x).toFixed(1)}% / Y ${Number(hp.y).toFixed(1)}%`;
+  const showEnemy=kind!=='status';$('sceneEnemySizeBox').style.display=showEnemy?'block':'none';$('sceneEnemyXY').style.display=showEnemy?'inline-block':'none';if(showEnemy){$('sceneEnemySize').value=es;$('sceneEnemySizeOut').textContent=(kind==='dungeonEntry'&&mid?mid+' · ':'')+es+'px';$('sceneEnemyXY').textContent=`怪物 X ${Number(ep.x).toFixed(1)}% / Y ${Number(ep.y).toFixed(1)}%`}
   bindSceneUnit($('sceneEditorHero'),'hero');if(showEnemy)bindSceneUnit($('sceneEditorEnemy'),'enemy');
 }
-function bindSceneUnit(el,key){if(!el)return;el.onpointerdown=e=>{e.preventDefault();const c=sceneCfg()[key],kind=$('sceneKind').value,zone=kind==='dungeonEntry'?el.closest('.entry-local'):$('sceneEditorStage'),r=zone.getBoundingClientRect();el.setPointerCapture(e.pointerId);el.style.cursor='grabbing';const move=ev=>{c.x=+Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)).toFixed(1);const visualY=+Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)).toFixed(1);c.y=+Math.max(0,Math.min(100,unshiftGroundY(visualY,$('sceneDevice').value,activeEditorWeek(),key))).toFixed(1);mark(`layout:${$('sceneDevice').value}:${$('sceneKind').value}:${key}`);el.style.left=c.x+'%';el.style.top=visualY+'%';const fp=el.nextElementSibling;if(fp?.classList.contains('scene-foot-point')){fp.style.left=c.x+'%';fp.style.top=visualY+'%'}const ro=$('sceneReadout');if(ro)ro.innerHTML=`<span>${key==='hero'?'勇者':'怪物'} X ${c.x}</span><span>Y ${c.y}</span>`;};el.onpointermove=move;const end=()=>{el.onpointermove=null;el.style.cursor='grab';renderSceneEditor()};el.onpointerup=end;el.onpointercancel=end}}
-function installSceneEditor(){ensureNativeLayouts();fillSceneWeeks();$('sceneKind').onchange=renderSceneEditor;$('sceneDevice').onchange=()=>{renderSceneEditor();renderStage();renderSkillPreview()};$('sceneWeek').onchange=()=>{fillSceneMonsters();const wd=sceneWeekData();if(wd?.background&&[...$('bg').options].some(o=>o.value===wd.background))$('bg').value=wd.background;renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneMonster').onchange=()=>{renderSceneEditor();renderStage();renderSkillPreview()};$('sceneGroundY').oninput=e=>{const d=$('sceneDevice').value,w=activeEditorWeek();setGroundY(d,w,+e.target.value);mark(`ground:${w}:${d}`);renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneGroundReset').onclick=()=>{const d=$('sceneDevice').value,w=activeEditorWeek();clearGroundY(d,w);mark(`ground:${w}:${d}`);renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneHeroSize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg();CFG.objectSizes[d][c.heroSizeKey]=+e.target.value;mark(`size:${d}:${c.heroSizeKey}`);renderSceneEditor()};$('sceneEnemySize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg(),kind=$('sceneKind').value,mid=$('sceneMonster').value;if(c.enemySizeKey){if(kind==='dungeonEntry'&&mid){setMonsterIdleSize(d,mid,+e.target.value);mark(`monsterIdleSize:${mid}:${d}`)}else{CFG.objectSizes[d][c.enemySizeKey]=+e.target.value;mark(`size:${d}:${c.enemySizeKey}`)}renderSceneEditor()}};addEventListener('resize',()=>renderSceneEditor());renderSceneEditor()}
-
-/* Minimal realtime bridge: does not alter the working scene editor renderer. */
-document.addEventListener('pointermove',e=>{
-  const t=e.target;
-  if(t?.id==='sceneEditorHero'||t?.id==='sceneEditorEnemy'){
-    if($('sceneKind')?.value==='dungeon' && $('sceneDevice')?.value===$('device')?.value)syncSkillPreviewFromDraft();
-  }
-},{passive:true});
-$('sceneHeroSize').addEventListener('input',()=>{
-  if($('sceneKind').value==='dungeon'&&$('sceneDevice').value===$('device').value)syncSkillPreviewFromDraft();
-});
-$('sceneEnemySize').addEventListener('input',()=>{
-  if($('sceneKind').value==='dungeon'&&$('sceneDevice').value===$('device').value)syncSkillPreviewFromDraft();
-});
+function bindSceneUnit(el,key){if(!el)return;el.onpointerdown=e=>{e.preventDefault();const c=sceneCfg()[key],kind=$('sceneKind').value,zone=kind==='dungeonEntry'?el.closest('.entry-local'):$('sceneEditorStage'),r=zone.getBoundingClientRect();el.setPointerCapture(e.pointerId);el.style.cursor='grabbing';const move=ev=>{c.x=+Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)).toFixed(1);const visualY=+Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)).toFixed(1);c.y=+Math.max(0,Math.min(100,groundUnshiftY(visualY,$('sceneDevice').value,activeEditorWeek(),key))).toFixed(1);mark(`layout:${$('sceneDevice').value}:${$('sceneKind').value}:${key}`);el.style.left=c.x+'%';el.style.top=visualY+'%';const ro=$('sceneReadout');if(ro)ro.innerHTML=`<span>${key==='hero'?'勇者':'怪物'} X ${c.x}</span><span>Y ${c.y}</span>`;};el.onpointermove=move;const end=()=>{el.onpointermove=null;el.style.cursor='grab';renderSceneEditor()};el.onpointerup=end;el.onpointercancel=end}}
+function installSceneEditor(){ensureNativeLayouts();fillSceneWeeks();$('sceneKind').onchange=()=>{syncSceneSizeControls();renderSceneEditor()};$('sceneDevice').onchange=()=>{syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneWeek').onchange=()=>{fillSceneMonsters();const wd=sceneWeekData();if(wd?.background&&[...$('bg').options].some(o=>o.value===wd.background))$('bg').value=wd.background;renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneMonster').onchange=()=>{syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};$('sceneGroundY').oninput=e=>{const d=$('sceneDevice').value,w=activeEditorWeek();setGroundY(d,w,+e.target.value);mark(`ground:${w}:${d}`);renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneGroundReset').onclick=()=>{const d=$('sceneDevice').value,w=activeEditorWeek();clearGroundY(d,w);mark(`ground:${w}:${d}`);renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneHeroSize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg();CFG.objectSizes[d][c.heroSizeKey]=+e.target.value;mark(`size:${d}:${c.heroSizeKey}`);syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};$('sceneEnemySize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg(),kind=$('sceneKind').value,mid=$('sceneMonster').value;if(kind==='dungeonEntry'&&mid){setMonsterIdleSize(d,mid,+e.target.value);mark(`monsterIdleSize:${mid}:${d}`)}else if(c.enemySizeKey){CFG.objectSizes[d][c.enemySizeKey]=+e.target.value;mark(`size:${d}:${c.enemySizeKey}`)}syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};addEventListener('resize',()=>renderSceneEditor());renderSceneEditor()}
 
 $('side').onchange=()=>{commitCurrent();renderSelectors()};$('heroActor').onchange=()=>{commitCurrent();loadMotion();loadAnchor();renderSkillPreview();renderTimeline()};$('monster').onchange=()=>{commitCurrent();loadSkill();loadMotion();loadAnchor()};$('skill').onchange=()=>{commitCurrent();loadSkill()};$('enabled').onchange=commitCurrent;$('actorAction').onchange=commitCurrent;for(const id of ['pathImg','pathMode','pathDuration','pathScale','pathDelay','pathFrom','pathVia','pathTo'])$(id).onchange=commitCurrent;$('addA').onclick=()=>{draft.selfFX.push(normalizeFx({anchor:'self',scaleMode:'self'}));renderFx();commitCurrent()};$('addB').onclick=()=>{draft.targetFX.push(normalizeFx({anchor:'target',scaleMode:'target'}));renderFx();commitCurrent()};$('addSummon').onclick=()=>{draft.summons.push({unitId:'',from:'air_high',via:'air_high',to:'summon_center',standPoint:'summon_center',path:'arc',scale:1,delay:0,duration:500,enter:'fade'});renderSummons();commitCurrent()};
-$('motionName').onchange=loadMotion;for(const id of ['spriteState','motion','from','via','to','returnTo','motionDuration'])$(id).onchange=commitMotion;for(const id of ['anchorW','anchorH','anchorY'])$(id).onchange=commitAnchor;$('device').onchange=()=>{renderStage();renderSkillPreview();renderTimeline()};$('bg').onchange=renderStage;$('bs').oninput=commitStage;$('lock').onclick=()=>{const d=ensureDevice();CFG.stage[d].bg.locked=!CFG.stage[d].bg.locked;mark('stage:'+d);renderStage()};
-$('saveAll').onclick=()=>{commitCurrent();localStorage.setItem('studyRPGPresentationDraftV1018',JSON.stringify({cfg:CFG,source:MAIN_SOURCE}));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已批次儲存全部變更到瀏覽器草稿。正式 GitHub index.html 沒有被修改。')};
-$('export').onclick=()=>{commitCurrent();if(!MAIN_SOURCE){alert('尚未載入正式 index.html，不能匯出。');return}try{if(!MAIN_SOURCE.includes('studyRPGMapGroundCoreV1019')||!MAIN_SOURCE.includes('studyRPGMapGroundLayoutV1019'))throw Error('你載入的是舊版正式 index.html。請先用這包附的新版根目錄 index.html。');const html=replaceConfigInIndex(MAIN_SOURCE,CFG);verifyExport(html,CFG);const u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1200);$('mainSourceStatus').textContent='✅ 匯出完成：已驗證所有 Editor 設定寫入新的 index.html。'}catch(err){alert('匯出失敗：'+err.message)}};
-$('import').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);if(/<html|<!doctype/i.test(txt)){MAIN_SOURCE=txt;hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(txt);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入你選擇的 index.html 工作副本。'}else{CFG=extractLegacyConfig(txt);$('mainSourceStatus').textContent='✅ 已匯入舊 data.js 設定；匯出時會寫入目前載入的 index.html。'}dirty.clear();ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();$('dirty').textContent='未儲存 0 項'}catch(err){alert(err.message)}};r.readAsText(f)};
-$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{MAIN_SOURCE=String(r.result);hydrateManifestFromIndex(MAIN_SOURCE);CFG=extractConfigFromIndex(MAIN_SOURCE);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入本機正式 index.html；只編輯工作副本。';ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(err){alert(err.message)}};r.readAsText(f)};
+$('motionName').onchange=loadMotion;for(const id of ['spriteState','motion','from','via','to','returnTo','motionDuration'])$(id).onchange=commitMotion;for(const id of ['anchorW','anchorH','anchorY'])$(id).onchange=commitAnchor;$('device').onchange=renderStage;$('bg').onchange=renderStage;$('bs').onchange=commitStage;$('lock').onclick=()=>{const d=ensureDevice();CFG.stage[d].bg.locked=!CFG.stage[d].bg.locked;mark('stage:'+d);renderStage()};
+$('saveAll').onclick=()=>{commitCurrent();localStorage.setItem('studyRPGPresentationDraftV1018',JSON.stringify({cfg:CFG,source:MAIN_SOURCE,savedAt:Date.now(),base:'current-index'}));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已批次儲存全部變更到瀏覽器草稿。正式 GitHub index.html 沒有被修改。')};
+$('export').onclick=()=>{commitCurrent();if(!MAIN_SOURCE){alert('尚未載入正式 index.html，不能匯出。');return}try{const html=replaceConfigInIndex(MAIN_SOURCE,CFG);verifyExportedIndex(html,CFG);const u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}catch(err){alert('匯出失敗：'+err.message)}};
+$('import').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);if(!/<!doctype\s+html|<html[\s>]/i.test(txt))throw Error('只接受完整 index.html，不再支援 JS 設定檔');const nextCfg=extractConfigFromIndex(txt);MAIN_SOURCE=txt;CFG=nextCfg;hydrateManifestFromIndex(MAIN_SOURCE);SOURCE_READY=true;localStorage.removeItem('studyRPGPresentationDraftV1018');$('mainSourceStatus').textContent='✅ 已載入完整 index.html 工作副本。';dirty.clear();ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();$('dirty').textContent='未儲存 0 項'}catch(err){alert('匯入失敗：'+err.message)}finally{e.target.value=''}};r.readAsText(f)};
+$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);if(!/<!doctype\s+html|<html[\s>]/i.test(txt))throw Error('只接受完整 index.html');const nextCfg=extractConfigFromIndex(txt);MAIN_SOURCE=txt;CFG=nextCfg;hydrateManifestFromIndex(MAIN_SOURCE);SOURCE_READY=true;localStorage.removeItem('studyRPGPresentationDraftV1018');$('mainSourceStatus').textContent='✅ 已載入本機完整 index.html；只編輯工作副本。';ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(err){alert('讀取失敗：'+err.message)}finally{e.target.value=''}};r.readAsText(f)};
 $('reloadMainIndex').onclick=async()=>{if(await loadMainIndex()){ensureNativeLayouts();fill();renderSceneEditor();renderSkillPreview();renderTimeline();}};
 (async function bootDirectIndexEditor(){
   await loadMainIndex();
-  const saved=localStorage.getItem('studyRPGPresentationDraftV1018');
-  // Only use a saved draft when the formal index could NOT be loaded.
-  // A stale draft must never replace the config just read from GitHub.
-  if(!SOURCE_READY && saved){try{const x=JSON.parse(saved);if(x&&x.cfg){CFG=x.cfg;if(x.source&&!MAIN_SOURCE)MAIN_SOURCE=x.source}else if(x&&typeof x==='object')CFG=x}catch(e){console.warn('草稿讀取失敗',e)}}
+  const saved = SOURCE_READY ? null : localStorage.getItem('studyRPGPresentationDraftV1018');
+  if(saved){try{const x=JSON.parse(saved);if(x&&x.cfg){CFG=x.cfg;if(x.source&&!MAIN_SOURCE)MAIN_SOURCE=x.source}else if(x&&typeof x==='object')CFG=x}catch(e){console.warn('草稿讀取失敗',e)}}
   if(!SOURCE_READY && !Object.keys(CFG||{}).length){
     try{const legacy=localStorage.getItem('studyRPGPresentationDraftV10174')||localStorage.getItem('studyRPGPresentationDraftV1016');if(legacy)CFG=JSON.parse(legacy)}catch(e){}
   }
@@ -376,7 +234,7 @@ const originalMark=mark;lastUndoSnapshot=deep(CFG);mark=function(key){const now=
 function undo(){if(!undoStack.length){toast('沒有可復原的變更');return}CFG=undoStack.pop();lastUndoSnapshot=deep(CFG);dirty.add('undo');$('dirty').textContent='未儲存 '+dirty.size+' 項';document.body.classList.add('dirty');selectedFx=null;refreshAll();toast('已復原上一個變更')}
 function deleteSelected(){if(!selectedFx){toast('先點 A/B 的「👁 位置」或預覽特效');return}const a=fxArr(selectedFx.kind);if(a&&a[selectedFx.index]){a.splice(selectedFx.index,1);selectedFx=null;commitCurrent();renderFx();renderSkillPreview();renderTimeline();toast('已刪除特效')}}
 $('undoBtn').onclick=undo;$('deleteSelectedBtn').onclick=deleteSelected;addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo()}else if(e.key==='Delete'&&selectedFx){e.preventDefault();deleteSelected()}});
-function pnt(name){const d=$('device').value||'desktop';ensureDevice();let p;if(name==='hero_home')p=CFG.battleLayout[d].hero;else if(name==='enemy_home')p=CFG.battleLayout[d].enemy;else if(name==='attack_mid')p=CFG.battleLayout[d].attackMid;else if(name==='attack_strike')p=CFG.battleLayout[d].attackStrike;else p=CFG.referencePoints[d]?.[name]||{x:50,y:50};return shiftForGround(p,d,activeEditorWeek(),name)}
+function pnt(name){const d=$('device').value||'desktop';ensureDevice();let p;if(name==='hero_home')p=CFG.battleLayout[d].hero;else if(name==='enemy_home')p=CFG.battleLayout[d].enemy;else if(name==='attack_mid')p=CFG.battleLayout[d].attackMid;else if(name==='attack_strike')p=CFG.battleLayout[d].attackStrike;else p=CFG.referencePoints[d]?.[name]||{x:50,y:50};return groundShift(p,d,activeEditorWeek(),name)}
 function sidePoints(){return $('side').value==='monster'?{self:'enemy_home',target:'hero_home'}:{self:'hero_home',target:'enemy_home'}}
 function skillHeroSrc(state='idle'){const key=$('heroActor')?.value||'novice',h=currentHeroInfo(),female=h.gender==='female'?'_female':'';return `../images/hero_${key}${female}_${state}.png`}
 function actorImage(state){if($('side').value==='player'){const idle=skillHeroSrc('idle');if(!state||state==='idle')return idle;return skillHeroSrc(state)}const id=$('monster').value||$('sceneMonster').value;if(id==='hero_mirror')return sceneHeroSrc();const st=state==='idle'?'idle':'battle';return `../images/monsters/${id}_${st}.png`}
