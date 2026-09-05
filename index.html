@@ -11258,9 +11258,31 @@ window.STUDYRPG_EDITOR_CONFIG={
       }
     }
   },
-  "heroes": {},
-  "monsters": {},
-  "playerSkills": {},
+  "heroes": {
+    "novice": {
+      "motionActions": {},
+      "effectAnchor": {
+        "width": 100,
+        "height": 100,
+        "y": 0
+      }
+    }
+  },
+  "monsters": {
+    "slime_water": {
+      "idleSize": {}
+    }
+  },
+  "playerSkills": {
+    "power_strike": {
+      "enabled": false,
+      "actorAction": "melee",
+      "selfFX": [],
+      "pathFX": null,
+      "targetFX": [],
+      "summons": []
+    }
+  },
   "monsterSkills": {},
   "sceneCoordinateLayout": {
     "desktop": {
@@ -11283,12 +11305,12 @@ window.STUDYRPG_EDITOR_CONFIG={
         "y": 66
       },
       "dungeonHero": {
-        "x": 50,
-        "y": 63
+        "x": 54,
+        "y": 67.8
       },
       "dungeonEnemy": {
-        "x": 50,
-        "y": 63
+        "x": 60.1,
+        "y": 67
       }
     },
     "mobile": {
@@ -11390,8 +11412,18 @@ window.STUDYRPG_EDITOR_CONFIG={
   },
   "mapGround": {
     "1": {
-      "desktop": {"dungeon": 85},
-      "mobile": {"dungeon": 84}
+      "desktop": {
+        "dungeon": 85
+      },
+      "mobile": {
+        "dungeon": 84,
+        "status": 88.5
+      },
+      "tablet": {
+        "status": 87.5,
+        "dungeonEntry": 86.5,
+        "dungeon": 85
+      }
     }
   }
 };
