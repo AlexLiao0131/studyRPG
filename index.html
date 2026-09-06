@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.94 EQUIPMENT FIX1</title>
+<title>小學勇者大冒險 V10.11.94 EQUIPMENT FIX3</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -393,20 +393,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .hero-scene .warrior-wrap{
   z-index:2;
 }
-/* V6.4：人物落地修正 */
-.hero-scene .warrior-wrap{
-  bottom:-28px !important;
-}
-
-/* 手機窄螢幕稍微往上，避免人物被裁掉 */
-@media(max-width:520px){
-  .hero-scene .warrior-wrap{
-    bottom:-20px !important;
-  }
-}
-
-
-.hero-scene .warrior-wrap{bottom:-60px !important;}
+/* V6.4 舊落地座標 CLEANED：狀態勇者位置由 Unified Coordinate Runtime 控制。 */
 .battle-overlay{position:fixed;inset:0;z-index:12000;background:rgba(4,8,14,.94);display:flex;align-items:center;justify-content:center;padding:12px}
 .battle-window{width:min(900px,100%);max-height:96vh;overflow:auto;background:#10151c;border:3px solid #59616d;border-radius:14px;padding:12px}
 .battle-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
@@ -481,23 +468,13 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 @media(max-width:600px){.calendar-grid,.world-preview{grid-template-columns:1fr}.weekday-grid{grid-template-columns:repeat(4,1fr)}}
 
 
-/* V9.2：勇者座標修正，避免角色被場景底部裁切 */
-.hero-scene .warrior-wrap{
-  bottom:0px !important;
-}
-@media(max-width:520px){
-  .hero-scene .warrior-wrap{
-    bottom:0px !important;
-  }
-}
-
+/* V9.2 舊勇者座標 CLEANED：不再寫死 bottom。 */
 
 .timer-bonus-note{margin-top:6px;padding:7px 9px;border-radius:8px;background:#152238;border:1px solid #2f81f7;font-size:12px}
 
 
-/* V10.11.24：狀態畫面勇者 Y 軸修正 */
+/* V10.11.24 CLEANED：只保留狀態勇者待機視覺，不再固定 Y 座標 */
 .hero-scene .warrior-wrap{
-  bottom:30px !important;
   filter:none !important;
   animation:warriorBobV94 .58s steps(2,end) infinite !important;
 }
@@ -505,13 +482,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   0%,100%{transform:translateX(-50%) translateY(0);}
   50%{transform:translateX(-50%) translateY(2px);}
 }
-@media(max-width:520px){
-  .hero-scene .warrior-wrap{
-    bottom:24px !important;
-  }
-}
-
-
 /* =========================
    V10 回合制戰鬥系統
    ========================= */
@@ -593,23 +563,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .battle-target-hint{text-align:center;font-size:12px;opacity:.8;margin-top:3px}
 
 
-/* V10.11.24 FINAL：狀態畫面勇者垂直位置，放最後避免被舊版 CSS 蓋掉 */
-.hero-scene .warrior-wrap{bottom:30px !important;}
-@media(max-width:520px){
-  .hero-scene .warrior-wrap{bottom:24px !important;}
-}
-
-
-/* V10.11.25 FINAL：副本入口勇者 X 軸水平置中 */
-#dungeonHeroIdle{
-  display:block !important;
-  position:relative !important;
-  left:50% !important;
-  right:auto !important;
-  margin-left:0 !important;
-  margin-right:0 !important;
-  transform:translateX(-50%) !important;
-}
+/* V10.11.24/25 CLEANED：狀態與副本入口座標已交由 V10.17.11 Unified Coordinate Runtime。 */
 
 
 /* V10.11.26 怪物素材：依 monster_id 直接讀取 CSV 對照表命名 */
@@ -728,24 +682,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .home-scene-background{filter:none}
 
 
-/* V10.11.32 FINAL：副本入口角色/怪物 Y 軸 + Boss 戰鬥尺寸/落地 */
-
-/* 副本入口：角色與怪物往下，腳底/底部靠近草地地面 */
-#dungeonHeroIdle{
-  top:auto !important;
-  bottom:10px !important;
-  left:50% !important;
-  transform:translateX(-50%) !important;
-}
-#dungeonEnemyIdle{
-  top:auto !important;
-  bottom:0px !important;
-  left:50% !important;
-  right:auto !important;
-  transform:translateX(-50%) !important;
-}
-
-/* 副本入口 Boss 再放大 */
+/* V10.11.32 CLEANED：移除副本／戰鬥固定 XY；只保留 Boss 素材尺寸。 */
 #dungeonEnemyIdle.boss-dungeon-sprite{
   width:310px !important;
   height:270px !important;
@@ -753,11 +690,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   max-height:none !important;
   object-fit:contain !important;
   object-position:center bottom !important;
-}
-
-/* 正式戰鬥 Boss：更大，並貼近戰鬥地面 */
-.battle-enemy:has(.boss-monster-sprite){
-  bottom:28px !important;
 }
 .boss-monster-sprite{
   width:450px !important;
@@ -767,81 +699,24 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   object-fit:contain !important;
   object-position:center bottom !important;
 }
-
 @media(max-width:600px){
-  #dungeonHeroIdle{bottom:6px !important;}
-  #dungeonEnemyIdle{bottom:0px !important;}
-  #dungeonEnemyIdle.boss-dungeon-sprite{
-    width:225px !important;
-    height:200px !important;
-  }
-  .battle-enemy:has(.boss-monster-sprite){bottom:20px !important;}
-  .boss-monster-sprite{
-    width:330px !important;
-    height:330px !important;
-  }
+  #dungeonEnemyIdle.boss-dungeon-sprite{width:225px !important;height:200px !important;}
+  .boss-monster-sprite{width:330px !important;height:330px !important;}
 }
-
 
 /* V10.11.33：副本入口往下落地；Boss 戰鬥 450x450；怪物動畫 idle→battle→idle */
 
-/* V10.11.34 FINAL：依實際畫面重新校正副本入口與正式戰鬥座標 */
-
-/* 副本入口：恢復 absolute，bottom 才會真的以角色框底部為基準 */
-#dungeonHeroIdle{
-  position:absolute !important;
-  left:50% !important;
-  right:auto !important;
-  top:auto !important;
-  bottom:-24px !important;
-  transform:translateX(-50%) !important;
-}
-#dungeonEnemyIdle{
-  position:absolute !important;
-  left:50% !important;
-  right:auto !important;
-  top:auto !important;
-  bottom:-34px !important;
-  transform:translateX(-50%) !important;
-}
-
-/* 副本入口 Boss 維持放大，並貼近地面 */
+/* V10.11.34 CLEANED：舊實機 XY 校正已移除；Boss 尺寸沿用，座標由 Tool 統一控制。 */
 #dungeonEnemyIdle.boss-dungeon-sprite{
   width:310px !important;
   height:270px !important;
   object-position:center bottom !important;
-}
-
-/* 正式戰鬥：勇者往右、稍微往下 */
-.battle-hero{
-  left:13% !important;
-  bottom:38px !important;
-}
-
-/* 正式戰鬥 Boss：往左避免 450px 圖被右側裁掉，Y 軸再往上 */
-.battle-enemy:has(.boss-monster-sprite){
-  right:14% !important;
-  bottom:42px !important;
 }
 .boss-monster-sprite{
   width:450px !important;
   height:450px !important;
   object-position:center bottom !important;
 }
-
-@media(max-width:600px){
-  #dungeonHeroIdle{bottom:-18px !important;}
-  #dungeonEnemyIdle{bottom:-26px !important;}
-  .battle-hero{
-    left:7% !important;
-    bottom:30px !important;
-  }
-  .battle-enemy:has(.boss-monster-sprite){
-    right:8% !important;
-    bottom:30px !important;
-  }
-}
-
 
 /* V10.11.35 FINAL：副本入口角色被裁切修正
    原因：dungeon-idle-stage 原本 overflow:hidden，
@@ -863,13 +738,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   height:210px !important;
 }
 
-/* 重新落地：下半身完整顯示 */
-#dungeonHeroIdle{
-  bottom:-10px !important;
-}
-#dungeonEnemyIdle{
-  bottom:-14px !important;
-}
+/* CLEANED：角色落地座標改由 Unified Coordinate Runtime 控制。 */
 
 /* Boss 副本入口維持目前大小 */
 #dungeonEnemyIdle.boss-dungeon-sprite{
@@ -879,45 +748,16 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 @media(max-width:600px){
   .dungeon-idle-stage{height:165px !important;}
-  #dungeonHeroIdle{bottom:-8px !important;}
-  #dungeonEnemyIdle{bottom:-10px !important;}
 }
 
 
-/* V10.11.38：所有普通怪物統一 Y 軸；大史萊姆 Boss 不動 */
-
-/* 正式戰鬥：所有「非 Boss」怪物固定同一高度。
-   原本普通史萊姆太低，現在整體往上。 */
-.battle-enemy:not(:has(.boss-monster-sprite)){
-  bottom:54px !important;
-}
-
-/* 清掉普通怪物圖片可能殘留的個別上下位移，全部以容器 bottom 為準 */
+/* V10.11.38 CLEANED：普通怪物固定 Y 已移除；只清除圖片自身殘留位移。 */
 .battle-enemy:not(:has(.boss-monster-sprite)) .monster-battle-sprite{
   top:auto !important;
   bottom:auto !important;
   margin-top:0 !important;
   margin-bottom:0 !important;
 }
-
-/* 副本入口的普通怪物也統一同一高度 */
-#dungeonEnemyIdle:not(.boss-dungeon-sprite){
-  top:auto !important;
-  bottom:28px !important;
-}
-
-/* 大史萊姆的 .boss-monster-sprite / .boss-dungeon-sprite
-   不在以上 selector 內，所以沿用原本 Boss 專用 XY 與 450x450。 */
-
-@media(max-width:600px){
-  .battle-enemy:not(:has(.boss-monster-sprite)){
-    bottom:42px !important;
-  }
-  #dungeonEnemyIdle:not(.boss-dungeon-sprite){
-    bottom:20px !important;
-  }
-}
-
 
 /* V10.11.39：第二週哥布林尺寸校正 */
 
@@ -942,11 +782,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   object-position:center bottom !important;
 }
 
-/* 哥布林王：強制跟大史萊姆王使用完全相同的 Boss 尺寸與 Y 軸 */
-.battle-enemy:has(.monster-id-goblin_king){
-  right:14% !important;
-  bottom:42px !important;
-}
+/* 哥布林王：只保留 Boss 尺寸；容器 XY 由 Tool 控制。 */
 .monster-id-goblin_king{
   width:450px !important;
   height:450px !important;
@@ -960,7 +796,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 #dungeonEnemyIdle.monster-id-goblin_king{
   width:310px !important;
   height:270px !important;
-  bottom:-14px !important;
   max-width:none !important;
   max-height:none !important;
   object-fit:contain !important;
@@ -978,10 +813,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
     height:160px !important;
   }
 
-  .battle-enemy:has(.monster-id-goblin_king){
-    right:8% !important;
-    bottom:30px !important;
-  }
   .monster-id-goblin_king{
     width:330px !important;
     height:330px !important;
@@ -990,20 +821,14 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   #dungeonEnemyIdle.monster-id-goblin_king{
     width:225px !important;
     height:200px !important;
-    bottom:-10px !important;
   }
 }
 
 
 /* V10.11.40：戰鬥場景顯示 Boss + 最多2隻召喚物 */
 .battle-enemy{
-  right:3% !important;
-  bottom:0 !important;
-  width:58% !important;
-  height:100% !important;
   display:block !important;
   pointer-events:none;
-  transform:none;
 }
 .battle-enemy-unit-sprite,
 .battle-enemy-unit-glyph{
@@ -1015,11 +840,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 /* 主體怪物 / Boss */
-.battle-enemy .enemy-unit-0{
-  right:0 !important;
-  bottom:42px !important;
-  z-index:2;
-}
+.battle-enemy .enemy-unit-0{z-index:2;}
 
 /* 第一、第二隻召喚物 */
 .battle-enemy .enemy-unit-1{
@@ -1053,13 +874,9 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .battle-enemy .monster-id-goblin_king.enemy-unit-0{
   width:450px !important;
   height:450px !important;
-  right:0 !important;
-  bottom:42px !important;
 }
 
 @media(max-width:600px){
-  .battle-enemy{right:1% !important;width:62% !important;}
-  .battle-enemy .enemy-unit-0{bottom:30px !important;}
   .battle-enemy .enemy-unit-1{
     right:50% !important;
     bottom:42px !important;
@@ -1079,7 +896,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .battle-enemy .monster-id-goblin_king.enemy-unit-0{
     width:330px !important;
     height:330px !important;
-    bottom:30px !important;
   }
 }
 
@@ -1103,11 +919,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   max-height:none !important;
 }
 
-/* 主怪：普通怪與 Boss 圖片本身都不再額外疊 Y，交給既有容器座標 */
-.battle-enemy .battle-enemy-unit-sprite.enemy-unit-0{
-  right:0 !important;
-  bottom:0 !important;
-}
+/* 主怪：主體圖片不再帶舊 right/bottom，正式站位由 Unified Coordinate Runtime 控制。 */
 
 /* 哥布林王維持大史萊姆王尺寸 */
 .battle-enemy .monster-id-goblin_king{
@@ -1121,7 +933,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 #dungeonEnemyIdle.monster-id-goblin_king{
   width:310px !important;
   height:270px !important;
-  bottom:-14px !important;
 }
 
 /* 所有召喚怪共用同一圖層與同一套 XY。
@@ -1287,6 +1098,24 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 </style>
 
+
+<style id="studyRPGBackgroundScrollFix2">
+/* FIX2：週背景照常切換，但恢復無縫橫向捲動。外層保留給 Tool 的背景 transform，內層 track 單獨動畫，兩者互不干涉。 */
+.scene-background{overflow:hidden !important;}
+.scene-background-track{
+  position:absolute;inset:0 auto 0 0;width:200%;height:100%;
+  display:flex;will-change:transform;
+  animation:studyRPGSceneScroll 18s linear infinite;
+}
+.scene-background-track>img{
+  flex:0 0 50%;width:50%;height:100%;max-width:none;
+  object-fit:cover;object-position:center bottom;
+  pointer-events:none;user-select:none;-webkit-user-drag:none;
+  image-rendering:pixelated;
+}
+@keyframes studyRPGSceneScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.scene-background-track{animation:none !important}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1430,7 +1259,8 @@ function sceneBackgroundSource(scene='status',dateStr=today()){
   return currentSceneBackground(dateStr);
 }
 function sceneBackgroundHTML(extraClass='',scene='status'){
-  return `<img class="scene-background ${extraClass}" src="${sceneBackgroundSource(scene,today())}" alt="">`;
+  const src=sceneBackgroundSource(scene,today());
+  return `<div class="scene-background ${extraClass}" aria-hidden="true"><div class="scene-background-track"><img src="${src}" alt=""><img src="${src}" alt=""></div></div>`;
 }
 
 
@@ -11524,7 +11354,7 @@ function ground(d=dev(),w=week(),scene='dungeon'){
   }
   return null;
 }
-function point(p,d=dev(),w=week(),name='',scene){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};const g=ground(d,w,scene||sceneForName(name));return{x,y:g==null?y:Math.max(0,Math.min(100,y+(g-BASE[d])))}}
+function point(p,d=dev(),w=week(),name='',scene){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;/* FIX2：Tool 匯出的百分比座標就是最終座標。舊 mapGround 只保留資料查詢，不再二次改寫 Y，避免平板/手機上傳後跑位。 */return{x,y}}
 window.studyRPGGroundDeviceV10176=dev;window.studyRPGGroundWeekV10176=week;window.studyRPGGroundSceneForNameV101712=sceneForName;window.studyRPGGroundValueV10176=ground;window.studyRPGGroundPointV10176=point;
 })();
 </script>
@@ -11688,6 +11518,15 @@ const oldSummon=window.summonLiveUnit;if(typeof oldSummon==='function'){window.s
 function normalizeAll(s){if(!s)return;s.presentation=Object.assign({enabled:false,actorAction:'melee',selfFX:[],pathFX:null,targetFX:[],summons:[]},s.presentation||{});}
 try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL_LIBRARY||{}).forEach(normalizeAll)}catch(e){}try{Object.values(MONSTER_SKILL_DATABASE||{}).forEach(normalizeAll)}catch(e){}
 })();
+</script>
+
+<script id="studyRPGCoordinateCleanupFix3">
+/* FIX3 座標清掃標記：
+   - 主畫面／副本入口／正式戰鬥的固定 XY 舊 CSS 已清除。
+   - 召喚物 enemy-unit-1/2/3 的編隊座標保留。
+   - 唯一正式站位來源：STUDYRPG_EDITOR_CONFIG -> V10.17.11 Unified Coordinate Runtime。
+*/
+window.STUDYRPG_COORDINATE_CLEANUP_FIX3=true;
 </script>
 \n<script id="studyRPGUnifiedCoordinateRuntimeV10179">
 /* V10.17.11 唯一座標 runtime
