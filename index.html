@@ -1106,6 +1106,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   position:absolute;inset:0 auto 0 0;width:200%;height:100%;
   display:flex;will-change:transform;
   animation:studyRPGSceneScroll 18s linear infinite;
+  -webkit-animation:studyRPGSceneScroll 18s linear infinite;
 }
 .scene-background-track>img{
   flex:0 0 50%;width:50%;height:100%;max-width:none;
@@ -1113,13 +1114,13 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   pointer-events:none;user-select:none;-webkit-user-drag:none;
   image-rendering:pixelated;
 }
-@keyframes studyRPGSceneScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media (prefers-reduced-motion:reduce){.scene-background-track{animation:none !important}}
+@keyframes studyRPGSceneScroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+@-webkit-keyframes studyRPGSceneScroll{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(-50%,0,0)}}
 </style>
 </head>
 <body>
 <div class="app">
-<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT FIX1</h1>
+<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT FIX4</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
