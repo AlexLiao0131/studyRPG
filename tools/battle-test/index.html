@@ -29,13 +29,13 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 </style>
 </head>
 <body>
-<header><h1>⚔️ StudyRPG Battle Test Lab</h1><div class="sub">直接讀 GitHub 根目錄 index.html｜週分類｜英雄↔怪物｜Buff｜詞綴｜Trigger｜即時 DPS Meter｜批次戰鬥</div></header>
+<header><h1>⚔️ StudyRPG Battle Test Lab</h1><div class="sub">V10.19 對齊版｜正式職業技能｜正式週表｜怪物 AI｜21週回顧刷裝池｜Buff｜詞綴｜Trigger｜即時統計</div></header>
 <main>
 <div class="layout">
 <section>
 <div class="card">
 <h2>正式主程式來源</h2>
-<div id="source" class="status">尚未讀取</div>
+<div id="source" class="status">尚未讀取</div><div id="dbValidation" class="muted" style="margin-top:7px"></div>
 <div style="height:8px"></div>
 <button id="reload" class="primary">↻ 重新讀取 GitHub index.html</button>
 <label>或手動載入 index.html</label><input id="file" type="file" accept=".html,text/html">
@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 <div class="card">
 <h2>本週分類</h2>
 <div class="row">
-<div><label>週數</label><select id="week"></select></div>
+<div><label>週數／回顧週</label><select id="week"></select></div>
 <div><label>英雄職業</label><select id="job"></select></div>
 </div>
 <label>本週怪物</label><select id="monster"></select>
@@ -82,10 +82,15 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 <div class="row"><div><label>怪物 ATK</label><input id="mAtk" type="number" value="90"></div><div><label>怪物 MATK</label><input id="mMatk" type="number" value="70"></div></div>
 <div class="row"><div><label>怪物 DEF</label><input id="mDef" type="number" value="45"></div><div><label>怪物 MDEF</label><input id="mMdef" type="number" value="40"></div></div>
 <div class="row"><div><label>英雄對應抗性 %</label><input id="hRes" type="number" value="0"></div><div><label>怪物對應抗性 %</label><input id="mRes" type="number" value="0"></div></div>
+<div class="row"><div><label>英雄 HP</label><input id="hHp" type="number" value="1000"></div><div><label>怪物 HP</label><input id="mHp" type="number" value="1000"></div></div>
+<div class="row"><div><label>英雄暴擊 %</label><input id="hCrit" type="number" value="10"></div><div><label>怪物暴擊 %</label><input id="mCrit" type="number" value="5"></div></div>
+<div class="row"><div><label>英雄閃避 %</label><input id="hEvade" type="number" value="5"></div><div><label>怪物閃避 %</label><input id="mEvade" type="number" value="5"></div></div>
+<div class="row"><div><label>英雄格擋 %</label><input id="hBlock" type="number" value="5"></div><div><label>怪物格擋 %</label><input id="mBlock" type="number" value="5"></div></div>
 </div>
 
 <div class="card">
 <div class="row"><button id="single" class="primary">▶ 單項測試</button><button id="reset" class="red">重置統計</button></div>
+<div class="row" style="margin-top:8px"><button id="step">⏭ 單步</button><button id="pause">⏸ 暫停</button></div>
 <div style="height:8px"></div>
 <button id="batch" class="green">▶ 測試本週全部戰鬥</button>
 <div class="row3" style="margin-top:8px">
@@ -138,18 +143,38 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 
 <script>
 const RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/index.html';
-let mainText='', DB={}, state={mode:'hero',stats:{},log:[],elapsed:0};
+let mainText='', DB={}, state={
+  mode:'hero',stats:{},log:[],elapsed:0,paused:false,stop:false,
+  lastStep:null
+};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const num=(id,def=0)=>Number($(id).value||def);
+const num=(id,def=0)=>Number($(id)?.value||def);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+const HERO_JOBS=[
+  {id:'novice',label:'初心者',formal:''},
+  {id:'warrior',label:'戰士',formal:'戰士'},
+  {id:'mage',label:'法師',formal:'法師'},
+  {id:'priest',label:'牧師',formal:'牧師'},
+  {id:'hunter',label:'獵人',formal:'獵人'},
+  {id:'rogue',label:'盜賊',formal:'盜賊'},
+  {id:'paladin',label:'聖騎士',formal:'聖騎士'},
+  {id:'spellblade',label:'魔劍士',formal:'魔劍士'}
+];
+const JOB_DEFAULT_SCHOOL={
+  novice:'martial',warrior:'martial',mage:'arcane',priest:'holy',
+  hunter:'martial',rogue:'shadow',paladin:'holy',spellblade:'arcane'
+};
+const ELEMENTAL_TYPES=new Set(['fire','ice','water','lightning','wind','nature']);
 
 function balanced(text,start,open='{',close='}'){
   let depth=0,q=null,escp=false,line=false,block=false;
   for(let i=start;i<text.length;i++){
     const c=text[i],n=text[i+1];
-    if(line){if(c==='\\n')line=false;continue}
+    if(line){if(c==='\n')line=false;continue}
     if(block){if(c==='*'&&n==='/'){block=false;i++}continue}
-    if(q){if(escp){escp=false;continue}if(c==='\\\\'){escp=true;continue}if(c===q)q=null;continue}
+    if(q){if(escp){escp=false;continue}if(c==='\\'){escp=true;continue}if(c===q)q=null;continue}
     if(c==='/'&&n==='/'){line=true;i++;continue}
     if(c==='/'&&n==='*'){block=true;i++;continue}
     if(c==='"'||c==="'"||c==='`'){q=c;continue}
@@ -158,133 +183,226 @@ function balanced(text,start,open='{',close='}'){
   }
   return null;
 }
-function findObject(name){
+function literal(name,want='object'){
   const pats=[`const ${name}=`,`let ${name}=`,`var ${name}=`,`window.${name}=`];
   for(const p of pats){
-    let i=mainText.indexOf(p); if(i<0)continue;
-    let s=mainText.indexOf('{',i+p.length); if(s<0)continue;
-    const z=balanced(mainText,s); if(!z)continue;
+    const i=mainText.indexOf(p); if(i<0)continue;
+    const open=want==='array'?'[':'{',close=want==='array'?']':'}';
+    const s=mainText.indexOf(open,i+p.length); if(s<0)continue;
+    const z=balanced(mainText,s,open,close); if(!z)continue;
     try{return Function('"use strict";return ('+z+')')()}catch(e){}
   }
   return null;
 }
-function findArray(name){
-  const pats=[`const ${name}=`,`let ${name}=`,`var ${name}=`,`window.${name}=`];
-  for(const p of pats){
-    let i=mainText.indexOf(p); if(i<0)continue;
-    let s=mainText.indexOf('[',i+p.length); if(s<0)continue;
-    let z=balanced(mainText,s,'[',']'); if(!z)continue;
-    try{return Function('"use strict";return ('+z+')')()}catch(e){}
-  }
-  return null;
-}
+const findObject=n=>literal(n,'object');
+const findArray=n=>literal(n,'array');
+function arr(v){return Array.isArray(v)?v:Object.values(v||{}).filter(x=>x&&typeof x==='object')}
+
 function parseDB(){
-  DB.beginner=findArray('BEGINNER_SKILLS')||findObject('BEGINNER_SKILLS')||{};
-  DB.jobs=findObject('JOB_SKILL_LIBRARY')||{};
-  DB.jobRules=findObject('JOB_RULES')||{};
+  DB.beginner=findArray('BEGINNER_SKILLS')||[];
+  DB.jobLibrary=findObject('JOB_SKILL_LIBRARY')||{};
+  DB.formal=findObject('FORMAL_CLASS_SKILLS')||{};
+  DB.jobRules=findArray('JOB_RULES')||findObject('JOB_RULES')||[];
   DB.monsters=findObject('MONSTER_DATABASE')||{};
   DB.monsterSkills=findObject('MONSTER_SKILL_DATABASE')||{};
-  DB.weekly=findObject('WEEKLY_MAP_DATABASE')||{};
+  DB.monsterAI=findObject('MONSTER_AI_DATABASE')||{};
+  DB.weekly=findArray('WEEKLY_MAP_DATABASE')||[];
   DB.affixes=findObject('EQUIPMENT_AFFIX_DATABASE')||findObject('AFFIXES')||{};
-  DB.statusTypes=findObject('STATUS_TYPE_DATABASE')||{};
-  DB.effects=findObject('EFFECT_DATABASE')||{};
+  DB.school=findObject('SCHOOL_DATABASE')||{};
+  DB.damageTypes=findObject('DAMAGE_TYPE_DATABASE')||{};
+  DB.statusCategories=findObject('STATUS_CATEGORY_DATABASE')||{};
+  DB.effectTypes=findObject('EFFECT_TYPE_DATABASE')||{};
+  DB.triggers=findObject('TRIGGER_DATABASE')||{};
   buildControls();
 }
-function arr(v){return Array.isArray(v)?v:Object.values(v||{}).filter(x=>x&&typeof x==='object')}
-function skillById(id){for(const s of allHeroSkills())if(s.id===id)return s;return null}
-function allHeroSkills(){return [...arr(DB.beginner),...Object.values(DB.jobs||{}).flatMap(arr)]}
-function jobSkills(job){
-  const b=arr(DB.beginner);
-  const direct=arr(DB.jobs?.[job]);
-  const rule=DB.jobRules?.[job];
-  if(direct.length)return [...b,...direct];
-  if(Array.isArray(rule))return [...b,...rule.map(skillById).filter(Boolean)];
-  if(rule&&Array.isArray(rule.skills))return [...b,...rule.skills.map(skillById).filter(Boolean)];
-  return b;
+function validationRows(){
+  return [
+    ['WEEKLY_MAP_DATABASE',Array.isArray(DB.weekly)&&DB.weekly.length>=20,`${DB.weekly.length||0} 週`],
+    ['FORMAL_CLASS_SKILLS',Object.keys(DB.formal||{}).length>=7,`${Object.keys(DB.formal||{}).length} 職`],
+    ['MONSTER_DATABASE',Object.keys(DB.monsters||{}).length>0,`${Object.keys(DB.monsters||{}).length} 隻`],
+    ['MONSTER_SKILL_DATABASE',Object.keys(DB.monsterSkills||{}).length>0,`${Object.keys(DB.monsterSkills||{}).length} 招`],
+    ['MONSTER_AI_DATABASE',Object.keys(DB.monsterAI||{}).length>0,`${Object.keys(DB.monsterAI||{}).length} 組 AI`],
+    ['EQUIPMENT_AFFIX_DATABASE',Object.keys(DB.affixes||{}).length>0,`${Object.keys(DB.affixes||{}).length} 詞綴`],
+    ['V10.19 School',Object.keys(DB.school||{}).length>0,`${Object.keys(DB.school||{}).length}`],
+    ['V10.19 Damage Type',Object.keys(DB.damageTypes||{}).length>0,`${Object.keys(DB.damageTypes||{}).length}`],
+    ['V10.19 Trigger',Object.keys(DB.triggers||{}).length>0,`${Object.keys(DB.triggers||{}).length}`]
+  ];
 }
+function renderValidation(){
+  const rows=validationRows();
+  $('dbValidation').innerHTML=rows.map(([n,ok,meta])=>`<span class="pill ${ok?'good':'badtext'}">${ok?'✅':'❌'} ${esc(n)}｜${esc(meta)}</span>`).join(' ');
+  const critical=rows.slice(0,5).filter(x=>!x[1]);
+  $('batch').disabled=critical.length>0;
+  return critical;
+}
+function skillById(id){return DB.jobLibrary?.[id]||arr(DB.beginner).find(s=>s.id===id)||null}
+
+function normalizeLegacySkill(skill,jobId='novice'){
+  if(!skill)return null;
+  const s=JSON.parse(JSON.stringify(skill));
+  s._raw=skill;
+  if(Array.isArray(s.effects)&&s.effects.length){
+    s.school=s.school||JOB_DEFAULT_SCHOOL[jobId]||'martial';
+    s.actionType=s.actionType||inferActionType(s);
+    return s;
+  }
+  const t=String(s.type||s.kind||'').toLowerCase();
+  const effects=[];
+  let school=s.school||JOB_DEFAULT_SCHOOL[jobId]||'martial';
+  let actionType=inferActionType(s);
+
+  const damageTypes=new Set(['physical','fire','ice','water','lightning','wind','nature','poison','arcane','holy','shadow']);
+  if(damageTypes.has(t)){
+    const dt=t;
+    school=dt==='physical'?(JOB_DEFAULT_SCHOOL[jobId]||'martial'):ELEMENTAL_TYPES.has(dt)?'elemental':dt;
+    effects.push({type:'damage',damageType:dt,source:dt==='physical'?'attack':'magicAttack',multiplier:Number(s.multiplier??1)});
+  }else if(t==='heal'){
+    effects.push({type:'recovery',recoveryType:'heal',source:'magicAttack',multiplier:Number(s.healMultiplier??1)});
+  }else if(t==='buff' || s.effect?.effectType==='buff'){
+    const e=s.effect||{};
+    effects.push({type:'status',category:'buff',duration:Number(e.turns||s.turns||s.duration||3),modifiers:modsToArray(e.mods||s.mods||{})});
+  }else if(t==='debuff'){
+    effects.push({type:'status',category:'debuff',duration:Number(s.turns||s.duration||3),modifiers:modsToArray(s.mods||{})});
+  }else if(t==='special'){
+    effects.push({type:'special',special:s.special||s.id});
+  }
+  if(s.status){
+    effects.push({
+      type:'status',
+      category:statusCategoryFrom(s.status.type||s.status.id),
+      statusType:s.status.type||s.status.id,
+      duration:Number(s.status.turns||s.status.duration||1),
+      chance:Number(s.status.chance??1),
+      modifiers:modsToArray(s.status.mods||{})
+    });
+  }
+  s.school=school;
+  s.actionType=actionType;
+  s.effects=effects;
+  s._normalizedFromLegacy=true;
+  return s;
+}
+function modsToArray(mods){
+  if(Array.isArray(mods))return mods;
+  return Object.entries(mods||{}).map(([target,value])=>({target,operation:'add',value}));
+}
+function statusCategoryFrom(id){
+  id=String(id||'').toLowerCase();
+  if(['poison','burn','bleed','curse','disease'].includes(id))return 'dot';
+  if(['stun','freeze','paralysis','bind','slow'].includes(id))return 'control';
+  return 'debuff';
+}
+function inferActionType(s){
+  if(s.actionType)return s.actionType;
+  const id=String(s.id||'');
+  const t=String(s.type||s.kind||'');
+  if(t==='buff'||t==='heal'||t==='special'&&/meditat|cleanse|miracle|freedom|shield|stance|focus|rage/i.test(id))return 'self';
+  if(/arrow|shot|missile|bolt|blast|fire|ice|holy|smite|magic|prayer|exorc|consecrate/i.test(id))return 'ranged';
+  return 'melee';
+}
+
+function formalJobKey(jobId){return HERO_JOBS.find(j=>j.id===jobId)?.formal||''}
+function jobSkills(jobId){
+  if(jobId==='novice')return arr(DB.beginner).map(s=>normalizeLegacySkill(s,'novice'));
+  const formalKey=formalJobKey(jobId);
+  const formal=arr(DB.formal?.[formalKey]);
+  if(formal.length)return formal.map(s=>normalizeLegacySkill(s,jobId));
+  // Safety fallback: use JOB_RULES -> canonical JOB_SKILL_LIBRARY if FORMAL_CLASS_SKILLS unavailable.
+  const rule=arr(DB.jobRules).find(r=>r.name===formalKey);
+  return (rule?.skills||[]).map(skillById).filter(Boolean).map(s=>normalizeLegacySkill(s,jobId));
+}
+
 function allWeeks(){
-  const keys=Object.keys(DB.weekly||{});
-  if(keys.length)return keys.map(k=>({key:k,n:Number(String(k).match(/\\d+/)?.[0]||0)})).sort((a,b)=>a.n-b.n);
-  return Array.from({length:20},(_,i)=>({key:String(i+1),n:i+1}));
+  if(Array.isArray(DB.weekly)&&DB.weekly.length)
+    return DB.weekly.slice().sort((a,b)=>Number(a.week)-Number(b.week));
+  return [];
 }
-function weeklyEntry(weekKey){
-  return DB.weekly?.[weekKey] ?? DB.weekly?.['week'+weekKey] ?? DB.weekly?.[Number(weekKey)] ?? null;
+function weeklyEntry(week){return DB.weekly.find(x=>Number(x.week)===Number(week))||null}
+function reviewPool(){
+  const out=[];
+  for(const w of DB.weekly){
+    if(Number(w.week)>=21)continue;
+    for(const id of (w.monsters||[]))if(id&&!out.includes(id))out.push(id);
+  }
+  return out;
 }
-function monsterIdsForWeek(weekKey){
-  const w=weeklyEntry(weekKey);
-  if(!w)return Object.keys(DB.monsters||{}).slice(0,5);
-  const out=new Set();
-  const walk=v=>{
-    if(v==null)return;
-    if(typeof v==='string'){if(DB.monsters?.[v])out.add(v);return}
-    if(Array.isArray(v)){v.forEach(walk);return}
-    if(typeof v==='object'){
-      if(v.id&&DB.monsters?.[v.id])out.add(v.id);
-      ['monster','monsterId','enemy','enemyId','monsters','enemies','pool','encounters'].forEach(k=>{if(k in v)walk(v[k])});
-    }
-  }; walk(w);
-  return [...out].length?[...out]:Object.keys(DB.monsters||{}).slice(0,5);
+function monsterIdsForWeek(week){
+  const w=weeklyEntry(week);
+  if(!w)return [];
+  // 第21週在正式表是 celebration/noBattle；Battle Test 專門當回顧刷裝測試池。
+  if(Number(w.week)===21 || w.mode==='celebration')return reviewPool();
+  return (w.monsters||[]).filter(Boolean);
 }
 function monsterSkillList(mid){
-  const m=DB.monsters?.[mid]||{};
-  const direct=DB.monsterSkills?.[mid]||DB.monsterSkills?.[m.name]||m.skills||m.skillIds;
-  let a=arr(direct);
-  if(a.length&&typeof a[0]==='string')a=a.map(id=>DB.monsterSkills?.[id]).filter(Boolean);
-  if(!a.length&&Array.isArray(m.skillIds))a=m.skillIds.map(id=>DB.monsterSkills?.[id]).filter(Boolean);
-  if(!a.length){
-    a=Object.values(DB.monsterSkills||{}).flatMap(v=>Array.isArray(v)?v:[v]).filter(x=>x&&typeof x==='object'&&(!x.monsterId||x.monsterId===mid));
-  }
-  return a.slice(0,20);
+  const ai=DB.monsterAI?.[mid];
+  if(!ai)return [];
+  return (ai.skills||[]).map(entry=>{
+    const meta=typeof entry==='string'?{id:entry,weight:1}:entry;
+    const raw=DB.monsterSkills?.[meta.id];
+    if(!raw)return {_missing:true,id:meta.id,name:`缺少技能：${meta.id}`,_ai:meta};
+    const s=normalizeLegacySkill(raw,'monster');
+    s._ai=meta;
+    return s;
+  });
 }
+
 function buildControls(){
   const weeks=allWeeks();
-  $('week').innerHTML=weeks.map(x=>`<option value="${esc(x.key)}">第 ${x.n||x.key} 週</option>`).join('');
-  const jobs=Object.keys(DB.jobs||{});
-  const fallback=['novice','warrior','mage','priest','hunter','rogue','paladin','spellblade'];
-  $('job').innerHTML=(jobs.length?jobs:fallback).map(j=>`<option value="${esc(j)}">${esc(j)}</option>`).join('');
+  $('week').innerHTML=weeks.map(w=>{
+    const review=Number(w.week)===21||w.mode==='celebration';
+    return `<option value="${w.week}">${review?'第 21 週｜回顧／刷裝週':`第 ${w.week} 週｜${esc(w.map||'')}`}</option>`;
+  }).join('');
+  $('job').innerHTML=HERO_JOBS.map(j=>`<option value="${j.id}">${j.label}</option>`).join('');
+  renderValidation();
   refreshWeek();
   buildStatus();
   buildAffixes();
-  $('source').className='status ok';
-  $('source').textContent=`讀取成功｜怪物 ${Object.keys(DB.monsters||{}).length}｜詞綴 ${Object.keys(DB.affixes||{}).length}｜週 ${weeks.length}`;
+  const critical=renderValidation();
+  $('source').className='status '+(critical.length?'warn':'ok');
+  $('source').textContent=critical.length
+    ?`主程式已讀取，但有 ${critical.length} 個核心資料庫解析失敗`
+    :`讀取成功｜V10.19 Battle Test 資料來源已對齊`;
 }
 function refreshWeek(){
-  const wk=$('week').value, ids=monsterIdsForWeek(wk);
+  const wk=Number($('week').value),w=weeklyEntry(wk),ids=monsterIdsForWeek(wk);
   $('monster').innerHTML=ids.map(id=>`<option value="${esc(id)}">${esc(DB.monsters?.[id]?.name||id)}</option>`).join('');
-  $('weekMeta').textContent=`本週讀到 ${ids.length} 隻怪物`;
+  if(!w){$('weekMeta').innerHTML='<span class="badtext">❌ 找不到正式週資料；不使用假怪物 fallback。</span>';return}
+  if(wk===21||w.mode==='celebration'){
+    $('weekMeta').innerHTML=`♻️ <b>回顧／刷裝週</b>｜正式地圖為「${esc(w.map||'皇都凱旋遊行')}」且 noBattle；Battle Test 這裡列出第1～20週共 ${ids.length} 隻既有怪物供重刷測試。`;
+  }else{
+    $('weekMeta').textContent=`${w.map||''}｜正式 monsters[]：${ids.length} 隻`;
+  }
   refreshSkills();
 }
 function refreshSkills(){
   const hs=jobSkills($('job').value);
-  $('heroSkill').innerHTML=hs.map((s,i)=>`<option value="${i}">${esc(s.name||s.label||s.id||'技能')}</option>`).join('');
+  $('heroSkill').innerHTML=hs.map((s,i)=>`<option value="${i}">${esc(s.name||s.id||'技能')}</option>`).join('');
   const ms=monsterSkillList($('monster').value);
-  $('monsterSkill').innerHTML=ms.map((s,i)=>`<option value="${i}">${esc(s.name||s.label||s.id||'技能')}</option>`).join('');
+  $('monsterSkill').innerHTML=ms.map((s,i)=>`<option value="${i}">${esc(s.name||s.id||'技能')}${s._ai?.condition?'｜條件:'+esc(s._ai.condition):''}</option>`).join('');
   analyzeCurrent();
 }
-function buildStatus(){
-  let sts=arr(DB.statusTypes);
-  if(!sts.length){
-    const found=new Map();
-    for(const s of allHeroSkills())for(const e of effectsOf(s)){
-      if((e.type||e.category)==='status'||e.statusType||e.mods||e.modifiers)found.set(e.statusType||e.id||e.name||'status',e);
+function allStatusEffects(){
+  const found=new Map();
+  const take=s=>{
+    for(const e of (s?.effects||[])){
+      if(e.type==='status'){
+        const key=e.statusType||e.category||s.id;
+        if(!found.has(key))found.set(key,{...e,name:e.statusType||e.category||key});
+      }
     }
-    sts=[...found.values()];
-  }
-  $('statusSelect').innerHTML=sts.map((s,i)=>`<option value="${i}">${esc(s.name||s.label||s.id||s.statusType||'status')}</option>`).join('');
+  };
+  for(const j of HERO_JOBS)jobSkills(j.id).forEach(take);
+  Object.values(DB.monsterSkills||{}).forEach(raw=>take(normalizeLegacySkill(raw,'monster')));
+  return [...found.values()];
+}
+function buildStatus(){
+  const sts=allStatusEffects();
+  $('statusSelect').innerHTML=sts.map((s,i)=>`<option value="${i}">${esc(s.name||s.statusType||s.category||'status')}</option>`).join('');
   $('statusSelect').dataset.json=JSON.stringify(sts);
 }
 function buildAffixes(){
   const af=Object.entries(DB.affixes||{});
   $('affixSelect').innerHTML=af.map(([id,a])=>`<option value="${esc(id)}">${esc(a.name||id)}</option>`).join('');
-}
-function effectsOf(s){
-  if(!s)return [];
-  if(Array.isArray(s.effects)&&s.effects.length)return s.effects;
-  const out=[];
-  if(s.multiplier!=null||s.type||s.damageType)out.push({type:'damage',damageType:s.damageType||s.type||'physical',source:s.source,multiplier:s.multiplier??1});
-  if(s.healMultiplier!=null||s.heal)out.push({type:'recovery',recoveryType:'heal',source:s.source||'magicAttack',multiplier:s.healMultiplier??s.heal});
-  if(s.mods||s.modifiers)out.push({type:'status',statusType:s.statusType||'buff',mods:s.mods,modifiers:s.modifiers,duration:s.duration||s.turns});
-  return out;
 }
 function currentSkill(){
   if(state.mode==='hero')return jobSkills($('job').value)[+$('heroSkill').value];
@@ -292,119 +410,235 @@ function currentSkill(){
   if(state.mode==='buff'){const a=JSON.parse($('statusSelect').dataset.json||'[]');return a[+$('statusSelect').value]}
   if(state.mode==='affix')return DB.affixes?.[$('affixSelect').value];
 }
+function effectsOf(s){
+  if(!s)return [];
+  if(Array.isArray(s.effects))return s.effects;
+  return normalizeLegacySkill(s,$('job').value)?.effects||[];
+}
 function analyzeCurrent(){
-  const x=currentSkill(); if(!x){$('analysis').textContent='目前沒有可分析資料。';return}
-  const es=effectsOf(x), tags=[];
+  const x=currentSkill();
+  if(!x){$('analysis').innerHTML='<span class="badtext">目前沒有可分析資料。</span>';$('raw').textContent='—';return}
+  const es=effectsOf(x),tags=[];
   if(x.school)tags.push('School '+x.school);
-  for(const e of es){if(e.damageType)tags.push('Damage '+e.damageType);if(e.recoveryType)tags.push('Recovery '+e.recoveryType);if(e.statusType)tags.push('Status '+e.statusType)}
+  if(x.actionType)tags.push('Delivery '+x.actionType);
+  for(const e of es){
+    if(e.damageType)tags.push('Damage '+e.damageType);
+    if(e.recoveryType)tags.push('Recovery '+e.recoveryType);
+    if(e.category)tags.push('Status '+e.category);
+  }
   if(x.trigger)tags.push('Trigger '+x.trigger);
-  $('analysis').innerHTML=`<b>${esc(x.name||x.label||x.id||'未命名')}</b><br>${tags.map(t=>`<span class="pill">${esc(t)}</span>`).join('')}<br><br><span class="muted">Effects：${esc(es.map(e=>e.type||e.category||e.effect||'?').join(' / ')||'—')}</span>`;
-  $('raw').textContent=JSON.stringify(x,null,2);
+  if(x._ai?.weight!=null)tags.push('AI weight '+x._ai.weight);
+  if(x._ai?.condition)tags.push('AI '+x._ai.condition);
+  const legacy=x._normalizedFromLegacy?'<span class="pill warn">legacy → V10.19 測試正規化</span>':'';
+  $('analysis').innerHTML=`<b>${esc(x.name||x.id||'未命名')}</b><br>${tags.map(t=>`<span class="pill">${esc(t)}</span>`).join('')}${legacy}<br><br><span class="muted">Effects：${esc(es.map(e=>e.type||e.category||'?').join(' / ')||'—')}</span>`;
+  const raw=x._raw||x;
+  $('raw').textContent=JSON.stringify(raw,null,2);
   if(state.mode==='affix')$('affixMeta').textContent=`kind=${x.kind||'—'} trigger=${x.trigger||'—'} effect=${x.effect||'—'}`;
   if(state.mode==='buff')$('statusMeta').textContent=`duration=${x.duration||x.turns||'—'} status=${x.statusType||x.category||'—'}`;
 }
-function actorStats(side){return side==='hero'?{attack:num('hAtk'),magicAttack:num('hMatk'),defense:num('hDef'),magicDefense:num('hMdef'),res:num('hRes')/100}:{attack:num('mAtk'),magicAttack:num('mMatk'),defense:num('mDef'),magicDefense:num('mMdef'),res:num('mRes')/100}}
-function resolveDamage(effect,att,def){
-  const dt=effect.damageType||'physical', source=effect.source||((dt==='physical')?'attack':'magicAttack');
+
+function actorStats(side){
+  const hero=side==='hero';
+  return {
+    attack:num(hero?'hAtk':'mAtk'),
+    magicAttack:num(hero?'hMatk':'mMatk'),
+    defense:num(hero?'hDef':'mDef'),
+    magicDefense:num(hero?'hMdef':'mMdef'),
+    hp:num(hero?'hHp':'mHp',1000),
+    maxHp:num(hero?'hHp':'mHp',1000),
+    res:num(hero?'hRes':'mRes')/100,
+    crit:num(hero?'hCrit':'mCrit')/100,
+    evade:num(hero?'hEvade':'mEvade')/100,
+    block:num(hero?'hBlock':'mBlock')/100
+  };
+}
+function resolveDamage(effect,att,def,opts={}){
+  if(Math.random()<Math.max(0,def.evade||0))return {amount:0,miss:true,crit:false,block:false};
+  const dt=effect.damageType||'physical';
+  const source=effect.source||((dt==='physical')?'attack':'magicAttack');
   const atk=/magic|matk/i.test(source)?att.magicAttack:att.attack;
   const dv=dt==='physical'?def.defense:def.magicDefense;
   const pierce=Math.max(0,Math.min(.9,Number(effect.defensePierce||0)));
   let raw=Math.max(1,atk*Number(effect.multiplier??1)-dv*(1-pierce)*.5);
   if(dt!=='physical'&&dt!=='holy'&&dt!=='arcane')raw*=1-def.res;
-  return Math.max(0,raw);
+  const crit=Math.random()<Math.max(0,att.crit||0);
+  if(crit)raw*=1.5;
+  const block=Math.random()<Math.max(0,def.block||0);
+  if(block)raw*=.7;
+  return {amount:Math.max(0,raw),miss:false,crit,block};
 }
 function resolveRecovery(effect,att){
-  const source=effect.source||'magicAttack', base=/attack/i.test(source)&&!/magic/i.test(source)?att.attack:att.magicAttack;
+  const source=effect.source||'magicAttack';
+  const base=/attack/i.test(source)&&!/magic/i.test(source)?att.attack:att.magicAttack;
   return Math.max(0,base*Number(effect.multiplier??1));
 }
-function record(source,type,amount,meta={}){
-  if(!state.stats[source])state.stats[source]={source,type,total:0,count:0,crit:0,opps:0,triggers:0,uptime:0};
-  const r=state.stats[source];r.total+=amount||0;r.count++;if(meta.opp)r.opps++;if(meta.trigger)r.triggers++;if(meta.uptime)r.uptime+=meta.uptime;
+function record(key,source,type,amount,meta={}){
+  if(!state.stats[key])state.stats[key]={key,source,type,total:0,count:0,hits:0,misses:0,crit:0,blocks:0,opps:0,triggers:0,uptimeSec:0};
+  const r=state.stats[key];
+  r.total+=amount||0;r.count++;
+  if(meta.hit)r.hits++;if(meta.miss)r.misses++;if(meta.crit)r.crit++;if(meta.block)r.blocks++;
+  if(meta.opp)r.opps++;if(meta.trigger)r.triggers++;if(meta.uptimeSec)r.uptimeSec+=meta.uptimeSec;
 }
-function logLine(t){state.log.push(t);if(state.log.length>400)state.log.shift();$('log').innerHTML=state.log.slice().reverse().map(esc).join('<br>')}
+function logLine(t){state.log.push(t);if(state.log.length>600)state.log.shift();$('log').innerHTML=state.log.slice().reverse().map(esc).join('<br>')}
+
+function applyStatusPreview(e,base,gcd=1.5){
+  const out={...base};
+  for(const m of (e.modifiers||modsToArray(e.mods||{}))){
+    const k=m.target;
+    const v=Number(m.value)||0;
+    if(k in out){
+      if(m.operation==='multiply')out[k]*=v;
+      else out[k]+=v;
+    }
+  }
+  const dur=Number(e.duration||e.turns||3);
+  return {before:base,after:out,duration:dur,uptimeSec:dur*gcd};
+}
 function runObject(obj,side,label,elapsed=0){
-  if(!obj)return {total:0,issues:['缺資料']};
-  const es=effectsOf(obj),att=actorStats(side),def=actorStats(side==='hero'?'monster':'hero'),issues=[],lines=[], totalBy={damage:0,recovery:0};
-  if(!obj.id)issues.push('缺 id');
-  if(!obj.school&&state.mode!=='affix'&&state.mode!=='buff')issues.push('缺 school');
-  if(!es.length&&!(obj.kind||obj.trigger||obj.mods||obj.modifiers))issues.push('無 effects');
+  if(!obj)return {total:0,damage:0,recovery:0,issues:['缺資料']};
+  const s=state.mode==='affix'?obj:normalizeLegacySkill(obj,side==='hero'?$('job').value:'monster');
+  const es=effectsOf(s),att=actorStats(side),def=actorStats(side==='hero'?'monster':'hero'),issues=[],lines=[],totalBy={damage:0,recovery:0};
+  if(!s.id&&state.mode!=='buff')issues.push('缺 id');
+  if(!s.school&&state.mode!=='affix'&&state.mode!=='buff')issues.push('缺 school');
+  if(!es.length&&!(s.kind||s.trigger||s.mods||s.modifiers))issues.push('無 effects');
+
   for(const e of es){
     const t=e.type||e.category||e.effect;
     if(t==='damage'){
       if(!e.damageType)issues.push('傷害缺 damageType');
-      const d=resolveDamage(e,att,def);totalBy.damage+=d;record(label,'damage',d);lines.push(`${label} → ${d.toFixed(1)} ${e.damageType||''}`);
+      const hit=resolveDamage(e,att,def);
+      totalBy.damage+=hit.amount;
+      record(`${side}:${s.id||label}:damage`,label,'damage',hit.amount,{hit:!hit.miss,miss:hit.miss,crit:hit.crit,block:hit.block});
+      lines.push(`${label} → ${hit.miss?'MISS':hit.amount.toFixed(1)+' '+(e.damageType||'')}${hit.crit?' CRIT':''}${hit.block?' BLOCK':''}`);
     }else if(t==='recovery'||t==='heal'||e.recoveryType){
-      const h=resolveRecovery(e,att);totalBy.recovery+=h;record(label,'recovery',h);lines.push(`${label} 治療 ${h.toFixed(1)}`);
+      const h=resolveRecovery(e,att);totalBy.recovery+=h;
+      record(`${side}:${s.id||label}:heal`,label,'recovery',h,{hit:true});
+      lines.push(`${label} 治療 ${h.toFixed(1)}`);
     }else if(t==='status'||e.statusType||e.mods||e.modifiers){
-      const dur=Number(e.duration||e.turns||3);record(label,'status',0,{uptime:dur});lines.push(`${label} 套用狀態 ${e.statusType||e.category||'status'} ${dur} 回合`);
+      const p=applyStatusPreview(e,att,num('gcd',1.5));
+      record(`${side}:${s.id||label}:status:${e.statusType||e.category||'status'}`,label,'status',0,{uptimeSec:p.uptimeSec});
+      lines.push(`${label} 狀態 ${e.statusType||e.category||'status'}｜${p.duration} 回合`);
+      if(state.mode==='buff'){
+        const changed=Object.keys(p.before).filter(k=>Number.isFinite(p.before[k])&&p.before[k]!==p.after[k]).map(k=>`${k}: ${Number(p.before[k]).toFixed(2)} → ${Number(p.after[k]).toFixed(2)}`);
+        if(changed.length)lines.push(`能力變化｜${changed.join('；')}`);
+      }
+    }else if(t==='special'){
+      issues.push(`特殊效果 ${e.special||s.special||s.id} 需正式 runtime 驗證`);
     }
   }
-  if(obj.trigger||obj.kind==='trigger'||obj.kind==='summon'){
-    const chance=Number(obj.chance??1);const trig=Math.random()<chance;record(label,'trigger',0,{opp:true,trigger:trig});
-    if(trig){
-      const mult=Number(obj.multiplier||obj.ratio||0);
-      if(mult>0){
-        const dt=(obj.effect||'').includes('fire')?'fire':'physical';
-        const d=resolveDamage({damageType:dt,source:dt==='physical'?'attack':'magicAttack',multiplier:mult},att,def);
-        totalBy.damage+=d;record(label,'damage',d);lines.push(`${label} 觸發 → ${d.toFixed(1)}`);
-      } else lines.push(`${label} 觸發`);
-    }
-  }
+
   lines.forEach(x=>logLine(`${elapsed.toFixed(1)}s ${x}`));
   return {total:totalBy.damage+totalBy.recovery,damage:totalBy.damage,recovery:totalBy.recovery,issues};
 }
-function resetStats(){state.stats={};state.log=[];state.elapsed=0;$('log').innerHTML='';renderStats();$('triggerRows').innerHTML=''}
+
+function triggerMatches(trigger,ctx){
+  if(!trigger)return true;
+  if(trigger==='battle_start')return ctx.event==='battle_start';
+  if(trigger==='after_attack')return ctx.event==='after_attack';
+  if(trigger==='after_melee')return ctx.event==='after_attack'&&ctx.actionType==='melee';
+  if(trigger==='after_ranged')return ctx.event==='after_attack'&&ctx.actionType==='ranged';
+  if(trigger==='after_physical')return ctx.event==='after_attack'&&ctx.damageType==='physical';
+  if(trigger==='after_magic')return ctx.event==='after_attack'&&ctx.damageType!=='physical';
+  if(trigger==='after_crit')return ctx.event==='after_attack'&&ctx.crit;
+  if(trigger==='on_hit')return ctx.event==='on_hit';
+  if(trigger==='on_damaged')return ctx.event==='on_damaged';
+  if(trigger==='lethal')return ctx.event==='lethal';
+  if(trigger==='turn_start'||trigger==='turn_end')return ctx.event===trigger;
+  return false;
+}
+function simulateAffix(affix,label,iterations=1000){
+  const contexts=[
+    {event:'battle_start',actionType:'self',damageType:'physical'},
+    {event:'after_attack',actionType:'melee',damageType:'physical'},
+    {event:'after_attack',actionType:'ranged',damageType:'arcane'},
+    {event:'on_hit',actionType:'melee',damageType:'physical'},
+    {event:'on_damaged'},
+    {event:'lethal'},
+    {event:'turn_start'},
+    {event:'turn_end'}
+  ];
+  let opp=0,trig=0,total=0;
+  const chance=Number(affix.chance??1);
+  for(let i=0;i<iterations;i++){
+    for(const ctx of contexts){
+      if(!triggerMatches(affix.trigger,ctx))continue;
+      opp++;
+      if(Math.random()<=chance){
+        trig++;
+        const mult=Number(affix.multiplier||0);
+        if(mult>0){
+          const fire=String(affix.effect||'').includes('fire');
+          total+=resolveDamage({damageType:fire?'fire':'physical',source:fire?'magicAttack':'attack',multiplier:mult},actorStats('hero'),actorStats('monster')).amount;
+        }
+      }
+    }
+  }
+  record(`affix:${affix.id}`,label,'trigger',total,{});
+  const r=state.stats[`affix:${affix.id}`];r.opps=opp;r.triggers=trig;
+  logLine(`詞綴 Monte Carlo ${iterations} 輪｜${label}｜機會 ${opp}｜觸發 ${trig}｜${opp?(trig/opp*100).toFixed(2):0}%`);
+  return {opp,trig,total};
+}
+
+function resetStats(){state.stats={};state.log=[];state.elapsed=0;state.stop=false;$('log').innerHTML='';renderStats();$('triggerRows').innerHTML=''}
 function renderStats(){
-  const sec=Math.max(1,state.elapsed||num('seconds',60)), rows=Object.values(state.stats);
-  const dmg=rows.filter(r=>r.type==='damage').reduce((a,b)=>a+b.total,0),heal=rows.filter(r=>r.type==='recovery').reduce((a,b)=>a+b.total,0);
-  const events=rows.reduce((a,b)=>a+b.count,0),trigs=rows.reduce((a,b)=>a+b.triggers,0);
+  const sec=Math.max(1,state.elapsed||num('seconds',60)),rows=Object.values(state.stats);
+  const dmg=rows.filter(r=>r.type==='damage'||r.type==='trigger').reduce((a,b)=>a+b.total,0);
+  const heal=rows.filter(r=>r.type==='recovery').reduce((a,b)=>a+b.total,0);
+  const events=rows.reduce((a,b)=>a+b.count,0);
   $('metrics').innerHTML=[['總傷害',dmg.toFixed(0)],['DPS',(dmg/sec).toFixed(1)],['總治療',heal.toFixed(0)],['HPS',(heal/sec).toFixed(1)],['事件',events]].map(x=>`<div class="metric"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
   const dmgRows=rows.filter(r=>r.total>0).sort((a,b)=>b.total-a.total),max=dmgRows[0]?.total||1;
-  $('meter').innerHTML=dmgRows.map(r=>`<div class="meter"><div class="meter-head"><span>${esc(r.source)}</span><span>${r.total.toFixed(0)}｜${(r.total/sec).toFixed(1)}/s｜${dmg?((r.total/dmg)*100).toFixed(1):0}%</span></div><div class="bar"><div class="fill" style="width:${Math.max(2,r.total/max*100)}%"></div><span>${r.count} 次</span></div></div>`).join('')||'<div class="muted">尚無資料</div>';
-  $('triggerRows').innerHTML=rows.filter(r=>r.opps||r.type==='status'||r.type==='trigger').map(r=>`<tr><td>${esc(r.source)}</td><td>${esc(r.type)}</td><td>${r.opps}</td><td>${r.triggers}</td><td>${r.opps?((r.triggers/r.opps)*100).toFixed(1):'—'}%</td><td>${r.total.toFixed(1)}</td><td>${r.uptime?Math.min(100,r.uptime/sec*100).toFixed(1):'—'}%</td></tr>`).join('');
+  $('meter').innerHTML=dmgRows.map(r=>`<div class="meter"><div class="meter-head"><span>${esc(r.source)}</span><span>${r.total.toFixed(0)}｜${(r.total/sec).toFixed(1)}/s｜${dmg?((r.total/dmg)*100).toFixed(1):0}%</span></div><div class="bar"><div class="fill" style="width:${Math.max(2,r.total/max*100)}%"></div><span>${r.hits||r.count} hit｜${r.crit} crit｜${r.misses} miss｜${r.blocks} block</span></div></div>`).join('')||'<div class="muted">尚無資料</div>';
+  $('triggerRows').innerHTML=rows.filter(r=>r.opps||r.type==='status'||r.type==='trigger').map(r=>`<tr><td>${esc(r.source)}</td><td>${esc(r.type)}</td><td>${r.opps}</td><td>${r.triggers}</td><td>${r.opps?((r.triggers/r.opps)*100).toFixed(1):'—'}%</td><td>${r.total.toFixed(1)}</td><td>${r.uptimeSec?Math.min(100,r.uptimeSec/sec*100).toFixed(1):'—'}%</td></tr>`).join('');
 }
 function singleTest(){
-  resetStats();
-  const x=currentSkill(),label=x?.name||x?.label||x?.id||'測試';
-  if(state.mode==='affix'){
-    const r=runObject(x,'hero',label,0);state.elapsed=1;
-    $('analysis').innerHTML+=`<br><br><b>${r.issues.length?'⚠️ '+esc(r.issues.join('；')):'✅ 單項測試通過'}</b>`;
-  }else if(state.mode==='buff'){
-    const r=runObject(x,'hero',label,0);state.elapsed=1;
-    $('analysis').innerHTML+=`<br><br><b>${r.issues.length?'⚠️ '+esc(r.issues.join('；')):'✅ 狀態資料可執行'}</b>`;
-  }else{
-    const side=state.mode==='hero'?'hero':'monster';const r=runObject(x,side,label,0);state.elapsed=1;
-    $('analysis').innerHTML+=`<br><br><b>${r.issues.length?'⚠️ '+esc(r.issues.join('；')):'✅ 技能資料可執行'}</b>`;
-  }
+  resetStats();const x=currentSkill(),label=x?.name||x?.id||'測試';
+  let r={issues:[]};
+  if(state.mode==='affix'){simulateAffix(x,label,1000);state.elapsed=1}
+  else{const side=state.mode==='monster'?'monster':'hero';r=runObject(x,side,label,0);state.elapsed=1}
+  analyzeCurrent();
+  $('analysis').innerHTML+=`<br><br><b>${r.issues?.length?'⚠️ '+esc(r.issues.join('；')):'✅ 單項測試完成'}</b>`;
   renderStats();
+}
+async function waitIfPaused(){
+  while(state.paused&&!state.stop)await sleep(80);
 }
 async function battleBatch(){
   resetStats();$('batchRows').innerHTML='';$('batchSummary').textContent='正在測試本週全部戰鬥…';
-  const wk=$('week').value, mids=monsterIdsForWeek(wk), hs=jobSkills($('job').value), sec=Math.max(5,num('seconds',60)),gcd=Math.max(.1,num('gcd',1.5)),speed=Math.max(1,num('speed',10));
+  const wk=Number($('week').value),mids=monsterIdsForWeek(wk),hs=jobSkills($('job').value),sec=Math.max(5,num('seconds',60)),gcd=Math.max(.1,num('gcd',1.5)),speed=Math.max(1,num('speed',10));
+  if(!mids.length){$('batchSummary').innerHTML='<span class="badtext">❌ 本週沒有可測怪物。</span>';return}
   const results=[];let actions=0;
   for(const mid of mids){
     const mn=DB.monsters?.[mid]?.name||mid,ms=monsterSkillList(mid);
+    if(!DB.monsterAI?.[mid])results.push({monster:mn,dir:'怪物AI',skill:'—',total:0,dps:0,issues:['MONSTER_AI_DATABASE 無此怪物']});
     for(const s of hs){
       const label=s.name||s.id||'英雄技能',r=runObject(s,'hero',label,actions*gcd);
       results.push({monster:mn,dir:'英雄→怪物',skill:label,total:r.total,dps:r.damage/gcd,issues:r.issues});actions++;
     }
     for(const s of ms){
       const label=s.name||s.id||'怪物技能',r=runObject(s,'monster',label,actions*gcd);
-      results.push({monster:mn,dir:'怪物→英雄',skill:label,total:r.total,dps:r.damage/gcd,issues:r.issues});actions++;
+      const issues=[...r.issues];if(s._missing)issues.push('AI引用的技能不存在');
+      results.push({monster:mn,dir:'怪物→英雄',skill:label,total:r.total,dps:r.damage/gcd,issues});actions++;
     }
   }
-  // Repeated timeline simulation for live meter / trigger frequency.
+  // Live timeline: exact week monster pool + exact MONSTER_AI_DATABASE skill list.
   const steps=Math.floor(sec/gcd);
-  for(let i=0;i<steps;i++){
-    const mid=mids[i%mids.length], ms=monsterSkillList(mid), hs2=hs;
-    if(hs2.length)runObject(hs2[i%hs2.length],'hero',hs2[i%hs2.length].name||hs2[i%hs2.length].id||'英雄',i*gcd);
-    if(ms.length)runObject(ms[i%ms.length],'monster',ms[i%ms.length].name||ms[i%ms.length].id||'怪物',i*gcd+.01);
-    if(i%Math.max(1,Math.floor(10/speed))===0){state.elapsed=Math.max(gcd,(i+1)*gcd);renderStats();await new Promise(r=>setTimeout(r,20))}
+  for(let i=0;i<steps&&!state.stop;i++){
+    await waitIfPaused();
+    const mid=mids[i%mids.length],ms=monsterSkillList(mid);
+    if(hs.length)runObject(hs[i%hs.length],'hero',hs[i%hs.length].name||hs[i%hs.length].id||'英雄',i*gcd);
+    if(ms.length){
+      // weighted AI pick, honoring only basic weight here; conditions remain reported in metadata.
+      const weighted=ms.flatMap(s=>Array(Math.max(1,Math.round(Number(s._ai?.weight)||1))).fill(s));
+      const pick=weighted[Math.floor(Math.random()*weighted.length)];
+      runObject(pick,'monster',pick.name||pick.id||'怪物',i*gcd+.01);
+    }
+    state.elapsed=Math.max(gcd,(i+1)*gcd);
+    if(i%Math.max(1,Math.floor(10/speed))===0){renderStats();await sleep(20)}
   }
   state.elapsed=sec;renderStats();
   const bad=results.filter(r=>r.issues.length);
-  $('batchSummary').innerHTML=`第 ${esc(wk)} 週｜怪物 ${mids.length}｜檢查 ${results.length} 個技能方向｜<span class="${bad.length?'badtext':'good'}">${bad.length?`需檢查 ${bad.length}`:'全部通過'}</span>`;
-  $('batchRows').innerHTML=results.map(r=>`<tr><td>${r.issues.length?'⚠️':'✅'}</td><td>${esc(wk)}</td><td>${esc(r.monster)}</td><td>${esc(r.dir)}</td><td>${esc(r.skill)}</td><td>${r.dps.toFixed(1)}</td><td>${r.total.toFixed(1)}</td><td>${esc(r.issues.join('；')||'PASS')}</td></tr>`).join('');
+  $('batchSummary').innerHTML=`第 ${wk} 週${wk===21?'（回顧／刷裝池）':''}｜怪物 ${mids.length}｜檢查 ${results.length} 個技能方向｜<span class="${bad.length?'badtext':'good'}">${bad.length?`需檢查 ${bad.length}`:'全部通過'}</span>`;
+  $('batchRows').innerHTML=results.map(r=>`<tr><td>${r.issues.length?'⚠️':'✅'}</td><td>${wk}</td><td>${esc(r.monster)}</td><td>${esc(r.dir)}</td><td>${esc(r.skill)}</td><td>${r.dps.toFixed(1)}</td><td>${r.total.toFixed(1)}</td><td>${esc(r.issues.join('；')||'PASS')}</td></tr>`).join('');
 }
 function setMode(mode){
   state.mode=mode;document.querySelectorAll('#modeTabs button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
@@ -412,14 +646,22 @@ function setMode(mode){
 }
 async function loadRemote(){
   $('source').className='status';$('source').textContent='正在讀取 GitHub 根目錄 index.html…';
-  try{const r=await fetch(RAW+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);mainText=await r.text();parseDB()}
-  catch(e){$('source').className='status bad';$('source').textContent='GitHub 讀取失敗：'+e.message+'。可用下方手動載入。'}
+  try{
+    const r=await fetch(RAW+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+    mainText=await r.text();parseDB();
+  }catch(e){
+    $('source').className='status bad';$('source').textContent='GitHub 讀取失敗：'+e.message+'。可用下方手動載入。';
+    $('dbValidation').innerHTML='<span class="badtext">尚未取得正式主程式資料。</span>';
+  }
 }
 document.querySelectorAll('#modeTabs button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-$('reload').onclick=loadRemote;$('file').onchange=async e=>{const f=e.target.files[0];if(f){mainText=await f.text();parseDB()}};
+$('reload').onclick=loadRemote;
+$('file').onchange=async e=>{const f=e.target.files[0];if(f){mainText=await f.text();parseDB()}};
 $('week').onchange=refreshWeek;$('job').onchange=refreshSkills;$('monster').onchange=refreshSkills;
 $('heroSkill').onchange=analyzeCurrent;$('monsterSkill').onchange=analyzeCurrent;$('statusSelect').onchange=analyzeCurrent;$('affixSelect').onchange=analyzeCurrent;
 $('single').onclick=singleTest;$('batch').onclick=battleBatch;$('reset').onclick=resetStats;
+$('pause').onclick=()=>{state.paused=!state.paused;$('pause').textContent=state.paused?'▶ 繼續':'⏸ 暫停'};
+$('step').onclick=()=>{const x=currentSkill(),side=state.mode==='monster'?'monster':'hero';runObject(x,side,x?.name||x?.id||'單步',state.elapsed);state.elapsed+=Math.max(.1,num('gcd',1.5));renderStats()};
 resetStats();loadRemote();
 </script>
 </body></html>
