@@ -380,112 +380,19 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   .grid2,.grid3{grid-template-columns:1fr}
 }
 
-/* V6.1 正式草原橫向捲動背景 */
-.adventure-stage{
+/* ===== 統一週背景系統 =====
+   第 1~21 週全部由 WEEKLY_MAP_DATABASE.background 決定。
+   舊草地專用背景與捲動動畫已完全移除。 */
+.hero-scene{
   position:relative;
   overflow:hidden;
-  background-image:url("images/grassland_bg.png") !important;
-  background-repeat:repeat-x !important;
-  background-size:auto 100% !important;
-  background-position:0 center !important;
-  animation:grasslandScroll 30s linear infinite !important;
-}
-@keyframes grasslandScroll{
-  from{background-position:0 center;}
-  to{background-position:-1536px center;}
-}
-
-
-.scene{
-  background-image:url("images/grassland_bg.png") !important;
-  background-repeat:repeat-x !important;
-  background-size:auto 100% !important;
-  background-position:0 center !important;
-  animation:grasslandScroll 30s linear infinite !important;
-}
-
-.hero-scene{
-  background-image:url("images/grassland_bg.png") !important;
-  background-repeat:repeat-x !important;
-  background-size:auto 100% !important;
-  background-position:0 center !important;
-  animation:grasslandScroll 30s linear infinite !important;
-}
-
-
-/* V6.2 修正：舊 CSS 山景圖層會蓋住 PNG 背景，因此停用舊圖層 */
-.hero-scene{
-  background-image:url("images/grassland_bg.png") !important;
-  background-repeat:repeat-x !important;
-  background-size:auto 100% !important;
-  background-position:0 center !important;
-  animation:grasslandScrollV62 28s linear infinite !important;
-}
-
-/* 這四層原本是用 CSS 畫的天空、山、草地與雲，會整片蓋住新背景 */
-.hero-scene > .sky-layer,
-.hero-scene > .mountain-layer,
-.hero-scene > .ground-layer,
-.hero-scene > .pixel-cloud{
-  display:none !important;
-}
-
-@keyframes grasslandScrollV62{
-  from{background-position:0 center;}
-  to{background-position:-2048px center;}
-}
-
-/* 圖片載入失敗時至少保留深色底，不會整塊透明 */
-.hero-scene{
-  background-color:#203b52;
-}
-
-
-/* V6.3：改用真正的 <img> 圖層，不再依賴 CSS background-image */
-.hero-scene{
   background:#203b52 !important;
   animation:none !important;
-}
-.scene-bg-scroll{
-  position:absolute;
-  inset:0;
-  overflow:hidden;
-  z-index:0;
-}
-.scene-bg-track{
-  position:absolute;
-  left:0;
-  top:0;
-  height:100%;
-  display:flex;
-  width:max-content;
-  animation:sceneBgMove 24s linear infinite;
-  will-change:transform;
-}
-.scene-bg-track img{
-  display:block;
-  height:100%;
-  width:auto;
-  max-width:none;
-  flex:none;
-  image-rendering:pixelated;
-}
-@keyframes sceneBgMove{
-  from{transform:translateX(0);}
-  to{transform:translateX(-50%);}
 }
 .hero-scene .scene-hud,
 .hero-scene .warrior-wrap{
   z-index:2;
 }
-.hero-scene > .sky-layer,
-.hero-scene > .mountain-layer,
-.hero-scene > .ground-layer,
-.hero-scene > .pixel-cloud{
-  display:none !important;
-}
-
-
 /* V6.4：人物落地修正 */
 .hero-scene .warrior-wrap{
   bottom:-28px !important;
@@ -1507,23 +1414,23 @@ function currentSceneBackground(dateStr=today()){
   const weekData=weeklyMapForDate(dateStr);
   return sprite(weekData?.background||'images/backgrounds/week01_grassland.png');
 }
-// 舊名稱保留相容，但所有場景實際都走同一個 resolver。
 function battleBackgroundForDate(dateStr=today()){
   return currentSceneBackground(dateStr);
 }
 
-function resolvedSceneBackgroundV101143(){
-  const gmActive=sessionStorage.getItem('gmBattleTestActive')==='1';
-  const gmWeek=Math.max(1,Math.min(21,Number(sessionStorage.getItem('gmTestWeek')||1)));
-  if(gmActive){
-    const bg=SEMESTER_WEEK_MAP?.[gmWeek]?.background;
-    if(bg)return sprite(bg);
+/* 單一週背景解析器：
+   status = 永遠使用正式日期週次
+   dungeon / battle = 正式日期；只有 GM 戰鬥測試時才允許 gmTestWeek */
+function sceneBackgroundSource(scene='status',dateStr=today()){
+  if(scene!=='status' && sessionStorage.getItem('gmBattleTestActive')==='1'){
+    const gmWeek=Math.max(1,Math.min(21,Number(sessionStorage.getItem('gmTestWeek')||1)));
+    const gmBg=SEMESTER_WEEK_MAP?.[gmWeek]?.background;
+    if(gmBg)return sprite(gmBg);
   }
-  return currentSceneBackground(today());
+  return currentSceneBackground(dateStr);
 }
-
-function sceneBackgroundHTML(extraClass=''){
-  return `<img class="scene-background ${extraClass}" src="${resolvedSceneBackgroundV101143()}" alt="">`;
+function sceneBackgroundHTML(extraClass='',scene='status'){
+  return `<img class="scene-background ${extraClass}" src="${sceneBackgroundSource(scene,today())}" alt="">`;
 }
 
 
@@ -3666,17 +3573,8 @@ function setWorldAfterMidterm(win){
   gameData.semester.worldState='ruined';
   gameData.semester.midtermResult=win?'win':'lose';
 }
-const __weeklyBackgroundReady={};
 function currentWorldBackground(){
-  const candidate=weeklyMapForDate(today())?.background;
-  if(candidate && __weeklyBackgroundReady[candidate])return candidate;
-  if(candidate && __weeklyBackgroundReady[candidate]===undefined){
-    __weeklyBackgroundReady[candidate]=false;
-    const img=new Image();
-    img.onload=()=>{__weeklyBackgroundReady[candidate]=true;try{renderDungeon();}catch(e){}};
-    img.src=sprite(candidate);
-  }
-  return 'images/grassland_bg.png';
+  return weeklyMapForDate(today())?.background||'images/backgrounds/week01_grassland.png';
 }
 const SEMESTER_BALANCE = {
   targetCompletion: .75,
@@ -5162,7 +5060,7 @@ function createBattleOverlay(enemyName,enemyIcon,heroStats,enemyStats){
     <div class="battle-top"><div class="battle-unit"><div class="battle-name">${heroStats?.testLevel?'🧪 ':''}${heroStats?.name||gameData.hero.name}　Lv.${heroStats?.testLevel||gameData.hero.level||1}</div><div class="hp-bar"><div id="battleHp_hero" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_hero" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_hero" class="resource-fill"></div></div><div id="battleEnergyText_hero" class="resource-text"></div><div id="battleStatus_hero" class="battle-status-line"></div></div>
     <div class="battle-unit enemy"><div id="battleEnemyName" class="battle-name">${enemyName}</div><div class="hp-bar"><div id="battleHp_enemy" class="hp-fill" style="width:100%"></div></div><div id="battleHpText_enemy" class="hp-text"></div><div class="resource-bar"><div id="battleEnergy_enemy" class="resource-fill"></div></div><div id="battleEnergyText_enemy" class="resource-text"></div><div id="battleStatus_enemy" class="battle-status-line"></div></div></div>
     <div id="battleTargetStrip" class="battle-target-strip"></div><div class="battle-target-hint">🎯 玩家行動前可隨時點敵人切換鎖定目標，不消耗回合</div>
-    <div id="battleArena" class="battle-arena">${sceneBackgroundHTML("battle-scene-background")}<div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div><div id="battleSummonLayer" class="battle-summon-layer"></div><div id="battleTargetMarker" class="battle-target-marker" aria-hidden="true">🎯</div></div>
+    <div id="battleArena" class="battle-arena">${sceneBackgroundHTML("battle-scene-background","battle")}<div class="battle-floor"></div><div id="battleRoundBanner" class="battle-round-banner">ROUND 0</div><div id="battleChar_hero" class="battle-hero"><img id="battleHeroSprite" class="hero-idle-css" src="${heroSpritePath('idle')}" alt="勇者"></div><div id="battleChar_enemy" class="battle-enemy">${battleEnemyVisualHTML(enemyIcon)}</div><div id="battleSummonLayer" class="battle-summon-layer"></div><div id="battleTargetMarker" class="battle-target-marker" aria-hidden="true">🎯</div></div>
     <div id="battleLog" class="battle-log"><div>⚔️ 戰鬥開始！先鎖定目標再選擇行動。</div></div>
     <div id="battleActions" class="battle-actions"><button class="btn red battle-action-btn" onclick="battlePlayerAction({kind:'attack',name:'攻擊',type:'physical',multiplier:1})">⚔️ 攻擊<small>回復 10 能量</small></button><button class="btn purple battle-action-btn" onclick="showBattleSkills()">✨ 技能<small>攻擊・防禦・Buff / Debuff</small></button><button class="btn gray battle-action-btn" onclick="showBattleItems()">🎒 道具<small>狀態效果</small></button></div>
     <div id="battleSubmenu" class="battle-submenu" style="display:none"></div><div id="battleResult"></div></div>`;document.body.appendChild(o);
@@ -5296,19 +5194,8 @@ function renderHero(){
       ${gameData.semester?.worldState==='ruined'?'<span class="world-chip">🔥 毀壞世界</span>':''}
     </div>
 
-    <div class="hero-scene" aria-label="勇者冒險場景"><img class="scene-background home-scene-background" src="${currentSceneBackground(today())}" alt="">
-      <div class="scene-bg-scroll" aria-hidden="true">
-        <div class="scene-bg-track">
-          <img src="images/grassland_bg.png?v=63" alt="">
-          <img src="images/grassland_bg.png?v=63" alt="">
-          <img src="images/grassland_bg.png?v=63" alt="">
-        </div>
-      </div>
-      <div class="sky-layer"></div>
-      <div class="pixel-cloud c1"></div>
-      <div class="pixel-cloud c2"></div>
-      <div class="mountain-layer"></div>
-      <div class="ground-layer"></div>
+    <div class="hero-scene" aria-label="勇者冒險場景">
+      ${sceneBackgroundHTML("home-scene-background","status")}
       <div class="scene-hud">
         <div class="hud-chip">Lv.${h.level}</div>
         <div class="hud-chip">⚔️ ${combatPower()}</div>
@@ -5483,7 +5370,7 @@ function renderDungeon(){
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card dungeon-fighter-bg">
-          ${sceneBackgroundHTML("dungeon-scene-background")}
+          ${sceneBackgroundHTML("dungeon-scene-background","dungeon")}
           <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
@@ -5495,7 +5382,7 @@ function renderDungeon(){
         </div>
 
         <div class="fighter-card dungeon-fighter-bg">
-          ${sceneBackgroundHTML("dungeon-scene-background")}
+          ${sceneBackgroundHTML("dungeon-scene-background","dungeon")}
           <div class="dungeon-idle-stage">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}${dungeonMonsterDefinition(m,evt)?.family?` monster-family-${dungeonMonsterDefinition(m,evt).family}`:''}${dungeonMonsterDefinition(m,evt)?.id?` monster-id-${dungeonMonsterDefinition(m,evt).id}`:''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
@@ -11160,12 +11047,33 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   function imp(el,k,v){el?.style.setProperty(k,v,'important');}
   function applySizes(){
     ensure();
-    const d=dev(),sz=gameData.objectSizes[d];
+    const d=dev(),sz=gameData.objectSizes[d],C=window.STUDYRPG_EDITOR_CONFIG||{};
+    const idOf=el=>{
+      if(!el)return'';
+      const c=[...el.classList].find(x=>x.startsWith('monster-id-'));
+      if(c)return c.slice(11);
+      const src=el.getAttribute('src')||el.querySelector?.('img')?.getAttribute('src')||'';
+      const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_(?:idle|battle)\./);
+      return m?m[1]:'';
+    };
     const hero=document.getElementById('battleChar_hero'),enemy=document.getElementById('battleChar_enemy');
-    for(const [el,n] of [[hero,sz.battleHero],[enemy,sz.battleEnemy]])if(el){imp(el,'width',n+'px');imp(el,'height',n+'px');}
-    const status=document.getElementById('heroSprite');if(status){imp(status,'width',sz.statusHero+'px');imp(status,'height',sz.statusHero+'px');}
+    if(hero){imp(hero,'width',sz.battleHero+'px');imp(hero,'height',sz.battleHero+'px');}
+    if(enemy){
+      const id=idOf(enemy)||idOf(enemy.querySelector?.('img'));
+      const personal=Number(C.monsters?.[id]?.battleSize?.[d]);
+      const n=personal>0?personal:sz.battleEnemy;
+      imp(enemy,'width',n+'px');imp(enemy,'height',n+'px');
+    }
+    const status=document.getElementById('heroSprite');
+    if(status){imp(status,'width',sz.statusHero+'px');imp(status,'height',sz.statusHero+'px');}
     const dh=document.getElementById('dungeonHeroIdle'),de=document.getElementById('dungeonEnemyIdle');
-    for(const [el,n] of [[dh,sz.dungeonHero],[de,sz.dungeonEnemy]])if(el){imp(el,'width',n+'px');imp(el,'height',n+'px');}
+    if(dh){imp(dh,'width',sz.dungeonHero+'px');imp(dh,'height',sz.dungeonHero+'px');}
+    if(de){
+      const id=idOf(de);
+      const personal=Number(C.monsters?.[id]?.idleSize?.[d]);
+      const n=personal>0?personal:sz.dungeonEnemy;
+      imp(de,'width',n+'px');imp(de,'height',n+'px');
+    }
   }
   const priorApply=window.applySavedBattleLayout;window.applySavedBattleLayout=function(){const r=priorApply?.apply(this,arguments);applySizes();return r;};
   const priorHero=window.renderHero;if(typeof priorHero==='function')window.renderHero=function(){const r=priorHero.apply(this,arguments);applySizes();return r;};
@@ -11603,7 +11511,19 @@ const C=window.STUDYRPG_EDITOR_CONFIG||{},BASE={desktop:68,tablet:68,mobile:65};
 function dev(){return innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop'}
 function week(){try{if(typeof semesterWeekIndex==='function'){const w=Number(semesterWeekIndex());if(Number.isFinite(w))return w}}catch(e){}return 1}
 function sceneForName(name=''){if(name==='statusHero')return'status';if(name==='dungeonHero'||name==='dungeonEnemy')return'dungeonEntry';return'dungeon'}
-function ground(d=dev(),w=week(),scene='dungeon'){const row=C.mapGround?.[String(w)]||C.mapGround?.[w],cell=row?.[d];if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}const legacy=Number(cell);return Number.isFinite(legacy)?legacy:null}
+function ground(d=dev(),w=week(),scene='dungeon'){
+  for(let k=Math.max(1,Number(w)||1);k>=1;k--){
+    const row=C.mapGround?.[String(k)]||C.mapGround?.[k],cell=row?.[d];
+    if(cell&&typeof cell==='object'){
+      const v=Number(cell[scene]);
+      if(Number.isFinite(v))return v;
+    }else{
+      const legacy=Number(cell);
+      if(Number.isFinite(legacy))return legacy;
+    }
+  }
+  return null;
+}
 function point(p,d=dev(),w=week(),name='',scene){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};const g=ground(d,w,scene||sceneForName(name));return{x,y:g==null?y:Math.max(0,Math.min(100,y+(g-BASE[d])))}}
 window.studyRPGGroundDeviceV10176=dev;window.studyRPGGroundWeekV10176=week;window.studyRPGGroundSceneForNameV101712=sceneForName;window.studyRPGGroundValueV10176=ground;window.studyRPGGroundPointV10176=point;
 })();
