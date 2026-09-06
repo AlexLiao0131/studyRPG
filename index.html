@@ -5296,7 +5296,7 @@ function renderHero(){
       ${gameData.semester?.worldState==='ruined'?'<span class="world-chip">🔥 毀壞世界</span>':''}
     </div>
 
-    <div class="hero-scene" aria-label="勇者冒險場景">${sceneBackgroundHTML("home-scene-background")}
+    <div class="hero-scene" aria-label="勇者冒險場景"><img class="scene-background home-scene-background" src="${currentSceneBackground(today())}" alt="">
       <div class="scene-bg-scroll" aria-hidden="true">
         <div class="scene-bg-track">
           <img src="images/grassland_bg.png?v=63" alt="">
@@ -11854,7 +11854,11 @@ function apply(){
   feet(bh,bl.hero,d,'hero_home');
   square(bh,os.battleHero);
   feet(be,bl.enemy,d,'enemy_home');
-  square(be,os.battleEnemy);
+  if(be){
+    const id=monsterId(be);
+    const personal=Number(C.monsters?.[id]?.battleSize?.[d]);
+    square(be,personal>0?personal:os.battleEnemy);
+  }
   const heroImg=bh?.querySelector('img');
   if(heroImg){
     imp(heroImg,'width','100%'); imp(heroImg,'height','100%');
