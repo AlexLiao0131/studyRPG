@@ -10394,9 +10394,10 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   function equippedGeneratedItems(){ensureItemSystem();return Object.values(gameData.hero.equipment||{}).map(id=>gameData.inventory.find(x=>x.id===id)).map(itemDefinition).filter(x=>x?.generated);}
   function equippedCombatAffixes(){return equippedGeneratedItems().flatMap(i=>(i.affixes||[]).map(a=>({...a,itemName:i.name})));}
+  function equipmentAffixVisual(id){return window.STUDYRPG_EDITOR_CONFIG?.equipmentAffixes?.[id]||{};}
   function renderEquipmentCompanions(){
     const layer=document.getElementById('battleSummonLayer');if(!layer)return;layer.querySelectorAll('.equipment-companion').forEach(x=>x.remove());
-    (battleStateV10?.equipmentCompanions||[]).forEach((c,i)=>{const el=document.createElement('div');el.className='equipment-companion';el.style.cssText=`position:absolute;left:${36+i*8}%;bottom:${20+i*4}%;font-size:38px;filter:drop-shadow(0 4px 4px #0008)`;el.textContent=c.icon;el.title=c.name;layer.appendChild(el);});
+    (battleStateV10?.equipmentCompanions||[]).forEach((c,i)=>{const v=equipmentAffixVisual(c.affixId);if(!v.enabled||!v.image)return;const el=document.createElement('img');el.className='equipment-companion';el.src=v.image;el.alt=c.name;el.title=c.name;const scale=Math.max(.1,Number(v.scale||1)),x=Number(v.offsetX||0),y=Number(v.offsetY||0);el.style.cssText=`position:absolute;left:18%;top:65%;width:${Math.round(120*scale)}px;height:${Math.round(120*scale)}px;object-fit:contain;transform:translate(calc(-50% + ${x}px),calc(-100% + ${y}px));filter:drop-shadow(0 4px 4px #0008);pointer-events:none;z-index:7`;layer.appendChild(el);});
   }
   const previousRenderBattleTargetsV101192=renderBattleTargets;
   renderBattleTargets=function(){const r=previousRenderBattleTargetsV101192();renderEquipmentCompanions();return r;};
@@ -10406,25 +10407,38 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     const result=previousRunBattleSequenceV101192(...args);if(!battleStateV10)return result;
     const affixes=equippedCombatAffixes();battleStateV10.equipmentAffixes=affixes;battleStateV10.equipmentRuntime={deathPreventUsed:false};battleStateV10.equipmentCompanions=[];
     affixes.forEach(a=>{
+      const v=equipmentAffixVisual(a.id),buffIcon=v.buffIcon||({ember_echo:'🔥',phantom_echo:'👤',blood_drink:'🩸',royal_guard:'🛡️',phoenix_oath:'🔥',flame_spirit:'🔥',blade_spirit:'⚔️'}[a.id]||'💎');
+      if(a.kind!=='stat'&&!battleStateV10.hero.statuses.some(s=>s.type==='equipment_affix_'+a.id))addStatus(battleStateV10.hero,{type:'equipment_affix_'+a.id,name:`${buffIcon} ${a.name}`,turns:999,effectType:'buff',mods:{}});
       if(a.effect==='opening_guard'&&!battleStateV10.hero.statuses.some(s=>s.type==='equipment_opening_guard'))addStatus(battleStateV10.hero,{type:'equipment_opening_guard',name:'🛡️ 王者庇護',turns:3,effectType:'buff',mods:{damageTaken:-.15}});
-      if(a.effect==='summon_flame'&&!battleStateV10.equipmentCompanions.some(c=>c.effect===a.effect))battleStateV10.equipmentCompanions.push({effect:a.effect,name:'契約火靈',icon:'🔥',type:'fire',multiplier:.35});
-      if(a.effect==='summon_blade'&&!battleStateV10.equipmentCompanions.some(c=>c.effect===a.effect))battleStateV10.equipmentCompanions.push({effect:a.effect,name:'契約劍魂',icon:'⚔️',type:'physical',multiplier:.35});
+      if(a.effect==='summon_flame'&&!battleStateV10.equipmentCompanions.some(c=>c.effect===a.effect))battleStateV10.equipmentCompanions.push({affixId:a.id,effect:a.effect,name:'火靈契約',icon:'🔥',type:'fire',multiplier:.35});
+      if(a.effect==='summon_blade'&&!battleStateV10.equipmentCompanions.some(c=>c.effect===a.effect))battleStateV10.equipmentCompanions.push({affixId:a.id,effect:a.effect,name:'劍魂契約',icon:'⚔️',type:'physical',multiplier:.35});
     });
     if(affixes.length)addBattleLog(`💎 詞條裝備啟動：${affixes.map(a=>a.name).join('、')}`);
-    (battleStateV10.equipmentCompanions||[]).forEach(c=>addBattleLog(`${c.icon} ${c.name}受到裝備召喚，會在勇者造成傷害後追擊。`));
+    (battleStateV10.equipmentCompanions||[]).forEach(c=>addBattleLog(`${c.icon} ${c.name}由裝備詞綴啟動，會在勇者造成傷害後追擊。`));
     updateBattleStatuses();renderBattleTargets();return result;
   };
 
+  async function hitEquipmentFollowup(target,name,type,multiplier){
+    if(!target||target.hp<=0)return 0;
+    const physical=type==='physical',atk=effectiveBattleValue(battleStateV10.hero,physical?'attack':'magicAttack'),def=effectiveBattleValue(target,physical?'defense':'magicDefense');
+    // 詞綴追擊的倍率套在「完整基礎傷害」上，而不是先縮小攻擊力再扣完整防禦；舊算法會大量被 Math.max(1,...) 壓成 1。
+    let amount=Math.max(1,(atk-def*.50)*Math.max(0,Number(multiplier)||0));
+    if(!physical&&type!=='holy'&&type!=='arcane')amount*=Math.max(.05,1-totalElementRes(target,type));
+    amount=Math.max(1,Math.round(amount));
+    const act={name,type,multiplier:1,forceHit:true,canDodge:false,canParry:false};
+    await animateBattleAction('hero',{type:'hit',damage:amount,damageType:type},null,act);
+    const dealt=applyDamageToEnemy(target,amount);showDamage('enemy','-'+dealt);addBattleLog(`${name}造成 ${dealt} 點${physical?'物理':'元素'}追擊傷害。`);renderBattleTargets();return dealt;
+  }
   async function triggerEquipmentAfterAttack(target,damage){
     if(!battleStateV10||battleStateV10.ended||!target||target.hp<=0||damage<=0)return;
     const affixes=battleStateV10.equipmentAffixes||[];
     for(const a of affixes){
       if(a.effect==='lifesteal'){const heal=Math.max(1,Math.round(damage*Number(a.ratio||0)));battleStateV10.heroHp=Math.min(battleStateV10.hero.maxHp,battleStateV10.heroHp+heal);updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);addBattleLog(`🩸 飲血恢復 ${heal} HP。`);}
-      if(a.effect==='echo_fire'&&Math.random()<Number(a.chance||0))await hitTarget(target,{name:'餘燼回響',type:'fire'},Number(a.multiplier||.6),'fire');
-      if(a.effect==='echo_physical'&&Math.random()<Number(a.chance||0))await hitTarget(target,{name:'幻影追擊',type:'physical'},Number(a.multiplier||.7),'physical');
+      if(a.effect==='echo_fire'&&Math.random()<Number(a.chance||0))await hitEquipmentFollowup(target,'餘燼回響','fire',Number(a.multiplier||.6));
+      if(a.effect==='echo_physical'&&Math.random()<Number(a.chance||0))await hitEquipmentFollowup(target,'幻影追擊','physical',Number(a.multiplier||.7));
     }
     for(const c of (battleStateV10.equipmentCompanions||[])){
-      if(target.hp<=0)break;await hitTarget(target,{name:c.name,type:c.type},c.multiplier,c.type);addBattleLog(`${c.icon} ${c.name}完成追擊！`);
+      if(target.hp<=0)break;await hitEquipmentFollowup(target,c.name,c.type,c.multiplier);addBattleLog(`${c.icon} ${c.name}完成追擊！`);
     }
   }
   const previousPerformActionV101192=performAction;
@@ -11266,6 +11280,7 @@ window.STUDYRPG_EDITOR_CONFIG={
     }
   },
   "monsterSkills": {},
+  "equipmentAffixes": {},
   "sceneCoordinateLayout": {
     "desktop": {
       "statusHero": {
