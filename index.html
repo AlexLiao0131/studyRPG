@@ -2857,7 +2857,12 @@ function approveCoupon(reqId,approved){
   if(!req)return;
   const inv=gameData.inventory.find(x=>x.id===req.inventoryId);
   req.status=approved?'approved':'rejected';
-  if(inv)inv.status=approved?'used':'unused';
+  req.reviewedDate=today();
+  if(inv){
+    inv.status=approved?'used':'unused';
+    if(approved)inv.usedDate=today();
+    else delete inv.usedDate;
+  }
   saveGame();renderAll();
 }
 function isDungeonBattleEvent(e){
@@ -5599,7 +5604,26 @@ function equipmentPanel(){ensureItemSystem();return `<div class="card"><h3>🛡�
 function totalEquipmentStats(){ensureItemSystem();const out={attack:0,magicAttack:0,defense:0,magicDefense:0,speed:0,maxHp:0,maxEnergy:0,crit:0,evade:0,block:0};Object.values(gameData.hero.equipment||{}).forEach(id=>{const inv=gameData.inventory.find(x=>x.id===id),s=itemDefinition(inv)?.stats||{};Object.keys(out).forEach(k=>out[k]+=Number(s[k])||0)});return out;}
 
 function renderShop(){ensureItemSystem();ensureDailySkillBookOffers();let html='<h2>🏪 商店</h2>'+categoryTabs('shop',shopCategoryFilter);const items=gameData.shopItems.filter(i=>i.active&&(shopCategoryFilter==='all'||itemCategory(i)===shopCategoryFilter));if(!items.length)html+='<div class="card small">這個分類目前沒有商品。</div>';items.forEach(i=>{html+=`<div class="card"><strong>${i.icon||'📦'} ${i.name}</strong><span class="pill">${ITEM_CATEGORY_LABELS[itemCategory(i)]||itemCategory(i)}</span><div class="small">${i.description||''}</div>${i.category==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[i.equipSlot]||'裝備'}｜${equipmentStatText(i)}</div>`:''}<div>價格：<span class="bad">${i.price} G</span></div><button class="btn blue" onclick="buyItem('${i.id}')">購買</button></div>`});if(gameData.hero.jobAwakened)html+=`<div class="card"><h3>📘 今日職業技能書</h3>${(gameData.skillBookOffers?.items||[]).length?gameData.skillBookOffers.items.map(o=>`<div><strong>${JOB_SKILL_LIBRARY[o.id]?.name||o.id}</strong>｜${o.price} G <button class="btn purple" onclick="buySkillBook('${o.id}')">購買</button></div>`).join(''):'<div class="small">今天沒有技能書出現。</div>'}</div>`;document.getElementById('panel-shop').innerHTML=html;}
-function renderBag(){ensureItemSystem();let html='<h2>🎒 背包</h2>'+equipmentPanel()+(window.equipmentProcessingHTML?.()||'')+categoryTabs('bag',bagCategoryFilter);const list=gameData.inventory.filter(inv=>bagCategoryFilter==='all'||itemCategory(inv)===bagCategoryFilter);if(!list.length)html+='<div class="card small">這個分類目前沒有物品。</div>';list.forEach(inv=>{const item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong> <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${inv.source==='dungeon'?'副本掉落':inv.source==='lottery'?'抽獎':'商店'}</div>${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`});document.getElementById('panel-bag').innerHTML=html;}
+function renderBag(){
+  ensureItemSystem();
+  let html='<h2>🎒 背包</h2>'+equipmentPanel()+(window.equipmentProcessingHTML?.()||'')+categoryTabs('bag',bagCategoryFilter);
+  const usedCoupons=gameData.inventory.filter(inv=>inv.status==='used'&&itemCategory(inv)==='coupon');
+  const list=gameData.inventory.filter(inv=>inv.status!=='used'&&(bagCategoryFilter==='all'||itemCategory(inv)===bagCategoryFilter));
+  if(!list.length)html+='<div class="card small">這個分類目前沒有物品。</div>';
+  list.forEach(inv=>{
+    const item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);
+    html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong> <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${inv.source==='dungeon'?'副本掉落':inv.source==='lottery'?'抽獎':'商店'}</div>${inv.status==='pending'&&cat==='coupon'?'<div class="small warn">等待家長核准</div>':''}${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`;
+  });
+  if((bagCategoryFilter==='all'||bagCategoryFilter==='coupon')&&usedCoupons.length){
+    const rows=[...usedCoupons].sort((a,b)=>String(b.usedDate||'').localeCompare(String(a.usedDate||''))).map(inv=>{
+      const req=[...(gameData.couponRequests||[])].reverse().find(r=>r.inventoryId===inv.id&&r.status==='approved');
+      const usedDate=inv.usedDate||req?.reviewedDate||req?.date||'日期未記錄';
+      return `<div class="card" style="margin:7px 0"><strong>🎟️ ${inv.name}</strong><div class="small">使用日期：${usedDate}</div></div>`;
+    }).join('');
+    html+=`<details class="card" style="margin-top:14px"><summary style="cursor:pointer;font-weight:900">🧾 已使用兌換券紀錄（${usedCoupons.length}）</summary><div style="margin-top:8px">${rows}</div></details>`;
+  }
+  document.getElementById('panel-bag').innerHTML=html;
+}
 
 function gmShopTypeFields(){const cat=document.getElementById('gmShopCategory')?.value||'coupon',box=document.getElementById('gmShopExtra');if(!box)return;box.innerHTML=cat==='equipment'?`<div class="grid2"><div><label>裝備部位</label><select id="gmEquipSlot"><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div><div><label>能力種類</label><select id="gmEquipStat"><option value="attack">ATK</option><option value="magicAttack">MATK</option><option value="defense">DEF</option><option value="magicDefense">MDEF</option><option value="speed">SPD</option><option value="crit">暴擊率(%)</option><option value="evade">閃避率(%)</option><option value="block">格擋率(%)</option></select></div></div><label>能力數值</label><input id="gmEquipValue" type="number" value="3">`:cat==='consumable'?`<div class="grid2"><div><label>戰鬥效果</label><select id="gmEffectType"><option value="poison">中毒</option><option value="heal_hp">恢復 HP</option><option value="heal_energy">恢復能量</option></select></div><div><label>效果值</label><input id="gmEffectValue" type="number" value="50"></div></div>`:'';}
 function gmAddShopItem(){ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name){alert('請輸入商品名稱');return;}const category=document.getElementById('gmShopCategory')?.value||'coupon';const item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};if(category==='equipment'){item.equipSlot=document.getElementById('gmEquipSlot')?.value||'weapon';const k=document.getElementById('gmEquipStat')?.value||'attack';let v=Number(document.getElementById('gmEquipValue')?.value)||0;if(['crit','evade','block'].includes(k))v/=100;item.stats[k]=v;}if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}gameData.shopItems.push(item);saveGame();renderAll();}
@@ -8591,17 +8615,35 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     const wd=weekdayNumberFor(ds),days=Array.isArray(t.weekdays)&&t.weekdays.length?t.weekdays:[1,2,3,4,5,6,0];
     return days.includes(wd);
   }
+  function examCompletionRequirementKey(evt){
+    return String(evt?.id||`${evt?.type||'exam'}:${evt?.date||''}`);
+  }
+  function fixedExamCompletionRequirements(evt,ids,base){
+    gameData.examCompletionRequirementsV101714=gameData.examCompletionRequirementsV101714||{};
+    const key=examCompletionRequirementKey(evt);
+    let snap=gameData.examCompletionRequirementsV101714[key];
+    const valid=snap&&snap.examDate===evt.date&&snap.baseDate===base&&ids.every(id=>Number.isFinite(Number(snap.byCourse?.[id])));
+    if(!valid){
+      const minutes=studyMinutesUntil(evt.date,ids,base),rates=subjectPowerRates(ids),byCourse={};
+      ids.forEach(id=>byCourse[id]=Math.max(0,(Number(minutes[id])||0)/60*(Number(rates[id])||0)*SEMESTER_BALANCE.targetCompletion));
+      snap={examType:evt.type||'',examDate:evt.date,baseDate:base,createdAt:new Date().toISOString(),byCourse};
+      gameData.examCompletionRequirementsV101714[key]=snap;
+      // 只保存量表分母快照；Boss 仍沿用原本動態預估公式。
+      try{saveGame();}catch(e){}
+    }
+    return snap.byCourse||{};
+  }
   window.examTaskCompletionReport=function(evt){
     ensureExamBossConfig();if(!evt)return {ratio:0,approved:0,required:0,byCourse:{}};
-    const ids=eventSubjectIds(evt),base=gameData.examBossBaselineV10158?.date||today();
-    // 分母固定使用「啟用日起至考試最後一天」的完整總需求；分子只計入截至今天已核定的任務。
-    const requirementEnd=evt.date,approvedEnd=today()<evt.date?today():evt.date;
+    // 量表以本學期開學日為起點補正；2026 上學期為 2026-08-31。
+    // 注意：這個 base 只屬於完成率量表，Boss 戰力仍使用 examBossBaselineV10158，不改 Boss 公式。
+    const ids=eventSubjectIds(evt),base=gameData.semester?.startDate||OFFICIAL_LAUNCH_DATE;
+    // 完成率量表的分母從開學日起計算並鎖定；之後任務/週末變化只影響動態 Boss 預測，不再讓量表分母漂移。
+    const approvedEnd=today()<evt.date?today():evt.date;
     const byCourse=Object.fromEntries(ids.map(id=>[id,{approved:0,required:0}]));
-    // 總需求必須和 Boss 成長預估共用同一來源：基準日至考試日的課表時數。
-    // 不再用目前已建立的任務數量當分母，避免開學第一天一筆任務就顯示滿格。
-    const minutes=studyMinutesUntil(requirementEnd,ids,base),rates=subjectPowerRates(ids);
+    const fixedRequired=fixedExamCompletionRequirements(evt,ids,base);
     ids.forEach(id=>{
-      byCourse[id].required=Math.max(0,(Number(minutes[id])||0)/60*(Number(rates[id])||0)*SEMESTER_BALANCE.targetCompletion);
+      byCourse[id].required=Math.max(0,Number(fixedRequired[id])||0);
     });
     (gameData.taskRecords||[]).forEach(r=>{
       // pending、rejected 或尚未核定比例的紀錄一律不計入。
