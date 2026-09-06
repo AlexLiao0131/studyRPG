@@ -1,1 +1,425 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StudyRPG Battle Test Lab</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--card:#21262d;--line:#30363d;--text:#f0f6fc;--muted:#8b949e;--green:#3fb950;--red:#f85149;--gold:#f0883e;--blue:#58a6ff;--purple:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,"Noto Sans TC",sans-serif}
+header{position:sticky;top:0;z-index:20;padding:12px 14px;background:#161b22;border-bottom:1px solid var(--line)}
+h1{margin:0;color:var(--gold);font-size:20px}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+main{max-width:1250px;margin:auto;padding:12px}.layout{display:grid;grid-template-columns:360px 1fr;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+h2{font-size:16px;margin:0 0 10px;color:var(--gold)}h3{font-size:14px;margin:8px 0;color:#d2a8ff}
+label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:7px 0 3px}
+input,select,button{width:100%;background:#0d1117;color:#fff;border:1px solid #465164;border-radius:8px;padding:8px}
+button{cursor:pointer;font-weight:800;background:#273248}button.primary{background:#1f6feb}button.green{background:#238636}button.red{background:#8b2d2d}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.tabs button{width:auto}.tabs button.active{background:#f0883e;color:#111}
+.status{padding:9px;border:1px solid var(--line);border-radius:8px;font-size:12px}.ok{border-color:#238636;color:#7ee787}.bad{border-color:#da3633;color:#ff7b72}.warn{border-color:#9e6a03;color:#e3b341}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.metric{background:#0d1117;border:1px solid var(--line);border-radius:9px;padding:8px}.metric b{display:block;font-size:18px}.metric span{font-size:11px;color:var(--muted)}
+.meter{margin:7px 0}.meter-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}.bar{height:22px;background:#0d1117;border:1px solid var(--line);border-radius:7px;overflow:hidden;position:relative}.fill{height:100%;background:linear-gradient(90deg,#1f6feb,#58a6ff)}.bar span{position:absolute;left:7px;top:2px;font-size:11px;font-weight:800;text-shadow:0 1px #000}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{color:var(--muted);position:sticky;top:0;background:#161b22}
+.scroll{overflow:auto;max-height:380px}pre{white-space:pre-wrap;word-break:break-word;background:#090c10;border:1px solid var(--line);padding:10px;border-radius:8px;max-height:260px;overflow:auto}
+.pill{display:inline-block;padding:2px 6px;border:1px solid var(--line);border-radius:999px;margin:2px;font-size:11px}.good{color:#7ee787}.badtext{color:#ff7b72}.muted{color:var(--muted);font-size:11px}
+.log{font-family:ui-monospace,monospace;font-size:11px;line-height:1.55;background:#090c10;padding:9px;border-radius:8px;height:260px;overflow:auto}
+.hidden{display:none!important}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>⚔️ StudyRPG Battle Test Lab</h1><div class="sub">直接讀 GitHub 根目錄 index.html｜週分類｜英雄↔怪物｜Buff｜詞綴｜Trigger｜即時 DPS Meter｜批次戰鬥</div></header>
+<main>
+<div class="layout">
+<section>
+<div class="card">
+<h2>正式主程式來源</h2>
+<div id="source" class="status">尚未讀取</div>
+<div style="height:8px"></div>
+<button id="reload" class="primary">↻ 重新讀取 GitHub index.html</button>
+<label>或手動載入 index.html</label><input id="file" type="file" accept=".html,text/html">
+</div>
 
+<div class="card">
+<h2>本週分類</h2>
+<div class="row">
+<div><label>週數</label><select id="week"></select></div>
+<div><label>英雄職業</label><select id="job"></select></div>
+</div>
+<label>本週怪物</label><select id="monster"></select>
+<div id="weekMeta" class="muted"></div>
+</div>
+
+<div class="card">
+<h2>測試模式</h2>
+<div class="tabs" id="modeTabs">
+<button data-mode="hero" class="active">英雄 → 怪物</button>
+<button data-mode="monster">怪物 → 英雄</button>
+<button data-mode="buff">Buff / Debuff</button>
+<button data-mode="affix">詞綴 / Trigger</button>
+</div>
+<div id="heroMode">
+<label>英雄技能</label><select id="heroSkill"></select>
+</div>
+<div id="monsterMode" class="hidden">
+<label>怪物技能</label><select id="monsterSkill"></select>
+</div>
+<div id="buffMode" class="hidden">
+<label>Buff / Debuff / Status</label><select id="statusSelect"></select>
+<div id="statusMeta" class="muted"></div>
+</div>
+<div id="affixMode" class="hidden">
+<label>裝備詞綴</label><select id="affixSelect"></select>
+<div id="affixMeta" class="muted"></div>
+</div>
+</div>
+
+<div class="card">
+<h2>沙盒能力值</h2>
+<div class="row"><div><label>英雄 ATK</label><input id="hAtk" type="number" value="100"></div><div><label>英雄 MATK</label><input id="hMatk" type="number" value="100"></div></div>
+<div class="row"><div><label>英雄 DEF</label><input id="hDef" type="number" value="50"></div><div><label>英雄 MDEF</label><input id="hMdef" type="number" value="50"></div></div>
+<div class="row"><div><label>怪物 ATK</label><input id="mAtk" type="number" value="90"></div><div><label>怪物 MATK</label><input id="mMatk" type="number" value="70"></div></div>
+<div class="row"><div><label>怪物 DEF</label><input id="mDef" type="number" value="45"></div><div><label>怪物 MDEF</label><input id="mMdef" type="number" value="40"></div></div>
+<div class="row"><div><label>英雄對應抗性 %</label><input id="hRes" type="number" value="0"></div><div><label>怪物對應抗性 %</label><input id="mRes" type="number" value="0"></div></div>
+</div>
+
+<div class="card">
+<div class="row"><button id="single" class="primary">▶ 單項測試</button><button id="reset" class="red">重置統計</button></div>
+<div style="height:8px"></div>
+<button id="batch" class="green">▶ 測試本週全部戰鬥</button>
+<div class="row3" style="margin-top:8px">
+<div><label>模擬秒數</label><input id="seconds" type="number" value="60" min="5"></div>
+<div><label>速度</label><select id="speed"><option value="1">1x</option><option value="2">2x</option><option value="5">5x</option><option value="10" selected>10x</option></select></div>
+<div><label>每次行動秒</label><input id="gcd" type="number" value="1.5" step=".1"></div>
+</div>
+</div>
+</section>
+
+<section>
+<div class="card">
+<h2>即時戰鬥統計</h2>
+<div class="metrics" id="metrics"></div>
+<div id="meter"></div>
+</div>
+
+<div class="card">
+<h2>技能 / 效果分析</h2>
+<div id="analysis">讀取主程式後即可開始。</div>
+</div>
+
+<div class="card">
+<h2>Buff / 詞綴 / Trigger 統計</h2>
+<div class="scroll">
+<table><thead><tr><th>來源</th><th>類型</th><th>觸發機會</th><th>觸發</th><th>觸發率</th><th>傷害/治療</th><th>覆蓋率</th></tr></thead><tbody id="triggerRows"></tbody></table>
+</div>
+</div>
+
+<div class="card">
+<h2>本週全部戰鬥結果</h2>
+<div id="batchSummary" class="muted">尚未執行。</div>
+<div class="scroll">
+<table><thead><tr><th>結果</th><th>週</th><th>怪物</th><th>方向</th><th>技能</th><th>DPS</th><th>總量</th><th>問題</th></tr></thead><tbody id="batchRows"></tbody></table>
+</div>
+</div>
+
+<div class="card">
+<h2>Combat Log</h2>
+<div id="log" class="log"></div>
+</div>
+
+<div class="card">
+<h2>目前原始資料</h2>
+<pre id="raw">—</pre>
+</div>
+</section>
+</div>
+</main>
+
+<script>
+const RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/index.html';
+let mainText='', DB={}, state={mode:'hero',stats:{},log:[],elapsed:0};
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=(id,def=0)=>Number($(id).value||def);
+
+function balanced(text,start,open='{',close='}'){
+  let depth=0,q=null,escp=false,line=false,block=false;
+  for(let i=start;i<text.length;i++){
+    const c=text[i],n=text[i+1];
+    if(line){if(c==='\\n')line=false;continue}
+    if(block){if(c==='*'&&n==='/'){block=false;i++}continue}
+    if(q){if(escp){escp=false;continue}if(c==='\\\\'){escp=true;continue}if(c===q)q=null;continue}
+    if(c==='/'&&n==='/'){line=true;i++;continue}
+    if(c==='/'&&n==='*'){block=true;i++;continue}
+    if(c==='"'||c==="'"||c==='`'){q=c;continue}
+    if(c===open)depth++;
+    else if(c===close){depth--;if(depth===0)return text.slice(start,i+1)}
+  }
+  return null;
+}
+function findObject(name){
+  const pats=[`const ${name}=`,`let ${name}=`,`var ${name}=`,`window.${name}=`];
+  for(const p of pats){
+    let i=mainText.indexOf(p); if(i<0)continue;
+    let s=mainText.indexOf('{',i+p.length); if(s<0)continue;
+    const z=balanced(mainText,s); if(!z)continue;
+    try{return Function('"use strict";return ('+z+')')()}catch(e){}
+  }
+  return null;
+}
+function findArray(name){
+  const pats=[`const ${name}=`,`let ${name}=`,`var ${name}=`,`window.${name}=`];
+  for(const p of pats){
+    let i=mainText.indexOf(p); if(i<0)continue;
+    let s=mainText.indexOf('[',i+p.length); if(s<0)continue;
+    let z=balanced(mainText,s,'[',']'); if(!z)continue;
+    try{return Function('"use strict";return ('+z+')')()}catch(e){}
+  }
+  return null;
+}
+function parseDB(){
+  DB.beginner=findArray('BEGINNER_SKILLS')||findObject('BEGINNER_SKILLS')||{};
+  DB.jobs=findObject('JOB_SKILL_LIBRARY')||{};
+  DB.jobRules=findObject('JOB_RULES')||{};
+  DB.monsters=findObject('MONSTER_DATABASE')||{};
+  DB.monsterSkills=findObject('MONSTER_SKILL_DATABASE')||{};
+  DB.weekly=findObject('WEEKLY_MAP_DATABASE')||{};
+  DB.affixes=findObject('EQUIPMENT_AFFIX_DATABASE')||findObject('AFFIXES')||{};
+  DB.statusTypes=findObject('STATUS_TYPE_DATABASE')||{};
+  DB.effects=findObject('EFFECT_DATABASE')||{};
+  buildControls();
+}
+function arr(v){return Array.isArray(v)?v:Object.values(v||{}).filter(x=>x&&typeof x==='object')}
+function skillById(id){for(const s of allHeroSkills())if(s.id===id)return s;return null}
+function allHeroSkills(){return [...arr(DB.beginner),...Object.values(DB.jobs||{}).flatMap(arr)]}
+function jobSkills(job){
+  const b=arr(DB.beginner);
+  const direct=arr(DB.jobs?.[job]);
+  const rule=DB.jobRules?.[job];
+  if(direct.length)return [...b,...direct];
+  if(Array.isArray(rule))return [...b,...rule.map(skillById).filter(Boolean)];
+  if(rule&&Array.isArray(rule.skills))return [...b,...rule.skills.map(skillById).filter(Boolean)];
+  return b;
+}
+function allWeeks(){
+  const keys=Object.keys(DB.weekly||{});
+  if(keys.length)return keys.map(k=>({key:k,n:Number(String(k).match(/\\d+/)?.[0]||0)})).sort((a,b)=>a.n-b.n);
+  return Array.from({length:20},(_,i)=>({key:String(i+1),n:i+1}));
+}
+function weeklyEntry(weekKey){
+  return DB.weekly?.[weekKey] ?? DB.weekly?.['week'+weekKey] ?? DB.weekly?.[Number(weekKey)] ?? null;
+}
+function monsterIdsForWeek(weekKey){
+  const w=weeklyEntry(weekKey);
+  if(!w)return Object.keys(DB.monsters||{}).slice(0,5);
+  const out=new Set();
+  const walk=v=>{
+    if(v==null)return;
+    if(typeof v==='string'){if(DB.monsters?.[v])out.add(v);return}
+    if(Array.isArray(v)){v.forEach(walk);return}
+    if(typeof v==='object'){
+      if(v.id&&DB.monsters?.[v.id])out.add(v.id);
+      ['monster','monsterId','enemy','enemyId','monsters','enemies','pool','encounters'].forEach(k=>{if(k in v)walk(v[k])});
+    }
+  }; walk(w);
+  return [...out].length?[...out]:Object.keys(DB.monsters||{}).slice(0,5);
+}
+function monsterSkillList(mid){
+  const m=DB.monsters?.[mid]||{};
+  const direct=DB.monsterSkills?.[mid]||DB.monsterSkills?.[m.name]||m.skills||m.skillIds;
+  let a=arr(direct);
+  if(a.length&&typeof a[0]==='string')a=a.map(id=>DB.monsterSkills?.[id]).filter(Boolean);
+  if(!a.length&&Array.isArray(m.skillIds))a=m.skillIds.map(id=>DB.monsterSkills?.[id]).filter(Boolean);
+  if(!a.length){
+    a=Object.values(DB.monsterSkills||{}).flatMap(v=>Array.isArray(v)?v:[v]).filter(x=>x&&typeof x==='object'&&(!x.monsterId||x.monsterId===mid));
+  }
+  return a.slice(0,20);
+}
+function buildControls(){
+  const weeks=allWeeks();
+  $('week').innerHTML=weeks.map(x=>`<option value="${esc(x.key)}">第 ${x.n||x.key} 週</option>`).join('');
+  const jobs=Object.keys(DB.jobs||{});
+  const fallback=['novice','warrior','mage','priest','hunter','rogue','paladin','spellblade'];
+  $('job').innerHTML=(jobs.length?jobs:fallback).map(j=>`<option value="${esc(j)}">${esc(j)}</option>`).join('');
+  refreshWeek();
+  buildStatus();
+  buildAffixes();
+  $('source').className='status ok';
+  $('source').textContent=`讀取成功｜怪物 ${Object.keys(DB.monsters||{}).length}｜詞綴 ${Object.keys(DB.affixes||{}).length}｜週 ${weeks.length}`;
+}
+function refreshWeek(){
+  const wk=$('week').value, ids=monsterIdsForWeek(wk);
+  $('monster').innerHTML=ids.map(id=>`<option value="${esc(id)}">${esc(DB.monsters?.[id]?.name||id)}</option>`).join('');
+  $('weekMeta').textContent=`本週讀到 ${ids.length} 隻怪物`;
+  refreshSkills();
+}
+function refreshSkills(){
+  const hs=jobSkills($('job').value);
+  $('heroSkill').innerHTML=hs.map((s,i)=>`<option value="${i}">${esc(s.name||s.label||s.id||'技能')}</option>`).join('');
+  const ms=monsterSkillList($('monster').value);
+  $('monsterSkill').innerHTML=ms.map((s,i)=>`<option value="${i}">${esc(s.name||s.label||s.id||'技能')}</option>`).join('');
+  analyzeCurrent();
+}
+function buildStatus(){
+  let sts=arr(DB.statusTypes);
+  if(!sts.length){
+    const found=new Map();
+    for(const s of allHeroSkills())for(const e of effectsOf(s)){
+      if((e.type||e.category)==='status'||e.statusType||e.mods||e.modifiers)found.set(e.statusType||e.id||e.name||'status',e);
+    }
+    sts=[...found.values()];
+  }
+  $('statusSelect').innerHTML=sts.map((s,i)=>`<option value="${i}">${esc(s.name||s.label||s.id||s.statusType||'status')}</option>`).join('');
+  $('statusSelect').dataset.json=JSON.stringify(sts);
+}
+function buildAffixes(){
+  const af=Object.entries(DB.affixes||{});
+  $('affixSelect').innerHTML=af.map(([id,a])=>`<option value="${esc(id)}">${esc(a.name||id)}</option>`).join('');
+}
+function effectsOf(s){
+  if(!s)return [];
+  if(Array.isArray(s.effects)&&s.effects.length)return s.effects;
+  const out=[];
+  if(s.multiplier!=null||s.type||s.damageType)out.push({type:'damage',damageType:s.damageType||s.type||'physical',source:s.source,multiplier:s.multiplier??1});
+  if(s.healMultiplier!=null||s.heal)out.push({type:'recovery',recoveryType:'heal',source:s.source||'magicAttack',multiplier:s.healMultiplier??s.heal});
+  if(s.mods||s.modifiers)out.push({type:'status',statusType:s.statusType||'buff',mods:s.mods,modifiers:s.modifiers,duration:s.duration||s.turns});
+  return out;
+}
+function currentSkill(){
+  if(state.mode==='hero')return jobSkills($('job').value)[+$('heroSkill').value];
+  if(state.mode==='monster')return monsterSkillList($('monster').value)[+$('monsterSkill').value];
+  if(state.mode==='buff'){const a=JSON.parse($('statusSelect').dataset.json||'[]');return a[+$('statusSelect').value]}
+  if(state.mode==='affix')return DB.affixes?.[$('affixSelect').value];
+}
+function analyzeCurrent(){
+  const x=currentSkill(); if(!x){$('analysis').textContent='目前沒有可分析資料。';return}
+  const es=effectsOf(x), tags=[];
+  if(x.school)tags.push('School '+x.school);
+  for(const e of es){if(e.damageType)tags.push('Damage '+e.damageType);if(e.recoveryType)tags.push('Recovery '+e.recoveryType);if(e.statusType)tags.push('Status '+e.statusType)}
+  if(x.trigger)tags.push('Trigger '+x.trigger);
+  $('analysis').innerHTML=`<b>${esc(x.name||x.label||x.id||'未命名')}</b><br>${tags.map(t=>`<span class="pill">${esc(t)}</span>`).join('')}<br><br><span class="muted">Effects：${esc(es.map(e=>e.type||e.category||e.effect||'?').join(' / ')||'—')}</span>`;
+  $('raw').textContent=JSON.stringify(x,null,2);
+  if(state.mode==='affix')$('affixMeta').textContent=`kind=${x.kind||'—'} trigger=${x.trigger||'—'} effect=${x.effect||'—'}`;
+  if(state.mode==='buff')$('statusMeta').textContent=`duration=${x.duration||x.turns||'—'} status=${x.statusType||x.category||'—'}`;
+}
+function actorStats(side){return side==='hero'?{attack:num('hAtk'),magicAttack:num('hMatk'),defense:num('hDef'),magicDefense:num('hMdef'),res:num('hRes')/100}:{attack:num('mAtk'),magicAttack:num('mMatk'),defense:num('mDef'),magicDefense:num('mMdef'),res:num('mRes')/100}}
+function resolveDamage(effect,att,def){
+  const dt=effect.damageType||'physical', source=effect.source||((dt==='physical')?'attack':'magicAttack');
+  const atk=/magic|matk/i.test(source)?att.magicAttack:att.attack;
+  const dv=dt==='physical'?def.defense:def.magicDefense;
+  const pierce=Math.max(0,Math.min(.9,Number(effect.defensePierce||0)));
+  let raw=Math.max(1,atk*Number(effect.multiplier??1)-dv*(1-pierce)*.5);
+  if(dt!=='physical'&&dt!=='holy'&&dt!=='arcane')raw*=1-def.res;
+  return Math.max(0,raw);
+}
+function resolveRecovery(effect,att){
+  const source=effect.source||'magicAttack', base=/attack/i.test(source)&&!/magic/i.test(source)?att.attack:att.magicAttack;
+  return Math.max(0,base*Number(effect.multiplier??1));
+}
+function record(source,type,amount,meta={}){
+  if(!state.stats[source])state.stats[source]={source,type,total:0,count:0,crit:0,opps:0,triggers:0,uptime:0};
+  const r=state.stats[source];r.total+=amount||0;r.count++;if(meta.opp)r.opps++;if(meta.trigger)r.triggers++;if(meta.uptime)r.uptime+=meta.uptime;
+}
+function logLine(t){state.log.push(t);if(state.log.length>400)state.log.shift();$('log').innerHTML=state.log.slice().reverse().map(esc).join('<br>')}
+function runObject(obj,side,label,elapsed=0){
+  if(!obj)return {total:0,issues:['缺資料']};
+  const es=effectsOf(obj),att=actorStats(side),def=actorStats(side==='hero'?'monster':'hero'),issues=[],lines=[], totalBy={damage:0,recovery:0};
+  if(!obj.id)issues.push('缺 id');
+  if(!obj.school&&state.mode!=='affix'&&state.mode!=='buff')issues.push('缺 school');
+  if(!es.length&&!(obj.kind||obj.trigger||obj.mods||obj.modifiers))issues.push('無 effects');
+  for(const e of es){
+    const t=e.type||e.category||e.effect;
+    if(t==='damage'){
+      if(!e.damageType)issues.push('傷害缺 damageType');
+      const d=resolveDamage(e,att,def);totalBy.damage+=d;record(label,'damage',d);lines.push(`${label} → ${d.toFixed(1)} ${e.damageType||''}`);
+    }else if(t==='recovery'||t==='heal'||e.recoveryType){
+      const h=resolveRecovery(e,att);totalBy.recovery+=h;record(label,'recovery',h);lines.push(`${label} 治療 ${h.toFixed(1)}`);
+    }else if(t==='status'||e.statusType||e.mods||e.modifiers){
+      const dur=Number(e.duration||e.turns||3);record(label,'status',0,{uptime:dur});lines.push(`${label} 套用狀態 ${e.statusType||e.category||'status'} ${dur} 回合`);
+    }
+  }
+  if(obj.trigger||obj.kind==='trigger'||obj.kind==='summon'){
+    const chance=Number(obj.chance??1);const trig=Math.random()<chance;record(label,'trigger',0,{opp:true,trigger:trig});
+    if(trig){
+      const mult=Number(obj.multiplier||obj.ratio||0);
+      if(mult>0){
+        const dt=(obj.effect||'').includes('fire')?'fire':'physical';
+        const d=resolveDamage({damageType:dt,source:dt==='physical'?'attack':'magicAttack',multiplier:mult},att,def);
+        totalBy.damage+=d;record(label,'damage',d);lines.push(`${label} 觸發 → ${d.toFixed(1)}`);
+      } else lines.push(`${label} 觸發`);
+    }
+  }
+  lines.forEach(x=>logLine(`${elapsed.toFixed(1)}s ${x}`));
+  return {total:totalBy.damage+totalBy.recovery,damage:totalBy.damage,recovery:totalBy.recovery,issues};
+}
+function resetStats(){state.stats={};state.log=[];state.elapsed=0;$('log').innerHTML='';renderStats();$('triggerRows').innerHTML=''}
+function renderStats(){
+  const sec=Math.max(1,state.elapsed||num('seconds',60)), rows=Object.values(state.stats);
+  const dmg=rows.filter(r=>r.type==='damage').reduce((a,b)=>a+b.total,0),heal=rows.filter(r=>r.type==='recovery').reduce((a,b)=>a+b.total,0);
+  const events=rows.reduce((a,b)=>a+b.count,0),trigs=rows.reduce((a,b)=>a+b.triggers,0);
+  $('metrics').innerHTML=[['總傷害',dmg.toFixed(0)],['DPS',(dmg/sec).toFixed(1)],['總治療',heal.toFixed(0)],['HPS',(heal/sec).toFixed(1)],['事件',events]].map(x=>`<div class="metric"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
+  const dmgRows=rows.filter(r=>r.total>0).sort((a,b)=>b.total-a.total),max=dmgRows[0]?.total||1;
+  $('meter').innerHTML=dmgRows.map(r=>`<div class="meter"><div class="meter-head"><span>${esc(r.source)}</span><span>${r.total.toFixed(0)}｜${(r.total/sec).toFixed(1)}/s｜${dmg?((r.total/dmg)*100).toFixed(1):0}%</span></div><div class="bar"><div class="fill" style="width:${Math.max(2,r.total/max*100)}%"></div><span>${r.count} 次</span></div></div>`).join('')||'<div class="muted">尚無資料</div>';
+  $('triggerRows').innerHTML=rows.filter(r=>r.opps||r.type==='status'||r.type==='trigger').map(r=>`<tr><td>${esc(r.source)}</td><td>${esc(r.type)}</td><td>${r.opps}</td><td>${r.triggers}</td><td>${r.opps?((r.triggers/r.opps)*100).toFixed(1):'—'}%</td><td>${r.total.toFixed(1)}</td><td>${r.uptime?Math.min(100,r.uptime/sec*100).toFixed(1):'—'}%</td></tr>`).join('');
+}
+function singleTest(){
+  resetStats();
+  const x=currentSkill(),label=x?.name||x?.label||x?.id||'測試';
+  if(state.mode==='affix'){
+    const r=runObject(x,'hero',label,0);state.elapsed=1;
+    $('analysis').innerHTML+=`<br><br><b>${r.issues.length?'⚠️ '+esc(r.issues.join('；')):'✅ 單項測試通過'}</b>`;
+  }else if(state.mode==='buff'){
+    const r=runObject(x,'hero',label,0);state.elapsed=1;
+    $('analysis').innerHTML+=`<br><br><b>${r.issues.length?'⚠️ '+esc(r.issues.join('；')):'✅ 狀態資料可執行'}</b>`;
+  }else{
+    const side=state.mode==='hero'?'hero':'monster';const r=runObject(x,side,label,0);state.elapsed=1;
+    $('analysis').innerHTML+=`<br><br><b>${r.issues.length?'⚠️ '+esc(r.issues.join('；')):'✅ 技能資料可執行'}</b>`;
+  }
+  renderStats();
+}
+async function battleBatch(){
+  resetStats();$('batchRows').innerHTML='';$('batchSummary').textContent='正在測試本週全部戰鬥…';
+  const wk=$('week').value, mids=monsterIdsForWeek(wk), hs=jobSkills($('job').value), sec=Math.max(5,num('seconds',60)),gcd=Math.max(.1,num('gcd',1.5)),speed=Math.max(1,num('speed',10));
+  const results=[];let actions=0;
+  for(const mid of mids){
+    const mn=DB.monsters?.[mid]?.name||mid,ms=monsterSkillList(mid);
+    for(const s of hs){
+      const label=s.name||s.id||'英雄技能',r=runObject(s,'hero',label,actions*gcd);
+      results.push({monster:mn,dir:'英雄→怪物',skill:label,total:r.total,dps:r.damage/gcd,issues:r.issues});actions++;
+    }
+    for(const s of ms){
+      const label=s.name||s.id||'怪物技能',r=runObject(s,'monster',label,actions*gcd);
+      results.push({monster:mn,dir:'怪物→英雄',skill:label,total:r.total,dps:r.damage/gcd,issues:r.issues});actions++;
+    }
+  }
+  // Repeated timeline simulation for live meter / trigger frequency.
+  const steps=Math.floor(sec/gcd);
+  for(let i=0;i<steps;i++){
+    const mid=mids[i%mids.length], ms=monsterSkillList(mid), hs2=hs;
+    if(hs2.length)runObject(hs2[i%hs2.length],'hero',hs2[i%hs2.length].name||hs2[i%hs2.length].id||'英雄',i*gcd);
+    if(ms.length)runObject(ms[i%ms.length],'monster',ms[i%ms.length].name||ms[i%ms.length].id||'怪物',i*gcd+.01);
+    if(i%Math.max(1,Math.floor(10/speed))===0){state.elapsed=Math.max(gcd,(i+1)*gcd);renderStats();await new Promise(r=>setTimeout(r,20))}
+  }
+  state.elapsed=sec;renderStats();
+  const bad=results.filter(r=>r.issues.length);
+  $('batchSummary').innerHTML=`第 ${esc(wk)} 週｜怪物 ${mids.length}｜檢查 ${results.length} 個技能方向｜<span class="${bad.length?'badtext':'good'}">${bad.length?`需檢查 ${bad.length}`:'全部通過'}</span>`;
+  $('batchRows').innerHTML=results.map(r=>`<tr><td>${r.issues.length?'⚠️':'✅'}</td><td>${esc(wk)}</td><td>${esc(r.monster)}</td><td>${esc(r.dir)}</td><td>${esc(r.skill)}</td><td>${r.dps.toFixed(1)}</td><td>${r.total.toFixed(1)}</td><td>${esc(r.issues.join('；')||'PASS')}</td></tr>`).join('');
+}
+function setMode(mode){
+  state.mode=mode;document.querySelectorAll('#modeTabs button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  ['hero','monster','buff','affix'].forEach(m=>$(m+'Mode').classList.toggle('hidden',m!==mode));analyzeCurrent();
+}
+async function loadRemote(){
+  $('source').className='status';$('source').textContent='正在讀取 GitHub 根目錄 index.html…';
+  try{const r=await fetch(RAW+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);mainText=await r.text();parseDB()}
+  catch(e){$('source').className='status bad';$('source').textContent='GitHub 讀取失敗：'+e.message+'。可用下方手動載入。'}
+}
+document.querySelectorAll('#modeTabs button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$('reload').onclick=loadRemote;$('file').onchange=async e=>{const f=e.target.files[0];if(f){mainText=await f.text();parseDB()}};
+$('week').onchange=refreshWeek;$('job').onchange=refreshSkills;$('monster').onchange=refreshSkills;
+$('heroSkill').onchange=analyzeCurrent;$('monsterSkill').onchange=analyzeCurrent;$('statusSelect').onchange=analyzeCurrent;$('affixSelect').onchange=analyzeCurrent;
+$('single').onclick=singleTest;$('batch').onclick=battleBatch;$('reset').onclick=resetStats;
+resetStats();loadRemote();
+</script>
+</body></html>
