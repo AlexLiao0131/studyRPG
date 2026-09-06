@@ -3308,108 +3308,109 @@ Object.assign(STATUS_DATABASE,{
 
 const MONSTER_SKILL_DATABASE={
   /* Week 1 史萊姆 */
-  slime_tackle:{id:'slime_tackle',name:'史萊姆撞擊',kind:'physical',target:'single',multiplier:1.0},
-  water_bullet:{id:'water_bullet',name:'水彈',kind:'magic',element:'water',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.70}},
-  fire_bullet:{id:'fire_bullet',name:'火焰彈',kind:'magic',element:'fire',target:'single',multiplier:1.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05}},
-  nature_heal:{id:'nature_heal',name:'自然治癒',kind:'heal',element:'nature',target:'self',healMaxHp:.20},
-  thunder_bullet:{id:'thunder_bullet',name:'雷電彈',kind:'magic',element:'lightning',target:'single',multiplier:1.0,status:{id:'paralysis',chance:.30,duration:1}},
+  slime_tackle:{id:'slime_tackle',name:'史萊姆撞擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  water_bullet:{id:'water_bullet',name:'水彈',school:'elemental',effects:[{type:'damage',damageType:'water',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'water',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.70}},
+  fire_bullet:{id:'fire_bullet',name:'火焰彈',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'fire',target:'single',multiplier:1.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05}},
+  nature_heal:{id:'nature_heal',name:'自然治癒',school:'nature',effects:[{type:'recovery',recoveryType:'regeneration'}],kind:'heal',element:'nature',target:'self',healMaxHp:.20},
+  thunder_bullet:{id:'thunder_bullet',name:'雷電彈',school:'elemental',effects:[{type:'damage',damageType:'lightning',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'lightning',target:'single',multiplier:1.0,status:{id:'paralysis',chance:.30,duration:1}},
 
   /* Week 2 哥布林 */
-  goblin_club:{id:'goblin_club',name:'木棒敲擊',kind:'physical',target:'single',multiplier:1.0},
-  goblin_slash:{id:'goblin_slash',name:'短劍斬擊',kind:'physical',target:'single',multiplier:1.0},
-  goblin_guard:{id:'goblin_guard',name:'舉盾防禦',kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1},
-  goblin_magic_bolt:{id:'goblin_magic_bolt',name:'魔力彈',kind:'magic',target:'single',multiplier:1.0},
-  goblin_poison_curse:{id:'goblin_poison_curse',name:'毒咒',kind:'magic',target:'single',multiplier:.35,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
-  goblin_heal:{id:'goblin_heal',name:'治療術',kind:'heal',target:'ally_lowest_hp',healMaxHp:.15,conditionHpBelow:.40,maxUsesPerBattle:1},
-  goblin_heavy_slash:{id:'goblin_heavy_slash',name:'重斬',kind:'physical',target:'single',multiplier:1.4},
-  goblin_warcry:{id:'goblin_warcry',name:'戰吼',kind:'buff',target:'self',atkMultiplier:1.20,duration:3,maxUsesPerBattle:1},
-  goblin_summon:{id:'goblin_summon',name:'召喚哥布林',kind:'summon',target:'none',mpCost:40},
+  goblin_club:{id:'goblin_club',name:'木棒敲擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  goblin_slash:{id:'goblin_slash',name:'短劍斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  goblin_guard:{id:'goblin_guard',name:'舉盾防禦',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1},
+  goblin_magic_bolt:{id:'goblin_magic_bolt',name:'魔力彈',school:'arcane',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:1.0}],kind:'magic',target:'single',multiplier:1.0},
+  goblin_poison_curse:{id:'goblin_poison_curse',name:'毒咒',school:'arcane',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:.35}],kind:'magic',target:'single',multiplier:.35,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
+  goblin_heal:{id:'goblin_heal',name:'治療術',school:'martial',effects:[{type:'recovery',recoveryType:'heal'}],kind:'heal',target:'ally_lowest_hp',healMaxHp:.15,conditionHpBelow:.40,maxUsesPerBattle:1},
+  goblin_heavy_slash:{id:'goblin_heavy_slash',name:'重斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.4}],kind:'physical',target:'single',multiplier:1.4},
+  goblin_warcry:{id:'goblin_warcry',name:'戰吼',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',atkMultiplier:1.20,duration:3,maxUsesPerBattle:1},
+  goblin_summon:{id:'goblin_summon',name:'召喚哥布林',school:'martial',kind:'summon',target:'none',mpCost:40},
 
   /* Week 3 森林 */
-  spider_poison_fang:{id:'spider_poison_fang',name:'毒牙',kind:'physical',target:'single',multiplier:1.0,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
-  spider_web:{id:'spider_web',name:'蛛網',kind:'debuff',target:'single',status:{id:'slow',chance:1,duration:2,speedMultiplier:.60}},
-  wolf_bite:{id:'wolf_bite',name:'撕咬',kind:'physical',target:'single',multiplier:1.0,status:{id:'bleed',chance:1,duration:3,maxHpDot:.04}},
-  bear_slam:{id:'bear_slam',name:'熊掌猛擊',kind:'physical',target:'single',multiplier:1.4},
-  bear_claw:{id:'bear_claw',name:'撕裂爪擊',kind:'physical',target:'single',multiplier:1.1},
-  vine_whip:{id:'vine_whip',name:'藤蔓鞭打',kind:'physical',target:'single',multiplier:1.0},
-  vine_bind:{id:'vine_bind',name:'藤蔓綑綁',kind:'debuff',target:'single',status:{id:'bind',chance:1,duration:2,speedMultiplier:.50,evasionMultiplier:0}},
-  shadow_arrow:{id:'shadow_arrow',name:'暗影箭',kind:'magic',element:'dark',target:'single',multiplier:1.0,status:{id:'weak',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
-  double_shot:{id:'double_shot',name:'二連射',kind:'physical',target:'single',hits:2,multiplierPerHit:.55},
-  shadow_step:{id:'shadow_step',name:'暗影步',kind:'buff',target:'self',evasionBonus:.20,duration:2,maxUsesPerBattle:1},
+  spider_poison_fang:{id:'spider_poison_fang',name:'毒牙',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
+  spider_web:{id:'spider_web',name:'蛛網',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'slow',chance:1,duration:2,speedMultiplier:.60}},
+  wolf_bite:{id:'wolf_bite',name:'撕咬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,status:{id:'bleed',chance:1,duration:3,maxHpDot:.04}},
+  bear_slam:{id:'bear_slam',name:'熊掌猛擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.4}],kind:'physical',target:'single',multiplier:1.4},
+  bear_claw:{id:'bear_claw',name:'撕裂爪擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
+  vine_whip:{id:'vine_whip',name:'藤蔓鞭打',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  vine_bind:{id:'vine_bind',name:'藤蔓綑綁',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'bind',chance:1,duration:2,speedMultiplier:.50,evasionMultiplier:0}},
+  shadow_arrow:{id:'shadow_arrow',name:'暗影箭',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'dark',target:'single',multiplier:1.0,status:{id:'weak',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
+  double_shot:{id:'double_shot',name:'二連射',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1}],kind:'physical',target:'single',hits:2,multiplierPerHit:.55},
+  shadow_step:{id:'shadow_step',name:'暗影步',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',evasionBonus:.20,duration:2,maxUsesPerBattle:1},
 
   /* Week 4 獸人 */
-  orc_swing:{id:'orc_swing',name:'粗暴揮擊',kind:'physical',target:'single',multiplier:1.0},
-  orc_charge:{id:'orc_charge',name:'蓄力',kind:'charge',target:'self',nextSkill:'orc_charged_smash'},
-  orc_charged_smash:{id:'orc_charged_smash',name:'蓄力重擊',kind:'physical',target:'single',multiplier:1.8,requiresCharge:true},
-  chain_lightning:{id:'chain_lightning',name:'連鎖閃電',kind:'magic',element:'lightning',target:'single',hitsMin:2,hitsMax:3,multiplierPerHit:.45},
-  staff_hit:{id:'staff_hit',name:'法杖敲擊',kind:'physical',target:'single',multiplier:.8},
-  sword_slash:{id:'sword_slash',name:'劍刃斬擊',kind:'physical',target:'single',multiplier:1.0},
-  whirlwind:{id:'whirlwind',name:'旋風斬',kind:'physical',target:'all',hits:3,multiplierPerHit:.45},
-  general_axe:{id:'general_axe',name:'巨斧斬擊',kind:'physical',target:'single',multiplier:1.0},
-  general_order:{id:'general_order',name:'下令進攻',kind:'support_attack',target:'single',multiplier:.70,maxUsesPerBattle:2,noPersistentSummon:true},
+  orc_swing:{id:'orc_swing',name:'粗暴揮擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  orc_charge:{id:'orc_charge',name:'蓄力',school:'martial',kind:'charge',target:'self',nextSkill:'orc_charged_smash'},
+  orc_charged_smash:{id:'orc_charged_smash',name:'蓄力重擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.8}],kind:'physical',target:'single',multiplier:1.8,requiresCharge:true},
+  chain_lightning:{id:'chain_lightning',name:'連鎖閃電',school:'elemental',effects:[{type:'damage',damageType:'lightning',source:'magicAttack',multiplier:1}],kind:'magic',element:'lightning',target:'single',hitsMin:2,hitsMax:3,multiplierPerHit:.45},
+  staff_hit:{id:'staff_hit',name:'法杖敲擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:.8}],kind:'physical',target:'single',multiplier:.8},
+  sword_slash:{id:'sword_slash',name:'劍刃斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  whirlwind:{id:'whirlwind',name:'旋風斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1}],kind:'physical',target:'all',hits:3,multiplierPerHit:.45},
+  general_axe:{id:'general_axe',name:'巨斧斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  general_order:{id:'general_order',name:'下令進攻',school:'martial',kind:'support_attack',target:'single',multiplier:.70,maxUsesPerBattle:2,noPersistentSummon:true},
 
   /* Week 5 邪惡巫師塔 */
-  skeleton_slash:{id:'skeleton_slash',name:'普通攻擊',kind:'physical',target:'single',multiplier:1.0},
-  throw_bone:{id:'throw_bone',name:'丟骨頭',kind:'physical',target:'single',multiplier:1.3,selfDestruct:true,conditionHpBelow:.30},
-  zombie_bite:{id:'zombie_bite',name:'腐爛撕咬',kind:'physical',target:'single',multiplier:1.0},
-  hook_smash:{id:'hook_smash',name:'肉鉤重擊',kind:'physical',target:'single',multiplier:1.2},
-  frenzy_smash:{id:'frenzy_smash',name:'瘋狂猛擊',kind:'physical',target:'single',multiplier:1.6,selfMaxHpDamage:.08},
-  evil_eye_beam:{id:'evil_eye_beam',name:'魔眼光束',kind:'magic',target:'single',multiplier:1.0},
-  evil_gaze:{id:'evil_gaze',name:'凝視',kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
-  necro_shadow_bolt:{id:'necro_shadow_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:.85},
-  summon_three_skeletons:{id:'summon_three_skeletons',name:'召喚骷髏',kind:'summon',target:'none',count:2,maxUsesPerBattle:1},
+  skeleton_slash:{id:'skeleton_slash',name:'普通攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  throw_bone:{id:'throw_bone',name:'丟骨頭',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.3}],kind:'physical',target:'single',multiplier:1.3,selfDestruct:true,conditionHpBelow:.30},
+  zombie_bite:{id:'zombie_bite',name:'腐爛撕咬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  hook_smash:{id:'hook_smash',name:'肉鉤重擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.2}],kind:'physical',target:'single',multiplier:1.2},
+  frenzy_smash:{id:'frenzy_smash',name:'瘋狂猛擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.6}],kind:'physical',target:'single',multiplier:1.6,selfMaxHpDamage:.08},
+  evil_eye_beam:{id:'evil_eye_beam',name:'魔眼光束',school:'arcane',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:1.0}],kind:'magic',target:'single',multiplier:1.0},
+  evil_gaze:{id:'evil_gaze',name:'凝視',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
+  necro_shadow_bolt:{id:'necro_shadow_bolt',name:'暗影魔彈',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:.85}],kind:'magic',element:'dark',target:'single',multiplier:.85},
+  summon_three_skeletons:{id:'summon_three_skeletons',name:'召喚骷髏',school:'martial',kind:'summon',target:'none',count:2,maxUsesPerBattle:1},
 
   /* Week 6 沙漠 */
-  mummy_claw:{id:'mummy_claw',name:'木乃伊爪擊',kind:'physical',target:'single',multiplier:1.0},
-  decaying_breath:{id:'decaying_breath',name:'腐朽氣息',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-  beetle_charge:{id:'beetle_charge',name:'衝撞',kind:'physical',target:'single',multiplier:1.1},
-  shell_guard:{id:'shell_guard',name:'甲殼防禦',kind:'buff',target:'self',damageTakenMultiplier:.55,duration:1},
-  scorpion_claw:{id:'scorpion_claw',name:'巨鉗攻擊',kind:'physical',target:'single',multiplier:1.0},
-  venom_sting:{id:'venom_sting',name:'毒尾刺',kind:'physical',target:'single',multiplier:1.1,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
-  spear_thrust:{id:'spear_thrust',name:'長矛突刺',kind:'physical',target:'single',multiplier:1.1},
-  tail_escape:{id:'tail_escape',name:'斷尾求生',kind:'trigger',target:'self',conditionHpBelow:.30,healMaxHp:.15,speedMultiplier:1.20,maxUsesPerBattle:1},
-  lion_bite:{id:'lion_bite',name:'獅首猛咬',kind:'physical',target:'single',multiplier:1.2},
-  goat_flame:{id:'goat_flame',name:'羊首火焰',kind:'magic',element:'fire',target:'single',multiplier:1.1},
-  snake_venom:{id:'snake_venom',name:'蛇尾毒刺',kind:'physical',target:'single',multiplier:.9,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
+  mummy_claw:{id:'mummy_claw',name:'木乃伊爪擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  decaying_breath:{id:'decaying_breath',name:'腐朽氣息',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+  beetle_charge:{id:'beetle_charge',name:'衝撞',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
+  shell_guard:{id:'shell_guard',name:'甲殼防禦',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',damageTakenMultiplier:.55,duration:1},
+  scorpion_claw:{id:'scorpion_claw',name:'巨鉗攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  venom_sting:{id:'venom_sting',name:'毒尾刺',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
+  spear_thrust:{id:'spear_thrust',name:'長矛突刺',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
+  tail_escape:{id:'tail_escape',name:'斷尾求生',school:'martial',kind:'trigger',target:'self',conditionHpBelow:.30,healMaxHp:.15,speedMultiplier:1.20,maxUsesPerBattle:1},
+  lion_bite:{id:'lion_bite',name:'獅首猛咬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.2}],kind:'physical',target:'single',multiplier:1.2},
+  goat_flame:{id:'goat_flame',name:'羊首火焰',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.1}],kind:'magic',element:'fire',target:'single',multiplier:1.1},
+  snake_venom:{id:'snake_venom',name:'蛇尾毒刺',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:.9}],kind:'physical',target:'single',multiplier:.9,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
 
   /* Week 7 金字塔 */
-  lizard_fire_magic:{id:'lizard_fire_magic',name:'火焰魔法',kind:'magic',element:'fire',target:'single',multiplier:1.1},
-  sand_spell:{id:'sand_spell',name:'沙塵術',kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
-  pharaoh_staff:{id:'pharaoh_staff',name:'權杖攻擊',kind:'physical',target:'single',multiplier:1.0},
-  golden_shield:{id:'golden_shield',name:'黃金護盾',kind:'shield',target:'self',maxUsesPerBattle:1},
-  death_scythe:{id:'death_scythe',name:'死神鐮斬',kind:'physical',target:'single',multiplier:1.25},
-  soul_judgment:{id:'soul_judgment',name:'靈魂審判',kind:'magic',element:'dark',target:'single',multiplier:1.15},
-  solar_flame:{id:'solar_flame',name:'太陽火焰',kind:'magic',element:'fire',target:'single',multiplier:1.1},
-  solar_charge:{id:'solar_charge',name:'聚集太陽能量',kind:'charge',target:'self',nextSkill:'wrath_of_ra'},
-  wrath_of_ra:{id:'wrath_of_ra',name:'太陽神之怒',kind:'magic',element:'fire',target:'single',multiplier:1.8,requiresCharge:true},
+  lizard_fire_magic:{id:'lizard_fire_magic',name:'火焰魔法',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.1}],kind:'magic',element:'fire',target:'single',multiplier:1.1},
+  sand_spell:{id:'sand_spell',name:'沙塵術',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
+  pharaoh_staff:{id:'pharaoh_staff',name:'權杖攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  golden_shield:{id:'golden_shield',name:'黃金護盾',school:'martial',kind:'shield',target:'self',maxUsesPerBattle:1},
+  death_scythe:{id:'death_scythe',name:'死神鐮斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.25}],kind:'physical',target:'single',multiplier:1.25},
+  soul_judgment:{id:'soul_judgment',name:'靈魂審判',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.15}],kind:'magic',element:'dark',target:'single',multiplier:1.15},
+  solar_flame:{id:'solar_flame',name:'太陽火焰',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.1}],kind:'magic',element:'fire',target:'single',multiplier:1.1},
+  solar_charge:{id:'solar_charge',name:'聚集太陽能量',school:'martial',kind:'charge',target:'self',nextSkill:'wrath_of_ra'},
+  wrath_of_ra:{id:'wrath_of_ra',name:'太陽神之怒',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.8}],kind:'magic',element:'fire',target:'single',multiplier:1.8,requiresCharge:true},
 
   /* Week 8 魔王城郊區 */
-  rogue_stab:{id:'rogue_stab',name:'短刀攻擊',kind:'physical',target:'single',multiplier:1.0},
-  rogue_stun:{id:'rogue_stun',name:'柄擊',kind:'physical',target:'single',multiplier:.8,status:{id:'stun',chance:.30,duration:1},cannotUseConsecutively:true},
-  cult_curse:{id:'cult_curse',name:'詛咒',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-  life_drain:{id:'life_drain',name:'生命吸取',kind:'magic',element:'dark',target:'single',multiplier:1.0,healFromDamage:.50},
-  ogre_swing:{id:'ogre_swing',name:'巨棒揮擊',kind:'physical',target:'single',multiplier:1.2},
-  frost_arrow:{id:'frost_arrow',name:'冰霜箭',kind:'magic',element:'ice',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
-  blizzard:{id:'blizzard',name:'暴風雪',kind:'magic',element:'ice',target:'single',multiplier:1.3,cooldown:2},
+  rogue_stab:{id:'rogue_stab',name:'短刀攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  rogue_stun:{id:'rogue_stun',name:'柄擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:.8}],kind:'physical',target:'single',multiplier:.8,status:{id:'stun',chance:.30,duration:1},cannotUseConsecutively:true},
+  cult_curse:{id:'cult_curse',name:'詛咒',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
+  life_drain:{id:'life_drain',name:'生命吸取',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'dark',target:'single',multiplier:1.0,healFromDamage:.50},
+  ogre_swing:{id:'ogre_swing',name:'巨棒揮擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.2}],kind:'physical',target:'single',multiplier:1.2},
+  frost_arrow:{id:'frost_arrow',name:'冰霜箭',school:'elemental',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'ice',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
+  blizzard:{id:'blizzard',name:'暴風雪',school:'elemental',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.3}],kind:'magic',element:'ice',target:'single',multiplier:1.3,cooldown:2},
 
   /* Week 9 天啟四騎士 */
-  apocalypse_slash:{id:'apocalypse_slash',name:'重劍斬擊',kind:'physical',target:'single',multiplier:1.1},
-  war_rage:{id:'war_rage',name:'戰爭狂暴',kind:'buff',target:'self',atkMultiplier:1.30,duration:3,maxUsesPerBattle:1},
-  plague_slash:{id:'plague_slash',name:'腐疫斬擊',kind:'physical',target:'single',multiplier:1.1},
-  famine_strike:{id:'famine_strike',name:'虛弱打擊',kind:'physical',target:'single',multiplier:1.0,resourceDamageMaxPct:.05},
-  death_slash:{id:'death_slash',name:'死亡斬擊',kind:'physical',target:'single',multiplier:1.1},
-  demon_general_slash:{id:'demon_general_slash',name:'魔將斬擊',kind:'physical',target:'single',multiplier:1.1},
+  apocalypse_slash:{id:'apocalypse_slash',name:'重劍斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
+  war_rage:{id:'war_rage',name:'戰爭狂暴',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',atkMultiplier:1.30,duration:3,maxUsesPerBattle:1},
+  plague_slash:{id:'plague_slash',name:'腐疫斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
+  famine_strike:{id:'famine_strike',name:'虛弱打擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,resourceDamageMaxPct:.05},
+  death_slash:{id:'death_slash',name:'死亡斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
+  demon_general_slash:{id:'demon_general_slash',name:'魔將斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
 
   /* Week 10 魔王城內部 */
-  gargoyle_claw:{id:'gargoyle_claw',name:'石爪攻擊',kind:'physical',target:'single',multiplier:1.0},
-  petrify_guard:{id:'petrify_guard',name:'石化防禦',kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1},
-  blood_blade:{id:'blood_blade',name:'血刃斬擊',kind:'physical',target:'single',multiplier:1.1},
-  vampire_slash:{id:'vampire_slash',name:'吸血斬',kind:'physical',target:'single',multiplier:1.0,healFromDamage:.50},
-  demon_dark_bolt:{id:'demon_dark_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
-  dark_burst:{id:'dark_burst',name:'黑暗爆發',kind:'magic',element:'dark',target:'single',multiplier:1.35,cooldown:2},
-  mana_shield:{id:'mana_shield',name:'魔力護盾',kind:'shield',target:'self'}
+  gargoyle_claw:{id:'gargoyle_claw',name:'石爪攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
+  petrify_guard:{id:'petrify_guard',name:'石化防禦',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1},
+  blood_blade:{id:'blood_blade',name:'血刃斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
+  vampire_slash:{id:'vampire_slash',name:'吸血斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,healFromDamage:.50},
+  demon_dark_bolt:{id:'demon_dark_bolt',name:'暗影魔彈',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'dark',target:'single',multiplier:1.0},
+  dark_burst:{id:'dark_burst',name:'黑暗爆發',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.35}],kind:'magic',element:'dark',target:'single',multiplier:1.35,cooldown:2},
+  mana_shield:{id:'mana_shield',name:'魔力護盾',school:'martial',kind:'shield',target:'self'}
 };
 
+window.STUDYRPG_MONSTER_SKILL_DATABASE=MONSTER_SKILL_DATABASE;
 const MONSTER_AI_DATABASE={
   slime_water:{skills:[{id:'slime_tackle',weight:1},{id:'water_bullet',weight:1}]},
   slime_fire:{skills:[{id:'slime_tackle',weight:1},{id:'fire_bullet',weight:1}]},
@@ -3948,42 +3949,84 @@ async function playSkillVisualSequence(side,action={}){
 }
 
 
+// StudyRPG V10.19 — unified combat content taxonomy.
+// School = power/discipline source; Damage Type = resistance lookup; Effect = what happens; Status = persistent state.
+const SCHOOL_DATABASE={
+  martial:{id:'martial',name:'武技',icon:'⚔️'}, elemental:{id:'elemental',name:'元素',icon:'🌈'},
+  arcane:{id:'arcane',name:'秘法',icon:'🔮'}, holy:{id:'holy',name:'神聖',icon:'✨'},
+  shadow:{id:'shadow',name:'暗影',icon:'🌑'}, nature:{id:'nature',name:'自然',icon:'🌿'}
+};
+const DAMAGE_TYPE_DATABASE={
+  physical:{id:'physical',name:'物理',icon:'⚔️',defense:'defense',elemental:false},
+  fire:{id:'fire',name:'火焰',icon:'🔥',defense:'magicDefense',elemental:true},
+  ice:{id:'ice',name:'冰霜',icon:'❄️',defense:'magicDefense',elemental:true},
+  water:{id:'water',name:'水',icon:'💧',defense:'magicDefense',elemental:true},
+  lightning:{id:'lightning',name:'雷電',icon:'⚡',defense:'magicDefense',elemental:true},
+  wind:{id:'wind',name:'風',icon:'🌪️',defense:'magicDefense',elemental:true},
+  nature:{id:'nature',name:'自然',icon:'🌿',defense:'magicDefense',elemental:true},
+  poison:{id:'poison',name:'毒素',icon:'☠️',defense:'magicDefense',elemental:true},
+  arcane:{id:'arcane',name:'秘法',icon:'🔮',defense:'magicDefense',elemental:false},
+  holy:{id:'holy',name:'神聖',icon:'✨',defense:'magicDefense',elemental:false},
+  shadow:{id:'shadow',name:'暗影',icon:'🌑',defense:'magicDefense',elemental:true}
+};
+const RECOVERY_TYPE_DATABASE={
+  heal:{id:'heal',name:'治療',icon:'✨',category:'recovery'},
+  regeneration:{id:'regeneration',name:'生命再生',icon:'🌿',category:'recovery'}
+};
+const STATUS_CATEGORY_DATABASE={
+  buff:{id:'buff',name:'強化'},debuff:{id:'debuff',name:'弱化'},dot:{id:'dot',name:'持續傷害'},
+  hot:{id:'hot',name:'持續恢復'},control:{id:'control',name:'控制'},special:{id:'special',name:'特殊'}
+};
+const EFFECT_TYPE_DATABASE={
+  damage:{id:'damage',name:'傷害'},recovery:{id:'recovery',name:'恢復'},status:{id:'status',name:'狀態'},
+  cleanse:{id:'cleanse',name:'淨化'},dispel:{id:'dispel',name:'驅散'},summon:{id:'summon',name:'召喚'},
+  transform:{id:'transform',name:'變身'},resource:{id:'resource',name:'資源'},special:{id:'special',name:'特殊'}
+};
+const TRIGGER_DATABASE={
+  battle_start:{id:'battle_start',name:'戰鬥開始'},after_attack:{id:'after_attack',name:'攻擊後'},after_melee:{id:'after_melee',name:'近戰後'},
+  after_ranged:{id:'after_ranged',name:'遠程後'},after_physical:{id:'after_physical',name:'物理後'},after_magic:{id:'after_magic',name:'魔法後'},
+  after_crit:{id:'after_crit',name:'暴擊後'},on_hit:{id:'on_hit',name:'命中時'},on_damaged:{id:'on_damaged',name:'受傷時'},
+  lethal:{id:'lethal',name:'致命傷時'},turn_start:{id:'turn_start',name:'回合開始'},turn_end:{id:'turn_end',name:'回合結束'}
+};
+window.STUDYRPG_COMBAT_SCHEMA={schools:SCHOOL_DATABASE,damageTypes:DAMAGE_TYPE_DATABASE,recoveryTypes:RECOVERY_TYPE_DATABASE,statusCategories:STATUS_CATEGORY_DATABASE,effectTypes:EFFECT_TYPE_DATABASE,triggers:TRIGGER_DATABASE};
+
 const BEGINNER_SKILLS=[
-  {id:'power_strike',name:'奮力一擊',icon:'💥',cost:20,type:'physical',multiplier:1.60,description:'ATK×1.60－敵DEF×0.5 的強力近戰攻擊。'},
-  {id:'ember',name:'魔力彈',icon:'🔮',cost:18,type:'arcane',multiplier:1.45,description:'MATK×1.45－敵MDEF×0.5 的祕法遠程攻擊；不受元素弱點／抗性影響。'},
-  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:0,energyGain:8,type:'buff',description:'本回合承受傷害減半，並回復8能量。',effect:{effectType:'buff',turns:1,mods:{damageTaken:-.50}}},
-  {id:'focus',name:'專注',icon:'🎯',cost:10,type:'buff',description:'下一次造成傷害的攻擊×1.40；命中後消耗。',effect:{effectType:'buff',turns:99,mods:{nextAttackMultiplier:.40}}}
+  {id:'power_strike',name:'奮力一擊',icon:'💥',cost:20,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.60}],description:'ATK×1.60－敵DEF×0.5 的強力近戰攻擊。'},
+  {id:'ember',name:'魔力彈',icon:'🔮',cost:18,school:'arcane',actionType:'ranged',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:1.45}],description:'MATK×1.45－敵MDEF×0.5 的秘法遠程攻擊。'},
+  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:0,energyGain:8,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:1,modifiers:[{target:'damageTaken',operation:'add',value:-.50}]}],description:'本回合承受傷害減半，並回復8能量。'},
+  {id:'focus',name:'專注',icon:'🎯',cost:10,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:99,modifiers:[{target:'nextAttackMultiplier',operation:'add',value:.40}]}],description:'下一次造成傷害的攻擊×1.40；命中後消耗。'}
 ];
 const JOB_SKILL_LIBRARY={
-  heavy_strike:{id:'heavy_strike',name:'重擊',icon:'💢',cost:35,type:'physical',multiplier:1.65,description:'戰士高威力一擊。'},
-  guard_break:{id:'guard_break',name:'破甲斬',icon:'🪓',cost:30,type:'physical',multiplier:1.25,description:'傷害並削弱敵方防禦。'},
-  battle_cry:{id:'battle_cry',name:'戰吼',icon:'📣',cost:20,type:'buff',description:'攻擊提升3回合。',effect:{effectType:'buff',turns:3,mods:{attack:8}}},
-  iron_stance:{id:'iron_stance',name:'鋼鐵架勢',icon:'🛡️',cost:20,type:'buff',description:'承傷降低、格擋提高。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.25,block:.12}}},
-  fireball:{id:'fireball',name:'火球術',icon:'🔥',cost:35,type:'fire',multiplier:1.60,description:'強力火元素法術。'},
-  ice_lance:{id:'ice_lance',name:'冰槍術',icon:'❄️',cost:35,type:'ice',multiplier:1.55,description:'冰元素法術。'},
-  thunderbolt:{id:'thunderbolt',name:'雷擊術',icon:'⚡',cost:40,type:'lightning',multiplier:1.70,description:'高威力雷元素法術。'},
-  mana_guard:{id:'mana_guard',name:'魔力護盾',icon:'🔷',cost:20,type:'buff',description:'承傷降低3回合。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.25}}},
-  holy_light:{id:'holy_light',name:'聖光',icon:'✨',cost:35,type:'holy',multiplier:1.25,description:'無抗性的神聖傷害。'},
-  heal_prayer:{id:'heal_prayer',name:'治癒祈禱',icon:'💚',cost:30,type:'buff',description:'提高生存能力。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.20}}},
-  purify:{id:'purify',name:'淨化',icon:'🕊️',cost:20,type:'buff',description:'提高狀態抗性。',effect:{effectType:'buff',turns:3,mods:{statusRes:.20}}},
-  sanctuary:{id:'sanctuary',name:'聖域',icon:'⛪',cost:35,type:'buff',description:'大幅降低承傷2回合。',effect:{effectType:'buff',turns:2,mods:{damageTaken:-.35}}},
-  aimed_shot:{id:'aimed_shot',name:'瞄準射擊',icon:'🏹',cost:30,type:'physical',multiplier:1.45,description:'精準遠程攻擊。'},
-  poison_arrow:{id:'poison_arrow',name:'毒箭',icon:'☠️',cost:30,type:'physical',multiplier:1.15,description:'獵人的DOT技能。'},
-  trap:{id:'trap',name:'陷阱',icon:'🪤',cost:25,type:'physical',multiplier:1.10,description:'戰術型傷害技能。'},
-  eagle_eye:{id:'eagle_eye',name:'鷹眼',icon:'👁️',cost:20,type:'buff',description:'暴擊與命中思路強化。',effect:{effectType:'buff',turns:3,mods:{crit:.12}}},
-  backstab:{id:'backstab',name:'背刺',icon:'🗡️',cost:30,type:'physical',multiplier:1.55,description:'盜賊爆發傷害。'},
-  venom_blade:{id:'venom_blade',name:'毒刃',icon:'☠️',cost:30,type:'physical',multiplier:1.20,description:'毒系近戰技能。'},
-  bleed_cut:{id:'bleed_cut',name:'割裂',icon:'🩸',cost:30,type:'physical',multiplier:1.25,description:'流血系技能。'},
-  smoke_step:{id:'smoke_step',name:'煙霧步',icon:'💨',cost:20,type:'buff',description:'閃避率提升。',effect:{effectType:'buff',turns:3,mods:{evade:.15}}},
-  holy_slash:{id:'holy_slash',name:'聖光斬',icon:'✨',cost:35,type:'holy',multiplier:1.30,description:'神聖近戰。'},
-  guardian_stance:{id:'guardian_stance',name:'守護',icon:'🛡️',cost:20,type:'buff',description:'承傷降低、格擋提高。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.30,block:.12}}},
-  lay_on_hands:{id:'lay_on_hands',name:'聖療',icon:'🙏',cost:30,type:'buff',description:'提高生存能力。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.22}}},
-  judgment:{id:'judgment',name:'審判',icon:'⚖️',cost:40,type:'holy',multiplier:1.50,description:'高倍率神聖傷害。'},
-  magic_slash:{id:'magic_slash',name:'魔力斬',icon:'🌀',cost:35,type:'wind',multiplier:1.45,description:'物魔混合戰技。'},
-  flame_edge:{id:'flame_edge',name:'炎刃',icon:'🔥',cost:35,type:'fire',multiplier:1.45,description:'火元素劍技。'},
-  frost_edge:{id:'frost_edge',name:'冰刃',icon:'❄️',cost:35,type:'ice',multiplier:1.45,description:'冰元素劍技。'},
-  arcane_guard:{id:'arcane_guard',name:'奧術防護',icon:'🔮',cost:20,type:'buff',description:'承傷降低、暴擊提高。',effect:{effectType:'buff',turns:3,mods:{damageTaken:-.20,crit:.08}}}
+  heavy_strike:{id:'heavy_strike',name:'重擊',icon:'💢',cost:35,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.65}],description:'戰士高威力一擊。'},
+  guard_break:{id:'guard_break',name:'破甲斬',icon:'🪓',cost:30,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.25}],description:'傷害並削弱敵方防禦。'},
+  battle_cry:{id:'battle_cry',name:'戰吼',icon:'📣',cost:20,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'attack',operation:'add',value:8}]}],description:'攻擊提升3回合。'},
+  iron_stance:{id:'iron_stance',name:'鋼鐵架勢',icon:'🛡️',cost:20,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.25},{target:'block',operation:'add',value:.12}]}],description:'承傷降低、格擋提高。'},
+  fireball:{id:'fireball',name:'火球術',icon:'🔥',cost:35,school:'elemental',actionType:'ranged',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.60}],description:'強力火元素法術。'},
+  ice_lance:{id:'ice_lance',name:'冰槍術',icon:'❄️',cost:35,school:'elemental',actionType:'ranged',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.55}],description:'冰元素法術。'},
+  thunderbolt:{id:'thunderbolt',name:'雷擊術',icon:'⚡',cost:40,school:'elemental',actionType:'ranged',effects:[{type:'damage',damageType:'lightning',source:'magicAttack',multiplier:1.70}],description:'高威力雷元素法術。'},
+  mana_guard:{id:'mana_guard',name:'魔力護盾',icon:'🔷',cost:20,school:'arcane',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.25}]}],description:'承傷降低3回合。'},
+  holy_light:{id:'holy_light',name:'聖光',icon:'✨',cost:35,school:'holy',actionType:'ranged',effects:[{type:'damage',damageType:'holy',source:'magicAttack',multiplier:1.25}],description:'神聖傷害。'},
+  heal_prayer:{id:'heal_prayer',name:'治癒祈禱',icon:'💚',cost:30,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.20}]}],description:'提高生存能力。'},
+  purify:{id:'purify',name:'淨化',icon:'🕊️',cost:20,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'statusRes',operation:'add',value:.20}]}],description:'提高狀態抗性。'},
+  sanctuary:{id:'sanctuary',name:'聖域',icon:'⛪',cost:35,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:2,modifiers:[{target:'damageTaken',operation:'add',value:-.35}]}],description:'大幅降低承傷2回合。'},
+  aimed_shot:{id:'aimed_shot',name:'瞄準射擊',icon:'🏹',cost:30,school:'martial',actionType:'ranged',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.45}],description:'精準遠程攻擊。'},
+  poison_arrow:{id:'poison_arrow',name:'毒箭',icon:'☠️',cost:30,school:'nature',actionType:'ranged',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.15}],description:'獵人的毒系射擊。'},
+  trap:{id:'trap',name:'陷阱',icon:'🪤',cost:25,school:'martial',actionType:'ranged',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.10}],description:'戰術型傷害技能。'},
+  eagle_eye:{id:'eagle_eye',name:'鷹眼',icon:'👁️',cost:20,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'crit',operation:'add',value:.12}]}],description:'暴擊與命中思路強化。'},
+  backstab:{id:'backstab',name:'背刺',icon:'🗡️',cost:30,school:'shadow',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.55}],description:'盜賊爆發傷害。'},
+  venom_blade:{id:'venom_blade',name:'毒刃',icon:'☠️',cost:30,school:'nature',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.20}],description:'毒系近戰技能。'},
+  bleed_cut:{id:'bleed_cut',name:'割裂',icon:'🩸',cost:30,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.25}],description:'流血系技能。'},
+  smoke_step:{id:'smoke_step',name:'煙霧步',icon:'💨',cost:20,school:'shadow',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'evade',operation:'add',value:.15}]}],description:'閃避率提升。'},
+  holy_slash:{id:'holy_slash',name:'聖光斬',icon:'✨',cost:35,school:'holy',actionType:'melee',effects:[{type:'damage',damageType:'holy',source:'magicAttack',multiplier:1.30}],description:'神聖近戰。'},
+  guardian_stance:{id:'guardian_stance',name:'守護',icon:'🛡️',cost:20,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.30},{target:'block',operation:'add',value:.12}]}],description:'承傷降低、格擋提高。'},
+  lay_on_hands:{id:'lay_on_hands',name:'聖療',icon:'🙏',cost:30,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.22}]}],description:'提高生存能力。'},
+  judgment:{id:'judgment',name:'審判',icon:'⚖️',cost:40,school:'holy',actionType:'ranged',effects:[{type:'damage',damageType:'holy',source:'magicAttack',multiplier:1.50}],description:'高倍率神聖傷害。'},
+  magic_slash:{id:'magic_slash',name:'魔力斬',icon:'🌀',cost:35,school:'arcane',actionType:'melee',effects:[{type:'damage',damageType:'wind',source:'magicAttack',multiplier:1.45}],description:'秘法驅動的風屬性劍技。'},
+  flame_edge:{id:'flame_edge',name:'炎刃',icon:'🔥',cost:35,school:'arcane',actionType:'melee',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.45}],description:'秘法驅動的火元素劍技。'},
+  frost_edge:{id:'frost_edge',name:'冰刃',icon:'❄️',cost:35,school:'arcane',actionType:'melee',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.45}],description:'秘法驅動的冰元素劍技。'},
+  arcane_guard:{id:'arcane_guard',name:'奧術防護',icon:'🔮',cost:20,school:'arcane',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.20},{target:'crit',operation:'add',value:.08}]}],description:'承傷降低、暴擊提高。'}
 };
+window.STUDYRPG_SKILL_DATABASE={beginner:BEGINNER_SKILLS,jobs:JOB_SKILL_LIBRARY};
 const JOB_PASSIVES={
   warrior_grit:'堅韌：戰士的物理生存能力常駐提升。',
   mana_echo:'魔力共鳴：法術循環更有效率。',
@@ -4322,8 +4365,8 @@ async function animateBattleAction(attackerSide,result,attackerUnit=null,action=
     }
   }
 }
-function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
-  const damageType=action.type||'physical';
+function resolveAttack(attacker,defender,action={damageType:'physical',multiplier:1}){
+  const damageType=action.damageType||action.type||'physical';
   const isPhysical=damageType==='physical';
   const canDodge=action.canDodge!==false;
   const hit=clampBattle(BATTLE_CONFIG.baseHit+(attacker.speed-defender.speed)*.001+effectMod(attacker,'hit'),.45,.99);
@@ -4333,18 +4376,16 @@ function resolveAttack(attacker,defender,action={type:'physical',multiplier:1}){
 
   const crit=action.forceCrit===true || Math.random()<effectiveBattleValue(attacker,'crit');
   const variance=.90+Math.random()*.20;
-  const attackValue=isPhysical?effectiveBattleValue(attacker,'attack'):effectiveBattleValue(attacker,'magicAttack');
+  const sourceKey=action.source||(isPhysical?'attack':'magicAttack');
+  const attackValue=effectiveBattleValue(attacker,sourceKey);
   const defenseValue=isPhysical?effectiveBattleValue(defender,'defense'):effectiveBattleValue(defender,'magicDefense');
   // V10.10.20：支援特定技能/戰鬥的防禦穿透。一般戰鬥預設 0，不改既有平衡。
   const defensePierce=clampBattle(Number(action.defensePierce||0),0,.90);
   let raw=Math.max(1,attackValue*(action.multiplier||1)-defenseValue*(1-defensePierce)*.50);
   let weak=false,resisted=false;
 
-  if(damageType==='holy'){
-    // 神聖傷害：不吃元素抗性，但仍使用 MDEF 基礎減傷。
-  }else if(damageType==='arcane'){
-    // 祕法：純魔法基準屬性，只吃 MDEF，不進元素弱點/抗性表。
-  }else if(!isPhysical){
+  const damageDef=DAMAGE_TYPE_DATABASE[damageType];
+  if(!isPhysical && damageDef?.elemental!==false){
     const res=totalElementRes(defender,damageType);
     raw*=1-res;
     weak=res<-.05;resisted=res>.10;
@@ -4474,6 +4515,36 @@ function applyEnergyForAction(side,action){
   if(action.kind==='skill'){energy-=Number(action.cost)||0;energy+=Number(action.energyGain)||0;}
   setUnitEnergy(side,energy);
 }
+function canonicalMods(effect){
+  const mods={};
+  for(const m of (effect.modifiers||[])){
+    if(!m?.target)continue;
+    const v=Number(m.value||0);
+    if(m.operation==='multiply')mods[m.target]=(mods[m.target]||0)+(v-1);
+    else mods[m.target]=(mods[m.target]||0)+v;
+  }
+  return mods;
+}
+async function executeCanonicalEffects(side,action){
+  const actor=side==='hero'?battleStateV10.hero:battleStateV10.enemy;
+  let lastResult=null;
+  for(const effect of (action.effects||[])){
+    if(effect.type==='damage'){
+      const attack={...action,...effect,type:effect.damageType,damageType:effect.damageType,source:effect.source,multiplier:Number(effect.multiplier||1)};
+      lastResult=side==='hero'?await executeHeroAgainstTarget(attack):await executeAttack(side,attack);
+    }else if(effect.type==='status'){
+      const target=effect.target==='enemy'?(side==='hero'?battleStateV10.enemy:battleStateV10.hero):actor;
+      addTimedEffect(target,{name:action.name,effectType:effect.category==='debuff'?'debuff':'buff',turns:Number(effect.duration||1),mods:canonicalMods(effect)});
+      updateBattleStatuses();
+    }else if(effect.type==='recovery'){
+      const amount=Math.max(1,Math.round(effectiveBattleValue(actor,effect.source||'magicAttack')*Number(effect.multiplier||1)+Number(effect.flat||0)));
+      if(side==='hero'){battleStateV10.heroHp=Math.min(actor.maxHp,battleStateV10.heroHp+amount);updateBattleHp('hero',battleStateV10.heroHp,actor.maxHp);}
+      else if(actor.hp!=null)actor.hp=Math.min(actor.maxHp,actor.hp+amount);
+      addBattleLog(`${RECOVERY_TYPE_DATABASE[effect.recoveryType]?.icon||'💚'} ${actor.name}恢復 ${amount} HP。`);
+    }
+  }
+  return lastResult;
+}
 async function performAction(side,action){
   const unit=side==='hero'?battleStateV10.hero:battleStateV10.enemy;
   unit.guarding=false;
@@ -4481,7 +4552,10 @@ async function performAction(side,action){
   if(action.kind==='skill'){
     if(getUnitEnergy(side)<action.cost){addBattleLog(`⚡ ${unit.name}能量不足！`);return;}
     addBattleLog(`${action.icon||'✨'} ${unit.name}使用「${action.name}」！`);applyEnergyForAction(side,action);if(side==='hero')recordSkillUsage(action.id);
-    if(action.effect){await playSkillVisualSequence(side,action);addTimedEffect(unit,{...action.effect,name:action.name});addBattleLog(`${action.name}生效。`);updateBattleStatuses();return;}
+    if(Array.isArray(action.effects)&&action.effects.length){
+      await playSkillVisualSequence(side,action);
+      return executeCanonicalEffects(side,action);
+    }
     if(side==='hero')return executeHeroAgainstTarget(action);
     return executeAttack(side,action);
   }
