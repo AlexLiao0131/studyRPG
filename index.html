@@ -2504,13 +2504,8 @@ function getTodayEvent(){
 }
 function dailyDungeonAlreadyChallengedToday(){
   const t=today();
-  if(gameData.dailyDungeon?.lastChallengeDate===t)return true;
-  if(gameData.dailyDungeon?.date===t&&gameData.dailyDungeon?.challenged===true)return true;
-  return (gameData.battleRecords||[]).some(r=>{
-    if(r?.date!==t)return false;
-    if(['tower','replay','gm_test','test'].includes(r?.eventType))return false;
-    return !r?.eventType||['daily','midterm','final','special'].includes(r.eventType);
-  });
+  return gameData.dailyDungeon?.lastChallengeDate===t
+    ||(gameData.dailyDungeon?.date===t&&gameData.dailyDungeon?.challenged===true);
 }
 function markDailyDungeonChallengedToday(){
   if(!gameData.dailyDungeon||typeof gameData.dailyDungeon!=='object')gameData.dailyDungeon={};
@@ -4869,10 +4864,8 @@ function challengeDungeon(){
     const baseGold=evt?Number(evt.rewardGold||0):Number(monster?.rewardGold||0),baseExp=evt?Number(evt.rewardExp||0):Number(monster?.rewardExp||0);
     // 考試事件只提供 Boss 類型與固定 Power；圖片、技能、AI、召喚機制全部取當週當天的怪物 ID。
     let monsterId=evt?scheduledDef?.id:monsterIdByName(enemyName);if(!monsterId&&gameData.dailyDungeon.monsterId!=='AUTO')monsterId=gameData.dailyDungeon.monsterId;
-    // 一天一次的資格在「正式挑戰開始」時就消耗，不等戰鬥結束才鎖。
-    // 這樣重新整理、關閉戰鬥視窗或中途離開，都不能再次進場。
-    markDailyDungeonChallengedToday();
-    saveGame();
+    // 每日資格只在戰鬥真正結算時消耗。
+    // 只開啟戰鬥、重新整理、關閉視窗都不算已挑戰。
     runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily',monsterId);
   }catch(err){console.error('challengeDungeon failed:',err);alert('戰鬥啟動失敗：'+(err?.message||err));}
 }
@@ -5799,6 +5792,8 @@ function renderGM(){
 
     <div class="card">
       <h3 class="bad">危險操作</h3>
+      <button class="btn gray" onclick="gmResetDailyDungeon()">🔄 重置今日副本</button>
+      <div class="small" style="margin:6px 0 10px">只解除今天的副本挑戰鎖，不刪戰鬥紀錄、角色、EXP、金幣或掉落。</div>
       <button class="btn red" onclick="resetAll()">清除全部資料</button>
     </div>`;
   applyGMTabs();
@@ -6194,6 +6189,16 @@ function gmDeleteLotteryReward(id){
 }
 
 function gmAddLotteryCoin(n){gameData.hero.lotteryCoins+=n;saveGame();renderAll();}
+function gmResetDailyDungeon(){
+  if(!confirm('重置今天的副本挑戰狀態？\n不會刪除戰鬥紀錄、角色、EXP、金幣或掉落。'))return;
+  ensureDailyDungeon();
+  gameData.dailyDungeon.challenged=false;
+  gameData.dailyDungeon.lastChallengeDate='';
+  gameData.dailyDungeon.result='';
+  gameData.dailyDungeon.drop=null;
+  saveGame();renderAll();renderGM();
+  alert('✅ 今日副本已重置，可以重新挑戰。');
+}
 function resetAll(){
   if(confirm('確定清除全部資料？此動作無法復原。')){
     localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(FAMILY_KEY);sessionStorage.removeItem('activeHeroProfile');location.reload();
