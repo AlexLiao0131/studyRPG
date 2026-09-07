@@ -381,5 +381,15 @@ window.STUDYRPG_VISUAL_DATABASE={
       "summons": []
     }
   },
-  "monsterSkills": {}
+  "monsterSkills": {},
+  "equipmentAffixes": {
+    "assault": {
+      "enabled": false,
+      "buffIcon": "💎",
+      "image": "",
+      "scale": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  }
 };

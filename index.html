@@ -591,24 +591,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 @media(max-width:600px){
   .monster-battle-sprite{width:145px;height:145px}
 }
-
-
-/* V10.11.27：Boss 顯示尺寸 */
-.boss-monster-sprite{
-  width:320px !important;
-  height:320px !important;
-  max-width:none !important;
-  max-height:none !important;
-}
-.boss-dungeon-sprite{
-  width:260px !important;
-  height:220px !important;
-  max-width:none !important;
-  max-height:none !important;
-}
 @media(max-width:600px){
-  .boss-monster-sprite{width:220px !important;height:220px !important}
-  .boss-dungeon-sprite{width:175px !important;height:155px !important}
 }
 
 
@@ -680,42 +663,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .battle-scene-background{filter:saturate(.95) brightness(.86)}
 .dungeon-scene-background{filter:saturate(.92) brightness(.72)}
 .home-scene-background{filter:none}
-
-
-/* V10.11.32 CLEANED：移除副本／戰鬥固定 XY；只保留 Boss 素材尺寸。 */
-#dungeonEnemyIdle.boss-dungeon-sprite{
-  width:310px !important;
-  height:270px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-.boss-monster-sprite{
-  width:450px !important;
-  height:450px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
 @media(max-width:600px){
-  #dungeonEnemyIdle.boss-dungeon-sprite{width:225px !important;height:200px !important;}
-  .boss-monster-sprite{width:330px !important;height:330px !important;}
-}
-
-/* V10.11.33：副本入口往下落地；Boss 戰鬥 450x450；怪物動畫 idle→battle→idle */
-
-/* V10.11.34 CLEANED：舊實機 XY 校正已移除；Boss 尺寸沿用，座標由 Tool 統一控制。 */
-#dungeonEnemyIdle.boss-dungeon-sprite{
-  width:310px !important;
-  height:270px !important;
-  object-position:center bottom !important;
-}
-.boss-monster-sprite{
-  width:450px !important;
-  height:450px !important;
-  object-position:center bottom !important;
 }
 
 /* V10.11.35 FINAL：副本入口角色被裁切修正
@@ -738,14 +686,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   height:210px !important;
 }
 
-/* CLEANED：角色落地座標改由 Unified Coordinate Runtime 控制。 */
-
-/* Boss 副本入口維持目前大小 */
-#dungeonEnemyIdle.boss-dungeon-sprite{
-  width:310px !important;
-  height:270px !important;
-}
-
 @media(max-width:600px){
   .dungeon-idle-stage{height:165px !important;}
 }
@@ -759,69 +699,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   margin-bottom:0 !important;
 }
 
-/* V10.11.39：第二週哥布林尺寸校正 */
-
-/* W2 普通哥布林：目前素材在同畫布下顯得太小，統一放大。
-   不影響其他週普通怪物。 */
-.battle-enemy:not(:has(.boss-monster-sprite)) .monster-family-goblin{
-  width:280px !important;
-  height:280px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-
-/* W2 副本入口普通哥布林也同步放大 */
-#dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite){
-  width:230px !important;
-  height:210px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-
-/* 哥布林王：只保留 Boss 尺寸；容器 XY 由 Tool 控制。 */
-.monster-id-goblin_king{
-  width:450px !important;
-  height:450px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-
-/* 副本入口哥布林王也沿用大史萊姆王規格 */
-#dungeonEnemyIdle.monster-id-goblin_king{
-  width:310px !important;
-  height:270px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-
 @media(max-width:600px){
-  .battle-enemy:not(:has(.boss-monster-sprite)) .monster-family-goblin{
-    width:205px !important;
-    height:205px !important;
-  }
-
-  #dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite){
-    width:175px !important;
-    height:160px !important;
-  }
-
-  .monster-id-goblin_king{
-    width:330px !important;
-    height:330px !important;
-  }
-
-  #dungeonEnemyIdle.monster-id-goblin_king{
-    width:225px !important;
-    height:200px !important;
-  }
 }
 
 
@@ -870,12 +748,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   max-height:none !important;
 }
 
-/* 哥布林王維持大史萊姆王規格 */
-.battle-enemy .monster-id-goblin_king.enemy-unit-0{
-  width:450px !important;
-  height:450px !important;
-}
-
 @media(max-width:600px){
   .battle-enemy .enemy-unit-1{
     right:50% !important;
@@ -893,46 +765,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
     width:135px !important;
     height:135px !important;
   }
-  .battle-enemy .monster-id-goblin_king.enemy-unit-0{
-    width:330px !important;
-    height:330px !important;
-  }
-}
-
-
-
-/* V10.11.55 FINAL：W2 尺寸 + 全召喚物統一座標 + Boss 座標 */
-
-/* W2 普通哥布林維持放大30% */
-.battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
-  width:364px !important;
-  height:364px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-#dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite):not(.monster-id-goblin_king){
-  width:299px !important;
-  height:273px !important;
-  max-width:none !important;
-  max-height:none !important;
-}
-
-/* 主怪：主體圖片不再帶舊 right/bottom，正式站位由 Unified Coordinate Runtime 控制。 */
-
-/* 哥布林王維持大史萊姆王尺寸 */
-.battle-enemy .monster-id-goblin_king{
-  width:450px !important;
-  height:450px !important;
-  max-width:none !important;
-  max-height:none !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-#dungeonEnemyIdle.monster-id-goblin_king{
-  width:310px !important;
-  height:270px !important;
 }
 
 /* 所有召喚怪共用同一圖層與同一套 XY。
@@ -995,14 +827,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 @media(max-width:600px){
-  .battle-enemy .monster-family-goblin:not(.monster-id-goblin_king){
-    width:267px !important;
-    height:267px !important;
-  }
-  #dungeonEnemyIdle.monster-family-goblin:not(.boss-dungeon-sprite):not(.monster-id-goblin_king){
-    width:228px !important;
-    height:208px !important;
-  }
   .battle-summon-layer .battle-enemy-unit-sprite{
     width:145px !important;
     height:145px !important;
@@ -10175,7 +9999,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   function equippedGeneratedItems(){ensureItemSystem();return Object.values(gameData.hero.equipment||{}).map(id=>gameData.inventory.find(x=>x.id===id)).map(itemDefinition).filter(x=>x?.generated);}
   function equippedCombatAffixes(){return equippedGeneratedItems().flatMap(i=>(i.affixes||[]).map(a=>({...a,itemName:i.name})));}
-  function equipmentAffixVisual(id){return window.STUDYRPG_EDITOR_CONFIG?.equipmentAffixes?.[id]||{};}
+  function equipmentAffixVisual(id){return window.STUDYRPG_VISUAL_DATABASE?.equipmentAffixes?.[id]||{};}
   function renderEquipmentCompanions(){
     const layer=document.getElementById('battleSummonLayer');if(!layer)return;layer.querySelectorAll('.equipment-companion').forEach(x=>x.remove());
     (battleStateV10?.equipmentCompanions||[]).forEach((c,i)=>{const v=equipmentAffixVisual(c.affixId);if(!v.enabled||!v.image)return;const el=document.createElement('img');el.className='equipment-companion';el.src=v.image;el.alt=c.name;el.title=c.name;const scale=Math.max(.1,Number(v.scale||1)),x=Number(v.offsetX||0),y=Number(v.offsetY||0);el.style.cssText=`position:absolute;left:18%;top:65%;width:${Math.round(120*scale)}px;height:${Math.round(120*scale)}px;object-fit:contain;transform:translate(calc(-50% + ${x}px),calc(-100% + ${y}px));filter:drop-shadow(0 4px 4px #0008);pointer-events:none;z-index:7`;layer.appendChild(el);});
@@ -10699,380 +10523,6 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
 
 <script src="visual-database.js"></script>
-<script id="studyRPGEditorConfig">
-/* STUDYRPG_EDITOR_CONFIG_START */
-window.STUDYRPG_EDITOR_CONFIG={
-  "version": "10.18",
-  "referencePoints": {
-    "desktop": {
-      "hero_home": {
-        "x": 18,
-        "y": 68
-      },
-      "enemy_home": {
-        "x": 82,
-        "y": 68
-      },
-      "enemy_front": {
-        "x": 68,
-        "y": 66
-      },
-      "air_high": {
-        "x": 48,
-        "y": 28
-      },
-      "summon_left": {
-        "x": 62,
-        "y": 69
-      },
-      "summon_center": {
-        "x": 72,
-        "y": 69
-      },
-      "summon_right": {
-        "x": 82,
-        "y": 69
-      }
-    },
-    "tablet": {
-      "hero_home": {
-        "x": 17,
-        "y": 68
-      },
-      "enemy_home": {
-        "x": 83,
-        "y": 68
-      },
-      "enemy_front": {
-        "x": 67,
-        "y": 66
-      },
-      "air_high": {
-        "x": 48,
-        "y": 27
-      },
-      "summon_left": {
-        "x": 60,
-        "y": 69
-      },
-      "summon_center": {
-        "x": 72,
-        "y": 69
-      },
-      "summon_right": {
-        "x": 84,
-        "y": 69
-      }
-    },
-    "mobile": {
-      "hero_home": {
-        "x": 18,
-        "y": 65
-      },
-      "enemy_home": {
-        "x": 82,
-        "y": 65
-      },
-      "enemy_front": {
-        "x": 66,
-        "y": 63
-      },
-      "air_high": {
-        "x": 48,
-        "y": 25
-      },
-      "summon_left": {
-        "x": 54,
-        "y": 67
-      },
-      "summon_center": {
-        "x": 70,
-        "y": 67
-      },
-      "summon_right": {
-        "x": 86,
-        "y": 67
-      }
-    }
-  },
-  "stage": {
-    "desktop": {
-      "bg": {
-        "x": 50,
-        "y": 50,
-        "scale": 1,
-        "locked": true
-      }
-    },
-    "tablet": {
-      "bg": {
-        "x": 50,
-        "y": 50,
-        "scale": 1,
-        "locked": true
-      }
-    },
-    "mobile": {
-      "bg": {
-        "x": 50,
-        "y": 50,
-        "scale": 1,
-        "locked": true
-      }
-    }
-  },
-  "heroes": {
-    "novice": {
-      "motionActions": {},
-      "effectAnchor": {
-        "width": 100,
-        "height": 100,
-        "y": 0
-      }
-    }
-  },
-  "monsters": {
-    "slime_water": {
-      "idleSize": {},
-      "battleSize": {}
-    },
-    "goblin_slave": {
-      "idleSize": {
-        "tablet": 310,
-        "mobile": 265
-      },
-      "battleSize": {
-        "tablet": 275,
-        "mobile": 235
-      }
-    },
-    "goblin_soldier": {
-      "idleSize": {
-        "tablet": 335,
-        "mobile": 325
-      },
-      "battleSize": {
-        "tablet": 330,
-        "mobile": 270
-      }
-    },
-    "goblin_shaman": {
-      "idleSize": {
-        "tablet": 325,
-        "mobile": 260
-      },
-      "battleSize": {
-        "tablet": 340,
-        "mobile": 270
-      }
-    },
-    "goblin_general": {
-      "idleSize": {
-        "tablet": 360,
-        "mobile": 270
-      },
-      "battleSize": {
-        "tablet": 365,
-        "mobile": 270
-      }
-    },
-    "goblin_king": {
-      "idleSize": {
-        "tablet": 485,
-        "mobile": 350
-      },
-      "battleSize": {
-        "tablet": 470,
-        "mobile": 415
-      }
-    }
-  },
-  "playerSkills": {
-    "power_strike": {
-      "enabled": false,
-      "actorAction": "melee",
-      "selfFX": [],
-      "pathFX": null,
-      "targetFX": [],
-      "summons": []
-    }
-  },
-  "monsterSkills": {},
-  "equipmentAffixes": {
-    "assault": {
-      "enabled": false,
-      "buffIcon": "💎",
-      "image": "",
-      "scale": 1,
-      "offsetX": 0,
-      "offsetY": 0
-    }
-  },
-  "sceneCoordinateLayout": {
-    "desktop": {
-      "statusHero": {
-        "x": 46.6,
-        "y": 66.1
-      },
-      "dungeonHero": {
-        "x": 50,
-        "y": 63
-      },
-      "dungeonEnemy": {
-        "x": 50,
-        "y": 63
-      }
-    },
-    "tablet": {
-      "statusHero": {
-        "x": 50,
-        "y": 66
-      },
-      "dungeonHero": {
-        "x": 54,
-        "y": 67.8
-      },
-      "dungeonEnemy": {
-        "x": 28.2,
-        "y": 70.5
-      }
-    },
-    "mobile": {
-      "statusHero": {
-        "x": 50,
-        "y": 62
-      },
-      "dungeonHero": {
-        "x": 47.5,
-        "y": 70
-      },
-      "dungeonEnemy": {
-        "x": 40.5,
-        "y": 70
-      }
-    }
-  },
-  "battleLayout": {
-    "desktop": {
-      "hero": {
-        "x": 18,
-        "y": 68
-      },
-      "enemy": {
-        "x": 82,
-        "y": 68
-      },
-      "attackMid": {
-        "x": 42,
-        "y": 60
-      },
-      "attackStrike": {
-        "x": 68,
-        "y": 66
-      },
-      "duration": 560
-    },
-    "tablet": {
-      "hero": {
-        "x": 17,
-        "y": 68
-      },
-      "enemy": {
-        "x": 83,
-        "y": 68
-      },
-      "attackMid": {
-        "x": 42,
-        "y": 60
-      },
-      "attackStrike": {
-        "x": 67,
-        "y": 66
-      },
-      "duration": 560
-    },
-    "mobile": {
-      "hero": {
-        "x": 18,
-        "y": 65
-      },
-      "enemy": {
-        "x": 70.5,
-        "y": 65.7
-      },
-      "attackMid": {
-        "x": 42,
-        "y": 57
-      },
-      "attackStrike": {
-        "x": 65,
-        "y": 63
-      },
-      "duration": 520
-    }
-  },
-  "objectSizes": {
-    "desktop": {
-      "statusHero": 160,
-      "dungeonHero": 180,
-      "dungeonEnemy": 180,
-      "battleHero": 190,
-      "battleEnemy": 190
-    },
-    "tablet": {
-      "statusHero": 150,
-      "dungeonHero": 165,
-      "dungeonEnemy": 165,
-      "battleHero": 175,
-      "battleEnemy": 175
-    },
-    "mobile": {
-      "statusHero": 135,
-      "dungeonHero": 135,
-      "dungeonEnemy": 135,
-      "battleHero": 145,
-      "battleEnemy": 145
-    }
-  },
-  "mapGround": {
-    "1": {
-      "desktop": {
-        "dungeon": 85
-      },
-      "mobile": {
-        "dungeon": 84,
-        "status": 88.5,
-        "dungeonEntry": 95
-      },
-      "tablet": {
-        "status": 87.5,
-        "dungeonEntry": 86.5,
-        "dungeon": 85
-      }
-    },
-    "2": {
-      "tablet": {
-        "dungeonEntry": 94,
-        "dungeon": 80.5,
-        "status": 81
-      },
-      "mobile": {
-        "dungeonEntry": 95,
-        "dungeon": 79.5,
-        "status": 82.5
-      }
-    }
-  }
-};
-/* STUDYRPG_EDITOR_CONFIG_END */
-</script>
-
-
-
-
-
-
-
 <script id="studyRPGVisualRuntimeV1">
 /* Visual Runtime v1: one device resolver, one ground/foot-anchor model, no save/gameplay writes. */
 (function(){
@@ -11114,7 +10564,7 @@ addEventListener('resize',()=>requestAnimationFrame(apply));if(document.readySta
 /* V10.16：正式戰鬥演出資料層。idle/battle 保留為素材狀態；motionActions 為獨立動作命名空間。 */
 (function(){
 'use strict';
-const C=window.STUDYRPG_EDITOR_CONFIG||{};
+const C=window.STUDYRPG_VISUAL_DATABASE||{};
 const clone=v=>JSON.parse(JSON.stringify(v));
 const HERO_DEFAULT={
  idle:{spriteState:'idle',motion:'stay',duration:360},
@@ -11170,7 +10620,7 @@ const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){co
 <script id="studyRPGUnifiedFxRuntimeV1016">
 (function(){
 'use strict';
-const C=window.STUDYRPG_EDITOR_CONFIG||{};
+const C=window.STUDYRPG_VISUAL_DATABASE||{};
 const dev=()=>window.studyRPGVisualDevice?.()||(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
 const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
 const point=n=>window.studyRPGResolveBattlePointV10179?.(n)||defaults[n]||defaults.enemy_front;
