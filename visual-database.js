@@ -1,7 +1,6 @@
-/* StudyRPG Visual Database v1
-   Tool only edits this data. Runtime owns rendering. Game/save logic must never write here. */
+/* StudyRPG Visual Database v2 */
 window.STUDYRPG_VISUAL_DATABASE={
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "deviceRules": {
     "mobileMax": 600,
     "tabletMax": 1024
@@ -9,7 +8,8 @@ window.STUDYRPG_VISUAL_DATABASE={
   "groundByWeek": {
     "1": {
       "desktop": {
-        "dungeon": 85
+        "dungeon": 85,
+        "status": 83.5
       },
       "mobile": {
         "dungeon": 84,
@@ -17,16 +17,16 @@ window.STUDYRPG_VISUAL_DATABASE={
         "dungeonEntry": 95
       },
       "tablet": {
-        "status": 87.5,
-        "dungeonEntry": 86.5,
+        "status": 85,
+        "dungeonEntry": 75,
         "dungeon": 85
       }
     },
     "2": {
       "tablet": {
         "dungeonEntry": 94,
-        "dungeon": 80.5,
-        "status": 81
+        "dungeon": 77,
+        "status": 79.5
       },
       "mobile": {
         "dungeonEntry": 95,
@@ -42,7 +42,7 @@ window.STUDYRPG_VISUAL_DATABASE={
         "hero": {
           "x": 46.6,
           "groundScene": "status",
-          "footOffsetY": 0.1
+          "footOffsetY": -1.9
         },
         "heroSize": 160
       },
@@ -90,23 +90,23 @@ window.STUDYRPG_VISUAL_DATABASE={
       "status": {
         "groundY": 87.5,
         "hero": {
-          "x": 50,
+          "x": 49,
           "groundScene": "status",
-          "footOffsetY": -21.5
+          "footOffsetY": -5.2
         },
         "heroSize": 150
       },
       "dungeonEntry": {
         "groundY": 86.5,
         "hero": {
-          "x": 54,
+          "x": 48.4,
           "groundScene": "dungeonEntry",
-          "footOffsetY": -18.7
+          "footOffsetY": -1
         },
         "enemy": {
-          "x": 28.2,
+          "x": 40.7,
           "groundScene": "dungeonEntry",
-          "footOffsetY": -16.0
+          "footOffsetY": -2.4
         },
         "heroSize": 165,
         "enemySize": 165
@@ -116,12 +116,12 @@ window.STUDYRPG_VISUAL_DATABASE={
         "hero": {
           "x": 17,
           "groundScene": "battle",
-          "footOffsetY": 0
+          "footOffsetY": -3.5
         },
         "enemy": {
-          "x": 83,
+          "x": 71.4,
           "groundScene": "battle",
-          "footOffsetY": 0
+          "footOffsetY": -5
         },
         "heroSize": 175,
         "enemySize": 175,
@@ -140,9 +140,9 @@ window.STUDYRPG_VISUAL_DATABASE={
       "status": {
         "groundY": 88.5,
         "hero": {
-          "x": 50,
+          "x": 49,
           "groundScene": "status",
-          "footOffsetY": -26.5
+          "footOffsetY": -3.3
         },
         "heroSize": 135
       },
@@ -154,9 +154,9 @@ window.STUDYRPG_VISUAL_DATABASE={
           "footOffsetY": -25
         },
         "enemy": {
-          "x": 40.5,
+          "x": 26.8,
           "groundScene": "dungeonEntry",
-          "footOffsetY": -25
+          "footOffsetY": -32.6
         },
         "heroSize": 135,
         "enemySize": 135
@@ -307,8 +307,13 @@ window.STUDYRPG_VISUAL_DATABASE={
   },
   "monsters": {
     "slime_water": {
-      "idleSize": {},
-      "battleSize": {}
+      "idleSize": {
+        "tablet": 325
+      },
+      "battleSize": {
+        "mobile": 250,
+        "tablet": 320
+      }
     },
     "goblin_slave": {
       "idleSize": {
@@ -316,7 +321,7 @@ window.STUDYRPG_VISUAL_DATABASE={
         "mobile": 265
       },
       "battleSize": {
-        "tablet": 275,
+        "tablet": 290,
         "mobile": 235
       }
     },
@@ -356,8 +361,45 @@ window.STUDYRPG_VISUAL_DATABASE={
         "mobile": 350
       },
       "battleSize": {
-        "tablet": 470,
+        "tablet": 500,
         "mobile": 415
+      }
+    },
+    "slime_fire": {
+      "idleSize": {
+        "tablet": 320
+      },
+      "battleSize": {
+        "mobile": 250,
+        "tablet": 325
+      }
+    },
+    "slime_grass": {
+      "idleSize": {
+        "tablet": 325
+      },
+      "battleSize": {
+        "mobile": 255,
+        "tablet": 325
+      }
+    },
+    "slime_lightning": {
+      "idleSize": {
+        "tablet": 220
+      },
+      "battleSize": {
+        "mobile": 250,
+        "tablet": 330
+      }
+    },
+    "slime_king": {
+      "idleSize": {
+        "tablet": 290,
+        "mobile": 175
+      },
+      "battleSize": {
+        "mobile": 220,
+        "tablet": 330
       }
     }
   },
@@ -381,5 +423,15 @@ window.STUDYRPG_VISUAL_DATABASE={
       "summons": []
     }
   },
-  "monsterSkills": {}
+  "monsterSkills": {},
+  "equipmentAffixes": {
+    "assault": {
+      "enabled": false,
+      "buffIcon": "💎",
+      "image": "",
+      "scale": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  }
 };
