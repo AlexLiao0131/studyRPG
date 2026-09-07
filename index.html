@@ -2088,6 +2088,8 @@ function recoverProvableDuplicateTaskRewards(){
 }
 
 function finishCommonTask(t,extra={}){
+  if(t&&taskCompletionBlocked(t)){alert('今天這個任務已經完成，獎勵不會再次發放。');return;}
+
   const __rewardTask=(gameData.tasks||[]).find(t=>String(t.id)===String(t));
   if(__rewardTask&&taskRewardAlreadyIssued(__rewardTask,today())){alert('今天這個任務已完成，獎勵不會重複發放。');renderAll();return;}
 
@@ -2111,6 +2113,9 @@ function finishCommonTask(t,extra={}){
   return statGain;
 }
 function completeSimpleTask(taskId){
+  const __t=(gameData.tasks||[]).find(x=>String(x.id)===String(taskId));
+  if(__t&&taskCompletionBlocked(__t)){alert('今天這個任務已經完成，獎勵不會再次發放。');return;}
+
   const t=gameData.tasks.find(x=>x.id===taskId);
   if(!t)return;
   if(completedCount(taskId)>=t.dailyLimit){alert('今天已完成了');return;}
@@ -2119,6 +2124,9 @@ function completeSimpleTask(taskId){
   renderAll();
 }
 function completeQuantityTask(taskId){
+  const __t=(gameData.tasks||[]).find(x=>String(x.id)===String(taskId));
+  if(__t&&taskCompletionBlocked(__t)){alert('今天這個任務已經完成，獎勵不會再次發放。');return;}
+
   const t=gameData.tasks.find(x=>x.id===taskId);
   if(!t)return;
   if(completedCount(taskId)>=t.dailyLimit){alert('今天已完成了');return;}
@@ -2145,6 +2153,9 @@ function scaledRewardMap(map,multiplier){
   return out;
 }
 function completeScoreTask(taskId){
+  const __t=(gameData.tasks||[]).find(x=>String(x.id)===String(taskId));
+  if(__t&&taskCompletionBlocked(__t)){alert('今天這個任務已經完成，獎勵不會再次發放。');return;}
+
   const t=gameData.tasks.find(x=>x.id===taskId);
   if(!t)return;
   if(completedCount(taskId)>=t.dailyLimit){alert('今天已經登記過成績');return;}
@@ -2246,10 +2257,36 @@ function addExp(v){
     alert('✨ 升級！目前 Lv.'+gameData.hero.level+'，全能力 +1');
   }
 }
+
+function taskStableFingerprint(t){
+  if(!t)return '';
+  const n=v=>String(v??'').trim().toLowerCase().replace(/\s+/g,' ');
+  return [n(t.name||t.title),n(t.taskType||t.type||'complete'),n(t.category),n(t.subject),n(t.courseId)].join('|');
+}
+function taskRecordMatchesTask(r,t){
+  if(!r||!t)return false;
+  if(String(r.taskId)===String(t.id))return true;
+  const snap=r.taskSnapshot;
+  return !!snap && taskStableFingerprint(snap)===taskStableFingerprint(t);
+}
+function taskStableCompletedCount(t,date=today()){
+  return (gameData.taskRecords||[]).filter(r=>
+    r?.date===date && r?.status==='completed' && !r?.duplicateRewardReversed && taskRecordMatchesTask(r,t)
+  ).length;
+}
+function taskCompletionBlocked(t){
+  return !!t && taskStableCompletedCount(t,today())>=Math.max(1,Number(t.dailyLimit)||1);
+}
+
 function completedCount(taskId){
-  return gameData.taskRecords.filter(r=>r.taskId===taskId&&r.date===today()&&r.status==='completed').length;
+  const t=(gameData.tasks||[]).find(x=>String(x.id)===String(taskId));
+  if(t)return taskStableCompletedCount(t,today());
+  return (gameData.taskRecords||[]).filter(r=>String(r.taskId)===String(taskId)&&r.date===today()&&r.status==='completed').length;
 }
 function startTask(taskId){
+  const __t=(gameData.tasks||[]).find(x=>String(x.id)===String(taskId));
+  if(__t&&taskCompletionBlocked(__t)){alert('今天這個任務已經完成，不能再次開始。');return;}
+
   if(gameData.activeTasks[taskId]){alert('這個任務已經在計時');return;}
   const t=gameData.tasks.find(x=>x.id===taskId);
   if(!t)return;
@@ -2258,6 +2295,13 @@ function startTask(taskId){
   saveGame();renderTasks();startLiveTimer();
 }
 function finishTask(taskId){
+  const __t=(gameData.tasks||[]).find(x=>String(x.id)===String(taskId));
+  if(__t&&taskCompletionBlocked(__t)){
+    if(gameData.activeTasks)delete gameData.activeTasks[taskId];
+    saveGame(); try{renderAll()}catch(e){}
+    alert('今天這個任務已經完成，獎勵不會再次發放。');return;
+  }
+
   const start=gameData.activeTasks[taskId];
   if(!start){alert('請先開始任務');return;}
   const t=gameData.tasks.find(x=>x.id===taskId);
@@ -6296,6 +6340,7 @@ async function writeFamilyCloud(familyId){
   return true;
 }
 function applyCloudFamilyPayload(payload,localCfg){
+  const __localTaskHistoryByProfile=new Map((familyData?.profiles||[]).map(p=>[String(p.id),{taskRecords:deepClone(p.data?.taskRecords||[]),taskRewardLedger:deepClone(p.data?.taskRewardLedger||{})}]));
   // 真正以雲端取代前，先保留目前本機完整備份，避免任何同步判斷失誤造成不可逆資料遺失。
   backupFamilyBeforeCloudReplace();
   if(payload?.familyData?.profiles?.length){
@@ -6318,6 +6363,19 @@ function applyCloudFamilyPayload(payload,localCfg){
   sessionStorage.setItem('activeHeroProfile',activeProfileId);
   persistFamily(false);
   setCloudSyncStatus('cloud');
+  
+  for(const __p of (familyData?.profiles||[])){
+    const __old=__localTaskHistoryByProfile.get(String(__p.id));
+    if(!__old||!__p.data)continue;
+    __p.data.taskRecords=__p.data.taskRecords||[];
+    const __ids=new Set(__p.data.taskRecords.map(r=>String(r?.id||'')));
+    for(const __r of (__old.taskRecords||[])){
+      if(__r?.id&&!__ids.has(String(__r.id))){__p.data.taskRecords.push(__r);__ids.add(String(__r.id));}
+    }
+    __p.data.taskRewardLedger=Object.assign({},__old.taskRewardLedger||{},__p.data.taskRewardLedger||{});
+  }
+  gameData=getActiveProfile().data;
+
   return true;
 }
 
