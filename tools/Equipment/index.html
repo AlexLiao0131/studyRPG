@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StudyRPG Equipment Generator Lab</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--line:#30363d;--text:#f0f6fc;--muted:#8b949e;--green:#3fb950;--red:#f85149;--gold:#f0883e;--purple:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,"Noto Sans TC",sans-serif}
+header{position:sticky;top:0;z-index:20;padding:12px 14px;background:#161b22;border-bottom:1px solid var(--line)}
+h1{margin:0;color:var(--gold);font-size:21px}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+main{max-width:1280px;margin:auto;padding:12px}.layout{display:grid;grid-template-columns:390px 1fr;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+h2{font-size:16px;margin:0 0 10px;color:var(--gold)}label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:7px 0 3px}
+input,select,button{width:100%;background:#0d1117;color:#fff;border:1px solid #465164;border-radius:8px;padding:8px}
+button{cursor:pointer;font-weight:800;background:#273248}button.primary{background:#1f6feb}button.green{background:#238636}button.red{background:#8b2d2d}button.purple{background:#6e40c9}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.status{padding:9px;border:1px solid var(--line);border-radius:8px;font-size:12px}.ok{border-color:#238636;color:#7ee787}.bad{border-color:#da3633;color:#ff7b72}
+.pill{display:inline-block;padding:2px 7px;border:1px solid var(--line);border-radius:999px;margin:2px;font-size:11px}.good{color:#7ee787}.badtext{color:#ff7b72}.muted{color:var(--muted);font-size:11px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);position:sticky;top:0;background:#161b22}
+.scroll{overflow:auto;max-height:70vh}.affix{display:block;margin:2px 0}.actions{display:flex;gap:5px}.actions button{width:auto;padding:5px 8px}
+code{color:#a5d6ff}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.row3{grid-template-columns:1fr}.scroll{max-height:none}}
+</style>
+</head>
+<body>
+<header>
+<h1>🛡️ StudyRPG Equipment Generator Lab</h1>
+<div class="sub">獨立工具｜只讀正式 index.html 的裝備資料與公式參數｜主程式不再保留生成器</div>
+</header>
+<main><div class="layout">
+<section>
+<div class="card">
+<h2>正式主程式來源</h2>
+<div id="source" class="status">尚未讀取</div>
+<div id="validation" class="muted" style="margin-top:7px"></div>
+<div style="height:8px"></div>
+<button id="reload" class="primary">↻ 重新讀取 GitHub index.html</button>
+<label>或手動載入 index.html</label><input id="file" type="file" accept=".html,text/html">
+</div>
+
+<div class="card">
+<h2>生成設定</h2>
+<div class="row3">
+<div><label>數量</label><input id="count" type="number" min="1" max="100" value="20"></div>
+<div><label>稀有度</label><select id="rarity"></select></div>
+<div><label>部位</label><select id="slot"><option value="">全部隨機</option><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div>
+</div>
+<div class="row3">
+<div><label>職業</label><select id="job"><option>初心者</option><option>戰士</option><option>法師</option><option>牧師</option><option>獵人</option><option>盜賊</option><option>聖騎士</option><option>魔劍士</option></select></div>
+<div><label>週數</label><input id="week" type="number" min="1" value="1"></div>
+<div><label>候選次數</label><input id="tries" type="number" min="1" max="50" value="14"></div>
+</div>
+<div class="row">
+<div><label>塔樓層</label><input id="floor" type="number" min="0" value="0"></div>
+<div><label>週目</label><input id="cycle" type="number" min="1" value="1"></div>
+</div>
+<button id="generate" class="purple" disabled>🎲 批次生成</button>
+</div>
+
+<div class="card">
+<h2>匯出正式掉落池</h2>
+<div class="muted">匯出後把 <code>equipment-pool.js</code> 放在主程式同一層。主程式只在偵測到新的 exportId 時匯入模板；玩家背包與已穿戴裝備不會被回算。</div>
+<div style="height:8px"></div>
+<button id="export" class="green" disabled>⬇ 匯出 equipment-pool.js</button>
+<button id="clear" class="red" style="margin-top:6px">清空結果</button>
+</div>
+</section>
+
+<section>
+<div class="card">
+<h2>生成結果 <span id="summary" class="muted"></span></h2>
+<div id="issues" class="muted"></div>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>裝備</th><th>部位</th><th>詞綴</th><th>Power</th><th>檢查</th><th></th></tr></thead>
+<tbody id="rows"></tbody>
+</table></div>
+</div>
+</section>
+</div></main>
+
+<script>
+const RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/index.html';
+let mainText='',items=[],sourceFingerprint='';
+const DB={rarities:{},bases:{},affixes:{},rules:{},iconPools:{},dropRates:{}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function balanced(text,start,open='{',close='}'){
+  let depth=0,q=null,escape=false,line=false,block=false;
+  for(let i=start;i<text.length;i++){
+    const c=text[i],n=text[i+1];
+    if(line){if(c==='\n')line=false;continue}
+    if(block){if(c==='*'&&n==='/'){block=false;i++}continue}
+    if(q){if(escape){escape=false;continue}if(c==='\\'){escape=true;continue}if(c===q)q=null;continue}
+    if(c==='/'&&n==='/'){line=true;i++;continue}
+    if(c==='/'&&n==='*'){block=true;i++;continue}
+    if(c==='"'||c==="'"||c==='`'){q=c;continue}
+    if(c===open)depth++;
+    else if(c===close){depth--;if(depth===0)return text.slice(start,i+1)}
+  }
+  return null;
+}
+function literalAfter(tokens){
+  for(const token of tokens){
+    const i=mainText.indexOf(token); if(i<0)continue;
+    const s=mainText.indexOf('{',i+token.length); if(s<0)continue;
+    const raw=balanced(mainText,s); if(!raw)continue;
+    try{return Function('"use strict";return ('+raw+')')()}catch(e){console.warn(token,e)}
+  }
+  return {};
+}
+async function fingerprint(text){
+  try{
+    const b=new TextEncoder().encode(text),h=await crypto.subtle.digest('SHA-256',b);
+    return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,16);
+  }catch(e){return 'len-'+text.length}
+}
+async function parseMain(){
+  DB.rarities=literalAfter(['const RARITIES=','window.EQUIPMENT_RARITY_DATABASE=']);
+  DB.bases=literalAfter(['const BASES=','window.EQUIPMENT_BASE_DATABASE_T0=']);
+  DB.affixes=literalAfter(['const AFFIXES=','window.EQUIPMENT_AFFIX_DATABASE=']);
+  DB.rules=literalAfter(['window.EQUIPMENT_GENERATION_RULES=']);
+  DB.iconPools=literalAfter(['DB.iconPools=window.EQUIPMENT_ICON_POOLS=','window.EQUIPMENT_ICON_POOLS=']);
+  DB.dropRates=literalAfter(['const DEFAULT_DROP_RATES=window.EQUIPMENT_DROP_RATE_DEFAULTS=','window.EQUIPMENT_DROP_RATE_DEFAULTS=']);
+  sourceFingerprint=await fingerprint(mainText);
+  renderValidation();
+}
+function renderValidation(){
+  const checks=[
+    ['BASES',Object.keys(DB.bases).length>0,`${Object.keys(DB.bases).length} 基底`],
+    ['AFFIXES',Object.keys(DB.affixes).length>0,`${Object.keys(DB.affixes).length} 詞綴`],
+    ['RARITIES',Object.keys(DB.rarities).length>0,`${Object.keys(DB.rarities).length} 稀有度`],
+    ['RULES',!!DB.rules.version,DB.rules.version||'缺少'],
+    ['ICON POOLS',Object.keys(DB.iconPools).length>0,`${Object.keys(DB.iconPools).length} 部位`]
+  ];
+  $('validation').innerHTML=checks.map(([n,ok,m])=>`<span class="pill ${ok?'good':'badtext'}">${ok?'✅':'❌'} ${esc(n)}｜${esc(m)}</span>`).join('');
+  const ok=checks.every(x=>x[1]);
+  $('source').className='status '+(ok?'ok':'bad');
+  $('source').textContent=ok?`讀取成功｜${DB.rules.version}｜來源 ${sourceFingerprint}`:'主程式公式資料不完整，禁止生成。';
+  $('generate').disabled=!ok;
+  $('rarity').innerHTML=Object.values(DB.rarities).filter(r=>!r.uniqueOnly).map(r=>`<option value="${esc(r.id)}">${esc(r.icon||'')} ${esc(r.name)}｜${Number(r.affixCount)||0}詞綴</option>`).join('');
+}
+
+const rand=()=>Math.random();
+const pick=arr=>arr[Math.floor(rand()*arr.length)];
+function rollValue(a,mult=1){
+  const step=Number(a.step||1),count=Math.max(0,Math.round((Number(a.max)-Number(a.min))/step));
+  const v=Number(a.min)+Math.floor(rand()*(count+1))*step;
+  return Math.round(v*mult/step)*step;
+}
+function powerScore(item){
+  const w=DB.rules.powerWeights||{};
+  const stat=Object.entries(item?.stats||{}).reduce((n,[k,v])=>n+(w[k]||0)*Number(v||0),0);
+  const extra=(item?.affixes||[]).filter(a=>a.kind!=='stat').reduce((n,a)=>n+Number(a.power||0),0);
+  return Math.max(0,Math.round((stat+extra)*10)/10);
+}
+function smartScore(item,job){
+  const w=DB.rules.classWeights?.[job]||DB.rules.classWeights?.['初心者']||{},stats=item?.stats||{};
+  let score=powerScore(item);
+  for(const [k,v] of Object.entries(stats))score+=(w[k]||.45)*Math.abs(Number(v)||0);
+  for(const a of (item.affixes||[])){
+    if(a.stat)score+=(w[a.stat]||.45)*2;
+    if(a.kind==='trigger'||a.kind==='summon')score+=5;
+  }
+  const atk=item.affixes.some(a=>a.stat==='attack'),matk=item.affixes.some(a=>a.stat==='magicAttack');
+  if(atk&&matk)score-=4;
+  return score;
+}
+function makeOne(opts){
+  const tierRule=DB.rules.tier||{},week=Math.max(1,Number(opts.week)||1),floor=Math.max(0,Number(opts.floor)||0),cycle=Math.max(1,Number(opts.cycle)||1);
+  const tier=Math.max(0,Math.floor((week-1)/Number(tierRule.weekStep||5))+Math.floor(floor/Number(tierRule.floorStep||15))+cycle-1);
+  const rarity=DB.rarities[opts.rarity];
+  const candidates=Object.values(DB.bases).filter(b=>!opts.slot||b.slot===opts.slot),base=pick(candidates.length?candidates:Object.values(DB.bases));
+  if(!rarity||!base)throw new Error('找不到稀有度或裝備基底');
+  const stats={...(base.stats||{})},pool=Object.values(DB.affixes).filter(a=>(a.slots||[]).includes(base.slot)),chosen=[];
+  const count=Math.max(0,Number(rarity.affixCount||0)+Math.min(2,tier));
+  while(chosen.length<count&&pool.length){
+    const i=Math.floor(rand()*pool.length),a={...pool.splice(i,1)[0]};
+    if(a.kind==='stat'){
+      a.value=rollValue(a,Number(rarity.powerMult||1)*(1+tier*Number(tierRule.tierGrowth||.18)));
+      stats[a.stat]=(stats[a.stat]||0)+a.value;
+      a.power=a.value*Number(a.powerPerUnit||1);
+    }
+    chosen.push(a);
+  }
+  if(rarity.id==='epic'&&chosen.length===3&&rand()<Number(tierRule.epicFourthChance||0)){
+    const used=new Set(chosen.map(a=>a.id)),extra=Object.values(DB.affixes).filter(a=>(a.slots||[]).includes(base.slot)&&!used.has(a.id));
+    if(extra.length){
+      const a={...pick(extra)};
+      if(a.kind==='stat'){
+        a.value=rollValue(a,1);
+        stats[a.stat]=(stats[a.stat]||0)+a.value;
+        a.power=a.value*Number(a.powerPerUnit||1);
+      }
+      chosen.push(a);
+    }
+  }
+  const prefix=chosen[0]?.name||'古塔',suffix=chosen.some(a=>a.kind==='summon')?'・契靈':chosen.some(a=>a.kind==='trigger')?'・回響':'';
+  const visuals=DB.iconPools[base.slot]||[],visualId=visuals.length?pick(visuals):(base.visualId||base.id);
+  const item={
+    generated:true,templateLocked:true,tier:`T${tier}`,rarity:rarity.id,rarityName:rarity.name,
+    name:`${rarity.icon||''} T${tier}・${prefix}${base.name}${suffix}`,icon:base.icon,category:'equipment',
+    equipSlot:base.slot,baseId:base.id,visualId,visual:{...(base.visual||{})},inventoryIcon:`images/equipment/icons/${base.slot}/${visualId}.png`,
+    stats,affixes:chosen,setId:null,uniqueId:null,price:0,dailyLimit:1,active:false
+  };
+  item.powerScore=powerScore(item);
+  item.description=`${item.tier} ${rarity.name}｜裝備評估 ${item.powerScore}｜${chosen.map(a=>a.text||a.name).join('、')}｜智慧適配：${opts.job}・第${week}週`;
+  item.generationContext={week,floor,cycle,heroClass:opts.job,formulaVersion:DB.rules.version};
+  return item;
+}
+function generateBest(){
+  const opts={job:$('job').value,week:+$('week').value||1,floor:+$('floor').value||0,cycle:+$('cycle').value||1,rarity:$('rarity').value,slot:$('slot').value||''};
+  const tries=Math.max(1,Math.min(50,+$('tries').value||Number(DB.rules.tier?.defaultTries)||14));
+  let best=null,score=-Infinity;
+  for(let i=0;i<tries;i++){const x=makeOne(opts),s=smartScore(x,opts.job);if(s>score){best=x;score=s}}
+  return best;
+}
+function affixText(a){
+  if(a?.text)return a.text;
+  const labels={attack:'攻擊',magicAttack:'魔攻',defense:'防禦',magicDefense:'魔防',speed:'速度',maxHp:'HP',maxEnergy:'能量',crit:'暴擊',evade:'閃避',block:'格擋'};
+  const pct=['crit','evade','block'].includes(a?.stat);
+  return `${a?.name||a?.id}：${labels[a?.stat]||a?.stat||''} +${pct?Math.round(Number(a?.value||0)*100)+'%':Number(a?.value||0)}`;
+}
+function validate(item){
+  const out=[],aff=item.affixes||[],ids=aff.map(a=>a.id),rule=DB.rarityRules?.[item.rarity];
+  if(new Set(ids).size!==ids.length)out.push('重複詞綴');
+  for(const a of aff)if(!(a.slots||[]).includes(item.equipSlot))out.push(`${a.name} 部位不符`);
+  const expected={common:[0],uncommon:[1],rare:[2],epic:[3,4]}[item.rarity];
+  if(expected&&!expected.includes(aff.length))out.push(`詞綴數 ${aff.length}`);
+  if(aff[0]&&!item.name.includes(aff[0].name))out.push('名稱與第一詞綴不同步');
+  if(!item.templateLocked)out.push('模板未鎖定');
+  if(item.generationContext?.formulaVersion!==DB.rules.version)out.push('公式版本不同步');
+  return out;
+}
+function renderRows(){
+  let bad=0;
+  $('rows').innerHTML=items.map((item,i)=>{
+    const issues=validate(item);if(issues.length)bad++;
+    return `<tr><td>${i+1}</td>
+    <td><b>${esc(item.name)}</b><br><span class="muted">${esc(item.baseId)}｜${esc(item.rarity)}｜${esc(item.visualId)}</span></td>
+    <td>${esc(item.equipSlot)}</td>
+    <td>${item.affixes.map(a=>`<span class="affix">◆ ${esc(affixText(a))}</span>`).join('')}</td>
+    <td>${Number(item.powerScore||0).toFixed(1)}</td>
+    <td>${issues.length?`<span class="badtext">⚠ ${esc(issues.join('；'))}</span>`:'<span class="good">✅ PASS</span>'}</td>
+    <td><div class="actions"><button onclick="removeItem(${i})">刪除</button></div></td></tr>`;
+  }).join('');
+  $('summary').textContent=`${items.length} 件｜${bad?bad+' 件異常':'全部通過'}｜${DB.rules.version||''}`;
+  $('issues').innerHTML=bad?'<span class="badtext">有錯誤模板，禁止匯出。</span>':'<span class="good">模板可直接供正式主程式 clone 掉落。</span>';
+  $('export').disabled=!items.length||bad>0;
+}
+window.removeItem=i=>{items.splice(i,1);renderRows()};
+$('generate').onclick=()=>{
+  const n=Math.max(1,Math.min(100,+$('count').value||10));items=[];
+  try{for(let i=0;i<n;i++)items.push(generateBest());renderRows()}catch(e){alert('生成失敗：'+e.message);console.error(e)}
+};
+$('clear').onclick=()=>{items=[];renderRows()};
+$('export').onclick=()=>{
+  const now=new Date().toISOString(),exportId=`${DB.rules.version}-${sourceFingerprint}-${Date.now()}`;
+  const pool=items.map((item,i)=>({
+    id:`equipment_pool_${exportId}_${i+1}`,name:item.name,rarity:item.rarity,equipSlot:item.equipSlot,icon:item.icon||'🛡️',iconId:item.visualId||'',
+    templateData:JSON.parse(JSON.stringify(item)),enabled:true,weight:10,
+    sources:['weekday','friday','apocalypse','demon_general','midterm','final','replay','tower'],
+    minWeek:1,maxWeek:999,dropCount:0,createdAt:now,generatorVersion:DB.rules.version
+  }));
+  const payload={schemaVersion:2,exportId,formulaVersion:DB.rules.version,sourceFingerprint,generatedAt:now,dropRates:DB.dropRates,pool};
+  const blob=new Blob(['window.STUDYRPG_EQUIPMENT_POOL_EXPORT='+JSON.stringify(payload,null,2)+';\n'],{type:'application/javascript;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='equipment-pool.js';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+async function loadRemote(){
+  $('source').className='status';$('source').textContent='正在讀取 GitHub index.html…';
+  try{const r=await fetch(RAW+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);mainText=await r.text();await parseMain()}
+  catch(e){$('source').className='status bad';$('source').textContent='GitHub 讀取失敗：'+e.message+'。可改用手動載入。'}
+}
+$('reload').onclick=loadRemote;
+$('file').onchange=async e=>{const f=e.target.files[0];if(f){mainText=await f.text();await parseMain()}};
+renderRows();loadRemote();
+</script>
+</body>
+</html>
