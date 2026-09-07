@@ -312,40 +312,37 @@ const GROUND_BASE={desktop:68,tablet:68,mobile:65};
 function activeEditorWeek(){return Number($('sceneWeek')?.value)||1}
 function activeGroundScene(){return $('sceneKind')?.value||'dungeon'}
 function groundStored(d,w=activeEditorWeek(),scene=activeGroundScene()){const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w],cell=row?.[d];if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}const legacy=Number(cell);return Number.isFinite(legacy)?legacy:null}
-function groundY(d,w=activeEditorWeek(),scene=activeGroundScene()){const v=groundStored(d,w,scene);return v==null?GROUND_BASE[d]:v}
-function groundDelta(d,w=activeEditorWeek(),scene=activeGroundScene()){return groundY(d,w,scene)-GROUND_BASE[d]}
-function groundShift(p,d,w=activeEditorWeek(),name='',scene='dungeon'){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;return{x,y}}
-function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){return y}
+function groundY(d,w=activeEditorWeek(),scene=activeGroundScene()){const v=groundStored(d,w,scene);return v==null?sceneBaseGround(d,scene):v}
+function sceneBaseGround(d,scene='dungeon'){
+  const dbScene=scene==='dungeon'?'battle':scene;
+  const fallback=scene==='dungeon'?(d==='mobile'?65:68):(scene==='status'?(d==='mobile'?62:66):(d==='mobile'?60:63));
+  const v=Number(VISUAL_DB?.devices?.[d]?.[dbScene]?.groundY);
+  return Number.isFinite(v)?v:fallback;
+}
+function groundDelta(d,w=activeEditorWeek(),scene=activeGroundScene()){return groundY(d,w,scene)-sceneBaseGround(d,scene)}
+function groundLinkedName(name){return name==='hero'||name==='enemy'||name==='hero_home'||name==='enemy_home'||name==='statusHero'||name==='dungeonHero'||name==='dungeonEnemy'}
+function groundShift(p,d,w=activeEditorWeek(),name='',scene='dungeon'){
+  if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;
+  return groundLinkedName(name)?{x,y:y+groundDelta(d,w,scene)}:{x,y};
+}
+function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){
+  const v=Number(y);if(!Number.isFinite(v))return y;
+  return groundLinkedName(name)?v-groundDelta(d,w,scene):v;
+}
 function setGroundY(d,w,scene,v){
   CFG.mapGround=CFG.mapGround||{};const wk=String(w);CFG.mapGround[wk]=CFG.mapGround[wk]||{};
-  const before=groundY(d,w,scene), delta=Number(v)-Number(before||0), old=CFG.mapGround[wk][d];
-  if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};CFG.mapGround[wk][d][scene]=Number(v);
-  /* linked feet: ground moves, idle actors follow; attack/path reference points stay independent */
-  if(Math.abs(delta)>0.0001){
-    if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero) CFG.sceneCoordinateLayout[d].statusHero.y+=delta;
-    if(scene==='dungeonEntry'){
-      if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero) CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;
-      if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy) CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta;
-    }
-    if(scene==='dungeon'||scene==='battle'){
-      if(CFG.battleLayout?.[d]?.hero) CFG.battleLayout[d].hero.y+=delta;
-      if(CFG.battleLayout?.[d]?.enemy) CFG.battleLayout[d].enemy.y+=delta;
-    }
-  }
+  const old=CFG.mapGround[wk][d];if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};
+  CFG.mapGround[wk][d][scene]=Number(v);
 }
 function clearGroundY(d,w,scene){
-  const before=groundY(d,w,scene),target=GROUND_BASE[d],delta=Number(target)-Number(before||0);
-  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];
-  if(row){const cell=row[d];if(cell&&typeof cell==='object'){delete cell[scene];if(!Object.keys(cell).length)delete row[d]}else if(Number.isFinite(Number(cell))){delete row[d]}if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}}
-  if(Math.abs(delta)>0.0001){
-    if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero)CFG.sceneCoordinateLayout[d].statusHero.y+=delta;
-    if(scene==='dungeonEntry'){if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero)CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy)CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta}
-    if(scene==='dungeon'||scene==='battle'){if(CFG.battleLayout?.[d]?.hero)CFG.battleLayout[d].hero.y+=delta;if(CFG.battleLayout?.[d]?.enemy)CFG.battleLayout[d].enemy.y+=delta}
-  }
+  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];if(!row)return;
+  const cell=row[d];if(cell&&typeof cell==='object'){delete cell[scene];if(!Object.keys(cell).length)delete row[d]}
+  else if(Number.isFinite(Number(cell))){delete row[d]}
+  if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}
 }
 function groundLineHtml(d,scene=activeGroundScene()){return `<div class="scene-ground-line" style="top:${groundY(d,activeEditorWeek(),scene)}%"></div>`}
 function renderLinkedBattleEditors(){renderStage();renderSkillPreview();renderTimeline()}
-function renderGroundControl(){if(!$('sceneGroundY'))return;const d=$('sceneDevice').value,w=activeEditorWeek(),scene=activeGroundScene(),stored=groundStored(d,w,scene),v=stored==null?GROUND_BASE[d]:stored;$('sceneGroundY').value=v;$('sceneGroundOut').textContent=(stored==null?'預設 ':'')+Number(v).toFixed(1)+'%'}
+function renderGroundControl(){if(!$('sceneGroundY'))return;const d=$('sceneDevice').value,w=activeEditorWeek(),scene=activeGroundScene(),stored=groundStored(d,w,scene),v=stored==null?sceneBaseGround(d,scene):stored;$('sceneGroundY').value=v;$('sceneGroundOut').textContent=(stored==null?'預設 ':'')+Number(v).toFixed(1)+'%'}
 function monsterIdleSize(d,id,fallback){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};const v=Number(CFG.monsters[id].idleSize[d]);return Number.isFinite(v)&&v>0?v:fallback}
 function setMonsterIdleSize(d,id,v){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};CFG.monsters[id].idleSize[d]=Number(v)}
 function monsterBattleSize(d,id,fallback){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].battleSize=CFG.monsters[id].battleSize||{};const v=Number(CFG.monsters[id].battleSize[d]);return Number.isFinite(v)&&v>0?v:fallback}
