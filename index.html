@@ -238,7 +238,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 /* 副本入口乾淨結構：背景卡與角色層分離，不再以舊補丁裁切角色 */
-.dungeon-fighter-bg{position:relative;background:none;overflow:visible}
+.dungeon-fighter-bg{position:relative;background:#11161d;overflow:visible}
 .dungeon-fighter-bg>.scene-background{border-radius:12px;overflow:hidden}
 .dungeon-fighter-bg>.dungeon-idle-stage,
 .dungeon-fighter-bg>.fighter-name,
@@ -5064,7 +5064,7 @@ function renderDungeon(){
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card dungeon-fighter-bg">
-          ${sceneBackgroundHTML("dungeon-scene-background","dungeon")}
+          
           <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
           <div class="power-number good">${cp}</div>
@@ -5076,7 +5076,7 @@ function renderDungeon(){
         </div>
 
         <div class="fighter-card dungeon-fighter-bg">
-          ${sceneBackgroundHTML("dungeon-scene-background","dungeon")}
+          
           <div class="dungeon-idle-stage">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}${dungeonMonsterDefinition(m,evt)?.family?` monster-family-${dungeonMonsterDefinition(m,evt).family}`:''}${dungeonMonsterDefinition(m,evt)?.id?` monster-id-${dungeonMonsterDefinition(m,evt).id}`:''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
           <div class="power-number bad">${power}</div>
@@ -10712,5 +10712,71 @@ try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL
 </script>
 
 
-\n\n</body>
+\n\n
+<!-- STUDYRPG_STAT_RECOVERY_V2 -->
+<script>
+(function(){
+  function srReadBackup(key){
+    try{
+      const x=JSON.parse(localStorage.getItem(key)||'null');
+      return x?.familyData?.profiles?.length?x:null;
+    }catch(e){return null}
+  }
+  function srProfileFromBackup(fd){
+    if(!fd?.profiles?.length)return null;
+    return fd.profiles.find(p=>String(p.id)===String(activeProfileId))
+      || fd.profiles.find(p=>String(p?.data?.hero?.name||'')===String(gameData?.hero?.name||''))
+      || null;
+  }
+  function srCandidates(){
+    return [FAMILY_CLOUD_BACKUP_KEY,FAMILY_LAST_GOOD_BACKUP_KEY]
+      .map(k=>({key:k,box:srReadBackup(k)}))
+      .filter(x=>x.box)
+      .map(x=>({...x,profile:srProfileFromBackup(x.box.familyData)}))
+      .filter(x=>x.profile?.data?.hero?.stats)
+      .sort((a,b)=>Number(b.box.savedAt||0)-Number(a.box.savedAt||0));
+  }
+  window.studyRPGRepairExtraStats=function(){
+    const c=srCandidates();
+    if(!c.length){alert('找不到更新前能力值備份；沒有修改任何資料。');return}
+    const chosen=c[0], old=chosen.profile.data.hero.stats||{}, cur=gameData.hero.stats||{};
+    const changes=[];
+    for(const k of Object.keys(cur)){
+      const now=Number(cur[k]), before=Number(old[k]);
+      // 只處理「目前比備份高」的能力；絕不把能力往上補。
+      if(Number.isFinite(now)&&Number.isFinite(before)&&now>before){
+        changes.push([k,now,before,now-before]);
+      }
+    }
+    if(!changes.length){alert('目前能力值沒有高於最近的更新前備份，不需要回復。');return}
+    const when=chosen.box.savedAt?new Date(chosen.box.savedAt).toLocaleString():'未知時間';
+    const msg='找到最近的更新前備份：'+when+'\n\n'
+      +changes.map(x=>`${x[0]}：${x[1]} → ${x[2]}（回復 ${x[3]}）`).join('\n')
+      +'\n\n只會回復上面列出的能力值，不動金幣、EXP、裝備、任務紀錄。確定執行？';
+    if(!confirm(msg))return;
+    try{
+      localStorage.setItem(FAMILY_KEY+'_STAT_REPAIR_SAFETY_'+Date.now(),JSON.stringify({savedAt:Date.now(),familyData}));
+    }catch(e){}
+    for(const [k,now,before] of changes)gameData.hero.stats[k]=before;
+    gameData.statRepairV2={repairedAt:Date.now(),backupSavedAt:Number(chosen.box.savedAt||0),changes:changes.map(x=>({stat:x[0],from:x[1],to:x[2]}))};
+    saveGame();
+    try{renderAll()}catch(e){}
+    alert('能力值已依更新前備份回復。已另外建立修復前安全備份。');
+  };
+  function srAddButton(){
+    if(document.getElementById('studyRPGStatRepairBtn'))return;
+    const b=document.createElement('button');
+    b.id='studyRPGStatRepairBtn';
+    b.type='button';
+    b.textContent='🛠 回復多出能力';
+    b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:100000;padding:9px 12px;border:1px solid #d29922;border-radius:10px;background:#2d2208;color:#ffd866;font-weight:900;box-shadow:0 3px 12px #0008';
+    b.onclick=studyRPGRepairExtraStats;
+    document.body.appendChild(b);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',srAddButton);
+  else srAddButton();
+})();
+</script>
+
+</body>
 </html>
