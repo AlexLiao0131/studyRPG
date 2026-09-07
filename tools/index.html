@@ -67,36 +67,74 @@ function parseVisualDatabase(src){
 }
 let VISUAL_DB=null;
 function dbToEditorCfg(db){
-  const c=clone(db||{}); c.mapGround=clone(db.groundByWeek||{}); c.monsterVisuals=clone(db.monsterVisuals||{});
-  c.sceneCoordinateLayout={}; c.battleLayout={}; c.objectSizes={};
+  const c=clone(db||{});c.mapGround=clone(db.groundByWeek||{});c.monsterVisuals=clone(db.monsterVisuals||{});
+  c.sceneCoordinateLayout={};c.battleLayout={};c.objectSizes={};
   for(const d of ['desktop','tablet','mobile']){
-    const dv=db.devices?.[d]||{}, st=dv.status||{}, de=dv.dungeonEntry||{}, bt=dv.battle||{};
-    const abs=(a,g)=>({x:Number(a?.x??50),y:Number(g||0)+Number(a?.footOffsetY||0)});
-    c.sceneCoordinateLayout[d]={statusHero:abs(st.hero,st.groundY),dungeonHero:abs(de.hero,de.groundY),dungeonEnemy:abs(de.enemy,de.groundY)};
-    c.battleLayout[d]={hero:abs(bt.hero,bt.groundY),enemy:abs(bt.enemy,bt.groundY),attackMid:clone(bt.attackMid||{x:42,y:60}),attackStrike:clone(bt.attackStrike||{x:68,y:66}),duration:Number(bt.duration||560)};
-    c.objectSizes[d]={statusHero:Number(st.heroSize||160),dungeonHero:Number(de.heroSize||180),dungeonEnemy:Number(de.enemySize||180),battleHero:Number(bt.heroSize||190),battleEnemy:Number(bt.enemySize||190)};
+    const dv=db.devices?.[d]||{},st=dv.status||{},de=dv.dungeonEntry||{},bt=dv.battle||{};
+    const base=(scene,cell)=>{
+      const v=Number(cell?.groundY);
+      return Number.isFinite(v)?v:deviceSceneGroundDefault(d,scene)
+    };
+    const finalPos=(a,scene,cell)=>({x:Number(a?.x??50),y:base(scene,cell)+Number(a?.footOffsetY||0)});
+    c.sceneCoordinateLayout[d]={
+      statusHero:finalPos(st.hero,'status',st),
+      dungeonHero:finalPos(de.hero,'dungeonEntry',de),
+      dungeonEnemy:finalPos(de.enemy,'dungeonEntry',de)
+    };
+    c.battleLayout[d]={
+      hero:finalPos(bt.hero,'dungeon',bt),
+      enemy:finalPos(bt.enemy,'dungeon',bt),
+      attackMid:clone(bt.attackMid||{x:42,y:60}),
+      attackStrike:clone(bt.attackStrike||{x:68,y:66}),
+      duration:Number(bt.duration||560)
+    };
+    c.objectSizes[d]={
+      statusHero:Number(st.heroSize||SIZE_DEFAULTS[d].statusHero),
+      dungeonHero:Number(de.heroSize||SIZE_DEFAULTS[d].dungeonHero),
+      dungeonEnemy:Number(de.enemySize||SIZE_DEFAULTS[d].dungeonEnemy),
+      battleHero:Number(bt.heroSize||SIZE_DEFAULTS[d].battleHero),
+      battleEnemy:Number(bt.enemySize||SIZE_DEFAULTS[d].battleEnemy)
+    };
   }
   return c;
 }
 function editorCfgToDb(c){
-  const db=clone(VISUAL_DB||{}); db.schemaVersion=db.schemaVersion||1; db.groundByWeek=clone(c.mapGround||{});
-  db.devices=db.devices||{};
-  db.monsterVisuals=db.monsterVisuals||clone(c.monsterVisuals||{});
-
+  const db=clone(VISUAL_DB||{});db.schemaVersion=db.schemaVersion||1;
+  db.groundByWeek=clone(c.mapGround||{});db.devices=db.devices||{};
+  db.monsterVisuals=clone(c.monsterVisuals||db.monsterVisuals||{});
+  const wk=String(activeEditorWeek());
   for(const d of ['desktop','tablet','mobile']){
-    db.devices[d]=db.devices[d]||{}; const dv=db.devices[d], sc=c.sceneCoordinateLayout?.[d]||{}, bl=c.battleLayout?.[d]||{}, os=c.objectSizes?.[d]||{};
-    const ground=(scene,fallback)=>{const wk=db.groundByWeek?.['1']?.[d]; const key=scene==='battle'?'dungeon':scene; const v=wk&&typeof wk==='object'?Number(wk[key]):NaN; return Number.isFinite(v)?v:Number(fallback)};
-    const put=(scene,p,size,enemy)=>{
-      dv[scene]=dv[scene]||{}; const cell=dv[scene], gy=ground(scene,cell.groundY??(scene==='battle'?(d==='mobile'?65:68):63)); cell.groundY=gy;
-      if(p){const k=enemy?'enemy':'hero';cell[k]=cell[k]||{};cell[k].x=Number(p.x);cell[k].groundScene=scene;cell[k].footOffsetY=+(Number(p.y)-gy).toFixed(2)}
-      if(size!=null)cell[enemy?'enemySize':'heroSize']=Number(size);
+    db.devices[d]=db.devices[d]||{};
+    const dv=db.devices[d],sc=c.sceneCoordinateLayout?.[d]||{},bl=c.battleLayout?.[d]||{},os=c.objectSizes?.[d]||{};
+    const sceneGround=(scene)=>{
+      const cell=c.mapGround?.[wk]?.[d];
+      const stored=cell&&typeof cell==='object'?Number(cell[scene]):Number(cell);
+      if(Number.isFinite(stored))return stored;
+      const prior=Number(dv?.[dbSceneName(scene)]?.groundY);
+      return Number.isFinite(prior)?prior:deviceSceneGroundDefault(d,scene)
     };
-    put('status',sc.statusHero,os.statusHero,false);
-    put('dungeonEntry',sc.dungeonHero,os.dungeonHero,false); put('dungeonEntry',sc.dungeonEnemy,os.dungeonEnemy,true);
-    put('battle',bl.hero,os.battleHero,false); put('battle',bl.enemy,os.battleEnemy,true);
-    dv.battle.attackMid=clone(bl.attackMid||dv.battle.attackMid||{x:42,y:60}); dv.battle.attackStrike=clone(bl.attackStrike||dv.battle.attackStrike||{x:68,y:66}); dv.battle.duration=Number(bl.duration||dv.battle.duration||560);
+    const put=(dbScene,editorScene,p,size,enemy)=>{
+      dv[dbScene]=dv[dbScene]||{};
+      const cell=dv[dbScene],gy=sceneGround(editorScene);
+      cell.groundY=gy;
+      if(p){
+        const k=enemy?'enemy':'hero';cell[k]=cell[k]||{};
+        cell[k].x=Number(p.x);cell[k].groundScene=dbScene;
+        cell[k].footOffsetY=+(Number(p.y)-gy).toFixed(2)
+      }
+      if(size!=null)cell[enemy?'enemySize':'heroSize']=Number(size)
+    };
+    put('status','status',sc.statusHero,os.statusHero,false);
+    put('dungeonEntry','dungeonEntry',sc.dungeonHero,os.dungeonHero,false);
+    put('dungeonEntry','dungeonEntry',sc.dungeonEnemy,os.dungeonEnemy,true);
+    put('battle','dungeon',bl.hero,os.battleHero,false);
+    put('battle','dungeon',bl.enemy,os.battleEnemy,true);
+    dv.battle.attackMid=clone(bl.attackMid||dv.battle.attackMid||{x:42,y:60});
+    dv.battle.attackStrike=clone(bl.attackStrike||dv.battle.attackStrike||{x:68,y:66});
+    dv.battle.duration=Number(bl.duration||dv.battle.duration||560);
   }
-  for(const k of ['referencePoints','stage','heroes','monsters','playerSkills','monsterSkills','monsterVisuals']) if(c[k]) db[k]=clone(c[k]);
+  for(const k of ['referencePoints','stage','heroes','monsters','playerSkills','monsterSkills'])
+    if(c[k])db[k]=clone(c[k]);
   return db;
 }
 
@@ -287,7 +325,7 @@ function loadAnchor(){ensure();const id=actorId();let a;if($('side').value==='pl
 function commitAnchor(){const id=actorId(),a={width:+$('anchorW').value||100,height:+$('anchorH').value||100,y:+$('anchorY').value||0};if($('side').value==='player'){CFG.heroes[id]=CFG.heroes[id]||{};CFG.heroes[id].effectAnchor=a}else{CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].effectAnchor=a}mark('anchor:'+id)}
 function ensureDevice(){ensureNativeLayouts?.();ensure();const d=$('device').value;CFG.referencePoints[d]=CFG.referencePoints[d]||{};const defs={enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};for(const p of Object.keys(defs))CFG.referencePoints[d][p]=CFG.referencePoints[d][p]||defs[p];CFG.stage[d]=CFG.stage[d]||{bg:{x:50,y:50,scale:1,locked:true}};CFG.stage[d].bg=CFG.stage[d].bg||{x:50,y:50,scale:1,locked:true};return d}
 function makePoints(){$('stage').querySelectorAll('.point').forEach(x=>x.remove());for(const p of points){const e=document.createElement('div');e.className='point';e.dataset.p=p;$('stage').appendChild(e)}bindDrag()}
-function refBaseForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;if(name==='attack_mid')return CFG.battleLayout[d].attackMid;if(name==='attack_strike')return CFG.battleLayout[d].attackStrike;return CFG.referencePoints[d][name]}function refForEditor(d,name){return groundShift(refBaseForEditor(d,name),d,activeEditorWeek(),name,'dungeon')}function fitPointStage(){const d=$('device').value||'desktop',[w,h]=d==='mobile'?[390,260]:d==='tablet'?[720,300]:[900,300],st=$('stage');st.style.aspectRatio=w+' / '+h}function renderStage(){const d=ensureDevice(),st=CFG.stage[d];fitPointStage();let gl=$('pointGroundLine');if(!gl){gl=document.createElement('div');gl.id='pointGroundLine';gl.className='scene-ground-line';$('stage').appendChild(gl)}gl.style.top=groundY(d,activeEditorWeek(),'dungeon')+'%';document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');$('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';$('hero').textContent='';$('enemy').textContent='';$('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';const currentMid=$('sceneMonster')?.value||$('monster')?.value||'';const enemyBattleSize=currentMid?monsterBattleSize(d,currentMid,CFG.objectSizes[d]?.battleEnemy||190):(CFG.objectSizes[d]?.battleEnemy||190);$('enemy').style.width=enemyBattleSize+'px';$('enemy').style.height=enemyBattleSize+'px';$('hero').style.background=`center/contain no-repeat url(${sceneHeroSrc()})`;$('enemy').style.background=`center/contain no-repeat url(${sceneMonsterSrc()||''})`;$('bs').value=(st.bg.scale||1)*100;$('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';$('bgImg').src='../'+$('bg').value;$('bgImg').style.transform=editorBgTransform(d)}
+function refBaseForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;if(name==='attack_mid')return CFG.battleLayout[d].attackMid;if(name==='attack_strike')return CFG.battleLayout[d].attackStrike;return CFG.referencePoints[d][name]}function refForEditor(d,name){return groundShift(refBaseForEditor(d,name),d,activeEditorWeek(),name,'dungeon')}function fitPointStage(){const d=$('device').value||'desktop',[w,h]=deviceCanvas(d),st=$('stage');st.style.aspectRatio=w+' / '+h}function renderStage(){const d=ensureDevice(),st=CFG.stage[d];fitPointStage();let gl=$('pointGroundLine');if(!gl){gl=document.createElement('div');gl.id='pointGroundLine';gl.className='scene-ground-line';$('stage').appendChild(gl)}gl.style.top=groundY(d,activeEditorWeek(),'dungeon')+'%';document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');$('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';$('hero').textContent='';$('enemy').textContent='';$('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';const currentMid=$('sceneMonster')?.value||$('monster')?.value||'';const enemyBattleSize=currentMid?monsterBattleSize(d,currentMid,CFG.objectSizes[d]?.battleEnemy||190):(CFG.objectSizes[d]?.battleEnemy||190);$('enemy').style.width=enemyBattleSize+'px';$('enemy').style.height=enemyBattleSize+'px';$('hero').style.background=`center/contain no-repeat url(${sceneHeroSrc()})`;$('enemy').style.background=`center/contain no-repeat url(${sceneMonsterSrc()||''})`;$('bs').value=(st.bg.scale||1)*100;$('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';$('bgImg').src='../'+$('bg').value;$('bgImg').style.transform=editorBgTransform(d)}
 function commitStage(){const d=ensureDevice(),st=CFG.stage[d];st.bg.scale=(+$('bs').value||100)/100;renderStage();mark('stage:'+d)}
 function bindDrag(){const stg=$('stage');document.querySelectorAll('.point').forEach(el=>el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);el.onpointermove=ev=>{const r=stg.getBoundingClientRect(),x=Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)),d=ensureDevice();const name=el.dataset.p,q={x:+x.toFixed(1),y:+Math.max(0,Math.min(100,groundUnshiftY(y,d,activeEditorWeek(),name,'dungeon'))).toFixed(1)};if(name==='hero_home')CFG.battleLayout[d].hero=q;else if(name==='enemy_home')CFG.battleLayout[d].enemy=q;else if(name==='attack_mid')CFG.battleLayout[d].attackMid=q;else if(name==='attack_strike')CFG.battleLayout[d].attackStrike=q;else CFG.referencePoints[d][name]=q;el.style.left=x+'%';el.style.top=y+'%';mark('points:'+d+':'+name);renderSceneEditor();renderSkillPreview()};const end=()=>{el.onpointermove=null;renderStage();renderSceneEditor();renderSkillPreview();renderTimeline()};el.onpointerup=end;el.onpointercancel=end});$('bgImg').onpointerdown=e=>{const d=ensureDevice(),b=CFG.stage[d].bg;if(b.locked)return;const sx=e.clientX,sy=e.clientY,ox=b.x||50,oy=b.y||50,r=stg.getBoundingClientRect();$('bgImg').setPointerCapture(e.pointerId);$('bgImg').onpointermove=ev=>{b.x=ox+(ev.clientX-sx)/r.width*100;b.y=oy+(ev.clientY-sy)/r.height*100;mark('stage:'+d);renderStage()};$('bgImg').onpointerup=()=>$('bgImg').onpointermove=null}}
 function fill(){$('bg').innerHTML=MANIFEST.assets.filter(x=>x.includes('images/backgrounds/')).map(x=>`<option value="${x}">${x}</option>`).join('');$('pathImg').innerHTML=opt(MANIFEST.assets);makePoints();renderSelectors();renderStage()}
@@ -308,37 +346,75 @@ function sceneWeekData(){const w=Number($('sceneWeek').value)||1;return GAME_SCE
 function sceneMonsterSrc(){const id=$('sceneMonster').value;if(id==='hero_mirror')return sceneHeroSrc();return id?`../images/monsters/${id}_idle.png`:''}
 function fillSceneWeeks(){const sel=$('sceneWeek');if(!sel)return;const old=sel.value||String(GAME_SCENE_MANIFEST.weeks[0]?.week||1);sel.innerHTML=GAME_SCENE_MANIFEST.weeks.filter(x=>x.week<=20).map(x=>`<option value="${x.week}">第${x.week}週・${x.map}</option>`).join('');sel.value=[...sel.options].some(o=>o.value===old)?old:sel.options[0]?.value;fillSceneMonsters()}
 function fillSceneMonsters(){const w=sceneWeekData(),sel=$('sceneMonster'),old=sel.value;const names=Object.fromEntries(GAME_SCENE_MANIFEST.monsters.map(m=>[m.id,m.name]));sel.innerHTML=(w?.monsters||[]).map(id=>`<option value="${id}">${names[id]||id}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
-const GROUND_BASE={desktop:68,tablet:68,mobile:65};
+const DEVICE_SCENE_GROUND_DEFAULTS={
+  desktop:{status:66,dungeonEntry:63,dungeon:68},
+  tablet:{status:66,dungeonEntry:63,dungeon:68},
+  mobile:{status:62,dungeonEntry:60,dungeon:65}
+};
 function activeEditorWeek(){return Number($('sceneWeek')?.value)||1}
 function activeGroundScene(){return $('sceneKind')?.value||'dungeon'}
-function groundStored(d,w=activeEditorWeek(),scene=activeGroundScene()){const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w],cell=row?.[d];if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}const legacy=Number(cell);return Number.isFinite(legacy)?legacy:null}
-function groundY(d,w=activeEditorWeek(),scene=activeGroundScene()){const v=groundStored(d,w,scene);return v==null?sceneBaseGround(d,scene):v}
-function sceneBaseGround(d,scene='dungeon'){
-  const dbScene=scene==='dungeon'?'battle':scene;
-  const fallback=scene==='dungeon'?(d==='mobile'?65:68):(scene==='status'?(d==='mobile'?62:66):(d==='mobile'?60:63));
-  const v=Number(VISUAL_DB?.devices?.[d]?.[dbScene]?.groundY);
-  return Number.isFinite(v)?v:fallback;
+function dbSceneName(scene){return scene==='dungeon'?'battle':scene}
+function deviceSceneGroundDefault(d,scene){
+  return Number(DEVICE_SCENE_GROUND_DEFAULTS[d]?.[scene]??DEVICE_SCENE_GROUND_DEFAULTS.desktop[scene]??68)
 }
-function groundDelta(d,w=activeEditorWeek(),scene=activeGroundScene()){return groundY(d,w,scene)-sceneBaseGround(d,scene)}
-function groundLinkedName(name){return name==='hero'||name==='enemy'||name==='hero_home'||name==='enemy_home'||name==='statusHero'||name==='dungeonHero'||name==='dungeonEnemy'}
+function deviceSceneBaseGround(d,scene){
+  const v=Number(VISUAL_DB?.devices?.[d]?.[dbSceneName(scene)]?.groundY);
+  return Number.isFinite(v)?v:deviceSceneGroundDefault(d,scene)
+}
+function groundStored(d,w=activeEditorWeek(),scene=activeGroundScene()){
+  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w],cell=row?.[d];
+  if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}
+  const legacy=Number(cell);return Number.isFinite(legacy)?legacy:null
+}
+function groundY(d,w=activeEditorWeek(),scene=activeGroundScene()){
+  const v=groundStored(d,w,scene);return v==null?deviceSceneBaseGround(d,scene):v
+}
+function groundDelta(d,w=activeEditorWeek(),scene=activeGroundScene()){
+  return groundY(d,w,scene)-deviceSceneBaseGround(d,scene)
+}
 function groundShift(p,d,w=activeEditorWeek(),name='',scene='dungeon'){
-  if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;
-  return groundLinkedName(name)?{x,y:y+groundDelta(d,w,scene)}:{x,y};
+  if(!p)return p;const x=Number(p.x),y=Number(p.y);
+  if(!Number.isFinite(x)||!Number.isFinite(y))return p;
+  return{x,y}
 }
-function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){
-  const v=Number(y);if(!Number.isFinite(v))return y;
-  return groundLinkedName(name)?v-groundDelta(d,w,scene):v;
-}
+function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){return y}
 function setGroundY(d,w,scene,v){
   CFG.mapGround=CFG.mapGround||{};const wk=String(w);CFG.mapGround[wk]=CFG.mapGround[wk]||{};
-  const old=CFG.mapGround[wk][d];if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};
+  const before=groundY(d,w,scene),delta=Number(v)-Number(before||0),old=CFG.mapGround[wk][d];
+  if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};
   CFG.mapGround[wk][d][scene]=Number(v);
+  if(Math.abs(delta)>0.0001){
+    if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero)CFG.sceneCoordinateLayout[d].statusHero.y+=delta;
+    if(scene==='dungeonEntry'){
+      if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero)CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;
+      if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy)CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta;
+    }
+    if(scene==='dungeon'){
+      if(CFG.battleLayout?.[d]?.hero)CFG.battleLayout[d].hero.y+=delta;
+      if(CFG.battleLayout?.[d]?.enemy)CFG.battleLayout[d].enemy.y+=delta;
+    }
+  }
 }
 function clearGroundY(d,w,scene){
-  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];if(!row)return;
-  const cell=row[d];if(cell&&typeof cell==='object'){delete cell[scene];if(!Object.keys(cell).length)delete row[d]}
-  else if(Number.isFinite(Number(cell))){delete row[d]}
-  if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}
+  const before=groundY(d,w,scene),target=deviceSceneBaseGround(d,scene),delta=target-before;
+  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];
+  if(row){
+    const cell=row[d];
+    if(cell&&typeof cell==='object'){delete cell[scene];if(!Object.keys(cell).length)delete row[d]}
+    else if(Number.isFinite(Number(cell)))delete row[d];
+    if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}
+  }
+  if(Math.abs(delta)>0.0001){
+    if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero)CFG.sceneCoordinateLayout[d].statusHero.y+=delta;
+    if(scene==='dungeonEntry'){
+      if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero)CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;
+      if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy)CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta;
+    }
+    if(scene==='dungeon'){
+      if(CFG.battleLayout?.[d]?.hero)CFG.battleLayout[d].hero.y+=delta;
+      if(CFG.battleLayout?.[d]?.enemy)CFG.battleLayout[d].enemy.y+=delta;
+    }
+  }
 }
 function groundLineHtml(d,scene=activeGroundScene()){return `<div class="scene-ground-line" style="top:${groundY(d,activeEditorWeek(),scene)}%"></div>`}
 function renderLinkedBattleEditors(){renderStage();renderSkillPreview();renderTimeline()}
@@ -348,7 +424,9 @@ function setMonsterIdleSize(d,id,v){CFG.monsters=CFG.monsters||{};CFG.monsters[i
 function monsterBattleSize(d,id,fallback){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].battleSize=CFG.monsters[id].battleSize||{};const v=Number(CFG.monsters[id].battleSize[d]);return Number.isFinite(v)&&v>0?v:fallback}
 function setMonsterBattleSize(d,id,v){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].battleSize=CFG.monsters[id].battleSize||{};CFG.monsters[id].battleSize[d]=Number(v)}
 function editorBgTransform(d){const b=CFG.stage?.[d]?.bg||{};return `translate(${Number(b.x??50)-50}%,${Number(b.y??50)-50}%) scale(${Number(b.scale)||1})`}
-function sceneDims(){const d=$('sceneDevice').value;return d==='mobile'?[390,260]:d==='tablet'?[720,300]:[900,300]}
+const DEVICE_CANVAS={desktop:[900,300],tablet:[720,300],mobile:[390,260]};
+function deviceCanvas(d){return DEVICE_CANVAS[d]||DEVICE_CANVAS.desktop}
+function sceneDims(){return deviceCanvas($('sceneDevice').value)}
 function sceneCfg(){ensureNativeLayouts();const d=$('sceneDevice').value,k=$('sceneKind').value,sc=CFG.sceneCoordinateLayout[d],bl=CFG.battleLayout[d],os=CFG.objectSizes[d];if(k==='status')return{hero:sc.statusHero,heroSizeKey:'statusHero'};if(k==='dungeonEntry')return{hero:sc.dungeonHero,enemy:sc.dungeonEnemy,heroSizeKey:'dungeonHero',enemySizeKey:'dungeonEnemy'};return{hero:bl.hero,enemy:bl.enemy,heroSizeKey:'battleHero',enemySizeKey:'battleEnemy'}} function syncSceneSizeControls(){ensureNativeLayouts();const d=$('sceneDevice').value,c=sceneCfg(),kind=$('sceneKind').value,mid=$('sceneMonster').value,os=CFG.objectSizes[d]||{};const hv=Number(os[c.heroSizeKey])||0;if($('sceneHeroSize')){$('sceneHeroSize').value=hv;$('sceneHeroSize').disabled=!c.heroSizeKey}let ev=0;if(c.enemySizeKey){const base=Number(os[c.enemySizeKey])||0;if(mid&&kind==='dungeonEntry')ev=monsterIdleSize(d,mid,base);else if(mid&&kind==='dungeon')ev=monsterBattleSize(d,mid,base);else ev=base}if($('sceneEnemySize')){$('sceneEnemySize').value=ev;$('sceneEnemySize').disabled=!c.enemySizeKey}const ho=$('sceneHeroSizeOut');if(ho)ho.textContent=hv?hv+' px':'—';const eo=$('sceneEnemySizeOut');if(eo)eo.textContent=ev?ev+' px':'—'}
 function fitSceneCanvas(w,h){const shell=$('sceneEditorShell'),stage=$('sceneEditorStage');stage.style.width=w+'px';stage.style.height=h+'px';const scale=Math.min(1,Math.max(0.05,shell.clientWidth/w));stage.style.transform=`scale(${scale})`;shell.style.height=Math.ceil(h*scale)+'px';return scale}
 function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px">`}
@@ -414,7 +492,7 @@ function sidePoints(){return $('side').value==='monster'?{self:'enemy_home',targ
 function skillHeroSrc(state='idle'){const key=$('heroActor')?.value||'novice',h=currentHeroInfo(),female=h.gender==='female'?'_female':'';return `../images/hero_${key}${female}_${state}.png`}
 function actorImage(state){if($('side').value==='player'){const idle=skillHeroSrc('idle');if(!state||state==='idle')return idle;return skillHeroSrc(state)}const id=$('monster').value||$('sceneMonster').value;if(id==='hero_mirror')return sceneHeroSrc();const st=state==='idle'?'idle':'battle';return `../images/monsters/${id}_${st}.png`}
 function enemyImage(){if($('side').value==='monster')return sceneHeroSrc();return sceneMonsterSrc()}
-function previewDims(){const d=$('device').value;return d==='mobile'?[390,260]:d==='tablet'?[720,300]:[900,300]}
+function previewDims(){return deviceCanvas($('device').value)}
 function fitPreview(){const shell=$('skillPreviewShell'),st=$('skillPreviewStage'),[w,h]=previewDims();st.style.width=w+'px';st.style.height=h+'px';const sc=Math.min(1,Math.max(.05,shell.clientWidth/w));st.style.transform=`scale(${sc})`;shell.style.height=Math.ceil(h*sc)+'px';return[w,h,sc]}
 function fxAnchor(fx){const sp=sidePoints();let name=fx.anchor==='self'?sp.self:fx.anchor==='target'?sp.target:(fx.point||'enemy_front');const base=pnt(name);return{name,base}}
 function fxSize(fx){const d=$('device').value||'desktop',os=CFG.objectSizes[d]||{},mid=$('sceneMonster')?.value||$('monster')?.value||'',enemySize=mid?monsterBattleSize(d,mid,os.battleEnemy||190):(os.battleEnemy||190),selfSide=$('side').value==='monster'?'enemy':'hero';let base=96;if(fx.scaleMode==='fixed')base=96;else if(fx.scaleMode==='self')base=selfSide==='hero'?(os.battleHero||190):enemySize;else {const target=selfSide==='hero'?'enemy':'hero';base=target==='hero'?(os.battleHero||190):enemySize}return Math.max(12,base*Number(fx.scale||1))}
