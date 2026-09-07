@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.94 EQUIPMENT FIX3</title>
+<title>小學勇者大冒險 V10.11.94 EQUIPMENT FIX5</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1106,7 +1106,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   position:absolute;inset:0 auto 0 0;width:200%;height:100%;
   display:flex;will-change:transform;
   animation:studyRPGSceneScroll 18s linear infinite;
-  -webkit-animation:studyRPGSceneScroll 18s linear infinite;
 }
 .scene-background-track>img{
   flex:0 0 50%;width:50%;height:100%;max-width:none;
@@ -1114,13 +1113,13 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   pointer-events:none;user-select:none;-webkit-user-drag:none;
   image-rendering:pixelated;
 }
-@keyframes studyRPGSceneScroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
-@-webkit-keyframes studyRPGSceneScroll{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(-50%,0,0)}}
+@keyframes studyRPGSceneScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.scene-background-track{animation:none !important}}
 </style>
 </head>
 <body>
 <div class="app">
-<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT FIX4</h1>
+<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT FIX1</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -11355,7 +11354,7 @@ function ground(d=dev(),w=week(),scene='dungeon'){
   }
   return null;
 }
-function point(p,d=dev(),w=week(),name='',scene){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;/* FIX2：Tool 匯出的百分比座標就是最終座標。舊 mapGround 只保留資料查詢，不再二次改寫 Y，避免平板/手機上傳後跑位。 */return{x,y}}
+function point(p,d=dev(),w=week(),name='',scene){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;if(name==='air_high')return{x,y};const g=ground(d,w,scene||sceneForName(name));return{x,y:g==null?y:Math.max(0,Math.min(100,y+(g-BASE[d])))}}
 window.studyRPGGroundDeviceV10176=dev;window.studyRPGGroundWeekV10176=week;window.studyRPGGroundSceneForNameV101712=sceneForName;window.studyRPGGroundValueV10176=ground;window.studyRPGGroundPointV10176=point;
 })();
 </script>
@@ -11569,9 +11568,10 @@ function square(el,n){
 }
 function monsterId(el){
   if(!el)return'';
-  const c=[...el.classList].find(x=>x.startsWith('monster-id-'));
+  const target=el.querySelector?.('.battle-enemy-unit-sprite.enemy-unit-0[class*="monster-id-"], img.enemy-unit-0[class*="monster-id-"]')||el;
+  const c=[...target.classList].find(x=>x.startsWith('monster-id-'));
   if(c)return c.slice(11);
-  const src=el.getAttribute('src')||'';
+  const src=target.getAttribute?.('src')||'';
   const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_(?:idle|battle)\./);
   return m?m[1]:'';
 }
