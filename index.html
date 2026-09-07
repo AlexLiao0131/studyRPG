@@ -238,7 +238,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 /* 副本入口乾淨結構：背景卡與角色層分離，不再以舊補丁裁切角色 */
-.dungeon-fighter-bg{position:relative;background:#11161d;overflow:visible}
+.dungeon-fighter-bg{position:relative;background:none;overflow:visible}
 .dungeon-fighter-bg>.scene-background{border-radius:12px;overflow:hidden}
 .dungeon-fighter-bg>.dungeon-idle-stage,
 .dungeon-fighter-bg>.fighter-name,
@@ -5064,6 +5064,7 @@ function renderDungeon(){
     <div class="card ${cls}">
       <div class="battle-stage">
         <div class="fighter-card dungeon-fighter-bg">
+          ${sceneBackgroundHTML("dungeon-scene-background")}
           
           <div class="dungeon-idle-stage"><img id="dungeonHeroIdle" class="dungeon-idle-sprite hero" src="${heroSpritePath('idle')}" alt="${gameData.hero.name}"></div>
           <div class="fighter-name">${gameData.hero.name}</div>
@@ -5076,6 +5077,7 @@ function renderDungeon(){
         </div>
 
         <div class="fighter-card dungeon-fighter-bg">
+          ${sceneBackgroundHTML("dungeon-scene-background")}
           
           <div class="dungeon-idle-stage">${dungeonMonsterDefinition(m,evt)?.sprites?.idle?`<img id="dungeonEnemyIdle" class="dungeon-idle-sprite enemy${dungeonMonsterDefinition(m,evt)?.boss?' boss-dungeon-sprite':''}${dungeonMonsterDefinition(m,evt)?.family?` monster-family-${dungeonMonsterDefinition(m,evt).family}`:''}${dungeonMonsterDefinition(m,evt)?.id?` monster-id-${dungeonMonsterDefinition(m,evt).id}`:''}" src="${sprite(dungeonMonsterDefinition(m,evt).sprites.idle)}" alt="${enemy?.name||dungeonMonsterDefinition(m,evt)?.name||'敵人'}">`:`<div class="fighter-icon">${enemyIcon}</div>`}</div>
           <div class="fighter-name">${enemy?.name||'怪物'}</div>
