@@ -1,4 +1,4 @@
-/* StudyRPG Visual Database v2 */
+/* StudyRPG Visual Database v1 */
 window.STUDYRPG_VISUAL_DATABASE={
   "schemaVersion": 2,
   "deviceRules": {
@@ -9,7 +9,7 @@ window.STUDYRPG_VISUAL_DATABASE={
     "1": {
       "desktop": {
         "dungeon": 85,
-        "status": 83.5
+        "status": 84
       },
       "mobile": {
         "dungeon": 84,
@@ -24,14 +24,18 @@ window.STUDYRPG_VISUAL_DATABASE={
     },
     "2": {
       "tablet": {
-        "dungeonEntry": 94,
-        "dungeon": 77,
+        "dungeonEntry": 88.5,
+        "dungeon": 84,
         "status": 79.5
       },
       "mobile": {
         "dungeonEntry": 95,
         "dungeon": 79.5,
         "status": 82.5
+      },
+      "desktop": {
+        "status": 79,
+        "dungeonEntry": 81
       }
     }
   },
@@ -318,7 +322,8 @@ window.STUDYRPG_VISUAL_DATABASE={
     "goblin_slave": {
       "idleSize": {
         "tablet": 310,
-        "mobile": 265
+        "mobile": 265,
+        "desktop": 250
       },
       "battleSize": {
         "tablet": 290,
@@ -432,6 +437,68 @@ window.STUDYRPG_VISUAL_DATABASE={
       "scale": 1,
       "offsetX": 0,
       "offsetY": 0
+    }
+  },
+  "monsterVisuals": {
+    "goblin_slave": {
+      "desktop": {
+        "dungeonEntry": {
+          "x": 50,
+          "y": 0,
+          "size": 180
+        }
+      },
+      "tablet": {
+        "dungeonEntry": {
+          "x": 40.7,
+          "y": -2.4,
+          "size": 165
+        },
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    },
+    "goblin_soldier": {
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    },
+    "goblin_general": {
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    },
+    "goblin_king": {
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      },
+      "mobile": {
+        "battle": {
+          "x": 70.5,
+          "y": 0.7,
+          "size": 145
+        },
+        "dungeonEntry": {
+          "x": 26.8,
+          "y": -32.6,
+          "size": 135
+        }
+      }
     }
   }
 };
