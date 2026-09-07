@@ -406,6 +406,11 @@ function officialIndexSrcdoc(){
   const previewDate=officialPreviewDateForWeek(previewWeek);
   let html=String(MAIN_SOURCE);
 
+  // Tool preview must never initialize Firebase/Auth/Firestore.
+  // The formal index currently has exactly one module script and it is the cloud-sync module.
+  // Remove it only from the iframe preview source; exported MAIN_SOURCE is untouched.
+  html=html.replace(/<script\s+type=[\"']module[\"'][^>]*>[\s\S]*?<\/script>/gi,'');
+
   // Preview-only: lock the FORMAL visual runtime to Tool's selected device.
   html=html.replace(
     /function\s+device\s*\(\)\s*\{[\s\S]*?return\s+innerWidth<=600\?'mobile':innerWidth<=1024\?'tablet':'desktop';\s*\}/,
