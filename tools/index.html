@@ -359,16 +359,41 @@ function fitSceneCanvas(w,h){const shell=$('sceneEditorShell'),stage=$('sceneEdi
 function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px">`}
 
 function officialVisualDbObject(){return editorCfgToDb(CFG)}
+function officialPreviewDateForWeek(w){
+  const start='2026-08-31',base=new Date(start+'T12:00:00'),d=new Date(base.getTime()+(Math.max(1,Number(w)||1)-1)*604800000);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
 function officialIndexSrcdoc(){
   if(!MAIN_SOURCE)return '';
   const previewDevice=$('sceneDevice')?.value||'desktop';
+  const previewWeek=activeEditorWeek();
+  const previewDate=officialPreviewDateForWeek(previewWeek);
   let html=String(MAIN_SOURCE);
-  // Preview-only: force the formal visual runtime to use the Tool device selector.
-  // This prevents an iPhone/iPad UA from forcing the iframe back to mobile/tablet while editing another device.
-  html=html.replace(/function\s+device\s*\(\)\s*\{[\s\S]*?return\s+innerWidth<=600\?'mobile':innerWidth<=1024\?'tablet':'desktop';\s*\}/,
-    `function device(){return ${JSON.stringify(previewDevice)}}`);
+
+  // Preview-only: lock the FORMAL visual runtime to Tool's selected device.
+  html=html.replace(
+    /function\s+device\s*\(\)\s*\{[\s\S]*?return\s+innerWidth<=600\?'mobile':innerWidth<=1024\?'tablet':'desktop';\s*\}/,
+    `function device(){return ${JSON.stringify(previewDevice)}}`
+  );
+
+  // Preview-only: lock the FORMAL visual runtime's own week() closure.
+  // This is the function used by studyRPGVisualGround()/apply(), not the Tool week selector.
+  html=html.replace(
+    /function\s+week\s*\(\)\s*\{try\{const n=Number\(typeof semesterWeekIndex==='function'\?semesterWeekIndex\(\):1\);return Number\.isFinite\(n\)&&n>0\?n:1\}catch\(e\)\{return 1\}\}/,
+    `function week(){return ${Number(previewWeek)}}`
+  );
+
+  // Preview-only: the formal scene background uses today() -> weeklyMapForDate(today()).
+  // Make the formal renderer's date match the selected Tool week, otherwise week 1 will
+  // always be overwritten by the real current week's background.
+  html=html.replace(
+    /function\s+today\s*\(\)\s*\{\s*const d=new Date\(\);\s*return `\$\{d\.getFullYear\(\)\}-\$\{String\(d\.getMonth\(\)\+1\)\.padStart\(2,'0'\)\}-\$\{String\(d\.getDate\(\)\)\.padStart\(2,'0'\)\}`;\s*\}/,
+    `function today(){return ${JSON.stringify(previewDate)}}`
+  );
+
   const db='<script>window.STUDYRPG_VISUAL_DATABASE='+JSON.stringify(officialVisualDbObject())+';<\/script>';
   html=html.replace(/<script\s+src=["']visual-database\.js["']\s*><\/script>/i,db);
+
   const iso=`<script>(function(){const mem={},fake={getItem:k=>Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null,setItem:(k,v)=>mem[k]=String(v),removeItem:k=>delete mem[k],clear:()=>{for(const k in mem)delete mem[k]},key:i=>Object.keys(mem)[i]||null,get length(){return Object.keys(mem).length}};try{Object.defineProperty(window,'localStorage',{value:fake,configurable:true});Object.defineProperty(window,'sessionStorage',{value:fake,configurable:true})}catch(e){}window.confirm=()=>false;window.alert=()=>{}})();<\/script>`;
   return html.replace(/<head([^>]*)>/i,'<head$1><base href="../">'+iso)
 }
@@ -392,9 +417,6 @@ function refreshOfficialLiveLayout(){
   if(!win||!doc)return false;
   const d=$('sceneDevice').value,w=activeEditorWeek(),kind=$('sceneKind').value;
   syncDbIntoOfficial(win);
-  // The srcdoc already rewrites the formal runtime device() to the Tool selector.
-  // Re-assert week and apply twice so iPad/iPhone/desktop all use the same active DB slice.
-  win.semesterWeekIndex=()=>w;
   if(typeof win.studyRPGApplyVisualLayout==='function'){
     win.studyRPGApplyVisualLayout();
     win.requestAnimationFrame?.(()=>win.studyRPGApplyVisualLayout());
@@ -402,6 +424,11 @@ function refreshOfficialLiveLayout(){
   const gy=groundY(d,w,kind);
   doc.querySelectorAll('.studyRPG-tool-ground').forEach(line=>line.style.top=gy+'%');
   renderSceneReadout();
+  try{
+    const formalScene=kind==='dungeon'?'battle':kind;
+    const formalGround=Number(win.studyRPGVisualGround?.(formalScene));
+    frame.dataset.formalGround=Number.isFinite(formalGround)?formalGround.toFixed(1):'n/a';
+  }catch(e){frame.dataset.formalGround='n/a'}
   return true
 }
 
@@ -439,9 +466,10 @@ function prepareOfficialSceneFrame(frame){
     const target=officialSceneTarget(doc,kind);if(!target)throw Error('找不到正式 '+kind+' 場景');
     target.remove();const viewport=doc.createElement('div');viewport.style.cssText='position:relative;margin:0;width:100%;overflow:visible;background:#0d1117';viewport.appendChild(target);doc.body.replaceChildren(viewport);doc.body.style.cssText='margin:0;background:#0d1117;overflow:hidden';target.style.margin='0';
     installOfficialOverlay(frame,target,kind,d,w);
+    refreshOfficialLiveLayout();
     try{frame.dataset.visualDevice=String(win.studyRPGVisualDevice?.()||d)}catch(e){frame.dataset.visualDevice=d}
     const h=Math.max(180,Math.ceil(target.getBoundingClientRect().height||300));fitOfficialFrame(frame,d,h);
-    $('mainSourceStatus').textContent='✅ 正式 index.html 實景預覽中；Runtime 裝置='+String(frame.dataset.visualDevice||d)+'；地板線與腳底共用同一組週次/裝置/場景資料。'
+    $('mainSourceStatus').textContent='✅ 正式 index.html 實景預覽：週次='+w+'／裝置='+String(frame.dataset.visualDevice||d)+'／正式地板='+String(frame.dataset.formalGround||groundY(d,w,kind))+'%。背景日期與 Visual Runtime 週次均已鎖定到目前選擇。'
   }catch(e){console.error(e);doc.body.innerHTML='<div style="padding:16px;color:#ff7b72;font-family:sans-serif">正式場景載入失敗：'+String(e.message||e)+'</div>'}
 }
 function renderSceneEditor(){
