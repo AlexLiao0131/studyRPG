@@ -3,7 +3,11 @@
 *{box-sizing:border-box}body{margin:0;background:#10141b;color:#eee;font-family:system-ui,-apple-system,sans-serif}header{position:sticky;top:0;z-index:10;background:#171d27;padding:12px 16px;border-bottom:1px solid #394252;display:flex;gap:16px;align-items:center;justify-content:space-between}main{display:grid;grid-template-columns:minmax(360px,520px) 1fr;gap:12px;padding:12px}.card{background:#171d27;border:1px solid #343e4c;border-radius:12px;padding:12px;margin-bottom:10px}label{display:block;font-size:12px;color:#aeb8c7;margin:7px 0 3px}input,select,button{background:#0e131a;color:#fff;border:1px solid #465164;border-radius:8px;padding:8px;width:100%}button{cursor:pointer;background:#273248}button.primary{background:#365b91}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{font-size:11px;color:#9da8b8}.badge{background:#702f2f;border-radius:999px;padding:4px 8px;font-size:12px}.fxrow,.summonrow{border:1px solid #394252;border-radius:10px;padding:8px;margin:7px 0}.headrow{display:flex;justify-content:space-between;align-items:center;gap:8px}.headrow button{width:auto;padding:4px 9px}#stage{height:auto;aspect-ratio:3/1;position:relative;overflow:hidden;background:#080b10;border-radius:12px;border:1px solid #394252}#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center;touch-action:none}.point{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #111;transform:translate(-50%,-50%);z-index:8;touch-action:none}.point:after{content:attr(data-p);position:absolute;white-space:nowrap;font-size:9px;left:11px;top:-6px;background:#000b;padding:2px 4px;border-radius:4px}#hero,#enemy{position:absolute;transform:translate(-50%,-100%);z-index:5;pointer-events:none}#hero{font-size:64px}#enemy{font-size:72px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{width:auto}.dirty{outline:2px solid #b57d27}.repoStatus{font-size:12px;padding:7px 9px;border-radius:8px;background:#0e131a;border:1px solid #394252;margin-top:8px}.repoStatus.ok{border-color:#3b7650}.repoStatus.warn{border-color:#9b7432}.repoStatus.err{border-color:#8d3d3d}.mini{width:auto;padding:6px 10px}@media(max-width:900px){main{grid-template-columns:1fr}header{align-items:flex-start;gap:8px;flex-direction:column}.row,.row3{grid-template-columns:1fr}.card{padding:10px}}
 </style>
 <style id="sceneEditorV10175Style">
-.scene-editor-shell{position:relative;width:100%;overflow:hidden;border-radius:12px;background:#080b10;margin-top:8px}.scene-editor-canvas{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;border:1px solid #465164;border-radius:12px;background:#080b10;touch-action:none}.scene-editor-canvas .scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}.scene-unit{position:absolute;object-fit:contain;transform:translate(-50%,-100%);filter:drop-shadow(0 5px 3px #0009);touch-action:none;user-select:none;-webkit-user-drag:none;z-index:4;cursor:grab}.scene-ground-controls{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin:8px 0}.scene-ground-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(255,255,255,.92);z-index:7;pointer-events:none}.scene-ground-line::after{content:'GROUND';position:absolute;right:6px;top:-18px;font-size:10px;background:#111c;padding:1px 4px;border-radius:4px}.scene-unit.enemy{z-index:5}.entry-grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 86px 1fr;gap:10px;align-items:start}.entry-grid.mobile{grid-template-columns:1fr 64px 1fr;gap:6px}.entry-card{position:relative;overflow:hidden;border:2px solid #30363d;border-radius:12px;background:#11161d;padding:12px 8px;text-align:center;min-width:0}.entry-card .scene-bg{filter:saturate(.92) brightness(.72)}.entry-idle-stage{position:relative;height:210px;overflow:visible;margin-bottom:8px;z-index:1}.entry-grid.mobile .entry-idle-stage{height:165px}.entry-idle-stage .scene-ground-line{left:0;right:0}.entry-name{position:relative;z-index:2;font-size:14px;font-weight:900;color:#f0f6fc;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entry-power{position:relative;z-index:2;font-size:24px;line-height:1.15;font-weight:1000;margin:3px 0 6px;color:#f0f6fc}.entry-power.hero{color:#3fb950}.entry-power.enemy{color:#ff7b72}.entry-vs{display:grid;place-items:center;align-self:stretch;font-size:24px;font-weight:900;color:#d0d7de}.scene-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}.scene-readout{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.scene-readout span{background:#0e131a;border:1px solid #394252;border-radius:8px;padding:5px 8px;font-size:11px}.scene-toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.scene-size-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scene-note{font-size:11px;color:#9da8b8;margin-top:7px}@media(max-width:700px){.scene-toolbar{grid-template-columns:1fr 1fr}.scene-size-grid{grid-template-columns:1fr}}
+.scene-editor-shell{position:relative;width:100%;overflow:hidden;border-radius:12px;background:#080b10;margin-top:8px}.scene-editor-canvas{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;border:1px solid #465164;border-radius:12px;background:#080b10;touch-action:none}.scene-editor-canvas .scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}.scene-unit{position:absolute;object-fit:contain;transform:translate(-50%,-100%);filter:drop-shadow(0 5px 3px #0009);touch-action:none;user-select:none;-webkit-user-drag:none;z-index:4;cursor:grab}.scene-ground-controls{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin:8px 0}.scene-ground-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(255,255,255,.92);z-index:7;pointer-events:none}.scene-ground-line::after{content:'GROUND';position:absolute;right:6px;top:-18px;font-size:10px;background:#111c;padding:1px 4px;border-radius:4px}.scene-unit.enemy{z-index:5}.entry-grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 86px 1fr;gap:10px;align-items:start}.entry-grid.mobile{grid-template-columns:1fr 64px 1fr;gap:6px}.entry-card{position:relative;overflow:hidden;border:2px solid #30363d;border-radius:12px;background:#11161d;padding:12px 8px;text-align:center;min-width:0}.entry-card .scene-bg{filter:saturate(.92) brightness(.72)}.entry-idle-stage{position:relative;overflow:visible;z-index:1}.entry-name{position:relative;z-index:2;font-size:14px;font-weight:900;color:#f0f6fc;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entry-power{position:relative;z-index:2;font-size:24px;line-height:1.15;font-weight:1000;margin:3px 0 6px;color:#f0f6fc}.entry-power.hero{color:#3fb950}.entry-power.enemy{color:#ff7b72}.entry-vs{display:grid;place-items:center;align-self:stretch;font-size:24px;font-weight:900;color:#d0d7de}.scene-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}.scene-readout{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.scene-readout span{background:#0e131a;border:1px solid #394252;border-radius:8px;padding:5px 8px;font-size:11px}.scene-toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.scene-size-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scene-note{font-size:11px;color:#9da8b8;margin-top:7px}@media(max-width:700px){.scene-toolbar{grid-template-columns:1fr 1fr}.scene-size-grid{grid-template-columns:1fr}}
+
+.entry-runtime-layer{position:absolute;inset:0;z-index:6;pointer-events:none}
+.entry-runtime-layer .scene-unit{pointer-events:auto}
+.entry-runtime-layer .scene-ground-line{left:0;right:0}
 </style>
 </head><body>
 <header><div><b>🛠️ StudyRPG 製作工具 V3.1 Monster Isolation</b><div class="muted">所有技能共用 FX；召喚物可調站位/路徑；全部先存草稿，最後一次批次儲存。</div></div><div><span class="badge" id="dirty">未儲存 0 項</span></div></header>
@@ -69,72 +73,31 @@ let VISUAL_DB=null;
 function dbToEditorCfg(db){
   const c=clone(db||{});c.mapGround=clone(db.groundByWeek||{});c.monsterVisuals=clone(db.monsterVisuals||{});
   c.sceneCoordinateLayout={};c.battleLayout={};c.objectSizes={};
-  for(const d of ['desktop','tablet','mobile']){
+  for(const d of DEVICES){
     const dv=db.devices?.[d]||{},st=dv.status||{},de=dv.dungeonEntry||{},bt=dv.battle||{};
-    const base=(scene,cell)=>{
-      const v=Number(cell?.groundY);
-      return Number.isFinite(v)?v:deviceSceneGroundDefault(d,scene)
-    };
-    const finalPos=(a,scene,cell)=>({x:Number(a?.x??50),y:base(scene,cell)+Number(a?.footOffsetY||0)});
-    c.sceneCoordinateLayout[d]={
-      statusHero:finalPos(st.hero,'status',st),
-      dungeonHero:finalPos(de.hero,'dungeonEntry',de),
-      dungeonEnemy:finalPos(de.enemy,'dungeonEntry',de)
-    };
-    c.battleLayout[d]={
-      hero:finalPos(bt.hero,'dungeon',bt),
-      enemy:finalPos(bt.enemy,'dungeon',bt),
-      attackMid:clone(bt.attackMid||{x:42,y:60}),
-      attackStrike:clone(bt.attackStrike||{x:68,y:66}),
-      duration:Number(bt.duration||560)
-    };
-    c.objectSizes[d]={
-      statusHero:Number(st.heroSize||SIZE_DEFAULTS[d].statusHero),
-      dungeonHero:Number(de.heroSize||SIZE_DEFAULTS[d].dungeonHero),
-      dungeonEnemy:Number(de.enemySize||SIZE_DEFAULTS[d].dungeonEnemy),
-      battleHero:Number(bt.heroSize||SIZE_DEFAULTS[d].battleHero),
-      battleEnemy:Number(bt.enemySize||SIZE_DEFAULTS[d].battleEnemy)
-    };
+    const pos=a=>({x:Number(a?.x??50),y:Number(a?.footOffsetY||0)});
+    c.sceneCoordinateLayout[d]={statusHero:pos(st.hero),dungeonHero:pos(de.hero),dungeonEnemy:pos(de.enemy)};
+    c.battleLayout[d]={hero:pos(bt.hero),enemy:pos(bt.enemy),attackMid:clone(bt.attackMid||BATTLE_DEFAULTS[d].attackMid),attackStrike:clone(bt.attackStrike||BATTLE_DEFAULTS[d].attackStrike),duration:Number(bt.duration||BATTLE_DEFAULTS[d].duration)};
+    c.objectSizes[d]={statusHero:Number(st.heroSize||SIZE_DEFAULTS[d].statusHero),dungeonHero:Number(de.heroSize||SIZE_DEFAULTS[d].dungeonHero),dungeonEnemy:Number(de.enemySize||SIZE_DEFAULTS[d].dungeonEnemy),battleHero:Number(bt.heroSize||SIZE_DEFAULTS[d].battleHero),battleEnemy:Number(bt.enemySize||SIZE_DEFAULTS[d].battleEnemy)};
   }
   return c;
 }
 function editorCfgToDb(c){
-  const db=clone(VISUAL_DB||{});db.schemaVersion=db.schemaVersion||1;
-  db.groundByWeek=clone(c.mapGround||{});db.devices=db.devices||{};
-  db.monsterVisuals=clone(c.monsterVisuals||db.monsterVisuals||{});
-  const wk=String(activeEditorWeek());
-  for(const d of ['desktop','tablet','mobile']){
-    db.devices[d]=db.devices[d]||{};
-    const dv=db.devices[d],sc=c.sceneCoordinateLayout?.[d]||{},bl=c.battleLayout?.[d]||{},os=c.objectSizes?.[d]||{};
-    const sceneGround=(scene)=>{
-      const cell=c.mapGround?.[wk]?.[d];
-      const stored=cell&&typeof cell==='object'?Number(cell[scene]):Number(cell);
-      if(Number.isFinite(stored))return stored;
-      const prior=Number(dv?.[dbSceneName(scene)]?.groundY);
-      return Number.isFinite(prior)?prior:deviceSceneGroundDefault(d,scene)
-    };
+  const db=clone(VISUAL_DB||{});db.schemaVersion=db.schemaVersion||1;db.groundByWeek=clone(c.mapGround||{});db.devices=db.devices||{};db.monsterVisuals=clone(c.monsterVisuals||db.monsterVisuals||{});
+  for(const d of DEVICES){
+    db.devices[d]=db.devices[d]||{};const dv=db.devices[d],sc=c.sceneCoordinateLayout?.[d]||{},bl=c.battleLayout?.[d]||{},os=c.objectSizes?.[d]||{};
     const put=(dbScene,editorScene,p,size,enemy)=>{
-      dv[dbScene]=dv[dbScene]||{};
-      const cell=dv[dbScene],gy=sceneGround(editorScene);
-      cell.groundY=gy;
-      if(p){
-        const k=enemy?'enemy':'hero';cell[k]=cell[k]||{};
-        cell[k].x=Number(p.x);cell[k].groundScene=dbScene;
-        cell[k].footOffsetY=+(Number(p.y)-gy).toFixed(2)
-      }
+      dv[dbScene]=dv[dbScene]||{};const cell=dv[dbScene];
+      const base=Number(cell.groundY);cell.groundY=Number.isFinite(base)?base:deviceSceneGroundDefault(d,editorScene);
+      if(p){const k=enemy?'enemy':'hero';cell[k]=cell[k]||{};cell[k].x=Number(p.x);cell[k].groundScene=dbScene;cell[k].footOffsetY=+Number(p.y||0).toFixed(2)}
       if(size!=null)cell[enemy?'enemySize':'heroSize']=Number(size)
     };
     put('status','status',sc.statusHero,os.statusHero,false);
-    put('dungeonEntry','dungeonEntry',sc.dungeonHero,os.dungeonHero,false);
-    put('dungeonEntry','dungeonEntry',sc.dungeonEnemy,os.dungeonEnemy,true);
-    put('battle','dungeon',bl.hero,os.battleHero,false);
-    put('battle','dungeon',bl.enemy,os.battleEnemy,true);
-    dv.battle.attackMid=clone(bl.attackMid||dv.battle.attackMid||{x:42,y:60});
-    dv.battle.attackStrike=clone(bl.attackStrike||dv.battle.attackStrike||{x:68,y:66});
-    dv.battle.duration=Number(bl.duration||dv.battle.duration||560);
+    put('dungeonEntry','dungeonEntry',sc.dungeonHero,os.dungeonHero,false);put('dungeonEntry','dungeonEntry',sc.dungeonEnemy,os.dungeonEnemy,true);
+    put('battle','dungeon',bl.hero,os.battleHero,false);put('battle','dungeon',bl.enemy,os.battleEnemy,true);
+    dv.battle.attackMid=clone(bl.attackMid||dv.battle.attackMid||BATTLE_DEFAULTS[d].attackMid);dv.battle.attackStrike=clone(bl.attackStrike||dv.battle.attackStrike||BATTLE_DEFAULTS[d].attackStrike);dv.battle.duration=Number(bl.duration||dv.battle.duration||BATTLE_DEFAULTS[d].duration);
   }
-  for(const k of ['referencePoints','stage','heroes','monsters','playerSkills','monsterSkills'])
-    if(c[k])db[k]=clone(c[k]);
+  for(const k of ['referencePoints','stage','heroes','monsters','playerSkills','monsterSkills'])if(c[k])db[k]=clone(c[k]);
   return db;
 }
 
@@ -180,13 +143,11 @@ function loadMonsterVisual(){
     CFG.battleLayout[d]=CFG.battleLayout[d]||{};
     CFG.battleLayout[d].enemy=CFG.battleLayout[d].enemy||{};
     if(Number.isFinite(Number(cell.x)))CFG.battleLayout[d].enemy.x=Number(cell.x);
-    if(Number.isFinite(Number(cell.y)))CFG.battleLayout[d].enemy.y=Number(cell.y);
     if(Number.isFinite(Number(cell.size)))CFG.objectSizes[d].battleEnemy=Number(cell.size);
   }else if(scene==='dungeonEntry'){
     CFG.sceneCoordinateLayout[d]=CFG.sceneCoordinateLayout[d]||{};
     CFG.sceneCoordinateLayout[d].dungeonEnemy=CFG.sceneCoordinateLayout[d].dungeonEnemy||{};
     if(Number.isFinite(Number(cell.x)))CFG.sceneCoordinateLayout[d].dungeonEnemy.x=Number(cell.x);
-    if(Number.isFinite(Number(cell.y)))CFG.sceneCoordinateLayout[d].dungeonEnemy.y=Number(cell.y);
     if(Number.isFinite(Number(cell.size)))CFG.objectSizes[d].dungeonEnemy=Number(cell.size);
   }
 }
@@ -333,8 +294,8 @@ function fill(){$('bg').innerHTML=MANIFEST.assets.filter(x=>x.includes('images/b
 
 /* V10.17.5：三場景 1:1 編輯器。直接編輯主程式原生欄位，不使用 sceneLayouts 中介座標。 */
 const DEVICES=['desktop','tablet','mobile'];
-const COORD_DEFAULTS={desktop:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},tablet:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},mobile:{statusHero:{x:50,y:62},dungeonHero:{x:50,y:60},dungeonEnemy:{x:50,y:60}}};
-const BATTLE_DEFAULTS={desktop:{hero:{x:18,y:68},enemy:{x:82,y:68},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},tablet:{hero:{x:17,y:68},enemy:{x:83,y:68},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},mobile:{hero:{x:18,y:65},enemy:{x:82,y:65},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}};
+const COORD_DEFAULTS={desktop:{statusHero:{x:50,y:0},dungeonHero:{x:50,y:0},dungeonEnemy:{x:50,y:0}},tablet:{statusHero:{x:50,y:0},dungeonHero:{x:50,y:0},dungeonEnemy:{x:50,y:0}},mobile:{statusHero:{x:50,y:0},dungeonHero:{x:50,y:0},dungeonEnemy:{x:50,y:0}}};
+const BATTLE_DEFAULTS={desktop:{hero:{x:18,y:0},enemy:{x:82,y:0},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},tablet:{hero:{x:17,y:0},enemy:{x:83,y:0},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},mobile:{hero:{x:18,y:0},enemy:{x:82,y:0},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}};
 const SIZE_DEFAULTS={desktop:{statusHero:160,dungeonHero:180,dungeonEnemy:180,battleHero:190,battleEnemy:190},tablet:{statusHero:150,dungeonHero:165,dungeonEnemy:165,battleHero:175,battleEnemy:175},mobile:{statusHero:135,dungeonHero:135,dungeonEnemy:135,battleHero:145,battleEnemy:145}};
 function sceneDeepClone(v){return JSON.parse(JSON.stringify(v))}
 function migrateOldSceneLayouts(){if(!CFG.sceneLayouts)return;CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};for(const d of DEVICES){const s=CFG.sceneLayouts[d]||{},st=s.status||{},en=s.dungeonEntry||{},ba=s.dungeon||{};CFG.sceneCoordinateLayout[d]=CFG.sceneCoordinateLayout[d]||{};CFG.battleLayout[d]=CFG.battleLayout[d]||{};CFG.objectSizes[d]=CFG.objectSizes[d]||{};if(st.hero){CFG.sceneCoordinateLayout[d].statusHero={x:+st.hero.x,y:+st.hero.y};CFG.objectSizes[d].statusHero=+st.hero.size||SIZE_DEFAULTS[d].statusHero}if(en.hero){CFG.sceneCoordinateLayout[d].dungeonHero={x:+en.hero.x,y:+en.hero.y};CFG.objectSizes[d].dungeonHero=+en.hero.size||SIZE_DEFAULTS[d].dungeonHero}if(en.enemy){CFG.sceneCoordinateLayout[d].dungeonEnemy={x:+en.enemy.x,y:+en.enemy.y};CFG.objectSizes[d].dungeonEnemy=+en.enemy.size||SIZE_DEFAULTS[d].dungeonEnemy}if(ba.hero){CFG.battleLayout[d].hero={x:+ba.hero.x,y:+ba.hero.y};CFG.objectSizes[d].battleHero=+ba.hero.size||SIZE_DEFAULTS[d].battleHero}if(ba.enemy){CFG.battleLayout[d].enemy={x:+ba.enemy.x,y:+ba.enemy.y};CFG.objectSizes[d].battleEnemy=+ba.enemy.size||SIZE_DEFAULTS[d].battleEnemy}}delete CFG.sceneLayouts}
@@ -346,79 +307,45 @@ function sceneWeekData(){const w=Number($('sceneWeek').value)||1;return GAME_SCE
 function sceneMonsterSrc(){const id=$('sceneMonster').value;if(id==='hero_mirror')return sceneHeroSrc();return id?`../images/monsters/${id}_idle.png`:''}
 function fillSceneWeeks(){const sel=$('sceneWeek');if(!sel)return;const old=sel.value||String(GAME_SCENE_MANIFEST.weeks[0]?.week||1);sel.innerHTML=GAME_SCENE_MANIFEST.weeks.filter(x=>x.week<=20).map(x=>`<option value="${x.week}">第${x.week}週・${x.map}</option>`).join('');sel.value=[...sel.options].some(o=>o.value===old)?old:sel.options[0]?.value;fillSceneMonsters()}
 function fillSceneMonsters(){const w=sceneWeekData(),sel=$('sceneMonster'),old=sel.value;const names=Object.fromEntries(GAME_SCENE_MANIFEST.monsters.map(m=>[m.id,m.name]));sel.innerHTML=(w?.monsters||[]).map(id=>`<option value="${id}">${names[id]||id}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
-const DEVICE_SCENE_GROUND_DEFAULTS={
-  desktop:{status:66,dungeonEntry:63,dungeon:68},
-  tablet:{status:66,dungeonEntry:63,dungeon:68},
-  mobile:{status:62,dungeonEntry:60,dungeon:65}
-};
+const DEVICE_SCENE_GROUND_DEFAULTS={desktop:{status:66,dungeonEntry:63,dungeon:68},tablet:{status:66,dungeonEntry:63,dungeon:68},mobile:{status:62,dungeonEntry:60,dungeon:65}};
 function activeEditorWeek(){return Number($('sceneWeek')?.value)||1}
 function activeGroundScene(){return $('sceneKind')?.value||'dungeon'}
 function dbSceneName(scene){return scene==='dungeon'?'battle':scene}
-function deviceSceneGroundDefault(d,scene){
-  return Number(DEVICE_SCENE_GROUND_DEFAULTS[d]?.[scene]??DEVICE_SCENE_GROUND_DEFAULTS.desktop[scene]??68)
-}
-function deviceSceneBaseGround(d,scene){
-  const v=Number(VISUAL_DB?.devices?.[d]?.[dbSceneName(scene)]?.groundY);
-  return Number.isFinite(v)?v:deviceSceneGroundDefault(d,scene)
-}
+function deviceSceneGroundDefault(d,scene){return Number(DEVICE_SCENE_GROUND_DEFAULTS[d]?.[scene]??DEVICE_SCENE_GROUND_DEFAULTS.desktop[scene]??68)}
+function deviceSceneBaseGround(d,scene){const v=Number(VISUAL_DB?.devices?.[d]?.[dbSceneName(scene)]?.groundY);return Number.isFinite(v)?v:deviceSceneGroundDefault(d,scene)}
 function groundStored(d,w=activeEditorWeek(),scene=activeGroundScene()){
-  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w],cell=row?.[d];
-  if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}
-  const legacy=Number(cell);return Number.isFinite(legacy)?legacy:null
-}
-function groundY(d,w=activeEditorWeek(),scene=activeGroundScene()){
-  const v=groundStored(d,w,scene);return v==null?deviceSceneBaseGround(d,scene):v
-}
-function groundDelta(d,w=activeEditorWeek(),scene=activeGroundScene()){
-  return groundY(d,w,scene)-deviceSceneBaseGround(d,scene)
-}
-function groundShift(p,d,w=activeEditorWeek(),name='',scene='dungeon'){
-  if(!p)return p;const x=Number(p.x),y=Number(p.y);
-  if(!Number.isFinite(x)||!Number.isFinite(y))return p;
-  return{x,y}
-}
-function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){return y}
-function setGroundY(d,w,scene,v){
-  CFG.mapGround=CFG.mapGround||{};const wk=String(w);CFG.mapGround[wk]=CFG.mapGround[wk]||{};
-  const before=groundY(d,w,scene),delta=Number(v)-Number(before||0),old=CFG.mapGround[wk][d];
-  if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};
-  CFG.mapGround[wk][d][scene]=Number(v);
-  if(Math.abs(delta)>0.0001){
-    if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero)CFG.sceneCoordinateLayout[d].statusHero.y+=delta;
-    if(scene==='dungeonEntry'){
-      if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero)CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;
-      if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy)CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta;
-    }
-    if(scene==='dungeon'){
-      if(CFG.battleLayout?.[d]?.hero)CFG.battleLayout[d].hero.y+=delta;
-      if(CFG.battleLayout?.[d]?.enemy)CFG.battleLayout[d].enemy.y+=delta;
-    }
+  const key=scene==='battle'?'dungeon':scene;
+  for(let n=Math.max(1,Number(w)||1);n>=1;n--){
+    const cell=(CFG.mapGround?.[String(n)]||CFG.mapGround?.[n])?.[d];
+    if(cell&&typeof cell==='object'&&Number.isFinite(Number(cell[key])))return Number(cell[key]);
+    if(Number.isFinite(Number(cell)))return Number(cell);
   }
+  return null
+}
+function groundY(d,w=activeEditorWeek(),scene=activeGroundScene()){const v=groundStored(d,w,scene);return v==null?deviceSceneBaseGround(d,scene):v}
+function isGroundActor(name){return ['hero','enemy','hero_home','enemy_home','statusHero','dungeonHero','dungeonEnemy'].includes(name)}
+function groundShift(p,d,w=activeEditorWeek(),name='',scene='dungeon'){
+  if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;
+  return isGroundActor(name)?{x,y:groundY(d,w,scene)+y}:{x,y}
+}
+function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){
+  const v=Number(y);if(!Number.isFinite(v))return y;
+  return isGroundActor(name)?v-groundY(d,w,scene):v
+}
+function setGroundY(d,w,scene,v){
+  CFG.mapGround=CFG.mapGround||{};const wk=String(w);CFG.mapGround[wk]=CFG.mapGround[wk]||{};const old=CFG.mapGround[wk][d];
+  if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};
+  CFG.mapGround[wk][d][scene]=Number(v)
 }
 function clearGroundY(d,w,scene){
-  const before=groundY(d,w,scene),target=deviceSceneBaseGround(d,scene),delta=target-before;
-  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];
-  if(row){
-    const cell=row[d];
-    if(cell&&typeof cell==='object'){delete cell[scene];if(!Object.keys(cell).length)delete row[d]}
-    else if(Number.isFinite(Number(cell)))delete row[d];
-    if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}
-  }
-  if(Math.abs(delta)>0.0001){
-    if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero)CFG.sceneCoordinateLayout[d].statusHero.y+=delta;
-    if(scene==='dungeonEntry'){
-      if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero)CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;
-      if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy)CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta;
-    }
-    if(scene==='dungeon'){
-      if(CFG.battleLayout?.[d]?.hero)CFG.battleLayout[d].hero.y+=delta;
-      if(CFG.battleLayout?.[d]?.enemy)CFG.battleLayout[d].enemy.y+=delta;
-    }
-  }
+  const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];if(!row)return;const cell=row[d];
+  if(cell&&typeof cell==='object'){delete cell[scene];if(!Object.keys(cell).length)delete row[d]}else if(Number.isFinite(Number(cell)))delete row[d];
+  if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}
 }
 function groundLineHtml(d,scene=activeGroundScene()){return `<div class="scene-ground-line" style="top:${groundY(d,activeEditorWeek(),scene)}%"></div>`}
 function renderLinkedBattleEditors(){renderStage();renderSkillPreview();renderTimeline()}
-function renderGroundControl(){if(!$('sceneGroundY'))return;const d=$('sceneDevice').value,w=activeEditorWeek(),scene=activeGroundScene(),stored=groundStored(d,w,scene),v=stored==null?sceneBaseGround(d,scene):stored;$('sceneGroundY').value=v;$('sceneGroundOut').textContent=(stored==null?'預設 ':'')+Number(v).toFixed(1)+'%'}
+function groundStoredExact(d,w,scene){const cell=(CFG.mapGround?.[String(w)]||CFG.mapGround?.[w])?.[d];if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}const v=Number(cell);return Number.isFinite(v)?v:null}
+function renderGroundControl(){if(!$('sceneGroundY'))return;const d=$('sceneDevice').value,w=activeEditorWeek(),scene=activeGroundScene(),exact=groundStoredExact(d,w,scene),v=groundY(d,w,scene);$('sceneGroundY').value=v;$('sceneGroundOut').textContent=(exact==null?'繼承 ':'')+Number(v).toFixed(1)+'%'}
 function monsterIdleSize(d,id,fallback){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};const v=Number(CFG.monsters[id].idleSize[d]);return Number.isFinite(v)&&v>0?v:fallback}
 function setMonsterIdleSize(d,id,v){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].idleSize=CFG.monsters[id].idleSize||{};CFG.monsters[id].idleSize[d]=Number(v)}
 function monsterBattleSize(d,id,fallback){CFG.monsters=CFG.monsters||{};CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].battleSize=CFG.monsters[id].battleSize||{};const v=Number(CFG.monsters[id].battleSize[d]);return Number.isFinite(v)&&v>0?v:fallback}
@@ -431,13 +358,13 @@ function sceneCfg(){ensureNativeLayouts();const d=$('sceneDevice').value,k=$('sc
 function fitSceneCanvas(w,h){const shell=$('sceneEditorShell'),stage=$('sceneEditorStage');stage.style.width=w+'px';stage.style.height=h+'px';const scale=Math.min(1,Math.max(0.05,shell.clientWidth/w));stage.style.transform=`scale(${scale})`;shell.style.height=Math.ceil(h*scale)+'px';return scale}
 function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px">`}
 function renderSceneEditor(){if(!$('sceneEditorStage'))return;ensureNativeLayouts();syncSceneSizeControls();const c=sceneCfg(),kind=$('sceneKind').value,d=$('sceneDevice').value,[w,h]=sceneDims(),stage=$('sceneEditorStage'),wd=sceneWeekData(),bg='../'+(wd?.background||'images/backgrounds/week01_grassland.png'),os=CFG.objectSizes[d],hs=os[c.heroSizeKey],baseEs=c.enemySizeKey?os[c.enemySizeKey]:0,mid=$('sceneMonster').value,es=(c.enemySizeKey&&mid)?(kind==='dungeonEntry'?monsterIdleSize(d,mid,baseEs):kind==='dungeon'?monsterBattleSize(d,mid,baseEs):baseEs):baseEs,hp=groundShift(c.hero,d,activeEditorWeek(),'hero',kind),ep=c.enemy?groundShift(c.enemy,d,activeEditorWeek(),'enemy',kind):null;fitSceneCanvas(w,h);
-  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid ${d==='mobile'?'mobile':''}"><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-idle-stage" data-local="hero">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${groundLineHtml(d,'dungeonEntry')}</div><div class="entry-name">勇者</div><div class="entry-power hero">8888</div></div><div class="entry-vs">VS</div><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-idle-stage" data-local="enemy">${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy')}${groundLineHtml(d,'dungeonEntry')}</div><div class="entry-name">${mid||'怪物'}</div><div class="entry-power enemy">8888</div></div></div><div class="scene-scale-label">${w}×${h}</div>`;
+  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid ${d==='mobile'?'mobile':''}"><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-name">勇者</div><div class="entry-power hero">8888</div></div><div class="entry-vs">VS</div><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-name">${mid||'怪物'}</div><div class="entry-power enemy">8888</div></div></div><div class="entry-runtime-layer">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy')}${groundLineHtml(d,'dungeonEntry')}</div><div class="scene-scale-label">${w}×${h}</div>`;
   else stage.innerHTML=`<img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${kind==='dungeon'?unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy'):''}${groundLineHtml(d)}<div class="scene-scale-label">${w}×${h}</div>`;
   renderGroundControl();$('sceneHeroSize').value=hs;$('sceneHeroSizeOut').textContent=hs+'px';$('sceneHeroXY').textContent=`英雄 X ${Number(hp.x).toFixed(1)}% / Y ${Number(hp.y).toFixed(1)}%`;
   const showEnemy=kind!=='status';$('sceneEnemySizeBox').style.display=showEnemy?'block':'none';$('sceneEnemyXY').style.display=showEnemy?'inline-block':'none';if(showEnemy){$('sceneEnemySize').value=es;$('sceneEnemySizeOut').textContent=(kind==='dungeonEntry'&&mid?mid+' · ':'')+es+'px';$('sceneEnemyXY').textContent=`怪物 X ${Number(ep.x).toFixed(1)}% / Y ${Number(ep.y).toFixed(1)}%`}
   bindSceneUnit($('sceneEditorHero'),'hero');if(showEnemy)bindSceneUnit($('sceneEditorEnemy'),'enemy');
 }
-function bindSceneUnit(el,key){if(!el)return;el.onpointerdown=e=>{e.preventDefault();const c=sceneCfg()[key],kind=$('sceneKind').value,zone=kind==='dungeonEntry'?el.closest('.entry-idle-stage'):$('sceneEditorStage'),r=zone.getBoundingClientRect();el.setPointerCapture(e.pointerId);el.style.cursor='grabbing';const move=ev=>{c.x=+Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)).toFixed(1);const visualY=+Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)).toFixed(1);c.y=+Math.max(0,Math.min(100,groundUnshiftY(visualY,$('sceneDevice').value,activeEditorWeek(),key,kind))).toFixed(1);mark(`layout:${$('sceneDevice').value}:${$('sceneKind').value}:${key}`);el.style.left=c.x+'%';el.style.top=visualY+'%';const ro=$('sceneReadout');if(ro)ro.innerHTML=`<span>${key==='hero'?'勇者':'怪物'} X ${c.x}</span><span>Y ${c.y}</span>`;if(kind==='dungeon'){renderStage();renderSkillPreview();}};el.onpointermove=move;const end=()=>{el.onpointermove=null;el.style.cursor='grab';renderSceneEditor()};el.onpointerup=end;el.onpointercancel=end}}
+function bindSceneUnit(el,key){if(!el)return;el.onpointerdown=e=>{e.preventDefault();const c=sceneCfg()[key],kind=$('sceneKind').value,zone=$('sceneEditorStage'),r=zone.getBoundingClientRect();el.setPointerCapture(e.pointerId);el.style.cursor='grabbing';const move=ev=>{c.x=+Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)).toFixed(1);const visualY=+Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)).toFixed(1);c.y=+Math.max(0,Math.min(100,groundUnshiftY(visualY,$('sceneDevice').value,activeEditorWeek(),key,kind))).toFixed(1);mark(`layout:${$('sceneDevice').value}:${$('sceneKind').value}:${key}`);el.style.left=c.x+'%';el.style.top=visualY+'%';const ro=$('sceneReadout');if(ro)ro.innerHTML=`<span>${key==='hero'?'勇者':'怪物'} X ${c.x}</span><span>Y ${c.y}</span>`;if(kind==='dungeon'){renderStage();renderSkillPreview();}};el.onpointermove=move;const end=()=>{el.onpointermove=null;el.style.cursor='grab';renderSceneEditor()};el.onpointerup=end;el.onpointercancel=end}}
 function installSceneEditor(){ensureNativeLayouts();fillSceneWeeks();$('sceneKind').onchange=()=>{syncSceneSizeControls();renderSceneEditor()};$('sceneDevice').onchange=()=>{if($('device'))$('device').value=$('sceneDevice').value;syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneWeek').onchange=()=>{fillSceneMonsters();const wd=sceneWeekData();if(wd?.background&&[...$('bg').options].some(o=>o.value===wd.background))$('bg').value=wd.background;renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneMonster').onchange=()=>{syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};$('sceneGroundY').oninput=e=>{const d=$('sceneDevice').value,w=activeEditorWeek(),kind=activeGroundScene();setGroundY(d,w,kind,+e.target.value);mark(`ground:${w}:${d}:${kind}`);renderSceneEditor();if(kind==='dungeon')renderLinkedBattleEditors()};$('sceneGroundReset').onclick=()=>{const d=$('sceneDevice').value,w=activeEditorWeek(),kind=activeGroundScene();clearGroundY(d,w,kind);mark(`ground:${w}:${d}:${kind}`);renderSceneEditor();if(kind==='dungeon')renderLinkedBattleEditors()};$('sceneHeroSize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg();CFG.objectSizes[d][c.heroSizeKey]=+e.target.value;mark(`size:${d}:${c.heroSizeKey}`);syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};$('sceneEnemySize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg(),kind=$('sceneKind').value,mid=$('sceneMonster').value;if(kind==='dungeonEntry'&&mid){setMonsterIdleSize(d,mid,+e.target.value);mark(`monsterIdleSize:${mid}:${d}`)}else if(kind==='dungeon'&&mid){setMonsterBattleSize(d,mid,+e.target.value);mark(`monsterBattleSize:${mid}:${d}`)}else if(c.enemySizeKey){CFG.objectSizes[d][c.enemySizeKey]=+e.target.value;mark(`size:${d}:${c.enemySizeKey}`)}syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};addEventListener('resize',()=>renderSceneEditor());renderSceneEditor()}
 
 $('side').onchange=()=>{commitCurrent();renderSelectors()};$('heroActor').onchange=()=>{commitCurrent();loadMotion();loadAnchor();renderSkillPreview();renderTimeline()};$('monster').onchange=()=>{commitCurrent();loadSkill();loadMotion();loadAnchor()};$('skill').onchange=()=>{commitCurrent();loadSkill()};$('enabled').onchange=commitCurrent;$('actorAction').onchange=commitCurrent;for(const id of ['pathImg','pathMode','pathDuration','pathScale','pathDelay','pathFrom','pathVia','pathTo'])$(id).onchange=commitCurrent;$('addA').onclick=()=>{draft.selfFX.push(normalizeFx({anchor:'self',scaleMode:'self'}));renderFx();commitCurrent()};$('addB').onclick=()=>{draft.targetFX.push(normalizeFx({anchor:'target',scaleMode:'target'}));renderFx();commitCurrent()};$('addSummon').onclick=()=>{draft.summons.push({unitId:'',from:'air_high',via:'air_high',to:'summon_center',standPoint:'summon_center',path:'arc',scale:1,delay:0,duration:500,enter:'fade'});renderSummons();commitCurrent()};
