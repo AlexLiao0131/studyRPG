@@ -1,13 +1,12 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudyRPG 製作工具 — Visual DB Core</title>
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudyRPG Visual Database Edition - 製作工具 V3.1 Monster Isolation</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#10141b;color:#eee;font-family:system-ui,-apple-system,sans-serif}header{position:sticky;top:0;z-index:10;background:#171d27;padding:12px 16px;border-bottom:1px solid #394252;display:flex;gap:16px;align-items:center;justify-content:space-between}main{display:grid;grid-template-columns:minmax(360px,520px) 1fr;gap:12px;padding:12px}.card{background:#171d27;border:1px solid #343e4c;border-radius:12px;padding:12px;margin-bottom:10px}label{display:block;font-size:12px;color:#aeb8c7;margin:7px 0 3px}input,select,button{background:#0e131a;color:#fff;border:1px solid #465164;border-radius:8px;padding:8px;width:100%}button{cursor:pointer;background:#273248}button.primary{background:#365b91}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.muted{font-size:11px;color:#9da8b8}.badge{background:#702f2f;border-radius:999px;padding:4px 8px;font-size:12px}.fxrow,.summonrow{border:1px solid #394252;border-radius:10px;padding:8px;margin:7px 0}.headrow{display:flex;justify-content:space-between;align-items:center;gap:8px}.headrow button{width:auto;padding:4px 9px}#stage{height:auto;aspect-ratio:3/1;position:relative;overflow:hidden;background:#080b10;border-radius:12px;border:1px solid #394252}#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center;touch-action:none}.point{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #111;transform:translate(-50%,-50%);z-index:8;touch-action:none}.point:after{content:attr(data-p);position:absolute;white-space:nowrap;font-size:9px;left:11px;top:-6px;background:#000b;padding:2px 4px;border-radius:4px}#hero,#enemy{position:absolute;transform:translate(-50%,-100%);z-index:5;pointer-events:none}#hero{font-size:64px}#enemy{font-size:72px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{width:auto}.dirty{outline:2px solid #b57d27}.repoStatus{font-size:12px;padding:7px 9px;border-radius:8px;background:#0e131a;border:1px solid #394252;margin-top:8px}.repoStatus.ok{border-color:#3b7650}.repoStatus.warn{border-color:#9b7432}.repoStatus.err{border-color:#8d3d3d}.mini{width:auto;padding:6px 10px}@media(max-width:900px){main{grid-template-columns:1fr}header{align-items:flex-start;gap:8px;flex-direction:column}.row,.row3{grid-template-columns:1fr}.card{padding:10px}}
-.entry-power{font-size:24px;font-weight:1000;margin:3px 0 6px;color:#f0f6fc}.entry-vs{font-weight:1000;text-align:center;align-self:center}.entry-vs>div{font-size:28px}
 </style>
 <style id="sceneEditorV10175Style">
-.scene-editor-shell{position:relative;width:100%;overflow:hidden;border-radius:12px;background:#080b10;margin-top:8px}.scene-editor-canvas{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;border:1px solid #465164;border-radius:12px;background:#080b10;touch-action:none}.scene-editor-canvas .scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}.scene-unit{position:absolute;object-fit:contain;transform:translate(-50%,-100%);filter:drop-shadow(0 5px 3px #0009);touch-action:none;user-select:none;-webkit-user-drag:none;z-index:4;cursor:grab}.scene-ground-controls{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin:8px 0}.scene-ground-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(255,255,255,.92);z-index:7;pointer-events:auto;cursor:ns-resize;touch-action:none}.scene-ground-line::after{content:'GROUND';position:absolute;right:6px;top:-18px;font-size:10px;background:#111c;padding:1px 4px;border-radius:4px}.scene-unit.enemy{z-index:5}.entry-grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 86px 1fr;gap:10px;align-items:start}.entry-grid.mobile{grid-template-columns:1fr 64px 1fr;gap:6px}.entry-card{position:relative;overflow:hidden;border:2px solid #30363d;border-radius:12px;background:#11161d;padding:12px 8px;text-align:center;min-width:0}.entry-card .scene-bg{filter:saturate(.92) brightness(.72)}.entry-idle-stage{position:relative;height:210px;overflow:visible;margin-bottom:8px;z-index:1}.entry-grid.mobile .entry-idle-stage{height:165px}.entry-idle-stage .scene-ground-line{left:0;right:0}.entry-name{position:relative;z-index:2;font-size:14px;font-weight:900;color:#f0f6fc;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entry-vs{display:grid;place-items:center;align-self:stretch;font-size:24px;font-weight:900;color:#d0d7de}.scene-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}.scene-readout{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.scene-readout span{background:#0e131a;border:1px solid #394252;border-radius:8px;padding:5px 8px;font-size:11px}.scene-toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.scene-size-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scene-note{font-size:11px;color:#9da8b8;margin-top:7px}@media(max-width:700px){.scene-toolbar{grid-template-columns:1fr 1fr}.scene-size-grid{grid-template-columns:1fr}}
+.scene-editor-shell{position:relative;width:100%;overflow:hidden;border-radius:12px;background:#080b10;margin-top:8px}.scene-editor-canvas{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;border:1px solid #465164;border-radius:12px;background:#080b10;touch-action:none}.scene-editor-canvas .scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}.scene-unit{position:absolute;object-fit:contain;transform:translate(-50%,-100%);filter:drop-shadow(0 5px 3px #0009);touch-action:none;user-select:none;-webkit-user-drag:none;z-index:4;cursor:grab}.scene-ground-controls{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin:8px 0}.scene-ground-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(255,255,255,.92);z-index:7;pointer-events:none}.scene-ground-line::after{content:'GROUND';position:absolute;right:6px;top:-18px;font-size:10px;background:#111c;padding:1px 4px;border-radius:4px}.scene-unit.enemy{z-index:5}.entry-grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 86px 1fr;gap:10px;align-items:start}.entry-grid.mobile{grid-template-columns:1fr 64px 1fr;gap:6px}.entry-card{position:relative;overflow:hidden;border:2px solid #30363d;border-radius:12px;background:#11161d;padding:12px 8px;text-align:center;min-width:0}.entry-card .scene-bg{filter:saturate(.92) brightness(.72)}.entry-idle-stage{position:relative;height:210px;overflow:visible;margin-bottom:8px;z-index:1}.entry-grid.mobile .entry-idle-stage{height:165px}.entry-idle-stage .scene-ground-line{left:0;right:0}.entry-name{position:relative;z-index:2;font-size:14px;font-weight:900;color:#f0f6fc;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entry-vs{display:grid;place-items:center;align-self:stretch;font-size:24px;font-weight:900;color:#d0d7de}.scene-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}.scene-readout{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.scene-readout span{background:#0e131a;border:1px solid #394252;border-radius:8px;padding:5px 8px;font-size:11px}.scene-toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.scene-size-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scene-note{font-size:11px;color:#9da8b8;margin-top:7px}@media(max-width:700px){.scene-toolbar{grid-template-columns:1fr 1fr}.scene-size-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<header><div><b>🛠️ StudyRPG 製作工具 V10.19 FINAL-COORD FIX</b><div class="muted">所有技能共用 FX；召喚物可調站位/路徑；全部先存草稿，最後一次批次儲存。</div></div><div><span class="badge" id="dirty">未儲存 0 項</span></div></header>
+<header><div><b>🛠️ StudyRPG 製作工具 V3.1 Monster Isolation</b><div class="muted">所有技能共用 FX；召喚物可調站位/路徑；全部先存草稿，最後一次批次儲存。</div></div><div><span class="badge" id="dirty">未儲存 0 項</span></div></header>
 <main><section>
 <div class="card"><div class="headrow"><b>🖼️ GitHub 圖片庫</b><button class="mini" id="scanGithub">重新掃描</button></div><div id="repoStatus" class="repoStatus">正在自動讀取 GitHub /images/…</div><div class="muted" style="margin-top:6px">放到 GitHub 的 images/ 裡，重新整理修改器就會自動出現。手機、電腦都直接開這個網頁，不用 Python、不用 BAT。</div></div>
 <div class="card"><div class="row"><div><label>編輯對象</label><select id="side"><option value="player">英雄技能</option><option value="monster">怪物技能</option></select></div><div><label>裝置</label><select id="device"><option>desktop</option><option>tablet</option><option>mobile</option></select></div></div><div id="heroBox"><label>英雄職業</label><select id="heroActor"><option value="novice">見習勇者</option><option value="warrior">戰士</option><option value="mage">法師</option><option value="priest">牧師</option><option value="hunter">獵人</option><option value="rogue">盜賊</option><option value="paladin">聖騎士</option><option value="spellblade">魔劍士</option></select></div><div id="monsterBox" style="display:none"><label>怪物</label><select id="monster"></select></div><label>技能</label><select id="skill"></select><label><input id="enabled" type="checkbox" style="width:auto"> 啟用新版演出（未啟用仍跑舊版）</label><label>呼叫角色 motionAction</label><select id="actorAction"></select></div>
@@ -19,8 +18,8 @@
 <div class="card" id="affixEditorCard"><div class="headrow"><b>💎 裝備詞綴顯示</b><span class="muted">直接讀正式 index.html</span></div><label>裝備詞綴</label><select id="affixSelect"></select><div id="affixMeta" class="muted"></div><label><input id="affixFxEnabled" type="checkbox" style="width:auto"> 戰場顯示 PNG（未勾選只顯示 Buff）</label><div class="row"><div><label>Buff 圖示</label><input id="affixBuffIcon" placeholder="例如 ⚔️"></div><div><label>PNG</label><select id="affixImage"></select></div></div><div class="row3"><div><label>倍率</label><input id="affixScale" type="number" min="0.1" step="0.1" value="1"></div><div><label>X 偏移 px</label><input id="affixOffsetX" type="number" value="0"></div><div><label>Y 偏移 px</label><input id="affixOffsetY" type="number" value="0"></div></div><div class="muted">觸發型／契約型裝備詞綴會顯示在戰鬥 Buff；不歸類為召喚技能。PNG 為選配；未設定 PNG 不會再用 Emoji 當戰場常駐物件。</div></div>
 <div class="card"><b>角色 motionActions</b><div class="row"><div><label>動作</label><select id="motionName"></select></div><div><label>spriteState</label><input id="spriteState"></div></div><div class="row3"><div><label>motion</label><select id="motion"><option>stay</option><option>forward</option><option>jump</option><option>dash</option></select></div><div><label>時間 ms</label><input id="motionDuration" type="number"></div><div></div></div><div class="row"><div><label>from</label><select id="from"></select></div><div><label>via</label><select id="via"></select></div><div><label>to</label><select id="to"></select></div><div><label>returnTo</label><select id="returnTo"></select></div></div></div>
 <div class="card"><b>怪物/角色身體特效參考框</b><div class="muted">DOT / Buff / Debuff 的 followTarget / followSelf 會依這個比例縮放。</div><div class="row3"><div><label>寬 %</label><input id="anchorW" type="number" value="100"></div><div><label>高 %</label><input id="anchorH" type="number" value="100"></div><div><label>Y 偏移 %</label><input id="anchorY" type="number" value="0"></div></div></div>
-<div class="card"><b>🔗 正式主程式來源</b><div id="mainSourceStatus" class="repoStatus">尚未讀取 index.html</div><div class="muted">修改器直接讀取同一個 GitHub repo 的正式 <code>index.html</code>。拖曳、技能、FX、召喚、Timeline、座標與尺寸只改記憶體工作副本；最後才匯出新的完整 index.html。</div><div style="height:6px"></div><input id="mainIndexImport" type="file" accept=".html"><div style="height:4px"></div><button id="reloadMainIndex">↻ 重新讀取正式 index.html</button></div>
-<div class="card"><div class="row"><button id="undoBtn">↶ Undo</button><button id="deleteSelectedBtn">⌫ 刪除目前選取</button></div><div style="height:6px"></div><button class="primary" id="saveAll">💾 儲存全部變更</button><div style="height:6px"></div><button id="export">⬇️ 匯出 visual-database</button><label>匯入 visual-database.js</label><input id="import" type="file" accept=".js,text/javascript"></div>
+<div class="card"><b>🔗 正式主程式來源</b><div id="mainSourceStatus" class="repoStatus">尚未讀取 GitHub 主程式 / Visual DB</div><div class="muted">修改器直接讀取 GitHub main 的正式 <code>index.html</code> 與 <code>visual-database.js</code>。index.html 只用來取得怪物、技能與素材清單；座標、地板、尺寸、技能 FX、召喚與 Timeline 全部只寫 visual-database.js。</div><div style="height:6px"></div><input id="mainIndexImport" type="file" accept=".html"><div style="height:4px"></div><button id="reloadMainIndex">↻ 重新讀取正式 index.html</button></div>
+<div class="card"><div class="row"><button id="undoBtn">↶ Undo</button><button id="deleteSelectedBtn">⌫ 刪除目前選取</button></div><div style="height:6px"></div><button class="primary" id="saveAll">💾 儲存全部變更（瀏覽器草稿）</button><div style="height:6px"></div><button id="export">⬇️ 下載 Visual DB ZIP</button><label>匯入 visual-database.js</label><input id="import" type="file" accept=".js,.zip,application/javascript"></div>
 </section><section>
 
 <div class="card" id="sceneIdleEditorCard">
@@ -60,62 +59,122 @@ const GITHUB_RAW_VISUAL_DB='https://raw.githubusercontent.com/AlexLiao0131/study
 let MAIN_SOURCE_URL='../index.html';
 let SOURCE_READY=false;
 let CFG={}; let dirty=new Set(); const $=id=>document.getElementById(id), clone=x=>JSON.parse(JSON.stringify(x));
+
 function parseVisualDatabase(src){
   const m=String(src||'').match(/window\.STUDYRPG_VISUAL_DATABASE\s*=\s*([\s\S]*?);\s*$/);
   if(!m)throw Error('找不到 STUDYRPG_VISUAL_DATABASE');
   return JSON.parse(m[1]);
 }
 let VISUAL_DB=null;
-function dbGround(db,d,scene,w=1){
-  const key=scene==='battle'?'dungeon':scene;
-  for(let n=Math.max(1,Number(w)||1);n>=1;n--){
-    const c=db.groundByWeek?.[String(n)]?.[d];
-    if(c&&typeof c==='object'&&Number.isFinite(Number(c[key])))return Number(c[key]);
-    if(Number.isFinite(Number(c)))return Number(c);
-  }
-  return Number(db.devices?.[d]?.[scene]?.groundY)||50;
-}
 function dbToEditorCfg(db){
-  const c=clone(db||{});c.mapGround=clone(db.groundByWeek||{});
-  c.sceneCoordinateLayout={};c.battleLayout={};c.objectSizes={};
+  const c=clone(db||{}); c.mapGround=clone(db.groundByWeek||{}); c.monsterVisuals=clone(db.monsterVisuals||{});
+  c.sceneCoordinateLayout={}; c.battleLayout={}; c.objectSizes={};
   for(const d of ['desktop','tablet','mobile']){
-    const dv=db.devices?.[d]||{},st=dv.status||{},de=dv.dungeonEntry||{},bt=dv.battle||{};
-    const abs=(x,scene)=>({x:Number(x?.x??50),y:dbGround(db,d,scene,1)+Number(x?.footOffsetY||0)});
-    c.sceneCoordinateLayout[d]={statusHero:abs(st.hero,'status'),dungeonHero:abs(de.hero,'dungeonEntry'),dungeonEnemy:abs(de.enemy,'dungeonEntry')};
-    c.battleLayout[d]={hero:abs(bt.hero,'battle'),enemy:abs(bt.enemy,'battle'),attackMid:clone(bt.attackMid||{x:42,y:60}),attackStrike:clone(bt.attackStrike||{x:68,y:66}),duration:Number(bt.duration||560)};
+    const dv=db.devices?.[d]||{}, st=dv.status||{}, de=dv.dungeonEntry||{}, bt=dv.battle||{};
+    const abs=(a,g)=>({x:Number(a?.x??50),y:Number(g||0)+Number(a?.footOffsetY||0)});
+    c.sceneCoordinateLayout[d]={statusHero:abs(st.hero,st.groundY),dungeonHero:abs(de.hero,de.groundY),dungeonEnemy:abs(de.enemy,de.groundY)};
+    c.battleLayout[d]={hero:abs(bt.hero,bt.groundY),enemy:abs(bt.enemy,bt.groundY),attackMid:clone(bt.attackMid||{x:42,y:60}),attackStrike:clone(bt.attackStrike||{x:68,y:66}),duration:Number(bt.duration||560)};
     c.objectSizes[d]={statusHero:Number(st.heroSize||160),dungeonHero:Number(de.heroSize||180),dungeonEnemy:Number(de.enemySize||180),battleHero:Number(bt.heroSize||190),battleEnemy:Number(bt.enemySize||190)};
   }
   return c;
 }
 function editorCfgToDb(c){
-  const db=clone(VISUAL_DB||{});db.schemaVersion=2;db.groundByWeek=clone(c.mapGround||{});db.devices=db.devices||{};
+  const db=clone(VISUAL_DB||{}); db.schemaVersion=db.schemaVersion||1; db.groundByWeek=clone(c.mapGround||{});
+  db.devices=db.devices||{};
+  db.monsterVisuals=db.monsterVisuals||clone(c.monsterVisuals||{});
+
   for(const d of ['desktop','tablet','mobile']){
-    db.devices[d]=db.devices[d]||{};const dv=db.devices[d],sc=c.sceneCoordinateLayout?.[d]||{},bl=c.battleLayout?.[d]||{},os=c.objectSizes?.[d]||{};
-    const put=(scene,p,size,enemy=false)=>{
-      dv[scene]=dv[scene]||{};const cell=dv[scene],gy=dbGround(db,d,scene,1);cell.groundY=Number(cell.groundY??gy);
+    db.devices[d]=db.devices[d]||{}; const dv=db.devices[d], sc=c.sceneCoordinateLayout?.[d]||{}, bl=c.battleLayout?.[d]||{}, os=c.objectSizes?.[d]||{};
+    const ground=(scene,fallback)=>{const wk=db.groundByWeek?.['1']?.[d]; const key=scene==='battle'?'dungeon':scene; const v=wk&&typeof wk==='object'?Number(wk[key]):NaN; return Number.isFinite(v)?v:Number(fallback)};
+    const put=(scene,p,size,enemy)=>{
+      dv[scene]=dv[scene]||{}; const cell=dv[scene], gy=ground(scene,cell.groundY??(scene==='battle'?(d==='mobile'?65:68):63)); cell.groundY=gy;
       if(p){const k=enemy?'enemy':'hero';cell[k]=cell[k]||{};cell[k].x=Number(p.x);cell[k].groundScene=scene;cell[k].footOffsetY=+(Number(p.y)-gy).toFixed(2)}
       if(size!=null)cell[enemy?'enemySize':'heroSize']=Number(size);
     };
-    put('status',sc.statusHero,os.statusHero);
-    put('dungeonEntry',sc.dungeonHero,os.dungeonHero);put('dungeonEntry',sc.dungeonEnemy,os.dungeonEnemy,true);
-    put('battle',bl.hero,os.battleHero);put('battle',bl.enemy,os.battleEnemy,true);
-    dv.battle.attackMid=clone(bl.attackMid||dv.battle.attackMid||{x:42,y:60});
-    dv.battle.attackStrike=clone(bl.attackStrike||dv.battle.attackStrike||{x:68,y:66});
-    dv.battle.duration=Number(bl.duration||dv.battle.duration||560);
+    put('status',sc.statusHero,os.statusHero,false);
+    put('dungeonEntry',sc.dungeonHero,os.dungeonHero,false); put('dungeonEntry',sc.dungeonEnemy,os.dungeonEnemy,true);
+    put('battle',bl.hero,os.battleHero,false); put('battle',bl.enemy,os.battleEnemy,true);
+    dv.battle.attackMid=clone(bl.attackMid||dv.battle.attackMid||{x:42,y:60}); dv.battle.attackStrike=clone(bl.attackStrike||dv.battle.attackStrike||{x:68,y:66}); dv.battle.duration=Number(bl.duration||dv.battle.duration||560);
   }
-  for(const k of ['referencePoints','stage','heroes','monsters','playerSkills','monsterSkills','equipmentAffixes']) if(c[k]!==undefined)db[k]=clone(c[k]);
+  for(const k of ['referencePoints','stage','heroes','monsters','playerSkills','monsterSkills','monsterVisuals']) if(c[k]) db[k]=clone(c[k]);
   return db;
 }
-function visualDbText(){VISUAL_DB=editorCfgToDb(CFG);return '/* StudyRPG Visual Database v2 */\nwindow.STUDYRPG_VISUAL_DATABASE='+JSON.stringify(VISUAL_DB,null,2)+';\n'}
-function assignedBlock(src,name){
- const idx=src.search(new RegExp('(?:const|let|var)\\s+'+name+'\\s*='));
- if(idx<0)return'';const eq=src.indexOf('=',idx);let start=-1;
- for(let i=eq+1;i<src.length;i++){if(src[i]==='{'||src[i]==='['){start=i;break}if(!/\s/.test(src[i]))break}
- if(start<0)return'';const open=src[start],close=open==='{'?'}':']';let depth=0,q='',esc=false;
- for(let i=start;i<src.length;i++){const c=src[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}
- if(c==='"'||c==="'"||c==='`'){q=c;continue}if(c===open)depth++;else if(c===close&&--depth===0)return src.slice(start,i+1)}
- return''
+
+/* V3.1 — monster visual isolation
+   Every monster ID owns independent desktop/tablet/mobile values.
+   Selecting another monster first commits the current monster, then loads only that monster. */
+function monsterVisualId(){
+  const el=$('sceneMonster')||$('monster'); return String(el?.value||'').trim();
 }
+function monsterVisualScene(){
+  const k=String(($('sceneKind')||{}).value||'dungeonEntry');
+  return k==='dungeon'?'battle':k;
+}
+function ensureMonsterVisual(id,device,scene){
+  if(!id)return null;
+  CFG.monsterVisuals=CFG.monsterVisuals||{};
+  const root=CFG.monsterVisuals[id]||(CFG.monsterVisuals[id]={});
+  const dv=root[device]||(root[device]={});
+  return dv[scene]||(dv[scene]={});
+}
+function commitMonsterVisual(){
+  const id=monsterVisualId(), d=String(($('sceneDevice')||{}).value||'desktop'), scene=monsterVisualScene();
+  if(!id)return;
+  const cell=ensureMonsterVisual(id,d,scene);
+  const os=CFG.objectSizes?.[d]||{};
+  if(scene==='battle'){
+    const p=CFG.battleLayout?.[d]?.enemy;
+    if(p){cell.x=Number(p.x);cell.y=Number(p.y)}
+    cell.size=Number(os.battleEnemy||cell.size||190);
+  }else if(scene==='dungeonEntry'){
+    const p=CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy;
+    if(p){cell.x=Number(p.x);cell.y=Number(p.y)}
+    cell.size=Number(os.dungeonEnemy||cell.size||180);
+  }
+}
+function loadMonsterVisual(){
+  const id=monsterVisualId(), d=String(($('sceneDevice')||{}).value||'desktop'), scene=monsterVisualScene();
+  if(!id)return;
+  const cell=CFG.monsterVisuals?.[id]?.[d]?.[scene];
+  if(!cell)return; // first-time monster keeps current/default values until explicitly edited
+  CFG.objectSizes=CFG.objectSizes||{}; CFG.objectSizes[d]=CFG.objectSizes[d]||{};
+  if(scene==='battle'){
+    CFG.battleLayout[d]=CFG.battleLayout[d]||{};
+    CFG.battleLayout[d].enemy=CFG.battleLayout[d].enemy||{};
+    if(Number.isFinite(Number(cell.x)))CFG.battleLayout[d].enemy.x=Number(cell.x);
+    if(Number.isFinite(Number(cell.y)))CFG.battleLayout[d].enemy.y=Number(cell.y);
+    if(Number.isFinite(Number(cell.size)))CFG.objectSizes[d].battleEnemy=Number(cell.size);
+  }else if(scene==='dungeonEntry'){
+    CFG.sceneCoordinateLayout[d]=CFG.sceneCoordinateLayout[d]||{};
+    CFG.sceneCoordinateLayout[d].dungeonEnemy=CFG.sceneCoordinateLayout[d].dungeonEnemy||{};
+    if(Number.isFinite(Number(cell.x)))CFG.sceneCoordinateLayout[d].dungeonEnemy.x=Number(cell.x);
+    if(Number.isFinite(Number(cell.y)))CFG.sceneCoordinateLayout[d].dungeonEnemy.y=Number(cell.y);
+    if(Number.isFinite(Number(cell.size)))CFG.objectSizes[d].dungeonEnemy=Number(cell.size);
+  }
+}
+let _lastMonsterVisualKey='';
+function monsterVisualKey(){return [monsterVisualId(),String(($('sceneDevice')||{}).value||'desktop'),monsterVisualScene()].join('|')}
+function switchMonsterVisual(){
+  const next=monsterVisualKey();
+  if(_lastMonsterVisualKey && _lastMonsterVisualKey!==next) commitMonsterVisual();
+  _lastMonsterVisualKey=next; loadMonsterVisual();
+  try{renderSceneEditor();renderGroundControl()}catch(e){}
+}
+function installMonsterVisualIsolation(){
+  const mon=$('sceneMonster')||$('monster'), dev=$('sceneDevice'), kind=$('sceneKind');
+  [mon,dev,kind].filter(Boolean).forEach(el=>el.addEventListener('change',switchMonsterVisual));
+  // capture all size controls: committing after input guarantees no cross-monster leakage.
+  document.addEventListener('input',e=>{
+    const id=String(e.target?.id||'').toLowerCase();
+    if(id.includes('size')||id.includes('scale')) setTimeout(commitMonsterVisual,0);
+  },true);
+  _lastMonsterVisualKey=monsterVisualKey(); loadMonsterVisual();
+}
+function visualDbText(){
+  VISUAL_DB=editorCfgToDb(CFG);
+  return '/* StudyRPG Visual Database v1 */\nwindow.STUDYRPG_VISUAL_DATABASE='+JSON.stringify(VISUAL_DB,null,2)+';\n';
+}
+function assignedBlock(src,name){const idx=src.search(new RegExp('(?:const|let|var)\\s+'+name+'\\s*='));if(idx<0)return'';const eq=src.indexOf('=',idx),start=src.indexOf('{',eq);if(start<0)return'';let depth=0,q='',esc=false;for(let i=start;i<src.length;i++){const c=src[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==='"'||c==="'"||c==='`'){q=c;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0)return src.slice(start,i+1)}return''}
 function mergeUniqueById(base,extra){const m=new Map((base||[]).map(x=>[x.id,x]));for(const x of extra||[])if(x?.id)m.set(x.id,Object.assign({},m.get(x.id)||{},x));return [...m.values()]}
 function hydrateManifestFromIndex(src){try{
   const imgs=[...String(src).matchAll(/["'`](images\/[^"'`?#]+?\.(?:png|jpe?g|webp|gif|svg))["'`]/gi)].map(m=>m[1]);if(imgs.length)MANIFEST.assets=[...new Set([...(MANIFEST.assets||[]),...imgs])].sort();
@@ -123,26 +182,26 @@ function hydrateManifestFromIndex(src){try{
   const collectSkills=(name)=>{const b=assignedBlock(src,name);if(!b)return[];const a=[];for(const m of b.matchAll(/\bid\s*:\s*["'`]([A-Za-z0-9_\-]+)["'`][\s\S]{0,240}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))a.push({id:m[1],name:m[2]});return a};
   const ps=[...collectSkills('BEGINNER_SKILLS'),...collectSkills('JOB_SKILL_LIBRARY')],ms=collectSkills('MONSTER_SKILL_DATABASE');if(ps.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,ps);if(ms.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,ms);
   const ab=assignedBlock(src,'AFFIXES');if(ab){const found=[];for(const m of ab.matchAll(/([A-Za-z0-9_]+)\s*:\s*\{\s*id\s*:\s*['"`]([^'"`]+)['"`][\s\S]{0,500}?name\s*:\s*['"`]([^'"`]+)['"`][\s\S]{0,500}?(?:kind\s*:\s*['"`]([^'"`]+)['"`])?/g))found.push({key:m[1],id:m[2],name:m[3],kind:m[4]||''});if(found.length)MANIFEST.affixes=found;}
-  const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');if(wb){
-    const weeks=[];
-    for(const m of wb.matchAll(/\{\s*week\s*:\s*(\d+)\s*,\s*map\s*:\s*["'`]([^"'`]+)["'`]\s*,\s*background\s*:\s*["'`]([^"'`]+)["'`]\s*,\s*monsters\s*:\s*\[([^\]]*)\]/g)){
-      const monsters=[...m[4].matchAll(/["'`]([^"'`]+)["'`]/g)].map(x=>x[1]);
-      weeks.push({week:Number(m[1]),map:m[2],background:m[3],monsters});
-    }
-    if(weeks.length){MANIFEST.weeks=weeks;GAME_SCENE_MANIFEST.weeks=weeks}
-  }
+  const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');if(wb){for(const w of MANIFEST.weeks||[]){const re=new RegExp('(?:week\\s*:\\s*'+w.week+'|\\b'+w.week+'\\s*:)','i');const hit=re.exec(wb);if(hit){const seg=wb.slice(hit.index,hit.index+1800),bg=seg.match(/background\s*:\s*["'`]([^"'`]+)["'`]/i);if(bg)w.background=bg[1]}}}
 }catch(e){console.warn('從 index 解析素材/資料清單失敗，使用內建 fallback',e)}}
 async function loadMainIndex(){
- const status=$('mainSourceStatus'),stamp='?editor_read='+Date.now();
- try{
-  status&&(status.textContent='正在直接讀取 GitHub main/index.html、visual-database.js 與 images…');
-  const [ir,dr]=await Promise.all([fetch(GITHUB_RAW_MAIN+stamp,{cache:'no-store'}),fetch(GITHUB_RAW_VISUAL_DB+stamp,{cache:'no-store'})]);
-  if(!ir.ok)throw Error('index.html HTTP '+ir.status);if(!dr.ok)throw Error('visual-database.js HTTP '+dr.status);
-  MAIN_SOURCE=await ir.text();VISUAL_DB=parseVisualDatabase(await dr.text());CFG=dbToEditorCfg(VISUAL_DB);
-  hydrateManifestFromIndex(MAIN_SOURCE);SOURCE_READY=true;
-  status&&(status.textContent='✅ GitHub main / Visual DB 已同步；週次怪物清單直接來自主程式。');
-  return true;
- }catch(e){console.warn(e);status&&(status.textContent='⚠️ GitHub 讀取失敗：'+e.message);return false}
+  const status=$('mainSourceStatus'), stamp='?editor_read='+Date.now();
+  try{
+    status&&(status.textContent='正在讀取 GitHub main/index.html + visual-database.js…');
+    const [ir,dr]=await Promise.all([
+      fetch(GITHUB_RAW_MAIN+stamp,{cache:'no-store'}),
+      fetch(GITHUB_RAW_VISUAL_DB+stamp,{cache:'no-store'})
+    ]);
+    if(!ir.ok)throw Error('index.html HTTP '+ir.status);
+    if(!dr.ok)throw Error('visual-database.js HTTP '+dr.status);
+    MAIN_SOURCE=await ir.text(); VISUAL_DB=parseVisualDatabase(await dr.text()); CFG=dbToEditorCfg(VISUAL_DB);
+    hydrateManifestFromIndex(MAIN_SOURCE); SOURCE_READY=true;
+    localStorage.setItem('studyRPGGithubRepo','AlexLiao0131/studyRPG');
+    status&&(status.textContent='✅ 已直接讀取 GitHub main/index.html + visual-database.js；正式 index 不會被 Tool 改寫。');
+    return true;
+  }catch(e){
+    console.warn(e); status&&(status.textContent='⚠️ GitHub 讀取失敗：'+e.message+'。'); return false;
+  }
 }
 
 const IMAGE_EXT_RE=/\.(png|jpe?g|webp|gif|svg)$/i;
@@ -162,7 +221,7 @@ function detectGithubRepo(){
     const saved=localStorage.getItem('studyRPGGithubRepo');
     if(saved && saved.includes('/')){const [owner,repo]=saved.split('/'); if(owner&&repo)return {owner,repo};}
   }catch(e){}
-  return null;
+  return {owner:'AlexLiao0131',repo:'studyRPG'};
 }
 async function scanGithubImages(){
   const info=detectGithubRepo();
@@ -255,9 +314,25 @@ function activeGroundScene(){return $('sceneKind')?.value||'dungeon'}
 function groundStored(d,w=activeEditorWeek(),scene=activeGroundScene()){const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w],cell=row?.[d];if(cell&&typeof cell==='object'){const v=Number(cell[scene]);return Number.isFinite(v)?v:null}const legacy=Number(cell);return Number.isFinite(legacy)?legacy:null}
 function groundY(d,w=activeEditorWeek(),scene=activeGroundScene()){const v=groundStored(d,w,scene);return v==null?GROUND_BASE[d]:v}
 function groundDelta(d,w=activeEditorWeek(),scene=activeGroundScene()){return groundY(d,w,scene)-GROUND_BASE[d]}
-function groundShift(p,d,w=activeEditorWeek(),name='',scene='dungeon'){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;/* FINAL-COORD FIX：正式 index 已把 Tool 座標視為最終百分比座標；預覽不得再依 mapGround 二次位移。 */return{x,y}}
-function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){/* FINAL-COORD FIX：拖到哪裡就存哪裡；mapGround 只畫地板線，不再改寫角色 Y。 */return y}
-function setGroundY(d,w,scene,v){CFG.mapGround=CFG.mapGround||{};const before=groundY(d,w,scene),delta=Number(v)-Number(before),wk=String(w);CFG.mapGround[wk]=CFG.mapGround[wk]||{};const old=CFG.mapGround[wk][d];if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};CFG.mapGround[wk][d][scene]=Number(v);if(Math.abs(delta)>0.0001){if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero)CFG.sceneCoordinateLayout[d].statusHero.y+=delta;if(scene==='dungeonEntry'){if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero)CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy)CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta}if(scene==='dungeon'){if(CFG.battleLayout?.[d]?.hero)CFG.battleLayout[d].hero.y+=delta;if(CFG.battleLayout?.[d]?.enemy)CFG.battleLayout[d].enemy.y+=delta}}}
+function groundShift(p,d,w=activeEditorWeek(),name='',scene='dungeon'){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;return{x,y}}
+function groundUnshiftY(y,d,w=activeEditorWeek(),name='',scene='dungeon'){return y}
+function setGroundY(d,w,scene,v){
+  CFG.mapGround=CFG.mapGround||{};const wk=String(w);CFG.mapGround[wk]=CFG.mapGround[wk]||{};
+  const before=groundY(d,w,scene), delta=Number(v)-Number(before||0), old=CFG.mapGround[wk][d];
+  if(!(old&&typeof old==='object'))CFG.mapGround[wk][d]={};CFG.mapGround[wk][d][scene]=Number(v);
+  /* linked feet: ground moves, idle actors follow; attack/path reference points stay independent */
+  if(Math.abs(delta)>0.0001){
+    if(scene==='status'&&CFG.sceneCoordinateLayout?.[d]?.statusHero) CFG.sceneCoordinateLayout[d].statusHero.y+=delta;
+    if(scene==='dungeonEntry'){
+      if(CFG.sceneCoordinateLayout?.[d]?.dungeonHero) CFG.sceneCoordinateLayout[d].dungeonHero.y+=delta;
+      if(CFG.sceneCoordinateLayout?.[d]?.dungeonEnemy) CFG.sceneCoordinateLayout[d].dungeonEnemy.y+=delta;
+    }
+    if(scene==='dungeon'||scene==='battle'){
+      if(CFG.battleLayout?.[d]?.hero) CFG.battleLayout[d].hero.y+=delta;
+      if(CFG.battleLayout?.[d]?.enemy) CFG.battleLayout[d].enemy.y+=delta;
+    }
+  }
+}
 function clearGroundY(d,w,scene){const row=CFG.mapGround?.[String(w)]||CFG.mapGround?.[w];if(!row)return;const cell=row[d];if(cell&&typeof cell==='object'){delete cell[scene];if(!Object.keys(cell).length)delete row[d]}else if(Number.isFinite(Number(cell))){delete row[d]}if(!Object.keys(row).length){delete CFG.mapGround[String(w)];delete CFG.mapGround[w]}}
 function groundLineHtml(d,scene=activeGroundScene()){return `<div class="scene-ground-line" style="top:${groundY(d,activeEditorWeek(),scene)}%"></div>`}
 function renderGroundControl(){if(!$('sceneGroundY'))return;const d=$('sceneDevice').value,w=activeEditorWeek(),scene=activeGroundScene(),stored=groundStored(d,w,scene),v=stored==null?GROUND_BASE[d]:stored;$('sceneGroundY').value=v;$('sceneGroundOut').textContent=(stored==null?'預設 ':'')+Number(v).toFixed(1)+'%'}
@@ -271,34 +346,41 @@ function sceneCfg(){ensureNativeLayouts();const d=$('sceneDevice').value,k=$('sc
 function fitSceneCanvas(w,h){const shell=$('sceneEditorShell'),stage=$('sceneEditorStage');stage.style.width=w+'px';stage.style.height=h+'px';const scale=Math.min(1,Math.max(0.05,shell.clientWidth/w));stage.style.transform=`scale(${scale})`;shell.style.height=Math.ceil(h*scale)+'px';return scale}
 function unitHtml(id,src,p,size,cls=''){return `<img id="${id}" class="scene-unit ${cls}" src="${src}" style="left:${p.x}%;top:${p.y}%;width:${size}px;height:${size}px">`}
 function renderSceneEditor(){if(!$('sceneEditorStage'))return;ensureNativeLayouts();syncSceneSizeControls();const c=sceneCfg(),kind=$('sceneKind').value,d=$('sceneDevice').value,[w,h]=sceneDims(),stage=$('sceneEditorStage'),wd=sceneWeekData(),bg='../'+(wd?.background||'images/backgrounds/week01_grassland.png'),os=CFG.objectSizes[d],hs=os[c.heroSizeKey],baseEs=c.enemySizeKey?os[c.enemySizeKey]:0,mid=$('sceneMonster').value,es=(c.enemySizeKey&&mid)?(kind==='dungeonEntry'?monsterIdleSize(d,mid,baseEs):kind==='dungeon'?monsterBattleSize(d,mid,baseEs):baseEs):baseEs,hp=groundShift(c.hero,d,activeEditorWeek(),'hero',kind),ep=c.enemy?groundShift(c.enemy,d,activeEditorWeek(),'enemy',kind):null;fitSceneCanvas(w,h);
-  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid ${d==='mobile'?'mobile':''}"><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-idle-stage" data-local="hero">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${groundLineHtml(d,'dungeonEntry')}</div><div class="entry-name">勇者</div><div class="entry-power">100</div></div><div class="entry-vs"><div>⚔️</div><b>VS</b></div><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-idle-stage" data-local="enemy">${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy')}${groundLineHtml(d,'dungeonEntry')}</div><div class="entry-name">${mid||'怪物'}</div><div class="entry-power">120</div></div></div><div class="scene-scale-label">${w}×${h}</div>`;
+  if(kind==='dungeonEntry')stage.innerHTML=`<div class="entry-grid ${d==='mobile'?'mobile':''}"><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-idle-stage" data-local="hero">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${groundLineHtml(d,'dungeonEntry')}</div><div class="entry-name">勇者</div><div class="entry-power hero">8888</div></div><div class="entry-vs">VS</div><div class="entry-card"><img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}"><div class="entry-idle-stage" data-local="enemy">${unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy')}${groundLineHtml(d,'dungeonEntry')}</div><div class="entry-name">${mid||'怪物'}</div><div class="entry-power enemy">8888</div></div></div><div class="scene-scale-label">${w}×${h}</div>`;
   else stage.innerHTML=`<img class="scene-bg" src="${bg}" style="transform-origin:center;transform:${editorBgTransform(d)}">${unitHtml('sceneEditorHero',sceneHeroSrc(),hp,hs)}${kind==='dungeon'?unitHtml('sceneEditorEnemy',sceneMonsterSrc(),ep,es,'enemy'):''}${groundLineHtml(d)}<div class="scene-scale-label">${w}×${h}</div>`;
   renderGroundControl();$('sceneHeroSize').value=hs;$('sceneHeroSizeOut').textContent=hs+'px';$('sceneHeroXY').textContent=`英雄 X ${Number(hp.x).toFixed(1)}% / Y ${Number(hp.y).toFixed(1)}%`;
   const showEnemy=kind!=='status';$('sceneEnemySizeBox').style.display=showEnemy?'block':'none';$('sceneEnemyXY').style.display=showEnemy?'inline-block':'none';if(showEnemy){$('sceneEnemySize').value=es;$('sceneEnemySizeOut').textContent=(kind==='dungeonEntry'&&mid?mid+' · ':'')+es+'px';$('sceneEnemyXY').textContent=`怪物 X ${Number(ep.x).toFixed(1)}% / Y ${Number(ep.y).toFixed(1)}%`}
-  bindSceneUnit($('sceneEditorHero'),'hero');if(showEnemy)bindSceneUnit($('sceneEditorEnemy'),'enemy');bindGroundLines();
+  bindSceneUnit($('sceneEditorHero'),'hero');if(showEnemy)bindSceneUnit($('sceneEditorEnemy'),'enemy');
 }
 function bindSceneUnit(el,key){if(!el)return;el.onpointerdown=e=>{e.preventDefault();const c=sceneCfg()[key],kind=$('sceneKind').value,zone=kind==='dungeonEntry'?el.closest('.entry-idle-stage'):$('sceneEditorStage'),r=zone.getBoundingClientRect();el.setPointerCapture(e.pointerId);el.style.cursor='grabbing';const move=ev=>{c.x=+Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)).toFixed(1);const visualY=+Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)).toFixed(1);c.y=+Math.max(0,Math.min(100,groundUnshiftY(visualY,$('sceneDevice').value,activeEditorWeek(),key,kind))).toFixed(1);mark(`layout:${$('sceneDevice').value}:${$('sceneKind').value}:${key}`);el.style.left=c.x+'%';el.style.top=visualY+'%';const ro=$('sceneReadout');if(ro)ro.innerHTML=`<span>${key==='hero'?'勇者':'怪物'} X ${c.x}</span><span>Y ${c.y}</span>`;};el.onpointermove=move;const end=()=>{el.onpointermove=null;el.style.cursor='grab';renderSceneEditor()};el.onpointerup=end;el.onpointercancel=end}}
-function bindGroundLines(){
- document.querySelectorAll('.scene-ground-line').forEach(line=>{line.onpointerdown=e=>{e.preventDefault();const kind=$('sceneKind').value,d=$('sceneDevice').value,w=activeEditorWeek(),zone=kind==='dungeonEntry'?line.parentElement:$('sceneEditorStage'),r=zone.getBoundingClientRect();line.setPointerCapture(e.pointerId);line.onpointermove=ev=>{const y=+Math.max(30,Math.min(95,(ev.clientY-r.top)/r.height*100)).toFixed(1);setGroundY(d,w,activeGroundScene(),y);line.style.top=y+'%';$('sceneGroundY').value=y;$('sceneGroundOut').textContent=y.toFixed(1)+'%';mark(`ground:${w}:${d}:${activeGroundScene()}`)};const end=()=>{line.onpointermove=null;renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};line.onpointerup=end;line.onpointercancel=end}})
-}
 function installSceneEditor(){ensureNativeLayouts();fillSceneWeeks();$('sceneKind').onchange=()=>{syncSceneSizeControls();renderSceneEditor()};$('sceneDevice').onchange=()=>{if($('device'))$('device').value=$('sceneDevice').value;syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneWeek').onchange=()=>{fillSceneMonsters();const wd=sceneWeekData();if(wd?.background&&[...$('bg').options].some(o=>o.value===wd.background))$('bg').value=wd.background;renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('sceneMonster').onchange=()=>{syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};$('sceneGroundY').oninput=e=>{const d=$('sceneDevice').value,w=activeEditorWeek(),kind=activeGroundScene();setGroundY(d,w,kind,+e.target.value);mark(`ground:${w}:${d}:${kind}`);renderSceneEditor();if(kind==='dungeon'){renderStage();renderSkillPreview();renderTimeline()}};$('sceneGroundReset').onclick=()=>{const d=$('sceneDevice').value,w=activeEditorWeek(),kind=activeGroundScene();clearGroundY(d,w,kind);mark(`ground:${w}:${d}:${kind}`);renderSceneEditor();if(kind==='dungeon'){renderStage();renderSkillPreview();renderTimeline()}};$('sceneHeroSize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg();CFG.objectSizes[d][c.heroSizeKey]=+e.target.value;mark(`size:${d}:${c.heroSizeKey}`);syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};$('sceneEnemySize').oninput=e=>{const d=$('sceneDevice').value,c=sceneCfg(),kind=$('sceneKind').value,mid=$('sceneMonster').value;if(kind==='dungeonEntry'&&mid){setMonsterIdleSize(d,mid,+e.target.value);mark(`monsterIdleSize:${mid}:${d}`)}else if(kind==='dungeon'&&mid){setMonsterBattleSize(d,mid,+e.target.value);mark(`monsterBattleSize:${mid}:${d}`)}else if(c.enemySizeKey){CFG.objectSizes[d][c.enemySizeKey]=+e.target.value;mark(`size:${d}:${c.enemySizeKey}`)}syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview()};addEventListener('resize',()=>renderSceneEditor());renderSceneEditor()}
 
 $('side').onchange=()=>{commitCurrent();renderSelectors()};$('heroActor').onchange=()=>{commitCurrent();loadMotion();loadAnchor();renderSkillPreview();renderTimeline()};$('monster').onchange=()=>{commitCurrent();loadSkill();loadMotion();loadAnchor()};$('skill').onchange=()=>{commitCurrent();loadSkill()};$('enabled').onchange=commitCurrent;$('actorAction').onchange=commitCurrent;for(const id of ['pathImg','pathMode','pathDuration','pathScale','pathDelay','pathFrom','pathVia','pathTo'])$(id).onchange=commitCurrent;$('addA').onclick=()=>{draft.selfFX.push(normalizeFx({anchor:'self',scaleMode:'self'}));renderFx();commitCurrent()};$('addB').onclick=()=>{draft.targetFX.push(normalizeFx({anchor:'target',scaleMode:'target'}));renderFx();commitCurrent()};$('addSummon').onclick=()=>{draft.summons.push({unitId:'',from:'air_high',via:'air_high',to:'summon_center',standPoint:'summon_center',path:'arc',scale:1,delay:0,duration:500,enter:'fade'});renderSummons();commitCurrent()};
 $('motionName').onchange=loadMotion;for(const id of ['spriteState','motion','from','via','to','returnTo','motionDuration'])$(id).onchange=commitMotion;for(const id of ['anchorW','anchorH','anchorY'])$(id).onchange=commitAnchor;$('device').onchange=()=>{if($('sceneDevice'))$('sceneDevice').value=$('device').value;syncSceneSizeControls();renderSceneEditor();renderStage();renderSkillPreview();renderTimeline()};$('bg').onchange=renderStage;$('bs').onchange=commitStage;$('lock').onclick=()=>{const d=ensureDevice();CFG.stage[d].bg.locked=!CFG.stage[d].bg.locked;mark('stage:'+d);renderStage()};
+
+function isMobileExport(){return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||innerWidth<700}
 function crc32(bytes){let c=-1;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xEDB88320:0)}return(c^-1)>>>0}
-function zipOne(name,text){const E=new TextEncoder(),n=E.encode(name),d=E.encode(text),crc=crc32(d),u16=(a,o,v)=>new DataView(a.buffer).setUint16(o,v,true),u32=(a,o,v)=>new DataView(a.buffer).setUint32(o,v,true),lh=new Uint8Array(30+n.length),ch=new Uint8Array(46+n.length),z=new Uint8Array(22);u32(lh,0,0x04034b50);u16(lh,4,20);u32(lh,14,crc);u32(lh,18,d.length);u32(lh,22,d.length);u16(lh,26,n.length);lh.set(n,30);u32(ch,0,0x02014b50);u16(ch,4,20);u16(ch,6,20);u32(ch,16,crc);u32(ch,20,d.length);u32(ch,24,d.length);u16(ch,28,n.length);ch.set(n,46);u32(z,0,0x06054b50);u16(z,8,1);u16(z,10,1);u32(z,12,ch.length);u32(z,16,lh.length+d.length);return new Blob([lh,d,ch,z],{type:'application/zip'})}
-function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1200)}
-function mobileExport(){return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||innerWidth<700}
-$('saveAll').onclick=()=>{commitCurrent();VISUAL_DB=editorCfgToDb(CFG);localStorage.setItem('studyRPGVisualDbDraftV2',JSON.stringify(VISUAL_DB));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已儲存 Visual DB 草稿；不會改寫 index.html。')};
-$('export').onclick=()=>{commitCurrent();const text=visualDbText();mobileExport()?dl(zipOne('visual-database.js',text),'visual-database.zip'):dl(new Blob([text],{type:'text/javascript;charset=utf-8'}),'visual-database.js')};
-$('import').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{VISUAL_DB=parseVisualDatabase(String(r.result));CFG=dbToEditorCfg(VISUAL_DB);ensure();ensureNativeLayouts();fill();renderSceneEditor();renderGroundControl();renderSkillPreview();renderTimeline();dirty.clear();$('dirty').textContent='未儲存 0 項'}catch(err){alert('匯入失敗：'+err.message)}finally{e.target.value=''}};r.readAsText(f)};
-$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{MAIN_SOURCE=String(r.result);hydrateManifestFromIndex(MAIN_SOURCE);SOURCE_READY=true;fill();renderSceneEditor();renderSkillPreview();renderTimeline();$('mainSourceStatus').textContent='✅ 本機 index.html 已讀取；只更新週次/怪物/技能/素材清單。';e.target.value=''};r.readAsText(f)};
-$('reloadMainIndex').onclick=async()=>{if(await loadMainIndex()){ensure();ensureNativeLayouts();fill();renderSceneEditor();renderGroundControl();renderSkillPreview();renderTimeline();scanGithubImages()}};
-(async function bootVisualDbEditor(){
- await loadMainIndex();
- if(!SOURCE_READY){try{const x=localStorage.getItem('studyRPGVisualDbDraftV2');if(x){VISUAL_DB=JSON.parse(x);CFG=dbToEditorCfg(VISUAL_DB)}}catch(e){}}
- if(!CFG||!Object.keys(CFG).length){alert('無法載入 Visual DB；請檢查 GitHub。');return}
- ensure();ensureNativeLayouts();fill();installSceneEditor();$('scanGithub').onclick=scanGithubImages;scanGithubImages();
+function zipOne(name,text){
+ const enc=new TextEncoder(),n=enc.encode(name),d=enc.encode(text),crc=crc32(d),u16=(a,o,v)=>new DataView(a.buffer).setUint16(o,v,true),u32=(a,o,v)=>new DataView(a.buffer).setUint32(o,v,true);
+ const lh=new Uint8Array(30+n.length);u32(lh,0,0x04034b50);u16(lh,4,20);u16(lh,6,0);u16(lh,8,0);u32(lh,14,crc);u32(lh,18,d.length);u32(lh,22,d.length);u16(lh,26,n.length);lh.set(n,30);
+ const ch=new Uint8Array(46+n.length);u32(ch,0,0x02014b50);u16(ch,4,20);u16(ch,6,20);u32(ch,16,crc);u32(ch,20,d.length);u32(ch,24,d.length);u16(ch,28,n.length);ch.set(n,46);
+ const end=new Uint8Array(22);u32(end,0,0x06054b50);u16(end,8,1);u16(end,10,1);u32(end,12,ch.length);u32(end,16,lh.length+d.length);
+ return new Blob([lh,d,ch,end],{type:'application/zip'});
+}
+function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+$('saveAll').onclick=()=>{commitCurrent();commitMonsterVisual();VISUAL_DB=editorCfgToDb(CFG);localStorage.setItem('studyRPGVisualDbDraftV1',JSON.stringify(VISUAL_DB));dirty.clear();$('dirty').textContent='未儲存 0 項';document.body.classList.remove('dirty');alert('✅ 已儲存 Visual DB 草稿。沒有修改 index.html。')};
+$('export').onclick=()=>{commitCurrent();commitMonsterVisual();const text=visualDbText();downloadBlob(zipOne('visual-database.js',text),'visual-database.zip')};
+$('import').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
+ if(f.name.toLowerCase().endsWith('.zip'))throw Error('Tool 目前匯入請選解壓後的 visual-database.js；手機「輸出」會自動 ZIP。');
+ VISUAL_DB=parseVisualDatabase(await f.text());CFG=dbToEditorCfg(VISUAL_DB);ensure();ensureNativeLayouts();fill();renderSceneEditor();renderGroundControl();renderSkillPreview();renderTimeline();dirty.clear();$('dirty').textContent='未儲存 0 項';
+}catch(err){alert('匯入失敗：'+err.message)}finally{e.target.value=''}};
+$('mainIndexImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{MAIN_SOURCE=String(r.result);hydrateManifestFromIndex(MAIN_SOURCE);SOURCE_READY=true;$('mainSourceStatus').textContent='✅ 已載入本機 index.html；只用來讀取正式怪物／技能／素材資料。';fill();renderSceneEditor();renderSkillPreview();renderTimeline()}catch(err){alert('讀取失敗：'+err.message)}finally{e.target.value=''}};r.readAsText(f)};
+$('reloadMainIndex').onclick=async()=>{if(await loadMainIndex()){ensureNativeLayouts();fill();renderSceneEditor();renderGroundControl();renderSkillPreview();renderTimeline();}};
+(async function bootDirectIndexEditor(){
+  await loadMainIndex();
+  if(!SOURCE_READY){try{const saved=localStorage.getItem('studyRPGVisualDbDraftV1');if(saved){VISUAL_DB=JSON.parse(saved);CFG=dbToEditorCfg(VISUAL_DB)}}catch(e){}}
+  if(!Object.keys(CFG||{}).length){VISUAL_DB={schemaVersion:1,groundByWeek:{},devices:{},referencePoints:{},stage:{},heroes:{},monsters:{},playerSkills:{},monsterSkills:{}};CFG=dbToEditorCfg(VISUAL_DB)}
+  ensure();ensureNativeLayouts();fill();installSceneEditor();installMonsterVisualIsolation();$('scanGithub').onclick=scanGithubImages;scanGithubImages();
 })();
 </script>
 <style id="completeVisualEditorV10175Style">
