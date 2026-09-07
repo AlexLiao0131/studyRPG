@@ -2647,21 +2647,6 @@ function weightedPick(items){
   }
   return items[items.length-1];
 }
-function rollDungeonDrop(rating=1){
-  // 抽獎幣不是爛獎：只有優秀表現才有低機率出現。
-  const lotteryChance=rating===3?.10:rating===2?.05:0;if(lotteryChance>0&&Math.random()<lotteryChance){gameData.hero.lotteryCoins+=1;return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};}
-  const couponChance=rating===3?.45:rating===2?.25:.10;
-  if(Math.random()<couponChance){
-    const available=gameData.shopItems.filter(x=>x.active&&!x.battleConsumable);
-    if(available.length){
-      const item=available[Math.floor(Math.random()*available.length)];
-      gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});
-      return {type:'coupon',label:item.name,value:item.id};
-    }
-  }
-  const amount=rating===3?5+Math.floor(Math.random()*6):rating===2?3+Math.floor(Math.random()*3):1+Math.floor(Math.random()*3);
-  gameData.hero.gold+=amount;return {type:'gold',label:`金幣 +${amount} G`,value:amount};
-}
 function calculateBattleRating(win,heroHp,heroMaxHp,rounds){
   if(!win)return 0;
   const hpPct=heroHp/Math.max(1,heroMaxHp);
@@ -5381,21 +5366,34 @@ function renderBag(){
   document.getElementById('panel-bag').innerHTML=html;
 }
 
-function gmShopTypeFields(){const cat=document.getElementById('gmShopCategory')?.value||'coupon',box=document.getElementById('gmShopExtra');if(!box)return;box.innerHTML=cat==='equipment'?`<div class="grid2"><div><label>裝備部位</label><select id="gmEquipSlot"><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div><div><label>能力種類</label><select id="gmEquipStat"><option value="attack">ATK</option><option value="magicAttack">MATK</option><option value="defense">DEF</option><option value="magicDefense">MDEF</option><option value="speed">SPD</option><option value="crit">暴擊率(%)</option><option value="evade">閃避率(%)</option><option value="block">格擋率(%)</option></select></div></div><label>能力數值</label><input id="gmEquipValue" type="number" value="3">`:cat==='consumable'?`<div class="grid2"><div><label>戰鬥效果</label><select id="gmEffectType"><option value="poison">中毒</option><option value="heal_hp">恢復 HP</option><option value="heal_energy">恢復能量</option></select></div><div><label>效果值</label><input id="gmEffectValue" type="number" value="50"></div></div>`:'';}
-function gmAddShopItem(){ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name){alert('請輸入商品名稱');return;}const category=document.getElementById('gmShopCategory')?.value||'coupon';const item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};if(category==='equipment'){item.equipSlot=document.getElementById('gmEquipSlot')?.value||'weapon';const k=document.getElementById('gmEquipStat')?.value||'attack';let v=Number(document.getElementById('gmEquipValue')?.value)||0;if(['crit','evade','block'].includes(k))v/=100;item.stats[k]=v;}if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}gameData.shopItems.push(item);saveGame();renderAll();}
+function gmShopTypeFields(){const cat=document.getElementById('gmShopCategory')?.value||'coupon',box=document.getElementById('gmShopExtra');if(!box)return;box.innerHTML=cat==='consumable'?`<div class="grid2"><div><label>戰鬥效果</label><select id="gmEffectType"><option value="poison">中毒</option><option value="heal_hp">恢復 HP</option><option value="heal_energy">恢復能量</option></select></div><div><label>效果值</label><input id="gmEffectValue" type="number" value="50"></div></div>`:'';}
+function gmAddShopItem(){ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name){alert('請輸入商品名稱');return;}const category=document.getElementById('gmShopCategory')?.value||'coupon';if(category==='equipment')return alert('裝備建立已移至 Equipment Generator Lab。');const item={id:uid(),name,icon:category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}gameData.shopItems.push(item);saveGame();renderAll();}
 
-// 掉落：評分越高越偏向裝備／商品，不再幾乎只看到金幣。
-function rollDungeonDrop(rating=1){ensureItemSystem();const lotteryChance=rating===3?.10:rating===2?.05:0;if(lotteryChance>0&&Math.random()<lotteryChance){gameData.hero.lotteryCoins+=1;return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};}const roll=Math.random();const itemChance=rating===3?.72:rating===2?.50:.28;if(roll<itemChance){const pool=gameData.shopItems.filter(x=>x.active&&['equipment','consumable','coupon'].includes(itemCategory(x)));if(pool.length){const weighted=pool.flatMap(i=>Array(itemCategory(i)==='equipment'?(rating===3?4:2):itemCategory(i)==='consumable'?3:2).fill(i));const item=weighted[Math.floor(Math.random()*weighted.length)];gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});return {type:itemCategory(item),label:`${item.icon||'🎁'} ${item.name}`,value:item.id};}}const amount=rating===3?5+Math.floor(Math.random()*6):rating===2?3+Math.floor(Math.random()*3):1+Math.floor(Math.random()*3);gameData.hero.gold+=amount;return {type:'gold',label:`金幣 +${amount} G`,value:amount};}
+// 掉落：正式裝備先讀 Equipment Database；若沒有命中，再走原本的抽獎幣／消耗品／兌換券／金幣。
+function rollDungeonDrop(rating=1){
+  ensureItemSystem();
+  const equipmentDrop=window.rollEquipmentPoolDrop?.();
+  if(equipmentDrop)return equipmentDrop;
 
-// 裝備能力實際套入戰鬥數值。
-const __makeHeroBattleStatsV10109=makeHeroBattleStats;
-makeHeroBattleStats=function(){const u=__makeHeroBattleStatsV10109();const e=totalEquipmentStats();u.attack+=e.attack;u.magicAttack+=e.magicAttack;u.defense+=e.defense;u.magicDefense+=e.magicDefense;u.speed+=e.speed;u.maxHp+=e.maxHp;u.maxEnergy+=e.maxEnergy;u.crit=clampBattle(u.crit+e.crit,.05,.60);u.evade=clampBattle(u.evade+e.evade,.02,.50);u.block=clampBattle(u.block+e.block,.05,.45);return u;};
+  const lotteryChance=rating===3?.10:rating===2?.05:0;
+  if(lotteryChance>0&&Math.random()<lotteryChance){
+    gameData.hero.lotteryCoins+=1;
+    return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};
+  }
 
-function saveSemesterSettings(){
-  gameData.semester.startDate=document.getElementById('gmSemStart').value||gameData.semester.startDate;
-  gameData.semester.endDate=document.getElementById('gmSemEnd').value||gameData.semester.endDate;
-  gameData.semester.schoolWeekdays=[...document.querySelectorAll('.gmSchoolDay:checked')].map(x=>Number(x.value));
-  saveGame();renderGM();
+  const roll=Math.random(),itemChance=rating===3?.72:rating===2?.50:.28;
+  if(roll<itemChance){
+    const pool=gameData.shopItems.filter(x=>x.active&&['consumable','coupon'].includes(itemCategory(x)));
+    if(pool.length){
+      const item=pool[Math.floor(Math.random()*pool.length)];
+      gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});
+      return {type:item.category,label:item.name,value:item.id};
+    }
+  }
+
+  const amount=rating===3?5+Math.floor(Math.random()*6):rating===2?3+Math.floor(Math.random()*3):1+Math.floor(Math.random()*3);
+  gameData.hero.gold+=amount;
+  return {type:'gold',label:`金幣 +${amount} G`,value:amount};
 }
 function addSemesterEvent(){
   const date=document.getElementById('gmSemEventDate').value;
@@ -5707,7 +5705,7 @@ function renderGM(){
 
     <div class="card">
       <h3>新增商店商品</h3>
-      <label>商品分類</label><select id="gmShopCategory" onchange="gmShopTypeFields()"><option value="coupon">🎟️ 兌換券</option><option value="consumable">🧪 消耗品</option><option value="equipment">🛡️ 裝備</option><option value="special">✨ 特殊</option></select>
+      <label>商品分類</label><select id="gmShopCategory" onchange="gmShopTypeFields()"><option value="coupon">🎟️ 兌換券</option><option value="consumable">🧪 消耗品</option><option value="special">✨ 特殊</option></select>
       <div id="gmShopExtra"></div>
       <label>名稱</label><input id="gmShopName">
       <label>說明</label><input id="gmShopDesc">
@@ -8581,13 +8579,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   }
   function towerPower(floor){return Math.max(18,Math.round(combatPower()*(.78+floor*.055+(currentCampaignCycle()-1)*.08)));}
   function towerAffixItem(floor){
-    if(typeof window.rollEquipmentPoolDrop==='function')return window.rollEquipmentPoolDrop('tower','epic');
-    const rarity=floor>=30?'傳說':floor>=20?'史詩':floor>=10?'稀有':'優良';
-    const affixPool=[{name:'猛攻',stat:'attack',value:2+Math.floor(floor/5)},{name:'秘法',stat:'magicAttack',value:2+Math.floor(floor/5)},{name:'鐵壁',stat:'defense',value:2+Math.floor(floor/6)},{name:'迅捷',stat:'speed',value:1+Math.floor(floor/8)},{name:'生命',stat:'maxHp',value:10+floor*2}];
-    const count=floor>=20?3:floor>=10?2:1,chosen=[];for(let i=0;i<count;i++)chosen.push(affixPool[(floor+i*2)%affixPool.length]);
-    const id='tower_item_'+uid(),stats={};chosen.forEach(a=>stats[a.stat]=(stats[a.stat]||0)+a.value);
-    const item={id,name:`${rarity}・古塔遺物 ${floor}F`,icon:'🟣',category:'equipment',equipSlot:['weapon','head','body','accessory'][floor%4],description:`無盡之塔 ${floor}F 掉落｜${chosen.map(a=>a.name+' +'+a.value).join('、')}`,price:0,dailyLimit:1,active:false,stats,affixes:chosen};
-    gameData.shopItems.push(item);gameData.inventory.push({id:uid(),itemId:id,name:item.name,status:'unused',boughtDate:today(),source:'tower',affixes:chosen});return {type:'equipment',label:`${item.icon} ${item.name}｜${chosen.map(a=>a.name+' +'+a.value).join('、')}`,value:id};
+    return typeof window.rollEquipmentPoolDrop==='function'
+      ? window.rollEquipmentPoolDrop('tower')
+      : null;
   }
   window.renderHolidayTower=function(){
     if(typeof window.isEquipmentEndgameUnlocked==='function'&&!window.isEquipmentEndgameUnlocked()){const el=document.getElementById('panel-dungeon');if(el)el.innerHTML='<div class="card boss" style="text-align:center"><div style="font-size:42px">🔒🗼</div><h2>無盡之塔尚未解鎖</h2><div class="small">必須先擊破第20週的骷髏巨龍，斬斷靈魂連結並完成第一學期主線。</div></div>';return;}
@@ -10156,7 +10150,6 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   window.EQUIPMENT_AFFIX_DATABASE=AFFIXES;
   window.EQUIPMENT_RARITY_DATABASE=RARITIES;
   window.EQUIPMENT_SET_DATABASE=window.EQUIPMENT_SET_DATABASE||{};
-  window.EQUIPMENT_UNIQUE_DATABASE=window.EQUIPMENT_UNIQUE_DATABASE||{};
   window.EQUIPMENT_DATABASE_SCHEMA={version:2,instanceFields:['id','tier','rarity','baseId','visualId','stats','affixes','setId','uniqueId'],assetRule:'所有實例只引用 base.visualId；已取得裝備以 inventory.itemData 快照為準。'};
   window.EQUIPMENT_GENERATION_RULES={
     version:'V10.20-EQ-CLEAN',
@@ -10252,7 +10245,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   function replayBossPower(id){const name=MONSTER_DATABASE[id]?.name||id,records=(gameData.battleRecords||[]).filter(r=>String(r.enemyName||'').includes(name)&&Number(r.enemyPower)>0);return records.length?Math.round(Number(records.at(-1).enemyPower)):Math.max(40,Math.round(Number(gameData.examBossBaselineV10158?.nakedPower||combatPower())*1.10));}
   window.renderCelebrationBossReplay=function(){
     const el=document.getElementById('panel-dungeon');if(!el)return;const ids=replayBossIds();
-    el.innerHTML=`<div class="card boss"><div style="text-align:center;font-size:44px">🏰⚔️🎁</div><h2>第21週・王者回憶戰</h2><div class="small">凱旋週不生成每日小怪。可重刷第一學期Boss準備裝備；每次勝利必掉一件隨機T0詞條裝，不影響原本考試、任務或每日副本紀錄。</div><label>選擇回憶Boss</label><select id="celebrationReplayBoss">${ids.map(id=>`<option value="${id}">${escapeHtml(MONSTER_DATABASE[id].name)}｜歷史戰力 ${replayBossPower(id)}</option>`).join('')}</select><button class="btn purple big-battle-btn" onclick="challengeCelebrationBossReplay()">挑戰並刷取T0裝備</button><div class="card small"><b>隨機組合規則</b><br>9種共用圖片基底 × 稀有度 × 部位詞條池。白裝0條、綠裝1條、藍裝2條、紫裝3條；回憶戰必掉詞條，因此自動排除白裝。橘裝只從少量獨特裝資料庫產生，不進大量隨機池。</div></div>`;
+    el.innerHTML=`<div class="card boss"><div style="text-align:center;font-size:44px">🏰⚔️🎁</div><h2>第21週・王者回憶戰</h2><div class="small">凱旋週不生成每日小怪。可重刷第一學期Boss準備裝備；每次勝利必掉一件隨機T0詞條裝，不影響原本考試、任務或每日副本紀錄。</div><label>選擇回憶Boss</label><select id="celebrationReplayBoss">${ids.map(id=>`<option value="${id}">${escapeHtml(MONSTER_DATABASE[id].name)}｜歷史戰力 ${replayBossPower(id)}</option>`).join('')}</select><button class="btn purple big-battle-btn" onclick="challengeCelebrationBossReplay()">挑戰並刷取T0裝備</button><div class="card small"><b>正式裝備資料庫</b><br>回憶戰從 Equipment Database 中抽取已啟用、來源包含 replay 的史詩模板。主程式只負責抽取與建立玩家裝備實例，不在戰鬥中重新生成詞綴。</div></div>`;
     el.insertAdjacentHTML('beforeend',skillLoadoutHTML());
   };
   window.challengeCelebrationBossReplay=function(){
@@ -10270,20 +10263,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     document.getElementById('battleActions').style.display='none';document.getElementById('battleSubmenu').style.display='none';document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🎁':'💀'}</div><h2>${win?'T0裝備掉落！':'挑戰失敗'}</h2>${win?`<div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div><div>🎁 ${drop?.label||'本次沒有可用的裝備模板'}</div>`:'<div class="small">可以重新選擇Boss再次挑戰。</div>'}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回回憶戰</button></div>`;
   };
 
-  window.createUniqueEquipmentDrop=function(uniqueId,source='tower'){
-    const def=window.EQUIPMENT_UNIQUE_DATABASE?.[uniqueId];if(!def)return null;
-    const base=BASES[def.baseId];if(!base)return null;
-    const affixes=(def.affixIds||[]).map(id=>AFFIXES[id]).filter(Boolean).map(a=>({...a})),stats={...base.stats,...(def.stats||{})};
-    affixes.filter(a=>a.kind==='stat').forEach(a=>{const v=Number(def.affixValues?.[a.id]??a.max??a.min??0);a.value=v;a.power=v*Number(a.powerPerUnit||1);stats[a.stat]=(stats[a.stat]||0)+v;});
-    const item={id:'unique_equipment_'+uid(),generated:true,tier:def.tier||'T0',rarity:'legendary',rarityName:'傳說',name:`🟠 ${def.name}`,icon:def.icon||base.icon,category:'equipment',equipSlot:base.slot,baseId:base.id,visualId:def.visualId||base.visualId,visual:def.visual||{inventory:`images/equipment/unique/${def.visualId||uniqueId}.png`,paperDollIdle:`images/equipment/paperdoll/unique/${def.visualId||uniqueId}_idle.png`,paperDollBattle:`images/equipment/paperdoll/unique/${def.visualId||uniqueId}_battle.png`},stats,affixes,setId:null,uniqueId,price:0,dailyLimit:1,active:false,createdAt:new Date().toISOString(),description:def.description||''};item.powerScore=equipmentPowerScore(item);
-    const inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source,affixes:item.affixes,tier:item.tier,generated:true,uniqueId};gameData.inventory.push(inv);
-    return {type:'equipment',label:`${item.name}｜傳說獨特裝備`,value:inv.id,itemData:item,unique:true};
-  };
-  window.rollTowerUniqueEquipment=function(floor){
-    const ids=Object.keys(window.EQUIPMENT_UNIQUE_DATABASE||{}).filter(id=>Number(window.EQUIPMENT_UNIQUE_DATABASE[id]?.minFloor||10)<=floor);if(!ids.length)return null;
-    const chance=floor%5===0?.12:.03;if(Math.random()>=chance)return null;
-    const weighted=ids.flatMap(id=>Array(Math.max(1,Number(window.EQUIPMENT_UNIQUE_DATABASE[id]?.weight||1))).fill(id));return createUniqueEquipmentDrop(randomEntry(weighted),'tower');
-  };
+  /* 橘裝建立與塔樓抽取統一由正式 Equipment Database runtime 處理。 */
   if(gameData.hero?.name){renderAll();}
 })();
 </script>
@@ -10316,13 +10296,13 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   window.challengeCelebrationBossReplay=function(){if(!isEquipmentEndgameUnlocked())return alert('必須先完成第一學期最終戰。');return previousChallengeCelebrationBossReplayV101193();};
 })();
 </script>
-<script src="equipment-pool.js"></script>
+<script src="equipment-database.js"></script>
 <script>
-/* StudyRPG V10.11.94 - embedded item/equipment database */
+/* StudyRPG Equipment Runtime - formal external database architecture */
 (function(){
   'use strict';
   if(typeof window.escapeHtml!=='function')window.escapeHtml=function(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));};
-  const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'10.11.94-equipment'};
+  const DB=window.STUDYRPG_ITEM_EQUIPMENT_DB={version:'equipment-db-runtime-v1'};
   const DEFAULT_DROP_RATES=window.EQUIPMENT_DROP_RATE_DEFAULTS={
     weekday:{common:25,uncommon:15,rare:5,epic:0,legendary:0},
     friday:{common:20,uncommon:22,rare:15,epic:3,legendary:0},
@@ -10331,22 +10311,39 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     midterm:{common:0,uncommon:0,rare:90,epic:10,legendary:0},
     final:{common:0,uncommon:0,rare:0,epic:100,legendary:0},
     replay:{common:0,uncommon:0,rare:0,epic:100,legendary:0},
-    tower:{common:0,uncommon:0,rare:0,epic:98.5,legendary:1.5}
+    tower:{common:0,uncommon:0,rare:0,epic:100,legendary:0}
   };
   function ensureEquipmentRuntimeData(){
-    gameData.equipmentRewardPool=Array.isArray(gameData.equipmentRewardPool)?gameData.equipmentRewardPool:[];
-    gameData.hero=gameData.hero||{};gameData.hero.enhancementShards=Math.max(0,Number(gameData.hero.enhancementShards)||0);
-    const saved=gameData.equipmentDropRates&&typeof gameData.equipmentDropRates==='object'?gameData.equipmentDropRates:{};
-    gameData.equipmentDropRates={};
-    for(const [source,defaults] of Object.entries(DEFAULT_DROP_RATES))gameData.equipmentDropRates[source]={...defaults,...(saved[source]&&typeof saved[source]==='object'?saved[source]:{})};
-    const ext=window.STUDYRPG_EQUIPMENT_POOL_EXPORT;
-    if(ext&&Array.isArray(ext.pool)&&ext.exportId&&gameData.equipmentPoolExportId!==ext.exportId){
-      gameData.equipmentRewardPool=JSON.parse(JSON.stringify(ext.pool));
-      gameData.equipmentPoolExportId=ext.exportId;
-      gameData.equipmentPoolImportedAt=new Date().toISOString();
-    }
+    gameData.hero=gameData.hero||{};
+    gameData.hero.enhancementShards=Math.max(0,Number(gameData.hero.enhancementShards)||0);
     return gameData;
   }
+
+  function equipmentDatabase(){
+    const ext=window.STUDYRPG_EQUIPMENT_DATABASE;
+    if(ext&&Number(ext.schemaVersion)>=1){
+      return {
+        schemaVersion:Number(ext.schemaVersion)||1,
+        databaseVersion:String(ext.databaseVersion||''),
+        templates:ext.templates&&typeof ext.templates==='object'?ext.templates:{},
+        dropRates:ext.dropRates&&typeof ext.dropRates==='object'?ext.dropRates:DEFAULT_DROP_RATES,
+        uniqueEquipment:ext.uniqueEquipment&&typeof ext.uniqueEquipment==='object'?ext.uniqueEquipment:{},
+        orangeDrop:{
+          ...DB.orangeDrop,
+          ...(ext.orangeDrop&&typeof ext.orangeDrop==='object'?ext.orangeDrop:{})
+        }
+      };
+    }
+    return {
+      schemaVersion:1,
+      databaseVersion:'fallback-empty',
+      templates:{},
+      dropRates:DEFAULT_DROP_RATES,
+      uniqueEquipment:{},
+      orangeDrop:{...DB.orangeDrop}
+    };
+  }
+  window.getStudyRPGEquipmentDatabase=equipmentDatabase;
   window.ensureEquipmentRuntimeData=ensureEquipmentRuntimeData;
   ensureEquipmentRuntimeData();
 
@@ -10371,7 +10368,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   };
   DB.sets={};
   DB.uniques={};
-  DB.orangeDrop={allFloors:true,normalFloorChance:.015,bossFloorChance:.06};
+  DB.orangeDrop=window.EQUIPMENT_ORANGE_DROP_DEFAULTS={allFloors:true,normalFloorChance:.015,bossFloorChance:.06};
 
   function itemByName(name){return Object.values(DB.items).find(x=>x.name===name||(x.aliases||[]).includes(name))||null;}
   function itemDef(inv){
@@ -10399,55 +10396,139 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   }
 
   DB.sets=window.EQUIPMENT_SET_DATABASE=window.EQUIPMENT_SET_DATABASE||{};
-  DB.uniques=window.EQUIPMENT_UNIQUE_DATABASE=window.EQUIPMENT_UNIQUE_DATABASE||{};
-  const originalTowerUnique=window.rollTowerUniqueEquipment;
+
+  window.createUniqueEquipmentDrop=function(uniqueId,source='tower'){
+    const def=equipmentDatabase().uniqueEquipment?.[uniqueId];
+    if(!def)return null;
+    const base=window.EQUIPMENT_BASE_DATABASE_T0?.[def.baseId];
+    if(!base)return null;
+    const affixDB=window.EQUIPMENT_AFFIX_DATABASE||{};
+    const affixes=(def.affixIds||[]).map(id=>affixDB[id]).filter(Boolean).map(a=>({...a}));
+    const stats={...(base.stats||{}),...(def.stats||{})};
+    affixes.filter(a=>a.kind==='stat').forEach(a=>{
+      const v=Number(def.affixValues?.[a.id]??a.max??a.min??0);
+      a.value=v;a.power=v*Number(a.powerPerUnit||1);
+      stats[a.stat]=(stats[a.stat]||0)+v;
+    });
+    const item={
+      id:'unique_equipment_'+uid(),
+      generated:true,templateLocked:true,tier:def.tier||'T0',
+      rarity:'legendary',rarityName:'傳說',name:`🟠 ${def.name}`,
+      icon:def.icon||base.icon,category:'equipment',equipSlot:base.slot,
+      baseId:base.id,visualId:def.visualId||base.visualId,
+      visual:def.visual||{
+        inventory:`images/equipment/unique/${def.visualId||uniqueId}.png`,
+        paperDollIdle:`images/equipment/paperdoll/unique/${def.visualId||uniqueId}_idle.png`,
+        paperDollBattle:`images/equipment/paperdoll/unique/${def.visualId||uniqueId}_battle.png`
+      },
+      stats,affixes,setId:null,uniqueId,price:0,dailyLimit:1,active:false,
+      createdAt:new Date().toISOString(),description:def.description||''
+    };
+    item.powerScore=equipmentPowerScore(item);
+    const inv={
+      id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',
+      boughtDate:today(),source,affixes:JSON.parse(JSON.stringify(item.affixes||[])),
+      tier:item.tier,generated:true,uniqueId,locked:false
+    };
+    gameData.inventory.push(inv);
+    return {type:'equipment',label:`${item.name}｜傳說獨特裝備`,value:inv.id,itemData:item,unique:true};
+  };
+
   window.rollTowerUniqueEquipment=function(floor){
-    const ids=Object.keys(DB.uniques).filter(id=>Number(DB.uniques[id]?.minFloor||1)<=Number(floor||1));if(!ids.length)return null;
-    const chance=Number(floor)%5===0?DB.orangeDrop.bossFloorChance:DB.orangeDrop.normalFloorChance;if(Math.random()>=chance)return null;
-    const weighted=ids.flatMap(id=>Array(Math.max(1,Number(DB.uniques[id]?.weight||1))).fill(id));const id=weighted[Math.floor(Math.random()*weighted.length)];
-    return typeof window.createUniqueEquipmentDrop==='function'?window.createUniqueEquipmentDrop(id,'tower'):originalTowerUnique?.(floor)||null;
+    const db=equipmentDatabase(),orange=db.orangeDrop||DB.orangeDrop;
+    const chance=Number(floor)%5===0
+      ? Number(orange.bossFloorChance||0)
+      : Number(orange.normalFloorChance||0);
+    if(chance<=0||Math.random()>=chance)return null;
+    const defs=Object.values(db.uniqueEquipment||{}).filter(def=>
+      def&&def.enabled!==false&&Number(def.minFloor||1)<=Number(floor||1)
+    );
+    const total=defs.reduce((n,def)=>n+Math.max(0,Number(def.weight)||0),0);
+    if(!defs.length||total<=0)return null;
+    let r=Math.random()*total,chosen=defs.at(-1);
+    for(const def of defs){r-=Math.max(0,Number(def.weight)||0);if(r<=0){chosen=def;break;}}
+    return createUniqueEquipmentDrop(chosen.id,'tower');
   };
 
   const RARITY_LABEL={common:'⚪ 白',uncommon:'🟢 綠',rare:'🔵 藍',epic:'🟣 紫',legendary:'🟠 橘'};
   const SOURCE_LABEL={weekday:'週一～週四',friday:'週五',apocalypse:'天啟四騎士',demon_general:'魔將',midterm:'期中',final:'期末',replay:'第21週回顧',tower:'無盡之塔'};
   function rarityOf(item){return item?.rarity||'common';}
   function equippedInventory(inv){return Object.values(gameData.hero.equipment||{}).includes(inv?.id);}
-  function poolRowHTML(row){
-    const item=row.templateData||{},stats=typeof equipmentStatText==='function'?equipmentStatText(item):'';
-    return `<details class="card"><summary><b>${RARITY_LABEL[row.rarity]||row.rarity}｜${row.icon||'🛡️'} ${escapeHtml(row.name)}</b></summary><div class="small">${stats}<br>部位：${row.equipSlot}｜掉落次數：${row.dropCount||0}</div><div class="grid2"><div><label>權重</label><input id="poolWeight_${row.id}" type="number" min="0" value="${Number(row.weight)||0}"></div><div><label>狀態</label><select id="poolEnabled_${row.id}"><option value="1" ${row.enabled!==false?'selected':''}>啟用</option><option value="0" ${row.enabled===false?'selected':''}>停用</option></select></div></div><button class="btn blue" onclick="gmSavePoolRow('${row.id}')">儲存</button> <button class="btn gray" onclick="gmGrantPoolTest('${row.id}')">發測試品</button> <button class="btn red" onclick="gmDeletePoolRow('${row.id}')">刪除模板</button></details>`;
-  }
-  window.gmSavePoolRow=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id);if(!row)return;row.weight=Math.max(0,Number(document.getElementById('poolWeight_'+id)?.value)||0);row.enabled=document.getElementById('poolEnabled_'+id)?.value!=='0';saveGame();renderGM();};
-  window.gmDeletePoolRow=function(id){if(!confirm('刪除這個獎勵池模板？玩家已取得的裝備不受影響。'))return;gameData.equipmentRewardPool=gameData.equipmentRewardPool.filter(x=>x.id!==id);saveGame();renderGM();};
-  function grantPoolItem(row,source='pool_test'){
-    if(!row?.templateData)return null;
-    const item=JSON.parse(JSON.stringify(row.templateData));
-    item.id='equipment_instance_'+uid();item.templateLocked=true;item.poolTemplateId=row.id;
+  /* 裝備模板、掉落率與橘裝定義由 equipment-database.js 提供；主程式只執行掉落。 */
+  function createEquipmentInstance(template,source='equipment_drop'){
+    if(!template?.itemData)return null;
+    const item=JSON.parse(JSON.stringify(template.itemData));
+    const templateId=String(template.templateId||template.id||'');
+    item.id='equipment_instance_'+uid();
+    item.templateId=templateId;
+    item.templateLocked=true;
     item.enhancementLevel=Math.max(0,Number(item.enhancementLevel)||0);
-    item.unenhancedStats={...(item.unenhancedStats||item.stats||{})};item.baseStatsForEnhancement={...(item.baseStatsForEnhancement||item.unenhancedStats||item.stats||{})};item.createdAt=new Date().toISOString();
-    const inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source,affixes:JSON.parse(JSON.stringify(item.affixes||[])),tier:item.tier,generated:true,poolTemplateId:row.id,locked:false};
-    gameData.inventory.push(inv);row.dropCount=(Number(row.dropCount)||0)+1;return inv;
+    item.unenhancedStats={...(item.unenhancedStats||item.stats||{})};
+    item.baseStatsForEnhancement={...(item.baseStatsForEnhancement||item.unenhancedStats||item.stats||{})};
+    item.createdAt=new Date().toISOString();
+    const inv={
+      id:uid(),instanceId:item.id,templateId,itemId:item.id,itemData:item,name:item.name,
+      status:'unused',boughtDate:today(),source,
+      affixes:JSON.parse(JSON.stringify(item.affixes||[])),
+      tier:item.tier,generated:true,locked:false
+    };
+    gameData.inventory.push(inv);
+    return inv;
   }
-  window.gmGrantPoolTest=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id),inv=grantPoolItem(row);if(!inv)return;saveGame();renderGM();alert(`測試品【${inv.name}】已放入背包。`);};
+  window.renderEquipmentGMPanelHTML=function(){return '';};
 
-  window.gmSaveEquipmentDropRates=function(){
+  function chooseRarity(source){
     ensureEquipmentRuntimeData();
-    for(const source of Object.keys(SOURCE_LABEL))for(const rarity of Object.keys(RARITY_LABEL)){const el=document.getElementById(`drop_${source}_${rarity}`);if(el)gameData.equipmentDropRates[source][rarity]=Math.max(0,Math.min(100,Number(el.value)||0));}
-    saveGame();renderGM();alert('裝備掉落機率已儲存。每列超過100%時，抽取時會按比例自動正規化。');
-  };
-  function dropRatesHTML(){ensureEquipmentRuntimeData();return `<div style="overflow-x:auto"><table><thead><tr><th>來源</th>${Object.values(RARITY_LABEL).map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${Object.entries(SOURCE_LABEL).map(([source,label])=>`<tr><td>${label}</td>${Object.keys(RARITY_LABEL).map(r=>`<td><input id="drop_${source}_${r}" type="number" min="0" max="100" value="${Number(gameData.equipmentDropRates[source]?.[r])||0}" style="width:64px">%</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="small">每列合計低於100%時，剩餘機率代表沒有裝備；高於100%會自動按比例換算。</div><button class="btn blue" onclick="gmSaveEquipmentDropRates()">儲存掉落機率</button>`;}
-  function renderPoolManager(){ensureEquipmentRuntimeData();const rows=gameData.equipmentRewardPool||[];return `<div class="card"><h3>🎁 裝備獎勵池（${rows.length}）</h3><div class="small">模板可停用、調整權重、發測試品或刪除；刪除不影響已掉落裝備。</div>${rows.length?rows.map(poolRowHTML).join(''):'<div class="small">獎勵池目前是空的。請用 Equipment Generator Lab 產生 equipment-pool.js。</div>'}</div><div class="card"><h3>🎯 掉落品質機率</h3>${dropRatesHTML()}</div>`;}
-  window.renderEquipmentGMPanelHTML=function(){
-    ensureEquipmentRuntimeData();
-    return `<div class="card"><h3>🛡️ 裝備資料與掉落池</h3><div class="small">裝備生成已移至獨立 Equipment Generator Lab。主程式只讀取已匯入模板；實際掉落只 clone 模板，不再重新生成。</div></div>${renderPoolManager()}`;
-  };
+    const rates=equipmentDatabase().dropRates?.[source]||DEFAULT_DROP_RATES[source]||{};
+    const entries=Object.keys(RARITY_LABEL)
+      .filter(id=>id!=='legendary')
+      .map(id=>[id,Math.max(0,Number(rates[id])||0)]);
+    const total=entries.reduce((n,x)=>n+x[1],0);
+    if(total<=0)return null;
+    let r=Math.random()*Math.max(100,total);
+    for(const [id,w] of entries){r-=w;if(r<0)return id;}
+    return null;
+  }
+  function dropSource(){
+    const s=window.battleStateV10||{},id=s.monsterId;
+    if(s.towerMode||s.eventType==='tower')return'tower';
+    if(s.celebrationReplay||s.eventType==='replay')return'replay';
+    if(s.eventType==='final')return'final';
+    if(s.eventType==='midterm')return'midterm';
+    if(String(id||'').startsWith('apocalypse_'))return'apocalypse';
+    if(id==='demon_general')return'demon_general';
+    return new Date(today()+'T12:00:00').getDay()===5?'friday':'weekday';
+  }
+  function weightedTemplate(source,rarity){
+    const week=Math.max(1,Number(semesterWeekIndex?.())||1);
+    const rows=Object.values(equipmentDatabase().templates||{}).filter(x=>
+      x&&x.enabled!==false&&
+      (x.itemData?.rarity||x.rarity)===rarity&&
+      (x.sources||[]).includes(source)&&
+      week>=Number(x.minWeek||1)&&week<=Number(x.maxWeek||999)
+    );
+    const total=rows.reduce((n,x)=>n+Math.max(0,Number(x.weight)||0),0);
+    if(!rows.length||total<=0)return null;
+    let r=Math.random()*total;
+    for(const x of rows){r-=Math.max(0,Number(x.weight)||0);if(r<=0)return x;}
+    return rows.at(-1);
+  }
+  window.rollEquipmentPoolDrop=function(source=dropSource(),forcedRarity=null){
+    if(source==='tower'&&!forcedRarity){
+      const unique=rollTowerUniqueEquipment(Number(battleStateV10?.towerFloor)||1);
+      if(unique)return unique;
+    }
+    if(forcedRarity==='legendary')
+      return source==='tower'?rollTowerUniqueEquipment(Number(battleStateV10?.towerFloor)||1):null;
 
-  function chooseRarity(source){ensureEquipmentRuntimeData();const rates=gameData.equipmentDropRates[source]||{},entries=Object.keys(RARITY_LABEL).map(id=>[id,Math.max(0,Number(rates[id])||0)]),total=entries.reduce((n,x)=>n+x[1],0);if(total<=0)return null;let r=Math.random()*Math.max(100,total);for(const [id,w] of entries){r-=w;if(r<0)return id;}return null;}
-  function dropSource(){const s=window.battleStateV10||{},id=s.monsterId;if(s.towerMode||s.eventType==='tower')return'tower';if(s.celebrationReplay||s.eventType==='replay')return'replay';if(s.eventType==='final')return'final';if(s.eventType==='midterm')return'midterm';if(String(id||'').startsWith('apocalypse_'))return'apocalypse';if(id==='demon_general')return'demon_general';return new Date(today()+'T12:00:00').getDay()===5?'friday':'weekday';}
-  function weightedPoolRow(source,rarity){const week=Math.max(1,Number(semesterWeekIndex?.())||1),rows=(gameData.equipmentRewardPool||[]).filter(x=>x.enabled!==false&&x.rarity===rarity&&(x.sources||[]).includes(source)&&week>=Number(x.minWeek||1)&&week<=Number(x.maxWeek||999));const total=rows.reduce((n,x)=>n+Math.max(0,Number(x.weight)||0),0);if(!rows.length||total<=0)return null;let r=Math.random()*total;for(const x of rows){r-=Math.max(0,Number(x.weight)||0);if(r<=0)return x;}return rows.at(-1);}
-  window.rollEquipmentPoolDrop=function(source=dropSource(),forcedRarity=null){const rarity=forcedRarity||chooseRarity(source);if(!rarity)return null;if(rarity==='legendary'&&source==='tower'){const unique=rollTowerUniqueEquipment(Number(battleStateV10?.towerFloor)||1);if(unique)return unique;return null;}const row=weightedPoolRow(source,rarity);if(!row)return null;const inv=grantPoolItem(row,source);return {type:'equipment',label:`${RARITY_LABEL[rarity]} ${inv.name}`,value:inv.id,itemData:inv.itemData};};
-
-  const originalDungeonDrop=window.rollDungeonDrop;
-  window.rollDungeonDrop=function(rating=1){const source=dropSource(),drop=rollEquipmentPoolDrop(source);if(drop)return drop;const active=[];for(const item of gameData.shopItems){if(item.category==='equipment'&&item.active){active.push(item);item.active=false;}}try{return originalDungeonDrop(rating);}finally{active.forEach(x=>x.active=true);}};
+    const rarity=forcedRarity||chooseRarity(source);
+    if(!rarity)return null;
+    const template=weightedTemplate(source,rarity);
+    if(!template)return null;
+    const inv=createEquipmentInstance(template,source);
+    if(!inv)return null;
+    return {type:'equipment',label:`${RARITY_LABEL[rarity]} ${inv.name}`,value:inv.id,itemData:inv.itemData,templateId:inv.templateId};
+  };
   function enhancementBase(item){if(item.baseStatsForEnhancement)return item.baseStatsForEnhancement;const raw={...(item.stats||{})};item.baseStatsForEnhancement={...raw};item.unenhancedStats={...raw};return item.baseStatsForEnhancement;}
   const ENHANCE_COST=[0,2,3,4,5,6,8,10,12,15,20],ENHANCE_KEYS=new Set(['attack','magicAttack','defense','magicDefense','maxHp','maxEnergy','speed']);
   window.toggleEquipmentLock=function(id){const inv=gameData.inventory.find(x=>x.id===id);if(!inv)return;inv.locked=!inv.locked;saveGame();renderBag();};
@@ -10480,7 +10561,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   window.gmAddShopItem=function(){
     ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name)return alert('請輸入商品名稱');
-    const category=document.getElementById('gmShopCategory')?.value||'coupon',item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};
+    const category=document.getElementById('gmShopCategory')?.value||'coupon';if(category==='equipment')return alert('裝備建立已移至 Equipment Generator Lab。');const item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};
     if(category==='equipment'){item.equipSlot=document.getElementById('gmEquipSlot')?.value||'weapon';const k=document.getElementById('gmEquipStat')?.value||'attack';let v=Number(document.getElementById('gmEquipValue')?.value)||0;if(['crit','evade','block'].includes(k))v/=100;item.stats[k]=v;}
     if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}
     gameData.shopItems.push(item);saveGame();renderAll();
@@ -10500,9 +10581,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   const clone=v=>JSON.parse(JSON.stringify(v));
   const db=window.STUDYRPG_ITEM_EQUIPMENT_DB||{};
   const AFF=window.EQUIPMENT_AFFIX_DATABASE||{};
-  const rarityCount={common:0,uncommon:1,rare:2,epic:3};
-  gameData.uniqueEquipmentDefinitions=gameData.uniqueEquipmentDefinitions||{};
-  Object.assign(window.EQUIPMENT_UNIQUE_DATABASE||{},gameData.uniqueEquipmentDefinitions);
+  ensureEquipmentRuntimeData?.();
 
   /* 下一學期只在開學時記錄一次裝備，不隨換裝追漲。 */
   function equippedScore(){
@@ -10554,32 +10633,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   const oldPerform=window.performAction;
   if(typeof oldPerform==='function')window.performAction=async function(side,action){if(side!=='hero')return oldPerform.apply(this,arguments);const m=equippedSkillBoost(action);if(m===1)return oldPerform.apply(this,arguments);const copy={...action};if(Number(copy.multiplier))copy.multiplier*=m;if(copy.effect?.mods){copy.effect=clone(copy.effect);for(const k of ['heal','healing','shield'])if(Number(copy.effect.mods[k]))copy.effect.mods[k]*=m;}addBattleLog(`✨ ${action.name}受到職業專屬詞條強化！`);return oldPerform.call(this,side,copy);};
 
-  /* 裝備獎勵池完整編輯。 */
-  function compatibleAffixes(slot){return Object.values(AFF).filter(a=>(a.slots||[]).includes(slot));}
-  function recalcItemAffixes(item,ids){
-    const previous=item.affixes||[],stats={...(item.stats||{})};
-    previous.filter(a=>a.kind==='stat').forEach(a=>stats[a.stat]=(Number(stats[a.stat])||0)-(Number(a.value)||0));
-    const chosen=[];for(const id of ids){const def=Object.values(AFF).find(a=>a.id===id);if(!def||chosen.some(a=>a.id===def.id))continue;const a=clone(def);if(a.kind==='stat'){const old=previous.find(x=>x.id===a.id);a.value=Number(old?.value??a.max??a.min??0);a.power=a.value*Number(a.powerPerUnit||1);stats[a.stat]=(Number(stats[a.stat])||0)+a.value;}chosen.push(a);}
-    item.stats=stats;item.affixes=chosen;item.powerScore=Number(window.equipmentPowerScore?.(item)||0);
-  }
-  window.gmEditPoolRowV10120=function(id){const row=gameData.equipmentRewardPool?.find(x=>x.id===id);if(!row)return;row.editing=!row.editing;renderGM();};
-  window.gmSavePoolDetailV10120=function(id){
-    const row=gameData.equipmentRewardPool?.find(x=>x.id===id);if(!row)return;const item=row.templateData||{};
-    row.name=(document.getElementById('poolName_'+id)?.value||row.name).trim();item.name=row.name;row.iconId=(document.getElementById('poolIcon_'+id)?.value||'').trim();item.visualId=row.iconId||item.visualId;item.inventoryIcon=(document.getElementById('poolIconPath_'+id)?.value||'').trim()||item.inventoryIcon;item.setId=(document.getElementById('poolSetId_'+id)?.value||'').trim()||null;
-    for(const k of ['attack','magicAttack','defense','magicDefense','speed','maxHp','maxEnergy','crit','evade','block']){const el=document.getElementById(`poolStat_${k}_${id}`);if(!el)continue;let v=Number(el.value)||0;if(['crit','evade','block'].includes(k))v/=100;if(v)item.stats[k]=v;else delete item.stats[k];}
-    row.weight=Math.max(0,Number(document.getElementById('poolWeight2_'+id)?.value)||0);row.minWeek=Math.max(1,Number(document.getElementById('poolMinWeek_'+id)?.value)||1);row.maxWeek=Math.max(row.minWeek,Number(document.getElementById('poolMaxWeek_'+id)?.value)||999);
-    row.sources=[...document.querySelectorAll(`[data-pool-source="${id}"]:checked`)].map(x=>x.value);const ids=[...document.querySelectorAll(`[data-pool-affix="${id}"]:checked`)].map(x=>x.value);
-    const max=row.rarity==='epic'?4:(rarityCount[row.rarity]??ids.length);if(ids.length>max)return alert(`此稀有度最多 ${max} 條詞條。`);if(row.rarity!=='epic'&&ids.length!==max)return alert(`此稀有度必須是 ${max} 條詞條。`);
-    recalcItemAffixes(item,ids);item.templateLocked=['rare','epic'].includes(row.rarity);row.editing=false;saveGame();renderGM();alert('裝備模板已更新，仍留在獎勵池中。');
-  };
-  function poolEditor(row){const item=row.templateData||{},sources=['weekday','friday','apocalypse','demon_general','midterm','final','replay','tower'],statLabel={attack:'ATK',magicAttack:'MATK',defense:'DEF',magicDefense:'MDEF',speed:'SPD',maxHp:'HP',maxEnergy:'EN',crit:'暴擊%',evade:'閃避%',block:'格擋%'};return `<div class="card"><h3>🧰 完整編輯：${esc(row.name)}</h3><label>裝備名稱</label><input id="poolName_${row.id}" value="${esc(row.name)}"><div class="pool-edit-grid"><div><label>圖示ID</label><input id="poolIcon_${row.id}" value="${esc(row.iconId||'')}"></div><div><label>PNG路徑</label><input id="poolIconPath_${row.id}" value="${esc(item.inventoryIcon||'')}"></div><div><label>套裝ID（僅紫裝）</label><input id="poolSetId_${row.id}" value="${esc(item.setId||'')}" ${row.rarity==='epic'?'':'disabled'}></div><div><label>權重</label><input id="poolWeight2_${row.id}" type="number" value="${Number(row.weight)||0}"></div><div><label>最早週</label><input id="poolMinWeek_${row.id}" type="number" value="${Number(row.minWeek)||1}"></div><div><label>最晚週</label><input id="poolMaxWeek_${row.id}" type="number" value="${Number(row.maxWeek)||999}"></div></div><label>基礎能力</label><div class="pool-edit-grid">${Object.entries(statLabel).map(([k,l])=>`<div><label>${l}</label><input id="poolStat_${k}_${row.id}" type="number" step="${['crit','evade','block'].includes(k)?1:1}" value="${['crit','evade','block'].includes(k)?Math.round(Number(item.stats?.[k]||0)*100):Number(item.stats?.[k]||0)}"></div>`).join('')}</div><label>掉落來源</label><div class="affix-checks">${sources.map(s=>`<label><input data-pool-source="${row.id}" type="checkbox" value="${s}" ${(row.sources||[]).includes(s)?'checked':''}> ${s}</label>`).join('')}</div><label>詞條（藍2條、紫3～4條；同件不可重複）</label><div class="affix-checks">${compatibleAffixes(row.equipSlot).map(a=>`<label><input data-pool-affix="${row.id}" type="checkbox" value="${a.id}" ${(item.affixes||[]).some(x=>x.id===a.id)?'checked':''}> <b>${esc(a.name)}</b><br><span class="small">${esc(a.text||a.stat||'')}</span></label>`).join('')}</div><button class="btn purple" onclick="gmSavePoolDetailV10120('${row.id}')">儲存模板</button> <button class="btn gray" onclick="gmEditPoolRowV10120('${row.id}')">取消</button></div>`;}
-
-  window.gmSaveUniqueV10120=function(){try{
-    gameData.uniqueEquipmentDefinitions=gameData.uniqueEquipmentDefinitions||{};
-    const name=(document.getElementById('gmUniqueName')?.value||'').trim(),baseId=document.getElementById('gmUniqueBase')?.value||'',id=(document.getElementById('gmUniqueId')?.value||name).trim().replace(/[^a-zA-Z0-9_\-]/g,'_');if(!name||!id||!baseId)return alert('請填寫橘裝名稱、ID與基底。');const affixIds=[...document.querySelectorAll('[data-unique-affix]:checked')].map(x=>x.value);if(!affixIds.length)return alert('橘裝至少要有一個固定詞條或專屬功能。');const def={id,name,baseId,visualId:(document.getElementById('gmUniqueVisual')?.value||id).trim(),description:(document.getElementById('gmUniqueEffect')?.value||'').trim(),affixIds,minFloor:Math.max(1,Number(document.getElementById('gmUniqueFloor')?.value)||1),weight:Math.max(1,Number(document.getElementById('gmUniqueWeight')?.value)||1)};gameData.uniqueEquipmentDefinitions[id]=clone(def);window.EQUIPMENT_UNIQUE_DATABASE[id]=clone(def);saveGame();renderGM();alert('橘裝已人工建檔；只會進無盡之塔的固定獨特裝清單，不會被隨機生成。');
-  }catch(err){alert('建立橘裝失敗，錯誤訊息：\n'+(err?.message||err)+'\n\n請把這段錯誤訊息截圖傳給我，我幫你查。');console.error('gmSaveUniqueV10120 error:',err);}};
-  window.gmUniqueTestV10120=function(id){const result=window.createUniqueEquipmentDrop?.(id,'gm_test');if(!result)return alert('建立測試品失敗。');saveGame();renderAll();alert('橘裝測試品已放入背包。');};
-  function uniqueEditorHTML(){const bases=Object.values(window.EQUIPMENT_BASE_DATABASE_T0||{}),rows=Object.values(gameData.uniqueEquipmentDefinitions||{});return `<div class="card"><h3>🟠 橘色獨特裝人工建檔</h3><div class="small">橘裝不使用隨機生成。可指定多個固定詞條、職業技能強化與專屬效果說明，建檔後才有機會從無盡之塔掉落。</div><div class="pool-edit-grid"><div><label>內部ID</label><input id="gmUniqueId" placeholder="phoenix_heart"></div><div><label>名稱</label><input id="gmUniqueName" placeholder="不死鳥之心"></div><div><label>基底</label><select id="gmUniqueBase">${bases.map(b=>`<option value="${b.id}">${b.icon} ${esc(b.name)}</option>`).join('')}</select></div><div><label>PNG／圖示ID</label><input id="gmUniqueVisual" placeholder="phoenix_heart"></div><div><label>最低塔層</label><input id="gmUniqueFloor" type="number" value="1"></div><div><label>掉落權重</label><input id="gmUniqueWeight" type="number" value="1"></div></div><label>專屬效果說明</label><input id="gmUniqueEffect" placeholder="每場首次受到致命傷害時，以1HP存活"><label>固定詞條與專屬功能（可複選）</label><div class="affix-checks">${Object.values(AFF).map(a=>`<label><input data-unique-affix type="checkbox" value="${a.id}"> <b>${esc(a.name)}</b><br><span class="small">${esc(a.text||a.stat||'')}</span></label>`).join('')}</div><button class="btn gold" onclick="gmSaveUniqueV10120()">建立橘裝</button>${rows.length?`<hr>${rows.map(x=>`<div class="card"><b>🟠 ${esc(x.name)}</b>｜最低${x.minFloor}層<br><span class="small">${esc(x.description||'')}</span><br><button class="btn gray" onclick="gmUniqueTestV10120('${x.id}')">發測試品</button></div>`).join('')}`:''}</div>`;}
+  /* 裝備獎勵池與橘裝編輯器已移至 Equipment Generator Lab。 */
 
   /* 技能特效工作台。素材可用部署路徑，或本機PNG預覽並保存在本機瀏覽器。 */
   let fxState={skillId:'fireball',start:{x:25,y:58},mid:{x:50,y:25},end:{x:75,y:58}};
@@ -10600,15 +10654,12 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   const oldPlayFx=window.playSkillVisualSequence;
   window.playSkillVisualSequence=async function(side,action={}){const cfg=window.skillVisualConfig(action);if(!cfg||cfg.path!=='custom')return oldPlayFx?.(side,action)||false;const layer=skillVisualLayer(),from=skillVisualPoint(side),to=skillVisualPoint(side==='hero'?'enemy':'hero');if(!layer||!from||!to)return false;const make=src=>{if(!src)return null;const i=document.createElement('img');i.src=src;i.className='skill-visual-img';i.style.width=(cfg.size||80)+'px';i.style.height=(cfg.size||80)+'px';layer.appendChild(i);return i;};const duration=Number(cfg.duration)||700;const cast=make(cfg.cast);if(cast){cast.style.left=from.x+'px';cast.style.top=from.y+'px';await cast.animate([{opacity:0},{opacity:1},{opacity:0}],{duration:Math.min(350,duration)}).finished.catch(()=>{});cast.remove();}const p=make(cfg.projectile);if(p){p.style.left=from.x+'px';p.style.top=from.y+'px';const mid=cfg.mid||{x:50,y:25},mx=(mid.x/100)*layer.clientWidth-from.x,my=(mid.y/100)*layer.clientHeight-from.y;await p.animate([{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${mx}px),calc(-50% + ${my}px))`,offset:.5},{transform:`translate(calc(-50% + ${to.x-from.x}px),calc(-50% + ${to.y-from.y}px))`}],{duration,easing:'ease-in-out'}).finished.catch(()=>{});p.remove();}const impact=make(cfg.impact);if(impact){impact.style.left=to.x+'px';impact.style.top=to.y+'px';await impact.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.5)'},{opacity:1},{opacity:0,transform:'translate(-50%,-50%) scale(1.3)'}],{duration:350}).finished.catch(()=>{});impact.remove();}return true;};
 
-  const priorPanel=window.renderEquipmentGMPanelHTML;
   window.renderEquipmentGMPanelHTML=function(){
     const baseline=ensureSemesterGearBaseline(),rate=Math.round(Number(gameData.balanceSettings?.gearCarryRate??.55)*100);
-    let html=priorPanel?.()||'';html=html.replace(/<div class="card"><h3>🎁 裝備獎勵池[\s\S]*?<\/div><div class="card"><h3>🎯 掉落品質機率/,m=>m);
-    const rows=(gameData.equipmentRewardPool||[]).filter(x=>x.editing).map(poolEditor).join('');
-    return `<div class="card"><h3>⚖️ 下學期裝備戰力折算</h3><div>開學裝備快照：<b>${Number(baseline.equipmentScore)||0}</b>｜目前加入怪物基準：<b>${semesterGearBonus()}</b></div><div class="small">只在新學期開始時記錄一次，避免換裝後怪物跟著無限膨脹。每日怪與期中／期末Boss都會使用。</div><label>裝備評分折算比例</label><input id="gmGearCarryRate" type="number" min="0" max="100" value="${rate}"><button class="btn blue" onclick="gmSaveGearCarryRate()">儲存比例</button> <button class="btn gray" onclick="gmRefreshGearBaseline()">重新記錄目前裝備</button></div>${html}${rows}${uniqueEditorHTML()}${fxEditorHTML()}`;
+    return `<div class="card"><h3>⚖️ 下學期裝備戰力折算</h3><div>開學裝備快照：<b>${Number(baseline.equipmentScore)||0}</b>｜目前加入怪物基準：<b>${semesterGearBonus()}</b></div><div class="small">只在新學期開始時記錄一次，避免換裝後怪物跟著無限膨脹。每日怪與期中／期末Boss都會使用。</div><label>裝備評分折算比例</label><input id="gmGearCarryRate" type="number" min="0" max="100" value="${rate}"><button class="btn blue" onclick="gmSaveGearCarryRate()">儲存比例</button> <button class="btn gray" onclick="gmRefreshGearBaseline()">重新記錄目前裝備</button></div>${fxEditorHTML()}`;
   };
   const oldRender=window.renderGM;
-  window.renderGM=function(){const r=oldRender.apply(this,arguments);document.getElementById('gmT0Forge')?.remove();setTimeout(window.gmFxBind,0);const pool=(gameData.equipmentRewardPool||[]);document.querySelectorAll('[id^="poolWeight_"]').forEach(el=>{const id=el.id.slice(11),details=el.closest('details');if(details&&!details.querySelector('.v10120-edit')){const b=document.createElement('button');b.className='btn purple v10120-edit';b.textContent='完整編輯';b.onclick=()=>window.gmEditPoolRowV10120(id);details.querySelector('summary')?.after(b);}});return r;};
+  window.renderGM=function(){const r=oldRender.apply(this,arguments);setTimeout(window.gmFxBind,0);return r;};
   if(gameData.hero?.name)renderAll();
 })();
 </script>
