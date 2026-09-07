@@ -2573,7 +2573,12 @@ function dailyDungeonAlreadyChallengedToday(){
   const t=today();
   if(gameData.dailyDungeonLastChallengeDate===t)return true;
   if(gameData.dailyDungeon?.date===t&&gameData.dailyDungeon?.challenged===true)return true;
-  return (gameData.battleRecords||[]).some(r=>r?.date===t&&['daily','midterm','final','special'].includes(r?.eventType));
+  return (gameData.battleRecords||[]).some(r=>{
+    if(r?.date!==t)return false;
+    // 正式每日副本舊紀錄有些版本沒有 eventType；塔、回憶戰與明確測試戰不算每日副本。
+    if(['tower','replay','gm_test','test'].includes(r?.eventType))return false;
+    return !r?.eventType||['daily','midterm','final','special'].includes(r.eventType);
+  });
 }
 function markDailyDungeonChallengedToday(){
   gameData.dailyDungeonLastChallengeDate=today();
@@ -4930,6 +4935,10 @@ function challengeDungeon(){
     const baseGold=evt?Number(evt.rewardGold||0):Number(monster?.rewardGold||0),baseExp=evt?Number(evt.rewardExp||0):Number(monster?.rewardExp||0);
     // 考試事件只提供 Boss 類型與固定 Power；圖片、技能、AI、召喚機制全部取當週當天的怪物 ID。
     let monsterId=evt?scheduledDef?.id:monsterIdByName(enemyName);if(!monsterId&&gameData.dailyDungeon.monsterId!=='AUTO')monsterId=gameData.dailyDungeon.monsterId;
+    // 一天一次的資格在「正式挑戰開始」時就消耗，不等戰鬥結束才鎖。
+    // 這樣重新整理、關閉戰鬥視窗或中途離開，都不能再次進場。
+    markDailyDungeonChallengedToday();
+    saveGame();
     runBattleSequence(enemyName,battleIconForEnemy(evt,monster),enemyPower,baseGold,baseExp,evt?.type||'daily',monsterId);
   }catch(err){console.error('challengeDungeon failed:',err);alert('戰鬥啟動失敗：'+(err?.message||err));}
 }
