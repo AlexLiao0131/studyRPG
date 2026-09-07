@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小學勇者大冒險 V10.11.94 EQUIPMENT FIX3</title>
+<title>小學勇者大冒險 V10.20.3 VISUAL CORE REBUILD</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#161b22;--card:#21262d;--border:#30363d;
@@ -1052,53 +1052,6 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </style>
 
 
-<style id="studyRPGUnifiedCoordinateResetV10179">
-#panel-hero .hero-scene .warrior-wrap,
-#dungeonHeroIdle,
-#dungeonEnemyIdle,
-#battleArena #battleChar_hero,
-#battleArena #battleChar_enemy{
-  right:auto!important;
-  bottom:auto!important;
-  margin:0!important;
-  transform-origin:center bottom!important;
-}
-</style>
-
-
-<style id="studyRPGEditorFormalParityV101711">
-/* Edit 與正式畫面統一腳底中心 anchor。 */
-#panel-hero .hero-scene .warrior-wrap{
-  transform:none !important;
-  animation:studyRPGEditorBobV101711 .58s steps(2,end) infinite !important;
-}
-@keyframes studyRPGEditorBobV101711{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(2px)}
-}
-#dungeonHeroIdle,
-#dungeonEnemyIdle{
-  transform:none !important;
-}
-
-/* 正式戰鬥主體圖片不再吃舊 Boss/家族固定 330/450/364px 規則；
-   大小只由 objectSizes[device].battleHero / battleEnemy 決定。 */
-#battleArena #battleChar_hero > img,
-#battleArena #battleChar_enemy > .battle-enemy-unit-sprite.enemy-unit-0{
-  width:100% !important;
-  height:100% !important;
-  max-width:100% !important;
-  max-height:100% !important;
-  left:auto !important;
-  top:auto !important;
-  right:auto !important;
-  bottom:auto !important;
-  object-fit:contain !important;
-  object-position:center bottom !important;
-}
-</style>
-
-
 <style id="studyRPGBackgroundScrollFix2">
 /* FIX2：週背景照常切換，但恢復無縫橫向捲動。外層保留給 Tool 的背景 transform，內層 track 單獨動畫，兩者互不干涉。 */
 .scene-background{overflow:hidden !important;}
@@ -1120,7 +1073,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 <div class="app">
-<h1>⚔️ 小學勇者大冒險 V10.11.94 EQUIPMENT FIX4</h1>
+<h1>⚔️ 小學勇者大冒險 V10.20.4 VISUAL CLEAN CORE</h1>
 
   <div id="heroSetup" class="card" style="display:none">
     <h2>建立勇者</h2>
@@ -2616,8 +2569,19 @@ function isDungeonBattleEvent(e){
 function getTodayEvent(){
   return gameData.events.find(e=>e.date===today()&&isDungeonBattleEvent(e))||null;
 }
+function dailyDungeonAlreadyChallengedToday(){
+  const t=today();
+  if(gameData.dailyDungeonLastChallengeDate===t)return true;
+  if(gameData.dailyDungeon?.date===t&&gameData.dailyDungeon?.challenged===true)return true;
+  return (gameData.battleRecords||[]).some(r=>r?.date===t&&['daily','midterm','final','special'].includes(r?.eventType));
+}
+function markDailyDungeonChallengedToday(){
+  gameData.dailyDungeonLastChallengeDate=today();
+  if(gameData.dailyDungeon){gameData.dailyDungeon.date=today();gameData.dailyDungeon.challenged=true;}
+}
 function ensureDailyDungeon(){
   if(gameData.dailyDungeon.date===today()){
+    if(dailyDungeonAlreadyChallengedToday()&&!gameData.dailyDungeon.challenged){gameData.dailyDungeon.challenged=true;saveGame();}
     // V10.11.55 曾把開學 start 事件存成今日副本；升版後立即自動修復，
     // 不要求玩家清 Firebase、重建角色或等到隔日重置。
     const savedEvent=gameData.dailyDungeon.eventId
@@ -2625,16 +2589,16 @@ function ensureDailyDungeon(){
       :null;
     if(!gameData.dailyDungeon.eventId||isDungeonBattleEvent(savedEvent))return;
     const name=generatedMonsterName();
-    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:false,result:'',drop:null,eventId:'',generatedName:name};
+    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:dailyDungeonAlreadyChallengedToday(),result:'',drop:null,eventId:'',generatedName:name};
     saveGame();
     return;
   }
   const evt=getTodayEvent();
   if(evt){
-    gameData.dailyDungeon={date:today(),monsterId:'',challenged:false,result:'',drop:null,eventId:evt.id,generatedName:evt.name};
+    gameData.dailyDungeon={date:today(),monsterId:'',challenged:dailyDungeonAlreadyChallengedToday(),result:'',drop:null,eventId:evt.id,generatedName:evt.name};
   }else{
     const name=generatedMonsterName();
-    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:false,result:'',drop:null,eventId:'',generatedName:name};
+    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:dailyDungeonAlreadyChallengedToday(),result:'',drop:null,eventId:'',generatedName:name};
   }
   saveGame();
 }
@@ -4918,7 +4882,7 @@ async function finishBattleV10(win){
     gameData.storyFlags=gameData.storyFlags||{};gameData.storyFlags.demonKingPhase1DamageRatio=clampBattle(1-(Math.max(0,primary.hp)/primary.maxHp),0,1);
   }
   if(s.eventType==='midterm'&&isFinalExamDay('midterm'))setWorldAfterMidterm(win);
-  gameData.dailyDungeon.challenged=true;gameData.dailyDungeon.result=win?'win':'lose';gameData.dailyDungeon.drop=drop;
+  markDailyDungeonChallengedToday();gameData.dailyDungeon.result=win?'win':'lose';gameData.dailyDungeon.drop=drop;
   gameData.battleRecords.push({id:uid(),date:today(),enemyName:s.enemyName,power:combatPower(),enemyPower:s.enemyPower,result:win?'win':'lose',eventType:s.eventType,drop,rounds:s.round,rating,battleV10:{heroHp:Math.max(0,s.heroHp),heroMaxHp:s.hero.maxHp,enemyHp:Math.max(0,primary?.hp||0),enemyMaxHp:primary?.maxHp||0,enemyCount:s.enemies?.length||1}});
   if(win&&s.eventType==='midterm'&&isFinalExamDay('midterm'))maybeUnlockUltimate();saveGame();showBattleWord(win?'🏆 勝利！':'💀 戰敗');
   document.getElementById('battleActions').style.display='none';document.getElementById('battleSubmenu').style.display='none';document.getElementById('battleResult').innerHTML=`<div class="battle-result"><div class="battle-result-icon">${win?'🏆':'💀'}</div><h2>${win?'勝利！':'戰敗！'}</h2>${win?`<div class="rating-stars">${'⭐'.repeat(rating)}</div><div>⭐ EXP +${s.baseExp}　💰 +${s.baseGold} G</div><div>🎁 ${drop?.label||'沒有額外掉落'}</div>`:`<div class="small">戰敗不扣 EXP、金幣或能力值。</div>`}<button class="btn ${win?'gold':'gray'} battle-close" onclick="closeBattleOverlay()">返回副本</button></div>`;
@@ -4958,7 +4922,7 @@ function battleIconForEnemy(evt,monster){
 }
 
 function challengeDungeon(){
-  try{ensureDailyDungeon();if(gameData.dailyDungeon.challenged){alert('今天已挑戰過副本');return;}
+  try{ensureDailyDungeon();if(dailyDungeonAlreadyChallengedToday()){gameData.dailyDungeon.challenged=true;alert('今天已挑戰過副本');return;}
     const evt=gameData.dailyDungeon.eventId?resolveDungeonEventById(gameData.dailyDungeon.eventId):null;
     const monster=evt?null:(gameData.dailyDungeon.monsterId==='AUTO'?{name:gameData.dailyDungeon.generatedName||generatedMonsterName(),difficulty:'normal',rewardGold:15,rewardExp:15,power:calibratedDailyMonsterPower()}:gameData.monsters.find(x=>x.id===gameData.dailyDungeon.monsterId));
     const scheduledDef=dungeonMonsterDefinition(monster,evt);
@@ -5225,8 +5189,8 @@ function renderDungeon(){
         ${ready?'⚔️ 可以打！':'💪 再變強一點！'}
       </div>
 
-      <button class="btn red big-battle-btn" ${gameData.dailyDungeon.challenged?'disabled':''} onclick="challengeDungeon()">
-        ${gameData.dailyDungeon.challenged?'今天打過了':'挑戰！'}
+      <button class="btn red big-battle-btn" ${dailyDungeonAlreadyChallengedToday()?'disabled':''} onclick="challengeDungeon()">
+        ${dailyDungeonAlreadyChallengedToday()?'今天打過了':'挑戰！'}
       </button>
 
       ${gameData.dailyDungeon.drop?`
@@ -5816,7 +5780,6 @@ function renderGM(){
         <div class="small" style="margin-top:6px">第21週為凱旋遊行，沒有戰鬥。</div>
       </div>
       <div class="row" style="margin-top:8px">
-        <button class="btn red" onclick="gmResetDungeonChallenge()">🔄 重置今日副本挑戰</button>
         <button class="btn blue" onclick="gmShowBattleDebug()">📊 檢視戰鬥數值</button>
       </div>
       <label>敵人測試強度倍率</label>
@@ -6212,10 +6175,6 @@ function currentBattleTestMultiplier(){
   return Number(gameData.settings?.battleTestMultiplier)||1;
 }
 
-function gmResetDungeonChallenge(){
-  ensureDailyDungeon();gameData.dailyDungeon.challenged=false;gameData.dailyDungeon.result=null;gameData.dailyDungeon.drop=null;
-  saveGame();renderAll();renderGM();alert('已重置今日副本挑戰，可以再次測試。');
-}
 function pct(v){return (Number(v||0)*100).toFixed(1)+'%';}
 function battleDebugCard(title,u){return `<div class="battle-debug-card"><b>${title}</b><br>HP ${u.maxHp}　Energy ${u.maxEnergy}<br>ATK ${u.attack.toFixed(1)}　MATK ${u.magicAttack.toFixed(1)}<br>DEF ${u.defense.toFixed(1)}　MDEF ${(u.magicDefense||0).toFixed(1)}　SPD ${u.speed.toFixed(1)}<br>CRIT ${pct(u.crit)}　EVA ${pct(u.evade)}<br>PARRY ${pct(u.parry)}　BLOCK ${pct(u.block)}<br>Status RES ${pct(u.statusRes)}　Base Element RES ${pct(u.elementalBaseRes)}<br>🔥 ${pct(totalElementRes(u,'fire'))}　❄️ ${pct(totalElementRes(u,'ice'))}　⚡ ${pct(totalElementRes(u,'lightning'))}　🌪️ ${pct(totalElementRes(u,'wind'))}<br>☠️毒特殊抗性 ${pct(u.resist?.poison||0)}　🌀詛咒特殊抗性 ${pct(u.resist?.curse||0)}</div>`;}
 
@@ -10718,306 +10677,19 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 <style>
 .battle-layout-stage{position:relative;height:330px;overflow:hidden;border:1px solid #59616d;border-radius:12px;background:linear-gradient(#203b52 0 72%,#253d29 72%);touch-action:none}.battle-layout-unit{position:absolute;transform:translate(-50%,-50%);font-size:68px;filter:drop-shadow(0 6px 3px #0008);pointer-events:none}.battle-layout-point{position:absolute;width:40px;height:40px;display:grid;place-items:center;transform:translate(-50%,-50%);border-radius:50%;z-index:4;font-size:12px;font-weight:1000;cursor:grab;user-select:none;box-shadow:0 2px 9px #000a}.battle-layout-point.hero{background:#238636}.battle-layout-point.enemy{background:#da3633}.battle-layout-point.attackMid{background:#8957e5}.battle-layout-point.attackStrike{background:#d29922;color:#111}.battle-layout-path{position:absolute;inset:0;pointer-events:none}.battle-layout-path polyline{fill:none;stroke:#f0f6fc;stroke-width:1.5;stroke-dasharray:4 3}
 </style>
-<script id="studyRPGVisualDeviceCoreV10202">
-/* V10.20.2：唯一視覺裝置分類器。
-   重要：本層只決定 desktop / tablet / mobile；不改任何既有座標、地板補償、物件 px 尺寸或背景捲動。
-   目的：讓 iPad / Android 平板橫向即使 viewport > 1024px 仍使用 tablet 資料，同時避免手機橫向誤判為 tablet。 */
-(function(){
-'use strict';
-function viewportWidth(){
-  return Math.max(1,Number(window.visualViewport?.width)||Number(window.innerWidth)||Number(document.documentElement?.clientWidth)||1);
-}
-function shortestScreenSide(){
-  const sw=Number(window.screen?.width)||0,sh=Number(window.screen?.height)||0;
-  return sw>0&&sh>0?Math.min(sw,sh):0;
-}
-function isTabletHardware(){
-  const ua=String(navigator.userAgent||'');
-  const platform=String(navigator.platform||'');
-  const touch=Number(navigator.maxTouchPoints||0);
-  const coarse=!!window.matchMedia?.('(pointer: coarse)')?.matches;
-  if(/iPad|Tablet|PlayBook|Silk/i.test(ua))return true;
-  if(/Android/i.test(ua)&&!/Mobile/i.test(ua))return true;
-  if(platform==='MacIntel'&&touch>1)return true; /* iPadOS desktop UA */
-  const short=shortestScreenSide();
-  return touch>0&&coarse&&short>=600;
-}
-function isPhoneHardware(){
-  const ua=String(navigator.userAgent||'');
-  if(/iPhone|iPod|Windows Phone|Android.*Mobile/i.test(ua))return true;
-  const short=shortestScreenSide();
-  return short>0&&short<600&&Number(navigator.maxTouchPoints||0)>0;
-}
-function deviceClass(){
-  const w=viewportWidth();
-  if(isPhoneHardware())return'mobile';
-  if(isTabletHardware())return'tablet';
-  if(w<=600)return'mobile';
-  if(w<=1024)return'tablet';
-  return'desktop';
-}
-function publish(){
-  const d=deviceClass();
-  try{document.documentElement.dataset.studyRPGDevice=d}catch(e){}
-  return d;
-}
-window.studyRPGVisualDeviceClassV10202=deviceClass;
-window.studyRPGVisualViewportWidthV10202=viewportWidth;
-window.studyRPGVisualDeviceDebugV10202=()=>({device:deviceClass(),viewportWidth:viewportWidth(),screenWidth:Number(screen?.width)||0,screenHeight:Number(screen?.height)||0,maxTouchPoints:Number(navigator.maxTouchPoints||0),userAgent:String(navigator.userAgent||'')});
-window.addEventListener('resize',publish,{passive:true});
-window.addEventListener('orientationchange',()=>setTimeout(publish,60),{passive:true});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',publish,{once:true});else publish();
-})();
-</script>
 
-<script>
-/* StudyRPG V10.12.1：響應式戰鬥站位與近戰移動路徑工作台。 */
-(function(){
-  'use strict';
-  const clone=v=>JSON.parse(JSON.stringify(v));
-  const DEFAULTS={
-    desktop:{hero:{x:18,y:68},enemy:{x:82,y:68},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},
-    tablet:{hero:{x:17,y:68},enemy:{x:83,y:68},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},
-    mobile:{hero:{x:18,y:65},enemy:{x:82,y:65},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}
-  };
-  gameData.battleLayout=gameData.battleLayout||clone(DEFAULTS);
-  for(const key of Object.keys(DEFAULTS))gameData.battleLayout[key]={...clone(DEFAULTS[key]),...(gameData.battleLayout[key]||{})};
-  let editDevice='desktop',draft=clone(gameData.battleLayout.desktop);
-  function currentDevice(){return window.studyRPGVisualDeviceClassV10202()}
-  function layout(){return gameData.battleLayout?.[currentDevice()]||DEFAULTS[currentDevice()];}
-  function positionUnit(el,p){if(!el||!p)return;el.style.setProperty('left',p.x+'%','important');el.style.setProperty('top',p.y+'%','important');el.style.setProperty('right','auto','important');el.style.setProperty('bottom','auto','important');}
-  window.applySavedBattleLayout=function(){const arena=document.getElementById('battleArena'),cfg=layout();if(!arena)return;positionUnit(document.getElementById('battleChar_hero'),cfg.hero);positionUnit(document.getElementById('battleChar_enemy'),cfg.enemy);requestAnimationFrame(()=>window.positionBattleTargetMarker?.());};
-  const oldRun=window.runBattleSequence;
-  if(typeof oldRun==='function')window.runBattleSequence=function(){const result=oldRun.apply(this,arguments);setTimeout(window.applySavedBattleLayout,0);setTimeout(window.applySavedBattleLayout,120);return result;};
-  const oldTargets=window.renderBattleTargets;
-  if(typeof oldTargets==='function')window.renderBattleTargets=function(){const result=oldTargets.apply(this,arguments);window.applySavedBattleLayout();return result;};
-  window.addEventListener('resize',()=>{if(document.getElementById('battleArena'))window.applySavedBattleLayout();});
-
-  const oldAnimate=window.animateBattleAction;
-  window.animateBattleAction=async function(attackerSide,result,attackerUnit=null,action=null){
-    const type=window.inferSkillActionType?.(action||{})||inferSkillActionType(action||{});
-    if(attackerSide!=='hero'||type!=='melee')return oldAnimate.apply(this,arguments);
-    const attacker=document.getElementById('battleChar_hero'),defender=document.getElementById('battleChar_enemy'),arena=document.getElementById('battleArena');if(!attacker||!defender||!arena)return;
-    window.applySavedBattleLayout();const cfg=layout(),start=cfg.hero,mid=cfg.attackMid,strike=cfg.attackStrike,duration=Math.max(260,Number(cfg.duration)||560),w=arena.clientWidth,h=arena.clientHeight;
-    const offset=p=>({x:(p.x-start.x)/100*w,y:(p.y-start.y)/100*h});const m=offset(mid),s=offset(strike);
-    attacker.dataset.actionType=type;attacker.classList.add('skill-action-'+type);defender.classList.remove('hit','dodge');
-    try{
-      const move=attacker.animate([
-        {transform:'translate(0px,0px)',offset:0},
-        {transform:`translate(${m.x}px,${m.y}px)`,offset:.38},
-        {transform:`translate(${s.x}px,${s.y}px) scale(1.05)`,offset:.62},
-        {transform:`translate(${s.x}px,${s.y}px) scale(1.02)`,offset:.72},
-        {transform:'translate(0px,0px)',offset:1}
-      ],{duration,easing:'ease-in-out'});
-      const visual=action?playSkillVisualSequence('hero',action):Promise.resolve(false);
-      await Promise.all([playHeroAttackFrames(),visual,move.finished.catch(()=>{})]);
-      if(result.type==='dodge')defender.classList.add('dodge');else if(result.damage>0)defender.classList.add('hit');await battleSleep(180);
-    }finally{attacker.classList.remove('skill-action-'+type);delete attacker.dataset.actionType;defender.classList.remove('hit','dodge');window.applySavedBattleLayout();const img=document.getElementById('battleHeroSprite');if(img){img.src=heroSpritePath('idle');img.classList.remove('hero-attack-css');img.classList.add('hero-idle-css');}}
-  };
-
-  function refreshDraft(){draft=clone(gameData.battleLayout[editDevice]||DEFAULTS[editDevice]);}
-  window.gmLayoutDevice=function(){editDevice=document.getElementById('gmLayoutDevice')?.value||'desktop';refreshDraft();renderGM();};
-  function redrawStage(){const stage=document.getElementById('gmBattleLayoutStage'),hero=document.getElementById('gmLayoutHeroIcon'),enemy=document.getElementById('gmLayoutEnemyIcon'),line=document.getElementById('gmLayoutLine');if(!stage)return;if(hero){hero.style.left=draft.hero.x+'%';hero.style.top=draft.hero.y+'%';}if(enemy){enemy.style.left=draft.enemy.x+'%';enemy.style.top=draft.enemy.y+'%';}if(line)line.setAttribute('points',`${draft.hero.x},${draft.hero.y} ${draft.attackMid.x},${draft.attackMid.y} ${draft.attackStrike.x},${draft.attackStrike.y} ${draft.hero.x},${draft.hero.y}`);}
-  function dragPoint(ev){const el=ev.currentTarget,key=el.dataset.layoutPoint,stage=el.parentElement;el.setPointerCapture(ev.pointerId);const move=e=>{const r=stage.getBoundingClientRect();draft[key]={x:Math.round(Math.max(2,Math.min(98,(e.clientX-r.left)/r.width*100))*10)/10,y:Math.round(Math.max(5,Math.min(92,(e.clientY-r.top)/r.height*100))*10)/10};el.style.left=draft[key].x+'%';el.style.top=draft[key].y+'%';redrawStage();};el.onpointermove=move;el.onpointerup=()=>el.onpointermove=null;}
-  window.gmBindBattleLayout=function(){document.querySelectorAll('[data-layout-point]').forEach(x=>x.onpointerdown=dragPoint);redrawStage();};
-  window.gmPreviewBattleLayout=async function(){const stage=document.getElementById('gmBattleLayoutStage'),hero=document.getElementById('gmLayoutHeroIcon');if(!stage||!hero)return;const w=stage.clientWidth,h=stage.clientHeight,start=draft.hero,mid=draft.attackMid,strike=draft.attackStrike,off=p=>({x:(p.x-start.x)/100*w,y:(p.y-start.y)/100*h}),m=off(mid),s=off(strike);await hero.animate([{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${m.x}px),calc(-50% + ${m.y}px))`,offset:.38},{transform:`translate(calc(-50% + ${s.x}px),calc(-50% + ${s.y}px)) scale(1.08)`,offset:.65},{transform:'translate(-50%,-50%)'}],{duration:Math.max(260,Number(document.getElementById('gmLayoutDuration')?.value)||560),easing:'ease-in-out'}).finished.catch(()=>{});};
-  window.gmSaveBattleLayout=function(){draft.duration=Math.max(260,Math.min(2000,Number(document.getElementById('gmLayoutDuration')?.value)||560));gameData.battleLayout[editDevice]=clone(draft);saveGame();alert(`已儲存${editDevice==='desktop'?'電腦':editDevice==='tablet'?'平板':'手機'}站位與近戰路徑。`);};
-  window.gmResetBattleLayout=function(){draft=clone(DEFAULTS[editDevice]);renderGM();};
-  function editorHTML(){return `<div class="card"><h3>🎬 戰鬥站位與近戰路徑</h3><div class="small">綠點＝勇者待機位置、紅點＝敵人待機位置、紫點＝移動轉折、黃點＝貼近攻擊位置。攻擊後會自動沿路返回綠點。</div><div class="grid2"><div><label>裝置版型</label><select id="gmLayoutDevice" onchange="gmLayoutDevice()"><option value="desktop" ${editDevice==='desktop'?'selected':''}>電腦</option><option value="tablet" ${editDevice==='tablet'?'selected':''}>平板</option><option value="mobile" ${editDevice==='mobile'?'selected':''}>手機</option></select></div><div><label>移動時間(ms)</label><input id="gmLayoutDuration" type="number" min="260" max="2000" value="${Number(draft.duration)||560}"></div></div><div id="gmBattleLayoutStage" class="battle-layout-stage"><svg class="battle-layout-path" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline id="gmLayoutLine" points=""></polyline></svg><div id="gmLayoutHeroIcon" class="battle-layout-unit" style="left:${draft.hero.x}%;top:${draft.hero.y}%">🧙</div><div id="gmLayoutEnemyIcon" class="battle-layout-unit" style="left:${draft.enemy.x}%;top:${draft.enemy.y}%">👹</div>${[['hero','勇者'],['enemy','敵人'],['attackMid','轉折'],['attackStrike','攻擊']].map(([k,t])=>`<div class="battle-layout-point ${k}" data-layout-point="${k}" style="left:${draft[k].x}%;top:${draft[k].y}%">${t}</div>`).join('')}</div><button class="btn blue" onclick="gmPreviewBattleLayout()">▶ 預覽近戰移動</button> <button class="btn purple" onclick="gmSaveBattleLayout()">儲存此裝置版型</button> <button class="btn gray" onclick="gmResetBattleLayout()">恢復預設</button></div>`;}
-  const oldPanel=window.renderEquipmentGMPanelHTML;
-  window.renderEquipmentGMPanelHTML=function(){return (oldPanel?.()||'')+editorHTML();};
-  const oldGM=window.renderGM;
-  window.renderGM=function(){const r=oldGM.apply(this,arguments);setTimeout(window.gmBindBattleLayout,0);return r;};
-  if(gameData.hero?.name)renderAll();
-})();
-</script>
 <style>
 .scene-coordinate-preview{position:relative;overflow:hidden;border:1px solid #59616d;border-radius:12px;background:#203b52 center bottom/cover no-repeat;touch-action:none}.scene-coordinate-preview.battle-preview{aspect-ratio:3/1}.scene-coordinate-preview.status-preview{aspect-ratio:16/7}.scene-coordinate-preview.dungeon-preview{aspect-ratio:2/1;display:grid;grid-template-columns:1fr 1fr}.scene-coordinate-preview .preview-half{position:relative;overflow:hidden;border-right:1px solid #ffffff22}.scene-coordinate-preview .preview-half:last-child{border:0}.scene-preview-sprite{position:absolute;width:24%;height:68%;object-fit:contain;transform:translate(-50%,-50%);image-rendering:pixelated;filter:drop-shadow(0 6px 3px #0008);pointer-events:none}.status-preview .scene-preview-sprite{width:28%;height:78%}.dungeon-preview .scene-preview-sprite{width:62%;height:88%}.scene-drag-handle{position:absolute;z-index:4;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;transform:translate(-50%,-50%);cursor:grab;user-select:none;font-size:11px;font-weight:1000;background:#1f6feb;color:white;box-shadow:0 2px 8px #000}.scene-drag-handle.enemy{background:#da3633}.preview-note{font-size:11px;color:#8b949e;margin:5px 0 12px}.preview-viewport-desktop{max-width:900px}.preview-viewport-tablet{max-width:720px}.preview-viewport-mobile{max-width:390px}.preview-viewport-mobile.battle-preview{aspect-ratio:390/260}.preview-viewport-mobile.status-preview{aspect-ratio:390/220}
 </style>
-<script>
-/* StudyRPG V10.12.3：正式背景／英雄／週次怪物預覽，以及狀態頁與副本入口座標。 */
-(function(){
-  'use strict';
-  const clone=v=>JSON.parse(JSON.stringify(v));
-  const DEFAULT={desktop:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},tablet:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},mobile:{statusHero:{x:50,y:62},dungeonHero:{x:50,y:60},dungeonEnemy:{x:50,y:60}}};
-  function validPoint(v,fallback){
-    return (v&&typeof v==='object'&&Number.isFinite(Number(v.x))&&Number.isFinite(Number(v.y)))
-      ? {x:Number(v.x),y:Number(v.y)} : clone(fallback);
-  }
-  gameData.sceneCoordinateLayout=gameData.sceneCoordinateLayout||clone(DEFAULT);
-  for(const d of Object.keys(DEFAULT)){
-    const src=gameData.sceneCoordinateLayout[d]||{};
-    gameData.sceneCoordinateLayout[d]={
-      statusHero:validPoint(src.statusHero,DEFAULT[d].statusHero),
-      dungeonHero:validPoint(src.dungeonHero,DEFAULT[d].dungeonHero),
-      dungeonEnemy:validPoint(src.dungeonEnemy,DEFAULT[d].dungeonEnemy)
-    };
-  }
-  let state={device:'desktop',week:Math.max(1,Math.min(20,Number(window.semesterWeekIndex?.())||1)),monster:'',hero:'current'},draft=clone(gameData.sceneCoordinateLayout.desktop);
-  const heroMap={current:'目前英雄',novice:'見習勇者',warrior:'戰士',mage:'法師',priest:'牧師',hunter:'獵人',rogue:'盜賊',paladin:'聖騎士',spellblade:'魔劍士'};
-  function deviceNow(){return window.studyRPGVisualDeviceClassV10202()}
-  function selectedMap(){return (window.WEEKLY_MAP_DATABASE||[]).find(x=>Number(x.week)===Number(state.week))||null;}
-  function monsterIds(){return (selectedMap()?.monsters||[]).filter(Boolean);}
-  function selectedMonster(){const ids=monsterIds();if(!ids.includes(state.monster))state.monster=ids[0]||'';return window.MONSTER_DATABASE?.[state.monster]||null;}
-  function background(){return selectedMap()?.background||`images/backgrounds/week${String(state.week).padStart(2,'0')}_grassland.png`;}
-  function heroSrc(){if(state.hero==='current')return heroSpritePath('idle');return `images/hero_${state.hero}${gameData.hero?.gender==='female'?'_female':''}_idle.png`;}
-  function monsterSrc(){const m=selectedMonster();return m?.sprites?.idle||m?.sprites?.battle||'';}
-  function important(el,key,value){el?.style.setProperty(key,value,'important');}
-  function applyLiveCoordinates(){try{window.studyRPGApplyUnifiedLayoutV10179?.()}catch(e){console.warn('座標套用略過',e)}}
-  const oldHero=window.renderHero;if(typeof oldHero==='function')window.renderHero=function(){const r=oldHero.apply(this,arguments);applyLiveCoordinates();return r;};
-  const oldDungeon=window.renderDungeon;if(typeof oldDungeon==='function')window.renderDungeon=function(){const r=oldDungeon.apply(this,arguments);setTimeout(applyLiveCoordinates,0);return r;};
-  addEventListener('resize',applyLiveCoordinates);
 
-  window.gmSceneSelect=function(){state.device=document.getElementById('gmSceneDevice')?.value||state.device;state.week=Number(document.getElementById('gmSceneWeek')?.value)||state.week;state.hero=document.getElementById('gmSceneHero')?.value||state.hero;const requested=document.getElementById('gmSceneMonster')?.value;if(requested)state.monster=requested;draft=clone(gameData.sceneCoordinateLayout[state.device]||DEFAULT[state.device]);renderGM();};
-  window.gmSceneWeek=function(){state.week=Number(document.getElementById('gmSceneWeek')?.value)||1;state.monster='';renderGM();};
-  function moveHandle(ev){const el=ev.currentTarget,key=el.dataset.scenePoint,stage=el.closest('.scene-coordinate-preview'),half=el.closest('.preview-half')||stage;el.setPointerCapture(ev.pointerId);el.onpointermove=e=>{const r=half.getBoundingClientRect();draft[key]={x:Math.round(Math.max(2,Math.min(98,(e.clientX-r.left)/r.width*100))*10)/10,y:Math.round(Math.max(5,Math.min(95,(e.clientY-r.top)/r.height*100))*10)/10};el.style.left=draft[key].x+'%';el.style.top=draft[key].y+'%';const img=half.querySelector(`[data-scene-img="${key}"]`);if(img){img.style.left=draft[key].x+'%';img.style.top=draft[key].y+'%';}};el.onpointerup=()=>el.onpointermove=null;}
-  window.gmBindSceneCoordinates=function(){document.querySelectorAll('[data-scene-point]').forEach(x=>x.onpointerdown=moveHandle);};
-  window.gmSaveSceneCoordinates=function(){gameData.sceneCoordinateLayout[state.device]=clone(draft);saveGame();applyLiveCoordinates();alert(`已儲存${state.device==='desktop'?'電腦':state.device==='tablet'?'平板':'手機'}的狀態頁與副本入口座標。`);};
-  window.gmResetSceneCoordinates=function(){draft=clone(DEFAULT[state.device]);renderGM();};
-  function point(key,label,enemy=false){const p=draft[key];return `<img class="scene-preview-sprite" data-scene-img="${key}" src="${key==='dungeonEnemy'?monsterSrc():heroSrc()}" style="left:${p.x}%;top:${p.y}%"><div class="scene-drag-handle ${enemy?'enemy':''}" data-scene-point="${key}" style="left:${p.x}%;top:${p.y}%">${label}</div>`;}
-  function weekOptions(){return (window.WEEKLY_MAP_DATABASE||[]).filter(x=>x.week<=20).map(x=>`<option value="${x.week}" ${Number(x.week)===state.week?'selected':''}>第${x.week}週・${x.map}</option>`).join('');}
-  function monsterOptions(){const ids=monsterIds();if(!ids.includes(state.monster))state.monster=ids[0]||'';return ids.map(id=>{const m=window.MONSTER_DATABASE?.[id];return `<option value="${id}" ${id===state.monster?'selected':''}>${m?.boss?'👑 ':''}${m?.name||id}</option>`;}).join('');}
-  function editor(){const bg=background(),cls=`scene-coordinate-preview preview-viewport-${state.device}`;return `<div class="card"><h3>🖼️ 完整場景、素材與其他座標</h3><div class="small">預覽使用正式 GitHub 背景與角色路徑。畫面依電腦900px、平板720px、手機390px的正式戰鬥框比例縮放；百分比座標與遊戲一致。</div><div class="pool-edit-grid"><div><label>裝置</label><select id="gmSceneDevice" onchange="gmSceneSelect()">${[['desktop','電腦'],['tablet','平板'],['mobile','手機']].map(([v,n])=>`<option value="${v}" ${v===state.device?'selected':''}>${n}</option>`).join('')}</select></div><div><label>週次／背景</label><select id="gmSceneWeek" onchange="gmSceneWeek()">${weekOptions()}</select></div><div><label>怪物</label><select id="gmSceneMonster" onchange="gmSceneSelect()">${monsterOptions()}</select></div><div><label>英雄素材</label><select id="gmSceneHero" onchange="gmSceneSelect()">${Object.entries(heroMap).map(([v,n])=>`<option value="${v}" ${v===state.hero?'selected':''}>${n}</option>`).join('')}</select></div></div><h4>正式戰鬥畫面核對</h4><div class="${cls} battle-preview" style="background-image:url('${bg}')"><img class="scene-preview-sprite" src="${heroSrc()}" style="left:${gameData.battleLayout?.[state.device]?.hero?.x||18}%;top:${gameData.battleLayout?.[state.device]?.hero?.y||68}%"><img class="scene-preview-sprite" src="${monsterSrc()}" style="left:${gameData.battleLayout?.[state.device]?.enemy?.x||82}%;top:${gameData.battleLayout?.[state.device]?.enemy?.y||68}%"></div><div class="preview-note">此處核對上一個「戰鬥站位與近戰路徑」設定；要拖曳請使用該工作台。</div><h4>狀態欄角色座標</h4><div class="${cls} status-preview" style="background-image:url('${bg}')">${point('statusHero','狀態')}</div><h4>副本入口座標</h4><div class="${cls} dungeon-preview" style="background-image:url('${bg}')"><div class="preview-half">${point('dungeonHero','勇者')}</div><div class="preview-half">${point('dungeonEnemy','敵人',true)}</div></div><div class="preview-note">副本入口左右卡片各自使用獨立百分比座標。</div><button class="btn purple" onclick="gmSaveSceneCoordinates()">儲存此裝置座標</button> <button class="btn gray" onclick="gmResetSceneCoordinates()">恢復預設</button></div>`;}
-  const oldPanel=window.renderEquipmentGMPanelHTML;window.renderEquipmentGMPanelHTML=function(){return (oldPanel?.()||'')+editor();};
-  const oldGM=window.renderGM;window.renderGM=function(){const r=oldGM.apply(this,arguments);setTimeout(window.gmBindSceneCoordinates,0);return r;};
-  if(gameData.hero?.name)renderAll();
-})();
-</script>
 
-<script>
-/* V10.12.5 HOTFIX：物件尺寸與座標完全分離；修復舊版把 {x,y} 覆蓋成數字的錯誤。 */
-(function(){
-  'use strict';
-  const sizeDefaults={
-    desktop:{battleHero:190,battleEnemy:190,statusHero:160,dungeonHero:180,dungeonEnemy:180},
-    tablet:{battleHero:175,battleEnemy:175,statusHero:150,dungeonHero:165,dungeonEnemy:165},
-    mobile:{battleHero:145,battleEnemy:145,statusHero:135,dungeonHero:135,dungeonEnemy:135}
-  };
-  const coordDefaults={
-    desktop:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},
-    tablet:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},
-    mobile:{statusHero:{x:50,y:62},dungeonHero:{x:50,y:60},dungeonEnemy:{x:50,y:60}}
-  };
-  const clone=v=>JSON.parse(JSON.stringify(v));
-  function dev(){return window.studyRPGVisualDeviceClassV10202();}
-  function point(v,f){return v&&typeof v==='object'&&Number.isFinite(Number(v.x))&&Number.isFinite(Number(v.y))?{x:Number(v.x),y:Number(v.y)}:clone(f);}
-  function ensure(){
-    gameData.objectSizes=gameData.objectSizes||{};
-    gameData.battleLayout=gameData.battleLayout||{};
-    gameData.sceneCoordinateLayout=gameData.sceneCoordinateLayout||{};
-    for(const d of Object.keys(sizeDefaults)){
-      gameData.objectSizes[d]=gameData.objectSizes[d]||{};
-      const oldBattle=gameData.battleLayout[d]||{};
-      const oldScene=gameData.sceneCoordinateLayout[d]||{};
-      for(const [k,v] of Object.entries(sizeDefaults[d])){
-        if(!Number.isFinite(Number(gameData.objectSizes[d][k]))||Number(gameData.objectSizes[d][k])<=0){
-          const legacy=k.startsWith('battle')?oldBattle[k]:oldScene[k];
-          gameData.objectSizes[d][k]=Number.isFinite(Number(legacy))&&Number(legacy)>0?Number(legacy):v;
-        }
-      }
-      // 舊版若已把座標物件改成尺寸數字，這裡自動回復安全預設。
-      gameData.sceneCoordinateLayout[d]={
-        statusHero:point(oldScene.statusHero,coordDefaults[d].statusHero),
-        dungeonHero:point(oldScene.dungeonHero,coordDefaults[d].dungeonHero),
-        dungeonEnemy:point(oldScene.dungeonEnemy,coordDefaults[d].dungeonEnemy)
-      };
-      // 移除舊的混用尺寸欄位，避免之後再次被誤讀。
-      delete gameData.battleLayout[d].battleHero;
-      delete gameData.battleLayout[d].battleEnemy;
-    }
-  }
-  ensure();
-  function imp(el,k,v){el?.style.setProperty(k,v,'important');}
-  function applySizes(){
-    ensure();
-    const d=dev(),sz=gameData.objectSizes[d],C=window.STUDYRPG_EDITOR_CONFIG||{};
-    const idOf=el=>{
-      if(!el)return'';
-      const c=[...el.classList].find(x=>x.startsWith('monster-id-'));
-      if(c)return c.slice(11);
-      const src=el.getAttribute('src')||el.querySelector?.('img')?.getAttribute('src')||'';
-      const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_(?:idle|battle)\./);
-      return m?m[1]:'';
-    };
-    const hero=document.getElementById('battleChar_hero'),enemy=document.getElementById('battleChar_enemy');
-    if(hero){imp(hero,'width',sz.battleHero+'px');imp(hero,'height',sz.battleHero+'px');}
-    if(enemy){
-      const id=idOf(enemy)||idOf(enemy.querySelector?.('img'));
-      const personal=Number(C.monsters?.[id]?.battleSize?.[d]);
-      const n=personal>0?personal:sz.battleEnemy;
-      imp(enemy,'width',n+'px');imp(enemy,'height',n+'px');
-    }
-    const status=document.getElementById('heroSprite');
-    if(status){imp(status,'width',sz.statusHero+'px');imp(status,'height',sz.statusHero+'px');}
-    const dh=document.getElementById('dungeonHeroIdle'),de=document.getElementById('dungeonEnemyIdle');
-    if(dh){imp(dh,'width',sz.dungeonHero+'px');imp(dh,'height',sz.dungeonHero+'px');}
-    if(de){
-      const id=idOf(de);
-      const personal=Number(C.monsters?.[id]?.idleSize?.[d]);
-      const n=personal>0?personal:sz.dungeonEnemy;
-      imp(de,'width',n+'px');imp(de,'height',n+'px');
-    }
-  }
-  const priorApply=window.applySavedBattleLayout;window.applySavedBattleLayout=function(){const r=priorApply?.apply(this,arguments);applySizes();return r;};
-  const priorHero=window.renderHero;if(typeof priorHero==='function')window.renderHero=function(){const r=priorHero.apply(this,arguments);applySizes();return r;};
-  const priorDungeon=window.renderDungeon;if(typeof priorDungeon==='function')window.renderDungeon=function(){const r=priorDungeon.apply(this,arguments);setTimeout(applySizes,0);return r;};
-  addEventListener('resize',applySizes);
-  function selectedDevice(prefix){return document.getElementById(prefix)?.value||'desktop';}
-  const sizeDraft={};
-  function draftFor(d){ensure();sizeDraft[d]=sizeDraft[d]||clone(gameData.objectSizes[d]);return sizeDraft[d];}
-  window.gmObjectSizePreview=function(group,key,input){
-    const d=group==='battle'?selectedDevice('gmLayoutDevice'):selectedDevice('gmSceneDevice');
-    const value=Math.max(40,Math.min(500,Number(input.value)||100));
-    draftFor(d)[key]=value; // 只改草稿，不碰正式 gameData
-    const map={battleHero:'#gmBattleLayoutStage #gmLayoutHeroIcon',battleEnemy:'#gmBattleLayoutStage #gmLayoutEnemyIcon',statusHero:'.status-preview [data-scene-img="statusHero"]',dungeonHero:'.dungeon-preview [data-scene-img="dungeonHero"]',dungeonEnemy:'.dungeon-preview [data-scene-img="dungeonEnemy"]'};
-    const el=document.querySelector(map[key]);if(el){el.style.width=value+'px';el.style.height=value+'px';}
-    const out=document.getElementById('sizeOut_'+key);if(out)out.textContent=value+'px';
-  };
-  window.gmSaveObjectSizes=function(group){
-    const d=group==='battle'?selectedDevice('gmLayoutDevice'):selectedDevice('gmSceneDevice');
-    gameData.objectSizes[d]=clone(draftFor(d));
-    saveGame();applySizes();
-    alert((group==='battle'?'戰鬥英雄／敵人':'狀態頁／副本入口')+'尺寸已儲存。');
-  };
-  function slider(group,key,label,value,max=500){return `<div><label>${label}：<b id="sizeOut_${key}">${value}px</b></label><input type="range" min="40" max="${max}" step="5" value="${value}" oninput="gmObjectSizePreview('${group}','${key}',this)"></div>`;}
-  function install(){
-    ensure();
-    const battle=document.getElementById('gmBattleLayoutStage');
-    if(battle&&!document.getElementById('gmBattleSizeControls')){
-      const d=selectedDevice('gmLayoutDevice'),cfg=draftFor(d),box=document.createElement('div');box.id='gmBattleSizeControls';box.className='card grid2';
-      box.innerHTML=slider('battle','battleHero','戰鬥英雄大小',cfg.battleHero)+slider('battle','battleEnemy','戰鬥敵人大小',cfg.battleEnemy)+`<button class="btn purple" onclick="gmSaveObjectSizes('battle')">儲存戰鬥物件大小</button>`;
-      battle.insertAdjacentElement('beforebegin',box);
-    }
-    const scene=document.querySelector('.status-preview');
-    if(scene&&!document.getElementById('gmSceneSizeControls')){
-      const d=selectedDevice('gmSceneDevice'),cfg=draftFor(d),box=document.createElement('div');box.id='gmSceneSizeControls';box.className='card';
-      box.innerHTML='<h4>物件大小</h4><div class="pool-edit-grid">'+slider('scene','statusHero','狀態欄英雄',cfg.statusHero)+slider('scene','dungeonHero','副本入口英雄',cfg.dungeonHero)+slider('scene','dungeonEnemy','副本入口敵人',cfg.dungeonEnemy)+'</div><button class="btn purple" onclick="gmSaveObjectSizes(\'scene\')">儲存狀態／副本物件大小</button>';
-      scene.insertAdjacentElement('beforebegin',box);
-    }
-  }
-  const oldGM=window.renderGM;window.renderGM=function(){const r=oldGM.apply(this,arguments);setTimeout(install,0);return r;};
-  setTimeout(install,0);applySizes();
-})();
-</script>
+
 <style>
 .logical-viewport-shell{position:relative;width:100%;overflow:hidden;margin:8px 0 12px;border-radius:12px;background:#080b10}.logical-viewport-canvas{position:absolute!important;left:0;top:0;transform-origin:top left!important;max-width:none!important;margin:0!important}.logical-scale-label{position:absolute;right:6px;top:6px;z-index:20;background:#090d13dd;border:1px solid #59616d;border-radius:999px;padding:3px 7px;font-size:10px;color:#fff;pointer-events:none}
 </style>
-<script>
-/* V10.12.4：真正依邏輯解析度排版後再等比例縮小，手機不再把三種預覽擠成同一寬度。 */
-(function(){
-  'use strict';
-  const DIM={desktop:{battle:[900,300],status:[900,260],dungeon:[900,220]},tablet:{battle:[720,300],status:[720,260],dungeon:[720,220]},mobile:{battle:[390,260],status:[390,260],dungeon:[390,540]}};
-  function chosenDevice(){return document.getElementById('gmSceneDevice')?.value||document.getElementById('gmLayoutDevice')?.value||'desktop';}
-  function wrapCanvas(el,w,h,device,type){if(!el)return;let shell=el.parentElement?.classList.contains('logical-viewport-shell')?el.parentElement:null;if(!shell){shell=document.createElement('div');shell.className='logical-viewport-shell';el.parentNode.insertBefore(shell,el);shell.appendChild(el);const label=document.createElement('div');label.className='logical-scale-label';shell.appendChild(label);}el.classList.add('logical-viewport-canvas');el.style.setProperty('width',w+'px','important');el.style.setProperty('height',h+'px','important');el.style.setProperty('min-height','0','important');el.style.setProperty('max-width','none','important');if(type==='dungeon')el.style.gridTemplateColumns=device==='mobile'?'1fr':'1fr 1fr';const available=Math.max(1,shell.clientWidth),scale=Math.min(1,available/w);el.style.setProperty('transform',`scale(${scale})`,'important');shell.style.height=Math.ceil(h*scale)+'px';shell.querySelector('.logical-scale-label').textContent=`${device==='desktop'?'電腦':device==='tablet'?'平板':'手機'} ${w}×${h}｜${Math.round(scale*100)}%`;
-  }
-  function installLogicalPreviews(){
-    const sceneDevice=document.getElementById('gmSceneDevice')?.value||'desktop',layoutDevice=document.getElementById('gmLayoutDevice')?.value||'desktop';
-    const sd=DIM[sceneDevice],ld=DIM[layoutDevice];wrapCanvas(document.getElementById('gmBattleLayoutStage'),ld.battle[0],ld.battle[1],layoutDevice,'battle');wrapCanvas(document.querySelector('.battle-preview'),sd.battle[0],sd.battle[1],sceneDevice,'battle');wrapCanvas(document.querySelector('.status-preview'),sd.status[0],sd.status[1],sceneDevice,'status');wrapCanvas(document.querySelector('.dungeon-preview'),sd.dungeon[0],sd.dungeon[1],sceneDevice,'dungeon');
-  }
-  const oldGM=window.renderGM;window.renderGM=function(){const r=oldGM.apply(this,arguments);setTimeout(installLogicalPreviews,0);return r;};addEventListener('resize',installLogicalPreviews);setTimeout(installLogicalPreviews,0);
-})();
-</script>
 
+
+<script src="visual-database.js"></script>
 <script id="studyRPGEditorConfig">
 /* STUDYRPG_EDITOR_CONFIG_START */
 window.STUDYRPG_EDITOR_CONFIG={
@@ -11386,111 +11058,49 @@ window.STUDYRPG_EDITOR_CONFIG={
 /* STUDYRPG_EDITOR_CONFIG_END */
 </script>
 
-<script id="studyRPGGroundCoreV101712">
+
+
+
+
+
+
+<script id="studyRPGVisualRuntimeV1">
+/* Visual Runtime v1: one device resolver, one ground/foot-anchor model, no save/gameplay writes. */
 (function(){
 'use strict';
-/* V10.17.12：地板高度 = 週次 × 裝置 × 場景。舊 numeric 格式仍可讀取。 */
-const C=window.STUDYRPG_EDITOR_CONFIG||{},BASE={desktop:68,tablet:68,mobile:65};
-function dev(){return window.studyRPGVisualDeviceClassV10202()}
-function week(){try{if(typeof semesterWeekIndex==='function'){const w=Number(semesterWeekIndex());if(Number.isFinite(w))return w}}catch(e){}return 1}
-function sceneForName(name=''){if(name==='statusHero')return'status';if(name==='dungeonHero'||name==='dungeonEnemy')return'dungeonEntry';return'dungeon'}
-function ground(d=dev(),w=week(),scene='dungeon'){
-  for(let k=Math.max(1,Number(w)||1);k>=1;k--){
-    const row=C.mapGround?.[String(k)]||C.mapGround?.[k],cell=row?.[d];
-    if(cell&&typeof cell==='object'){
-      const v=Number(cell[scene]);
-      if(Number.isFinite(v))return v;
-    }else{
-      const legacy=Number(cell);
-      if(Number.isFinite(legacy))return legacy;
-    }
-  }
-  return null;
+const DB=window.STUDYRPG_VISUAL_DATABASE||{};
+function device(){
+ const ua=navigator.userAgent||'', platform=navigator.platform||'', touch=navigator.maxTouchPoints||0;
+ if(/iPhone|iPod|Windows Phone|Android.*Mobile/i.test(ua))return'mobile';
+ if(/iPad/i.test(ua)||(platform==='MacIntel'&&touch>1)||(/Android/i.test(ua)&&!/Mobile/i.test(ua))||/Tablet|PlayBook|Silk/i.test(ua))return'tablet';
+ return innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop';
 }
-function point(p,d=dev(),w=week(),name='',scene){if(!p)return p;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return p;/* FIX2：Tool 匯出的百分比座標就是最終座標。舊 mapGround 只保留資料查詢，不再二次改寫 Y，避免平板/手機上傳後跑位。 */return{x,y}}
-window.studyRPGGroundDeviceV10176=dev;window.studyRPGGroundWeekV10176=week;window.studyRPGGroundSceneForNameV101712=sceneForName;window.studyRPGGroundValueV10176=ground;window.studyRPGGroundPointV10176=point;
-})();
-</script>
-
-<script id="studyRPGSceneLayoutDataSyncV10179">
-/* V10.17.11：Edit 內嵌設定 -> gameData 的唯一資料同步層。
-   這裡只同步數值，不直接改 DOM，不包 renderHero/renderDungeon。
-*/
-(function(){
-'use strict';
-const C=window.STUDYRPG_EDITOR_CONFIG||{};
-if(typeof gameData==='undefined')return;
-const DEVICES=['desktop','tablet','mobile'];
-const fallbackCoord={
-  desktop:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},
-  tablet:{statusHero:{x:50,y:66},dungeonHero:{x:50,y:63},dungeonEnemy:{x:50,y:63}},
-  mobile:{statusHero:{x:50,y:62},dungeonHero:{x:50,y:60},dungeonEnemy:{x:50,y:60}}
-};
-const fallbackBattle={
-  desktop:{hero:{x:18,y:68},enemy:{x:82,y:68},attackMid:{x:42,y:60},attackStrike:{x:68,y:66},duration:560},
-  tablet:{hero:{x:17,y:68},enemy:{x:83,y:68},attackMid:{x:42,y:60},attackStrike:{x:67,y:66},duration:560},
-  mobile:{hero:{x:18,y:65},enemy:{x:82,y:65},attackMid:{x:42,y:57},attackStrike:{x:65,y:63},duration:520}
-};
-const fallbackSize={
-  desktop:{statusHero:160,dungeonHero:180,dungeonEnemy:180,battleHero:190,battleEnemy:190},
-  tablet:{statusHero:150,dungeonHero:165,dungeonEnemy:165,battleHero:175,battleEnemy:175},
-  mobile:{statusHero:135,dungeonHero:135,dungeonEnemy:135,battleHero:145,battleEnemy:145}
-};
-const point=(v,f)=>v&&typeof v==='object'&&Number.isFinite(Number(v.x))&&Number.isFinite(Number(v.y))
-  ?{x:Number(v.x),y:Number(v.y)}:{...f};
-const size=(v,f)=>Number.isFinite(Number(v))&&Number(v)>0?Number(v):f;
-
-function sync(){
-  gameData.sceneCoordinateLayout=gameData.sceneCoordinateLayout||{};
-  gameData.battleLayout=gameData.battleLayout||{};
-  gameData.objectSizes=gameData.objectSizes||{};
-  for(const d of DEVICES){
-    const sc=C.sceneCoordinateLayout?.[d]||{};
-    const bl=C.battleLayout?.[d]||{};
-    const os=C.objectSizes?.[d]||{};
-    gameData.sceneCoordinateLayout[d]=gameData.sceneCoordinateLayout[d]||{};
-    gameData.battleLayout[d]=gameData.battleLayout[d]||{};
-    gameData.objectSizes[d]=gameData.objectSizes[d]||{};
-    for(const k of ['statusHero','dungeonHero','dungeonEnemy']){
-      gameData.sceneCoordinateLayout[d][k]=point(sc[k],fallbackCoord[d][k]);
-    }
-    for(const k of ['hero','enemy','attackMid','attackStrike']){
-      gameData.battleLayout[d][k]=point(bl[k],fallbackBattle[d][k]);
-    }
-    gameData.battleLayout[d].duration=
-      Number.isFinite(Number(bl.duration))&&Number(bl.duration)>0?Number(bl.duration):fallbackBattle[d].duration;
-    for(const k of ['statusHero','dungeonHero','dungeonEnemy','battleHero','battleEnemy']){
-      gameData.objectSizes[d][k]=size(os[k],fallbackSize[d][k]);
-    }
-  }
-  return true;
+function week(){try{const n=Number(typeof semesterWeekIndex==='function'?semesterWeekIndex():1);return Number.isFinite(n)&&n>0?n:1}catch(e){return 1}}
+function ground(scene,d=device(),w=week()){
+ const key=scene==='battle'?'dungeon':scene;
+ for(let n=Math.max(1,Number(w)||1);n>=1;n--){const c=DB.groundByWeek?.[String(n)]?.[d];if(c&&typeof c==='object'&&Number.isFinite(Number(c[key])))return Number(c[key]);if(Number.isFinite(Number(c)))return Number(c)}
+ return Number(DB.devices?.[d]?.[scene]?.groundY)||50;
 }
-window.studyRPGSyncEditorLayoutV10179=sync;
-sync();
+function anchor(a,scene,d=device()){if(!a)return null;return{x:Number(a.x)||0,y:ground(a.groundScene||scene,d)+Number(a.footOffsetY||0)}}
+function imp(el,k,v){if(el)el.style.setProperty(k,v,'important')}
+function feet(el,a,scene,d){const p=anchor(a,scene,d);if(!el||!p)return;imp(el,'position','absolute');imp(el,'left',p.x+'%');imp(el,'top',p.y+'%');imp(el,'right','auto');imp(el,'bottom','auto');imp(el,'margin','0');imp(el,'translate','-50% -100%');imp(el,'transform-origin','center bottom')}
+function square(el,n){n=Number(n);if(el&&n>0){imp(el,'width',n+'px');imp(el,'height',n+'px')}}
+function monsterId(el){if(!el)return'';const c=[...el.classList].find(x=>x.startsWith('monster-id-'));if(c)return c.slice(11);const s=el.getAttribute('src')||el.querySelector?.('img')?.getAttribute('src')||'';return s.match(/\/monsters\/([A-Za-z0-9_-]+)_(?:idle|battle)\./)?.[1]||''}
+function apply(){const d=device(),v=DB.devices?.[d];if(!v)return;
+ const sw=document.querySelector('#panel-hero .hero-scene .warrior-wrap');feet(sw,v.status.hero,'status',d);square(document.getElementById('heroSprite'),v.status.heroSize);
+ const dh=document.getElementById('dungeonHeroIdle'),de=document.getElementById('dungeonEnemyIdle');feet(dh,v.dungeonEntry.hero,'dungeonEntry',d);feet(de,v.dungeonEntry.enemy,'dungeonEntry',d);square(dh,v.dungeonEntry.heroSize);const di=monsterId(de),ds=Number(DB.monsters?.[di]?.idleSize?.[d]);square(de,ds>0?ds:v.dungeonEntry.enemySize);
+ const bh=document.getElementById('battleChar_hero'),be=document.getElementById('battleChar_enemy');feet(bh,v.battle.hero,'battle',d);feet(be,v.battle.enemy,'battle',d);square(bh,v.battle.heroSize);const bi=monsterId(be),bs=Number(DB.monsters?.[bi]?.battleSize?.[d]);square(be,bs>0?bs:v.battle.enemySize);
+ const hi=bh?.querySelector('img');if(hi){imp(hi,'width','100%');imp(hi,'height','100%');imp(hi,'object-fit','contain');imp(hi,'object-position','center bottom')}
+ const ei=be?.querySelector('.battle-enemy-unit-sprite.enemy-unit-0, img');if(ei){imp(ei,'width','100%');imp(ei,'height','100%');imp(ei,'object-fit','contain');imp(ei,'object-position','center bottom')}
+ const b=DB.stage?.[d]?.bg;if(b)document.querySelectorAll('.battle-scene-background,.dungeon-scene-background,.home-scene-background').forEach(x=>{imp(x,'transform-origin','center');imp(x,'transform',`translate(${Number(b.x??50)-50}%,${Number(b.y??50)-50}%) scale(${Number(b.scale)||1})`)})
+}
+window.studyRPGVisualDevice=device;window.studyRPGVisualGround=ground;window.studyRPGVisualAnchor=anchor;window.studyRPGApplyVisualLayout=apply;
+window.studyRPGResolveBattlePointV10179=function(name){const d=device(),b=DB.devices?.[d]?.battle||{};if(name==='hero_home')return anchor(b.hero,'battle',d);if(name==='enemy_home')return anchor(b.enemy,'battle',d);if(name==='attack_mid')return b.attackMid;if(name==='attack_strike'||name==='enemy_front')return b.attackStrike;return DB.referencePoints?.[d]?.[name]||null};
+window.applySavedBattleLayout=function(){apply();requestAnimationFrame(()=>window.positionBattleTargetMarker?.())};
+for(const n of ['renderHero','renderDungeon','renderBattleTargets']){const old=window[n];if(typeof old==='function')window[n]=function(){const r=old.apply(this,arguments);requestAnimationFrame(apply);return r}}
+addEventListener('resize',()=>requestAnimationFrame(apply));if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(apply),{once:true});else requestAnimationFrame(apply);
 })();
 </script>
-
-<script id="studyRPGUnifiedBattlePointRuntimeV10179">
-(function(){
-'use strict';
-const device=()=>window.studyRPGVisualDeviceClassV10202();
-window.studyRPGResolveBattlePointV10179=function(name){
-  const d=device();
-  const C=window.STUDYRPG_EDITOR_CONFIG||{};
-  const bl=gameData?.battleLayout?.[d]||C.battleLayout?.[d]||{};
-  let p=null;
-  if(name==='hero_home')p=bl.hero;
-  else if(name==='enemy_home')p=bl.enemy;
-  else if(name==='attack_mid')p=bl.attackMid;
-  else if(name==='attack_strike')p=bl.attackStrike;
-  else p=C.referencePoints?.[d]?.[name];
-  if(!p)return null;
-  return window.studyRPGGroundPointV10176
-    ?window.studyRPGGroundPointV10176(p,d,undefined,name):p;
-};
-})();
-</script>
-
 <script id="studyRPGPresentationRuntimeV10174">
 /* V10.16：正式戰鬥演出資料層。idle/battle 保留為素材狀態；motionActions 為獨立動作命名空間。 */
 (function(){
@@ -11514,7 +11124,7 @@ const MON_DEFAULT={
  dash:{spriteState:'battle',motion:'dash',from:'enemy_home',to:'enemy_front',returnTo:'enemy_home',duration:480},
  buff:{spriteState:'idle',motion:'stay',duration:500}, hurt:{spriteState:'battle',motion:'stay',duration:420}, death:{spriteState:'idle',motion:'stay',duration:900}
 };
-const device=()=>window.studyRPGVisualDeviceClassV10202();
+const device=()=>window.studyRPGVisualDevice?.()||(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
 const defaultRefs={desktop:{hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28}},tablet:{hero_home:{x:17,y:68},enemy_home:{x:83,y:68},enemy_front:{x:67,y:66},air_high:{x:48,y:27}},mobile:{hero_home:{x:18,y:65},enemy_home:{x:82,y:65},enemy_front:{x:66,y:63},air_high:{x:48,y:25}}};
 function merge(a,b){return Object.assign({},clone(a||{}),clone(b||{}));}
 window.HERO_MOTION_ACTIONS=window.HERO_MOTION_ACTIONS||{};
@@ -11538,8 +11148,7 @@ function idleSprite(side,unit){if(side==='hero'){const img=document.getElementBy
 async function playMotion(side,unit,name){const el=side==='hero'?document.getElementById('battleChar_hero'):(unit?document.querySelector(`[data-enemy-uid="${unit.uid}"]`):document.getElementById('battleChar_enemy'));const arena=document.getElementById('battleArena');const d=side==='hero'?window.heroMotionAction(name):monsterMotion(unit,name);if(!el||!arena){await battleSleep(Number(d.duration)||420);return;}setSprite(side,unit,d);const home=ref(d.from||(side==='hero'?'hero_home':'enemy_home')),to=ref(d.to||'enemy_front'),via=ref(d.via||'air_high'),w=arena.clientWidth,h=arena.clientHeight,off=p=>({x:(p.x-home.x)/100*w,y:(p.y-home.y)/100*h});let frames=[{transform:''}];if(d.motion==='forward'||d.motion==='dash'){let q=off(to);frames=[{transform:''},{transform:`translate(${q.x}px,${q.y}px)`,offset:.55},{transform:''}]}else if(d.motion==='jump'){let a=off(via),q=off(to);frames=[{transform:''},{transform:`translate(${a.x}px,${a.y}px)`,offset:.35},{transform:`translate(${q.x}px,${q.y}px)`,offset:.7},{transform:''}]};try{await el.animate(frames,{duration:Math.max(120,Number(d.duration)||500),easing:d.motion==='jump'?'ease-in-out':'ease'}).finished}catch(e){await battleSleep(Number(d.duration)||420)}idleSprite(side,unit);}
 const oldAnim=window.animateBattleAction;
 window.animateBattleAction=async function(attackerSide,result,attackerUnit=null,action=null){const p=action?window.studyRPGResolvePresentation(action,attackerSide==='enemy'):null;if(!p?.enabled||!p.actorAction)return oldAnim.apply(this,arguments);const defenderSide=attackerSide==='hero'?'enemy':'hero',defender=document.getElementById('battleChar_'+defenderSide);try{await Promise.all([playMotion(attackerSide,attackerUnit,p.actorAction),window.playSkillVisualSequence(attackerSide,action)]);if(result?.type==='dodge')defender?.classList.add('dodge');else if(result?.damage>0)defender?.classList.add('hit');await battleSleep(180)}finally{defender?.classList.remove('dodge','hit');idleSprite(attackerSide,attackerUnit)}};
-function applyStage(){const st=C.stage?.[device()];if(!st)return;const bg=document.querySelector('#battleArena .battle-scene-background');if(bg){const b=st.bg||{};bg.style.transformOrigin='center';bg.style.transform=`translate(${Number(b.x||50)-50}%,${Number(b.y||50)-50}%) scale(${Number(b.scale)||1})`;}}
-const oldApply=window.applySavedBattleLayout;window.applySavedBattleLayout=function(){const r=oldApply?.apply(this,arguments);applyStage();return r};setTimeout(applyStage,0);addEventListener('resize',applyStage);
+
 /* 開發調整功能已移至 /tools；正式 GM 不再顯示舊工作台。 */
 function stripDevCards(){const panel=document.getElementById('panel-gm');if(!panel)return;const keys=['技能特效與路徑工作台','戰鬥站位與近戰路徑','完整場景、素材與其他座標','匯出完整遊戲 HTML'];panel.querySelectorAll('.card').forEach(c=>{const t=c.querySelector('h3,h4')?.textContent||'';if(keys.some(k=>t.includes(k))||c.id==='gmBattleSizeControls'||c.id==='gmSceneSizeControls')c.remove();});}
 const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){const r=rg.apply(this,arguments);setTimeout(stripDevCards,0);return r};setTimeout(stripDevCards,0);
@@ -11553,7 +11162,7 @@ const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){co
 (function(){
 'use strict';
 const C=window.STUDYRPG_EDITOR_CONFIG||{};
-const dev=()=>window.studyRPGVisualDeviceClassV10202();
+const dev=()=>window.studyRPGVisualDevice?.()||(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
 const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
 const point=n=>window.studyRPGResolveBattlePointV10179?.(n)||defaults[n]||defaults.enemy_front;
 const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
@@ -11573,146 +11182,6 @@ try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL
 })();
 </script>
 
-<script id="studyRPGCoordinateCleanupFix3">
-/* FIX3 座標清掃標記：
-   - 主畫面／副本入口／正式戰鬥的固定 XY 舊 CSS 已清除。
-   - 召喚物 enemy-unit-1/2/3 的編隊座標保留。
-   - 唯一正式站位來源：STUDYRPG_EDITOR_CONFIG -> V10.17.11 Unified Coordinate Runtime。
-*/
-window.STUDYRPG_COORDINATE_CLEANUP_FIX3=true;
-</script>
-\n<script id="studyRPGUnifiedCoordinateRuntimeV10179">
-/* V10.17.11 唯一座標 runtime
-   狀態：sceneCoordinateLayout.statusHero
-   副本入口：sceneCoordinateLayout.dungeonHero / dungeonEnemy
-   戰鬥站立：battleLayout.hero / enemy
-   攻擊路徑：battleLayout.attackMid / attackStrike + referencePoints
-*/
-(function(){
-'use strict';
-const C=window.STUDYRPG_EDITOR_CONFIG||{};
-const dev=()=>window.studyRPGGroundDeviceV10176
-  ?window.studyRPGGroundDeviceV10176()
-  :window.studyRPGVisualDeviceClassV10202();
-const gp=(p,d,name)=>window.studyRPGGroundPointV10176
-  ?window.studyRPGGroundPointV10176(p,d,undefined,name):p;
 
-function imp(el,k,v){if(el)el.style.setProperty(k,v,'important')}
-function feet(el,p,d,name){
-  if(!el||!p)return;
-  const q=gp(p,d,name);
-  imp(el,'position','absolute');
-  imp(el,'left',Number(q.x)+'%');
-  imp(el,'top',Number(q.y)+'%');
-  imp(el,'right','auto');
-  imp(el,'bottom','auto');
-  imp(el,'margin','0');
-  /* Edit 與正式畫面統一：腳底中心定位。translate 負責錨點；transform 只留給動作。 */
-  imp(el,'translate','-50% -100%');
-  const inlineTransform=(el.style.getPropertyValue('transform')||'').replace(/\s+/g,'');
-  if(inlineTransform==='translate(-50%,-50%)'||inlineTransform==='translateX(-50%)')el.style.removeProperty('transform');
-  imp(el,'transform-origin','center bottom');
-}
-function square(el,n){
-  n=Number(n);
-  if(!el||!(n>0))return;
-  imp(el,'width',n+'px');
-  imp(el,'height',n+'px');
-}
-function monsterId(el){
-  if(!el)return'';
-  const c=[...el.classList].find(x=>x.startsWith('monster-id-'));
-  if(c)return c.slice(11);
-  const src=el.getAttribute('src')||'';
-  const m=src.match(/\/monsters\/([A-Za-z0-9_-]+)_(?:idle|battle)\./);
-  return m?m[1]:'';
-}
-function applyBackground(d){
-  const b=C.stage?.[d]?.bg||{};
-  const tf=`translate(${Number(b.x??50)-50}%,${Number(b.y??50)-50}%) scale(${Number(b.scale)||1})`;
-  document.querySelectorAll('.battle-scene-background,.dungeon-scene-background,.home-scene-background')
-    .forEach(bg=>{
-      imp(bg,'transform-origin','center');
-      imp(bg,'transform',tf);
-    });
-}
-function apply(){
-  try{window.studyRPGSyncEditorLayoutV10179?.()}catch(e){}
-  const d=dev();
-  const sc=gameData?.sceneCoordinateLayout?.[d]||C.sceneCoordinateLayout?.[d]||{};
-  const bl=gameData?.battleLayout?.[d]||C.battleLayout?.[d]||{};
-  const os=gameData?.objectSizes?.[d]||C.objectSizes?.[d]||{};
-
-  /* 狀態頁站立位置 */
-  const statusWrap=document.querySelector('#panel-hero .hero-scene .warrior-wrap');
-  feet(statusWrap,sc.statusHero,d,'statusHero');
-  square(document.getElementById('heroSprite'),os.statusHero);
-
-  /* 副本入口站立位置 */
-  const dh=document.getElementById('dungeonHeroIdle');
-  const de=document.getElementById('dungeonEnemyIdle');
-  feet(dh,sc.dungeonHero,d,'dungeonHero');
-  square(dh,os.dungeonHero);
-  feet(de,sc.dungeonEnemy,d,'dungeonEnemy');
-  if(de){
-    const id=monsterId(de);
-    const personal=Number(C.monsters?.[id]?.idleSize?.[d]);
-    square(de,personal>0?personal:os.dungeonEnemy);
-  }
-
-  /* 戰鬥平常站立位置 */
-  const bh=document.getElementById('battleChar_hero');
-  const be=document.getElementById('battleChar_enemy');
-  feet(bh,bl.hero,d,'hero_home');
-  square(bh,os.battleHero);
-  feet(be,bl.enemy,d,'enemy_home');
-  if(be){
-    const id=monsterId(be);
-    const personal=Number(C.monsters?.[id]?.battleSize?.[d]);
-    square(be,personal>0?personal:os.battleEnemy);
-  }
-  const heroImg=bh?.querySelector('img');
-  if(heroImg){
-    imp(heroImg,'width','100%'); imp(heroImg,'height','100%');
-    imp(heroImg,'max-width','100%'); imp(heroImg,'max-height','100%');
-    imp(heroImg,'object-fit','contain'); imp(heroImg,'object-position','center bottom');
-  }
-  const primaryEnemy=be?.querySelector('.battle-enemy-unit-sprite.enemy-unit-0, img');
-  if(primaryEnemy){
-    imp(primaryEnemy,'position','relative');
-    imp(primaryEnemy,'left','auto'); imp(primaryEnemy,'top','auto');
-    imp(primaryEnemy,'right','auto'); imp(primaryEnemy,'bottom','auto');
-    imp(primaryEnemy,'width','100%'); imp(primaryEnemy,'height','100%');
-    imp(primaryEnemy,'max-width','100%'); imp(primaryEnemy,'max-height','100%');
-    imp(primaryEnemy,'object-fit','contain'); imp(primaryEnemy,'object-position','center bottom');
-  }
-
-  applyBackground(d);
-}
-window.studyRPGApplyUnifiedLayoutV10179=apply;
-
-/* 唯一對外 applySavedBattleLayout：不再呼叫任何舊站位 runtime。 */
-window.applySavedBattleLayout=function(){
-  apply();
-  requestAnimationFrame(()=>window.positionBattleTargetMarker?.());
-};
-
-/* 只在會重建 DOM 的 render 後重新套一次 */
-for(const name of ['renderHero','renderDungeon','renderBattleTargets']){
-  const previous=window[name];
-  if(typeof previous!=='function')continue;
-  window[name]=function(){
-    const r=previous.apply(this,arguments);
-    requestAnimationFrame(apply);
-    return r;
-  };
-}
-addEventListener('resize',()=>requestAnimationFrame(apply));
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(apply),{once:true});
-}else{
-  requestAnimationFrame(apply);
-}
-})();
-</script>\n</body>
+\n\n</body>
 </html>
