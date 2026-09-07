@@ -236,6 +236,15 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   gap:10px;
   margin:12px 0;
 }
+
+/* 副本入口乾淨結構：背景卡與角色層分離，不再以舊補丁裁切角色 */
+.dungeon-fighter-bg{position:relative;background:none;overflow:visible}
+.dungeon-fighter-bg>.scene-background{border-radius:12px;overflow:hidden}
+.dungeon-fighter-bg>.dungeon-idle-stage,
+.dungeon-fighter-bg>.fighter-name,
+.dungeon-fighter-bg>.power-number,
+.dungeon-fighter-bg>.fighter-power{position:relative;z-index:1}
+
 .fighter-card{
   background:#11161d;
   border:2px solid #30363d;
@@ -539,12 +548,10 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .item-count{display:inline-block;min-width:30px;text-align:center;padding:2px 7px;border-radius:999px;background:#0d1117;border:1px solid #59616d;margin-left:4px}
 
 
-/* V10.6 戰前角色待機動畫 */
-.dungeon-idle-stage{position:relative;height:170px;overflow:hidden;border-radius:12px;margin-bottom:8px}
-.dungeon-idle-sprite{position:absolute;left:50%;width:180px;height:155px;object-fit:contain;image-rendering:pixelated;transform:translateX(-50%);transform-origin:center bottom}
-.dungeon-idle-sprite.hero{bottom:24px}
-.dungeon-idle-sprite.enemy{bottom:8px}
-@media(max-width:600px){.dungeon-idle-stage{height:135px}.dungeon-idle-sprite{width:135px;height:120px}.dungeon-idle-sprite.hero{bottom:20px}.dungeon-idle-sprite.enemy{bottom:6px}}
+/* 副本入口結構：座標與尺寸完全由 Visual Runtime / visual-database.js 控制。 */
+.dungeon-idle-stage{position:relative;height:210px;overflow:visible;border-radius:12px;margin-bottom:8px}
+.dungeon-idle-sprite{position:absolute;object-fit:contain;image-rendering:pixelated;transform-origin:center bottom;visibility:visible}
+@media(max-width:600px){.dungeon-idle-stage{height:165px}}
 
 /* V10.10.15 商店分類／背包分類／裝備欄 */
 .item-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.item-tabs button{background:#30363d;color:#f0f6fc}.item-tabs button.active{background:#f0883e;color:#111}.equipment-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.equip-slot{background:#0d1117;border:1px solid #59616d;border-radius:9px;padding:10px;text-align:center;min-height:92px}.equip-slot strong{display:block;margin-bottom:5px}.item-meta{font-size:11px;color:#8b949e;margin-top:4px}@media(max-width:600px){.equipment-grid{grid-template-columns:repeat(2,1fr)}}
@@ -632,76 +639,23 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 }
 
 
-/* V10.11.31 FINAL：主畫面／副本入口／戰鬥全部共用同一套當週背景 */
+/* 共用場景背景結構；位置/縮放由 Visual DB Runtime 控制 */
 .scene-background{
-  position:absolute !important;
-  inset:0 !important;
-  width:100% !important;
-  height:100% !important;
-  object-fit:cover !important;
-  object-position:center bottom !important;
-  z-index:0 !important;
-  pointer-events:none !important;
-  user-select:none !important;
-  -webkit-user-drag:none !important;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center bottom;
+  z-index:0;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-drag:none;
 }
 .hero-scene>.scene-background{border-radius:inherit}
-.hero-scene>.bg-scroll,
-.hero-scene>.bg-scroll-track{display:none !important}
-.dungeon-fighter-bg{
-  position:relative !important;
-  background:none !important;
-  overflow:hidden;
-}
-.dungeon-fighter-bg>.dungeon-idle-stage,
-.dungeon-fighter-bg>.fighter-name,
-.dungeon-fighter-bg>.fighter-power,
-.dungeon-fighter-bg>*:not(.scene-background){
-  position:relative;
-  z-index:1;
-}
 .battle-scene-background{filter:saturate(.95) brightness(.86)}
 .dungeon-scene-background{filter:saturate(.92) brightness(.72)}
 .home-scene-background{filter:none}
-@media(max-width:600px){
-}
-
-/* V10.11.35 FINAL：副本入口角色被裁切修正
-   原因：dungeon-idle-stage 原本 overflow:hidden，
-   角色往下移到負 bottom 後，下半身會被容器直接裁掉。 */
-.dungeon-idle-stage{
-  overflow:visible !important;
-}
-
-/* 讓左右卡片本身仍維持圓角裁切背景，但不要裁角色 */
-.dungeon-fighter-bg{
-  overflow:hidden !important;
-}
-.dungeon-fighter-bg .dungeon-idle-stage{
-  overflow:visible !important;
-}
-
-/* 稍微增加角色區高度，避免放大 Boss 頂到卡片上緣 */
-.dungeon-idle-stage{
-  height:210px !important;
-}
-
-@media(max-width:600px){
-  .dungeon-idle-stage{height:165px !important;}
-}
-
-
-/* V10.11.38 CLEANED：普通怪物固定 Y 已移除；只清除圖片自身殘留位移。 */
-.battle-enemy:not(:has(.boss-monster-sprite)) .monster-battle-sprite{
-  top:auto !important;
-  bottom:auto !important;
-  margin-top:0 !important;
-  margin-bottom:0 !important;
-}
-
-@media(max-width:600px){
-}
-
 
 /* V10.11.40：戰鬥場景顯示 Boss + 最多2隻召喚物 */
 .battle-enemy{
@@ -1147,7 +1101,7 @@ function defaultData(){
       }
     ],
     activeTasks:{},
-    taskRecords:[],
+    taskRecords:[],taskRewardLedger:{},taskRewardRecoveryV1:null,
     learningProgress:[],
     shopItems:[
       {id:uid(),name:'NS 30分鐘兌換券',price:20,description:'Nintendo Switch 30 分鐘',dailyLimit:1,active:true},
@@ -1160,7 +1114,7 @@ function defaultData(){
       {id:uid(),name:'獸人戰士',power:80,rewardGold:4,rewardExp:20,active:true},
       {id:uid(),name:'黑暗騎士',power:100,rewardGold:5,rewardExp:25,active:true}
     ],
-    dailyDungeon:{date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''},
+    dailyDungeon:{date:'',monsterId:'',challenged:false,lastChallengeDate:'',result:'',drop:null,eventId:''},
     battleRecords:[],
     events:[
       {id:uid(),date:'2026-08-31',type:'start',name:'第一學期冒險開始',power:0,rewardGold:0,rewardExp:0,active:true},
@@ -1423,6 +1377,11 @@ function migrateProfileData(d){
     id:x.id||uid(),label:x.label||'神秘獎勵',weight:Math.max(1,Number(x.weight)||1),
     stock:x.stock===undefined?0:Math.max(0,Number(x.stock)||0),active:x.active!==false
   }));
+  if(!d.dailyDungeon||typeof d.dailyDungeon!=='object')d.dailyDungeon={date:'',monsterId:'',challenged:false,lastChallengeDate:'',result:'',drop:null,eventId:''};
+  if(d.dailyDungeon.lastChallengeDate==null)d.dailyDungeon.lastChallengeDate='';
+  // migrate the temporary top-level lock used by the previous build, then retire it.
+  if(d.dailyDungeonLastChallengeDate&&!d.dailyDungeon.lastChallengeDate)d.dailyDungeon.lastChallengeDate=d.dailyDungeonLastChallengeDate;
+  if(Object.prototype.hasOwnProperty.call(d,'dailyDungeonLastChallengeDate'))delete d.dailyDungeonLastChallengeDate;
   if(!d.gmAudit)d.gmAudit=[];
 }
 migrateProfileData(gameData);
@@ -2027,7 +1986,111 @@ function applyFixedStatReward(t){
   }
   gameData.hero.lastStatGains={};return null;
 }
+
+/* ===== TASK REWARD IDEMPOTENCY + RECOVERY =====
+   Stable per-day completion ledger prevents an update/cloud merge/task-id rebuild
+   from paying the same task twice. Existing records are migrated without re-paying. */
+function taskStableKey(task){
+  if(!task)return '';
+  const norm=v=>String(v??'').trim().toLowerCase().replace(/\s+/g,' ');
+  // Prefer explicit persistent IDs when available, otherwise semantic identity.
+  return norm(task.stableId||task.templateId||task.key||[
+    task.type||'common',task.name||task.title||'',task.stat||task.ability||'',
+    task.unit||'',task.target||task.goal||''
+  ].join('|'));
+}
+function taskCompletionKey(task,date=today()){return `${date}::${taskStableKey(task)}`;}
+function ensureTaskRewardLedger(){
+  gameData.taskRewardLedger=gameData.taskRewardLedger||{};
+  return gameData.taskRewardLedger;
+}
+function taskRecordTaskLike(r){
+  const task=(gameData.tasks||[]).find(t=>String(t.id)===String(r?.taskId));
+  return task||{
+    id:r?.taskId, stableId:r?.taskStableId, templateId:r?.templateId,
+    type:r?.taskType||r?.type, name:r?.taskName||r?.name||r?.title,
+    title:r?.title, stat:r?.stat||r?.ability, ability:r?.ability,
+    unit:r?.unit, target:r?.target||r?.goal, goal:r?.goal
+  };
+}
+function migrateTaskRewardLedger(){
+  const ledger=ensureTaskRewardLedger();
+  for(const r of (gameData.taskRecords||[])){
+    if(!r||!r.date)continue;
+    const t=taskRecordTaskLike(r);
+    const stable=taskStableKey(t);
+    if(!stable)continue;
+    const key=`${r.date}::${stable}`;
+    r.taskStableId=r.taskStableId||stable;
+    if(!ledger[key]){
+      ledger[key]={
+        date:r.date,taskStableId:stable,taskId:r.taskId||'',
+        completed:true,approved:r.approvalStatus==='approved'||r.status==='approved',
+        rewardIssued:true,sourceRecordId:r.id||'',migrated:true
+      };
+    }else{
+      // Multiple surviving records are evidence of a duplicate completion.
+      ledger[key].duplicateRecordIds=ledger[key].duplicateRecordIds||[];
+      if(r.id&&!ledger[key].duplicateRecordIds.includes(r.id))ledger[key].duplicateRecordIds.push(r.id);
+    }
+  }
+}
+function taskRewardAlreadyIssued(task,date=today()){
+  migrateTaskRewardLedger();
+  return !!ensureTaskRewardLedger()[taskCompletionKey(task,date)]?.rewardIssued;
+}
+function lockTaskReward(task,record){
+  const ledger=ensureTaskRewardLedger(), stable=taskStableKey(task), key=`${record.date||today()}::${stable}`;
+  record.taskStableId=stable;
+  ledger[key]=Object.assign({},ledger[key]||{},{
+    date:record.date||today(),taskStableId:stable,taskId:task?.id||record.taskId||'',
+    completed:true,rewardIssued:true,sourceRecordId:record.id||''
+  });
+}
+function taskCompletedByLedger(task,date=today()){
+  migrateTaskRewardLedger();
+  return !!ensureTaskRewardLedger()[taskCompletionKey(task,date)]?.completed;
+}
+
+/* One-time conservative recovery:
+   Only auto-reverses duplicates when two surviving records for the same stable task/day
+   carry explicit reward deltas. It never guesses from current stats. */
+function recoverProvableDuplicateTaskRewards(){
+  if(gameData.taskRewardRecoveryV1)return {fixed:0,skipped:0};
+  migrateTaskRewardLedger();
+  const groups={};
+  for(const r of (gameData.taskRecords||[])){
+    if(!r?.date)continue;
+    const stable=r.taskStableId||taskStableKey(taskRecordTaskLike(r));
+    if(!stable)continue;
+    (groups[`${r.date}::${stable}`]??=[]).push(r);
+  }
+  let fixed=0,skipped=0;
+  for(const rows of Object.values(groups)){
+    if(rows.length<2)continue;
+    rows.sort((a,b)=>String(a.createdAt||a.time||a.id||'').localeCompare(String(b.createdAt||b.time||b.id||'')));
+    for(const r of rows.slice(1)){
+      if(r.duplicateRewardReversed)continue;
+      const delta=r.rewardDelta||r.rewardsApplied||r.appliedRewards;
+      if(!delta||typeof delta!=='object'){skipped++;continue;}
+      const stats=delta.stats||delta.abilities||{};
+      for(const [k,v] of Object.entries(stats)){
+        if(Number.isFinite(Number(v))&&gameData.hero?.stats&&Number.isFinite(Number(gameData.hero.stats[k])))
+          gameData.hero.stats[k]=Math.max(0,Number(gameData.hero.stats[k])-Number(v));
+      }
+      if(Number.isFinite(Number(delta.exp))) gameData.hero.exp=Math.max(0,Number(gameData.hero.exp||0)-Number(delta.exp));
+      if(Number.isFinite(Number(delta.gold))) gameData.hero.gold=Math.max(0,Number(gameData.hero.gold||0)-Number(delta.gold));
+      r.duplicateRewardReversed=true; fixed++;
+    }
+  }
+  gameData.taskRewardRecoveryV1={done:true,date:today(),fixed,skipped};
+  return {fixed,skipped};
+}
+
 function finishCommonTask(t,extra={}){
+  const __rewardTask=(gameData.tasks||[]).find(t=>String(t.id)===String(t));
+  if(__rewardTask&&taskRewardAlreadyIssued(__rewardTask,today())){alert('今天這個任務已完成，獎勵不會重複發放。');renderAll();return;}
+
   applyGoldWithDebt(Number(t.goldReward)||0);
   addExp(Number(t.expReward)||0);
   const statGain=applyFixedStatReward(t);
@@ -2115,6 +2178,7 @@ function completeScoreTask(taskId){
     rollback:{gold,exp,statGain:rollbackStats},corrected:false
   };
   gameData.taskRecords.push(record);
+  if(typeof __rewardTask!=="undefined"&&__rewardTask)lockTaskReward(__rewardTask,record);
   if(t.subject||t.progressType||t.progressValue){
     gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:`${score}/${maxScore}（${tier.grade}）`});
   }
@@ -2231,6 +2295,7 @@ function finishTask(taskId){
     rollback:{gold:timedReward.gold,exp:timedReward.exp,statGain:statGain?.multi?statGain.gains:(statGain?{[statGain.stat]:Number(statGain.value)||0}:{})}
   };
   gameData.taskRecords.push(record);
+  if(typeof __rewardTask!=="undefined"&&__rewardTask)lockTaskReward(__rewardTask,record);
 
   if(t.subject||t.progressType||t.progressValue){
     gameData.learningProgress.push({
@@ -2395,18 +2460,19 @@ function getTodayEvent(){
 }
 function dailyDungeonAlreadyChallengedToday(){
   const t=today();
-  if(gameData.dailyDungeonLastChallengeDate===t)return true;
+  if(gameData.dailyDungeon?.lastChallengeDate===t)return true;
   if(gameData.dailyDungeon?.date===t&&gameData.dailyDungeon?.challenged===true)return true;
   return (gameData.battleRecords||[]).some(r=>{
     if(r?.date!==t)return false;
-    // 正式每日副本舊紀錄有些版本沒有 eventType；塔、回憶戰與明確測試戰不算每日副本。
     if(['tower','replay','gm_test','test'].includes(r?.eventType))return false;
     return !r?.eventType||['daily','midterm','final','special'].includes(r.eventType);
   });
 }
 function markDailyDungeonChallengedToday(){
-  gameData.dailyDungeonLastChallengeDate=today();
-  if(gameData.dailyDungeon){gameData.dailyDungeon.date=today();gameData.dailyDungeon.challenged=true;}
+  if(!gameData.dailyDungeon||typeof gameData.dailyDungeon!=='object')gameData.dailyDungeon={};
+  gameData.dailyDungeon.lastChallengeDate=today();
+  gameData.dailyDungeon.date=today();
+  gameData.dailyDungeon.challenged=true;
 }
 function ensureDailyDungeon(){
   if(gameData.dailyDungeon.date===today()){
@@ -2418,16 +2484,16 @@ function ensureDailyDungeon(){
       :null;
     if(!gameData.dailyDungeon.eventId||isDungeonBattleEvent(savedEvent))return;
     const name=generatedMonsterName();
-    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:dailyDungeonAlreadyChallengedToday(),result:'',drop:null,eventId:'',generatedName:name};
+    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:dailyDungeonAlreadyChallengedToday(),lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:'',generatedName:name};
     saveGame();
     return;
   }
   const evt=getTodayEvent();
   if(evt){
-    gameData.dailyDungeon={date:today(),monsterId:'',challenged:dailyDungeonAlreadyChallengedToday(),result:'',drop:null,eventId:evt.id,generatedName:evt.name};
+    gameData.dailyDungeon={date:today(),monsterId:'',challenged:dailyDungeonAlreadyChallengedToday(),lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:evt.id,generatedName:evt.name};
   }else{
     const name=generatedMonsterName();
-    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:dailyDungeonAlreadyChallengedToday(),result:'',drop:null,eventId:'',generatedName:name};
+    gameData.dailyDungeon={date:today(),monsterId:'AUTO',challenged:dailyDungeonAlreadyChallengedToday(),lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:'',generatedName:name};
   }
   saveGame();
 }
@@ -5244,7 +5310,7 @@ function gmSaveCalendarEvent(){
   if(['winter_break_start','summer_break_start','semester_start'].includes(type)&&typeof window.applyCampaignCalendarState==='function')window.applyCampaignCalendarState();
   // 若今天才新增／修改考試，僅重建今天的副本指向；普通日與既有挑戰結果不受影響。
   if(['midterm','final'].includes(type)&&date===today()&&!gameData.dailyDungeon?.challenged){
-    gameData.dailyDungeon={date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+    gameData.dailyDungeon={date:'',monsterId:'',challenged:false,lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:''};
   }
   gmEditingCalendarId='';persistCalendarChange();renderGM();renderHero();
 }
@@ -6060,13 +6126,13 @@ function gmAddEvent(){
     rewardExp:Number(document.getElementById('gmEventExp').value)||0,
     active:true
   });
-  if(date===today())gameData.dailyDungeon={date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+  if(date===today())gameData.dailyDungeon={date:'',monsterId:'',challenged:false,lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:''};
   saveGame();renderAll();
 }
 function deleteEvent(id){
   if(confirm('刪除此考試事件？')){
     gameData.events=gameData.events.filter(x=>x.id!==id);
-    if(gameData.dailyDungeon.eventId===id)gameData.dailyDungeon={date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+    if(gameData.dailyDungeon.eventId===id)gameData.dailyDungeon={date:'',monsterId:'',challenged:false,lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:''};
     saveGame();renderAll();
   }
 }
@@ -6088,6 +6154,8 @@ function resetAll(){
   }
 }
 function renderAll(){
+  migrateTaskRewardLedger();
+  recoverProvableDuplicateTaskRewards();
   repairRuntimeData();
   const jobs=[
     ['狀態',renderHero],['任務',renderTasks],['副本',renderDungeon],
@@ -7774,6 +7842,7 @@ ${rewardText(gains)}`:''}`);renderAll();
     const gains=t.rewardMode==='auto'?applyRewardMap(scaledRewardMap(autoTaskRewards(t.category,t.difficulty,'complete'),tier.multiplier)):applyRewardMap(manualRewardMapV10116(t,tier.multiplier));
     const statGain={multi:true,gains};
     const record={id:uid(),taskId:t.id,date:today(),status:'completed',taskType:'score',completedAt:new Date().toISOString(),score,scoreMax:maxScore,scoreGrade:tier.grade,scoreMultiplier:tier.multiplier,rewards:{gold,exp,statGain},approvalStatus:'pending',rollback:{gold,exp,statGain:gains},corrected:false};gameData.taskRecords.push(record);
+  if(typeof __rewardTask!=="undefined"&&__rewardTask)lockTaskReward(__rewardTask,record);
     if(t.subject||t.progressType||t.progressValue)gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:`${score}/${maxScore}（${tier.grade}）`});
     evaluateHiddenJob(true);saveGame();alert(`📝 ${t.name}\
 成績 ${score}/${maxScore}｜${tier.grade}級\
@@ -8311,7 +8380,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   if(gameData.hero?.name){
     const todayExam=visibleExamEvents().find(e=>e.date===today());
     if(todayExam&&!gameData.dailyDungeon?.challenged&&gameData.dailyDungeon?.eventId!==todayExam.id){
-      gameData.dailyDungeon={date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+      gameData.dailyDungeon={date:'',monsterId:'',challenged:false,lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:''};
       ensureDailyDungeon();
     }
     renderAll();
@@ -8353,7 +8422,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
         gameData.semesterArchives.push({seasonId:familyData.campaign.previousSeasonId||gameData.season?.id||currentSeasonStorageId(),startDate:gameData.semester?.startDate||'',endedAt:evt.date,cycle:gameData.campaignProgress.cycle||1,level:gameData.hero.level,stats:{...gameData.hero.stats},battleCount:(gameData.battleRecords||[]).length});
         gameData.campaignProgress={cycle:familyData.campaign.cycle,mode:'semester',lastAppliedSemesterEventId:evt.id,semesterStartDate:evt.date};
         gameData.semester.startDate=evt.date;gameData.semester.worldState='normal';
-        gameData.dailyDungeon={date:'',monsterId:'',challenged:false,result:'',drop:null,eventId:''};
+        gameData.dailyDungeon={date:'',monsterId:'',challenged:false,lastChallengeDate:gameData.dailyDungeon?.lastChallengeDate||'',result:'',drop:null,eventId:''};
         gameData.examBossBaselineV10158={date:evt.date,nakedPower:Math.max(1,combatPower()),createdAt:new Date().toISOString(),equipmentExcluded:true};
         gameData.season={id:familyData.seasonId,launchDate:evt.date,official:true,cycle:familyData.campaign.cycle};
         changed=true;
@@ -8486,6 +8555,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     applyGoldWithDebt(gold);addExp(exp);const gains=t.rewardMode==='auto'?applyRewardMap(scaledRewardMap(autoTaskRewards(t.category,t.difficulty,'complete'),tier.multiplier)):applyRewardMap(manualRewardMapV10116(t,tier.multiplier));
     const record={id:uid(),taskId:t.id,date:today(),status:'completed',taskType:'score',completedAt:new Date().toISOString(),score,scoreMax:maxScore,scoreGrade:tier.grade,scoreMultiplier:tier.multiplier,challengeBonus:bonus.rate?bonus:null,
       rewards:{gold,exp,statGain:{multi:true,gains}},approvalStatus:'pending',rollback:{gold,exp,statGain:gains},corrected:false,taskSnapshot:taskSnapshotForRecord(t)};gameData.taskRecords.push(record);
+  if(typeof __rewardTask!=="undefined"&&__rewardTask)lockTaskReward(__rewardTask,record);
     if(t.subject||t.progressType||t.progressValue)gameData.learningProgress.push({id:uid(),date:today(),subject:t.subject||'',item:t.progressType||t.name,progress:`${score}/${maxScore}（${tier.grade}）`});
     evaluateHiddenJob(true);saveGame();alert(`📝 ${t.name}\n成績 ${score}/${maxScore}｜${tier.grade}級${bonus.rate?'\n✨ '+bonus.label+'：額外 💰'+bonus.gold+'、⭐'+bonus.exp:''}\n💰 總計 +${gold}\n⭐ 總計 +${exp}`);renderAll();
   };
