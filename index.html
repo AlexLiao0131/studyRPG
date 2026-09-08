@@ -5783,6 +5783,12 @@ function renderGM(){
     <div class="card">
       <h3>☁️ 雲端存檔／家庭管理</h3>
       <div id="cloudStatus" class="cloud-status">目前：${gameData.settings.cloud?.enabled?'Firebase 已設定':'尚未設定 Firebase 專案'}</div>
+      <div class="card" style="margin-top:10px">
+        <strong>🧪 Safari 本機儲存診斷</strong>
+        <div class="small" style="margin:6px 0 8px">只讀取各 localStorage 項目的大小，並做一個極小的測試寫入後立即刪除；不刪角色、任務、裝備或正式存檔。</div>
+        <button class="btn gray" onclick="runStorageDiagnostic()">檢查本機儲存空間</button>
+        <pre id="storageDiagnosticResult" style="white-space:pre-wrap;word-break:break-word;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;margin:10px 0 0;max-height:320px;overflow:auto;font-size:12px"></pre>
+      </div>
       <div class="small" style="margin:8px 0">一般使用者不需要申請 Firebase。正式部署時只需由網站擁有者設定一次 Firebase 專案。</div>
       <div class="row">
         <button class="btn blue" onclick="window.firebaseGoogleLogin&&window.firebaseGoogleLogin()">使用 Google 登入／取回存檔</button>
@@ -5828,6 +5834,57 @@ function renderGM(){
 }
 setTimeout(refreshTaskBalancePreview,0);
 
+
+function runStorageDiagnostic(){
+  const out=document.getElementById('storageDiagnosticResult');
+  const fmt=n=>{
+    n=Number(n)||0;
+    if(n>=1024*1024)return (n/1024/1024).toFixed(2)+' MB';
+    if(n>=1024)return (n/1024).toFixed(1)+' KB';
+    return n+' B';
+  };
+  const rows=[];
+  let total=0, readError='';
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i)||'';
+      let value='';
+      try{value=localStorage.getItem(key)||'';}catch(e){value='';}
+      // Web Storage is UTF-16 in JS; use 2 bytes/character as a practical quota estimate.
+      const bytes=(key.length+value.length)*2;
+      total+=bytes; rows.push({key,bytes});
+    }
+  }catch(e){readError=(e?.name||'Error')+': '+String(e?.message||e);}
+  rows.sort((a,b)=>b.bytes-a.bytes);
+  let write='✅ 成功';
+  const probe='__studyRPGStorageProbe__';
+  try{localStorage.setItem(probe,'ok');localStorage.removeItem(probe);}
+  catch(e){write='❌ '+(e?.name||'Error')+': '+String(e?.message||e);}
+  let estimate='瀏覽器未提供';
+  try{
+    if(navigator.storage?.estimate){
+      navigator.storage.estimate().then(est=>{
+        const extra='\nSafari storage estimate：'+fmt(est.usage||0)+' / '+fmt(est.quota||0);
+        if(out)out.textContent=(out.textContent||'')+extra;
+      }).catch(()=>{});
+    }
+  }catch(_e){}
+  const important=k=>/study|rpg|family|game|visual|backup|task/i.test(k);
+  const lines=[
+    'StudyRPG 本機儲存診斷',
+    '------------------------',
+    'localStorage 估算總量：'+fmt(total),
+    '測試寫入：'+write,
+    readError?'讀取錯誤：'+readError:'讀取：✅ 成功',
+    '',
+    '各項目（由大到小）：'
+  ];
+  rows.slice(0,30).forEach(r=>lines.push((important(r.key)?'★ ':'  ')+r.key+'  '+fmt(r.bytes)));
+  if(rows.length>30)lines.push('…其餘 '+(rows.length-30)+' 項未顯示');
+  lines.push('','★ = StudyRPG/家庭/備份相關 key','注意：iOS「網站資料」46.2 MB 還包含 Cache / IndexedDB 等，不等於 localStorage 總量。');
+  if(out)out.textContent=lines.join('\n');
+  return {total,rows,write,readError};
+}
 
 function saveSetupCloudConfig(){
   const c=gameData.settings.cloud||{};
