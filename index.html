@@ -6279,6 +6279,7 @@ boot();
 let fb=null,auth=null,db=null,currentUser=null,saving=false,pulling=false,lastCloudPullUid='',currentFamilyId='';
 let familyRealtimeUnsub=null, familyRealtimeId='', cloudSaveQueued=false, applyingRealtimeCloud=false;
 let cloudBaselineReady=false, cloudBaselineUid='';
+let cloudBaselineFamily=null;
 // 多裝置同步：只有『尚未成功送上雲端的本機變更』才有資格阻擋 realtime 雲端更新。
 let cloudLocalDirty=false;
 
@@ -6374,6 +6375,50 @@ async function writeFamilyCloud(familyId){
   if(previous&&previous!==seasonId)await setDoc(doc(db,'families',familyId,'seasons',previous),{redirectSeasonId:seasonId,updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});
   return true;
 }
+function cloudClone(v){return v===undefined?undefined:JSON.parse(JSON.stringify(v));}
+function cloudEqual(a,b){try{return JSON.stringify(a)===JSON.stringify(b);}catch(e){return a===b;}}
+function cloudArrayHasStableIds(a){return Array.isArray(a)&&a.length>0&&a.every(x=>x&&typeof x==='object'&&!Array.isArray(x)&&x.id!=null);}
+function mergeCloud3(base,local,remote){
+  if(cloudEqual(local,base))return cloudClone(remote);
+  if(cloudEqual(remote,base))return cloudClone(local);
+  if(cloudEqual(local,remote))return cloudClone(local);
+  if(Array.isArray(local)&&Array.isArray(remote)){
+    const ba=Array.isArray(base)?base:[];
+    if(cloudArrayHasStableIds(local)||cloudArrayHasStableIds(remote)||cloudArrayHasStableIds(ba)){
+      const bm=new Map(ba.filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
+      const lm=new Map(local.filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
+      const rm=new Map(remote.filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
+      const order=[]; for(const a of [remote,local,ba])for(const x of a)if(x&&x.id!=null&&!order.includes(String(x.id)))order.push(String(x.id));
+      const out=[];
+      for(const id of order){
+        const b=bm.get(id),l=lm.get(id),r=rm.get(id);
+        if(l===undefined&&b!==undefined){if(r===undefined||cloudEqual(r,b))continue;out.push(cloudClone(r));continue;}
+        if(r===undefined&&b!==undefined){if(l===undefined||cloudEqual(l,b))continue;out.push(cloudClone(l));continue;}
+        if(l===undefined){out.push(cloudClone(r));continue;}
+        if(r===undefined){out.push(cloudClone(l));continue;}
+        out.push(mergeCloud3(b,l,r));
+      }
+      return out;
+    }
+    // weekdays / primitive lists etc. are one logical field; a true simultaneous conflict keeps this device's explicit edit.
+    return cloudClone(local);
+  }
+  if(local&&remote&&typeof local==='object'&&typeof remote==='object'&&!Array.isArray(local)&&!Array.isArray(remote)){
+    const b=(base&&typeof base==='object'&&!Array.isArray(base))?base:{}; const out={};
+    const keys=new Set([...Object.keys(b),...Object.keys(local),...Object.keys(remote)]);
+    for(const k of keys){
+      const hasB=Object.prototype.hasOwnProperty.call(b,k),hasL=Object.prototype.hasOwnProperty.call(local,k),hasR=Object.prototype.hasOwnProperty.call(remote,k);
+      if(!hasL&&hasB){if(!hasR||cloudEqual(remote[k],b[k]))continue;out[k]=cloudClone(remote[k]);continue;}
+      if(!hasR&&hasB){if(!hasL||cloudEqual(local[k],b[k]))continue;out[k]=cloudClone(local[k]);continue;}
+      if(!hasL){out[k]=cloudClone(remote[k]);continue;} if(!hasR){out[k]=cloudClone(local[k]);continue;}
+      out[k]=mergeCloud3(hasB?b[k]:undefined,local[k],remote[k]);
+    }
+    return out;
+  }
+  // same field changed concurrently: the device performing the explicit save wins only that field, not the whole family document.
+  return cloudClone(local);
+}
+function rememberCloudBaseline(f){cloudBaselineFamily=cloudClone(f||familyData);}
 function applyCloudFamilyPayload(payload,localCfg,opts={}){
   const __mergeLocalHistory=!opts.pureCloud;
   const __localTaskHistoryByProfile=__mergeLocalHistory?new Map((familyData?.profiles||[]).map(p=>[String(p.id),{taskRecords:deepClone(p.data?.taskRecords||[]),taskRewardLedger:deepClone(p.data?.taskRewardLedger||{})}])):new Map();
@@ -6411,6 +6456,7 @@ function applyCloudFamilyPayload(payload,localCfg,opts={}){
     __p.data.taskRewardLedger=Object.assign({},__old.taskRewardLedger||{},__p.data.taskRewardLedger||{});
   }
   gameData=getActiveProfile().data;
+  rememberCloudBaseline(familyData);
 
   return true;
 }
@@ -6605,18 +6651,31 @@ async function pushCloud(opts={}){
         setCloudSyncStatus('protected',String(e?.message||e)+'｜雲端未被覆蓋');
         return false;
       }
-      const clone=JSON.parse(JSON.stringify(familyData));
+      let clone=JSON.parse(JSON.stringify(familyData));
       if(currentFamilyId){
         const seasonId=currentSeasonStorageId();
+        // IMPORTANT: familyData is one large Firestore field. A plain setDoc here is last-writer-wins and lets an idle iPad
+        // erase a task just created on the phone. Read the latest shared family and three-way merge against the last cloud baseline first.
+        const latest=await readFamilyCloud(currentFamilyId);
+        if(latest?.familyData?.profiles?.length){
+          clone=mergeCloud3(cloudBaselineFamily||latest.familyData,clone,latest.familyData);
+          familyData=clone;
+          activeProfileId=familyData.profiles.some(p=>p.id===activeProfileId)?activeProfileId:(familyData.activeProfileId||familyData.profiles[0]?.id);
+          familyData.activeProfileId=activeProfileId;
+          gameData=getActiveProfile().data;
+          persistFamily(false);
+        }
         await setDoc(doc(db,'families',currentFamilyId,'seasons',seasonId),{
           familyData:clone,updatedAtClient:Number(clone.updatedAtClient)||Date.now(),updatedAt:serverTimestamp(),updatedBy:currentUser.uid
         },{merge:true});
+        rememberCloudBaseline(clone);
         const previous=familyData.campaign?.previousSeasonId;
         if(previous&&previous!==seasonId)await setDoc(doc(db,'families',currentFamilyId,'seasons',previous),{redirectSeasonId:seasonId,updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});
       }else{
         await setDoc(doc(db,'users',currentUser.uid,'seasons',currentSeasonStorageId()),{
           familyData:clone,updatedAtClient:Number(clone.updatedAtClient)||Date.now(),updatedAt:serverTimestamp()
         },{merge:true});
+        rememberCloudBaseline(clone);
       }
       ok=true;
     }while(cloudSaveQueued);
