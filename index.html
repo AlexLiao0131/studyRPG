@@ -1441,7 +1441,9 @@ function loadGame(){
 }
 function saveGame(){
   // 標記本機有待送出的正式變更；成功寫入 Firebase 後才清除。
-  cloudLocalDirty=true;
+  // cloudLocalDirty 定義在 ES module 內，classic script 的 saveGame() 不能直接存取 module lexical binding。
+  // 透過 window 共用狀態，避免 ReferenceError 讓 saveGame 在 persistFamily/pushCloud 前就中斷。
+  window.__studyRPGCloudLocalDirty=true;
   // 所有正式資料修改先安全落地本機，再非同步推送雲端。
   persistFamily(true);
   evaluateHiddenJob(false);
@@ -6281,7 +6283,7 @@ let familyRealtimeUnsub=null, familyRealtimeId='', cloudSaveQueued=false, applyi
 let cloudBaselineReady=false, cloudBaselineUid='';
 let cloudBaselineFamily=null;
 // 多裝置同步：只有『尚未成功送上雲端的本機變更』才有資格阻擋 realtime 雲端更新。
-let cloudLocalDirty=false;
+window.__studyRPGCloudLocalDirty=!!window.__studyRPGCloudLocalDirty;
 
 async function initFirebase(){
   const c=gameData.settings?.cloud;
@@ -6506,7 +6508,7 @@ function startFamilyRealtime(){
       // 多裝置安全規則：不能再用『哪台裝置 timestamp 較新』決定誰是主機。
       // 只要本機沒有尚未成功送出的變更，Firebase realtime 就是共享家庭的最新基準，
       // 因此手機新增任務後，iPad 會接收；iPad 修改後，手機也會接收。
-      if(cloudLocalDirty){
+      if(window.__studyRPGCloudLocalDirty){
         setCloudSyncStatus('protected','本機有尚未送出的變更；暫不以即時雲端覆蓋');
         return;
       }
@@ -6514,7 +6516,7 @@ function startFamilyRealtime(){
       try{
         if(applyCloudFamilyPayload(payload,localCfg,{pureCloud:true})){
           cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;
-          cloudLocalDirty=false;
+          window.__studyRPGCloudLocalDirty=false;
           renderAll();
           updateFamilyCloudStatus();
         }
@@ -6679,7 +6681,7 @@ async function pushCloud(opts={}){
       }
       ok=true;
     }while(cloudSaveQueued);
-    if(ok){cloudLocalDirty=false;setCloudSyncStatus('synced');}
+    if(ok){window.__studyRPGCloudLocalDirty=false;setCloudSyncStatus('synced');}
     return ok;
   }catch(e){console.error('雲端儲存失敗',e);setCloudSyncStatus('error',String(e?.message||e));return false;}
   finally{saving=false;if(currentFamilyId&&cloudBaselineReady)startFamilyRealtime();}
