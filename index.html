@@ -1248,15 +1248,37 @@ function setCloudSyncStatus(state,msg=''){
   if(ss&&['syncing','synced','error','protected','cloud'].includes(state))ss.textContent=(map[state]||state)+(msg?'｜'+msg:'');
 }
 
+function isStorageQuotaError(e){
+  const n=String(e?.name||''),m=String(e?.message||e||'');
+  return /QuotaExceededError/i.test(n)||/quota.*exceed/i.test(m);
+}
 function persistFamily(touchUpdatedAt=false){
   familyData.version=Math.max(10,Number(familyData.version)||0);familyData.seasonId=familyData.seasonId||CURRENT_SEASON_ID;familyData.activeProfileId=activeProfileId;
   const p=getActiveProfile(); p.data=gameData; p.label=gameData.hero?.name||p.label;
   if(touchUpdatedAt)familyData.updatedAtClient=Date.now();
-  // 舊存檔第一次升級到 V10.17：賦予目前本機資料一個基準時間，避免舊雲端無條件洗掉它。
+  // 舊存檔第一次升級到 V10.17：賦予目前本機資料一個基準時間。
   if(!Number(familyData.updatedAtClient))familyData.updatedAtClient=Date.now();
+
+  // FAMILY_KEY 是正式本機存檔，必須優先於所有相容備份寫入。
+  // 若 Safari 配額已滿，只移除 Visual Tool 草稿後重試；絕不刪角色/家庭資料。
+  const familyText=JSON.stringify(familyData);
+  try{
+    localStorage.setItem(FAMILY_KEY,familyText);
+  }catch(e){
+    if(!isStorageQuotaError(e))throw e;
+    try{localStorage.removeItem('studyRPGVisualDbDraftV1');}catch(_e){}
+    try{localStorage.setItem(FAMILY_KEY,familyText);}catch(e2){
+      const err=new Error('本機網站儲存空間不足；已禁止覆蓋雲端。');
+      err.name='StudyRPGLocalStorageQuotaError';err.cause=e2;throw err;
+    }
+  }
+
+  // 以下皆為備援/舊版相容副本；容量不足時不可反過來害正式存檔與雲端同步失敗。
   backupLastGoodFamily();
-  localStorage.setItem(FAMILY_KEY,JSON.stringify(familyData));
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData)); // 保留舊版相容備份
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(gameData));}catch(e){
+    if(!isStorageQuotaError(e))console.warn('舊版相容備份寫入失敗',e);
+    else console.warn('略過舊版相容備份：本機儲存空間不足');
+  }
   if(touchUpdatedAt)setCloudSyncStatus('local');
 }
 function switchProfile(id){
@@ -6252,6 +6274,7 @@ boot();
 <script type="module">
 let fb=null,auth=null,db=null,currentUser=null,saving=false,pulling=false,lastCloudPullUid='',currentFamilyId='';
 let familyRealtimeUnsub=null, familyRealtimeId='', cloudSaveQueued=false, applyingRealtimeCloud=false;
+let cloudBaselineReady=false, cloudBaselineUid='';
 
 async function initFirebase(){
   const c=gameData.settings?.cloud;
@@ -6268,11 +6291,12 @@ async function initFirebase(){
     auth=authMod.getAuth(app); db=fsMod.getFirestore(app);
     authMod.onAuthStateChanged(auth,async user=>{
       currentUser=user;
-      if(!user)stopFamilyRealtime();
+      if(!user){cloudBaselineReady=false;cloudBaselineUid='';stopFamilyRealtime();}
+      else if(cloudBaselineUid!==user.uid){cloudBaselineReady=false;cloudBaselineUid=user.uid;}
       const statusText=user?'☁️ 已登入：'+(user.email||'匿名使用者'):'☁️ 尚未登入';
       const s=document.getElementById('cloudStatus'); if(s)s.textContent=statusText;
       const ss=document.getElementById('setupCloudStatus'); if(ss)ss.textContent=statusText;
-      if(user){await pullCloud({reason:'auth'});updateFamilyCloudStatus();}
+      if(user){await pullCloud({reason:'auth',preferCloud:true,pureCloud:true});updateFamilyCloudStatus();}
     });
     return true;
   }catch(e){console.error(e);alert('Firebase 初始化失敗：'+e.message);return false;}
@@ -6344,8 +6368,9 @@ async function writeFamilyCloud(familyId){
   if(previous&&previous!==seasonId)await setDoc(doc(db,'families',familyId,'seasons',previous),{redirectSeasonId:seasonId,updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});
   return true;
 }
-function applyCloudFamilyPayload(payload,localCfg){
-  const __localTaskHistoryByProfile=new Map((familyData?.profiles||[]).map(p=>[String(p.id),{taskRecords:deepClone(p.data?.taskRecords||[]),taskRewardLedger:deepClone(p.data?.taskRewardLedger||{})}]));
+function applyCloudFamilyPayload(payload,localCfg,opts={}){
+  const __mergeLocalHistory=!opts.pureCloud;
+  const __localTaskHistoryByProfile=__mergeLocalHistory?new Map((familyData?.profiles||[]).map(p=>[String(p.id),{taskRecords:deepClone(p.data?.taskRecords||[]),taskRewardLedger:deepClone(p.data?.taskRewardLedger||{})}])):new Map();
   // 真正以雲端取代前，先保留目前本機完整備份，避免任何同步判斷失誤造成不可逆資料遺失。
   backupFamilyBeforeCloudReplace();
   if(payload?.familyData?.profiles?.length){
@@ -6369,7 +6394,7 @@ function applyCloudFamilyPayload(payload,localCfg){
   persistFamily(false);
   setCloudSyncStatus('cloud');
   
-  for(const __p of (familyData?.profiles||[])){
+  if(__mergeLocalHistory)for(const __p of (familyData?.profiles||[])){
     const __old=__localTaskHistoryByProfile.get(String(__p.id));
     if(!__old||!__p.data)continue;
     __p.data.taskRecords=__p.data.taskRecords||[];
@@ -6426,15 +6451,16 @@ function startFamilyRealtime(){
       const payload=snap.data();
       const decision=decideCloudReconciliation(payload);
       if(decision==='local'){
-        setCloudSyncStatus('protected','本機版本較新');
-        // 避免 onSnapshot 內同步重入，排到下一輪再補上雲端。
-        setTimeout(()=>{if(!saving)pushCloud({reason:'realtime-local-newer'});},0);
+        // 安全原則：realtime 絕不因 timestamp 判定就把本機資料自動反推覆蓋雲端。
+        // 正常使用者操作本來就會經 saveGame()->pushCloud()；此處自動回推是多餘且有風險的。
+        setCloudSyncStatus('protected','本機版本較新；未自動覆蓋雲端');
         return;
       }
       if(decision==='same')return;
       applyingRealtimeCloud=true;
       try{
-        if(applyCloudFamilyPayload(payload,localCfg)){
+        if(applyCloudFamilyPayload(payload,localCfg,{pureCloud:true})){
+          cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;
           renderAll();
           updateFamilyCloudStatus();
         }
@@ -6449,6 +6475,8 @@ async function pullCloud(opts={}){
   try{
     const {doc,getDoc}=fb.fsMod;
     const localCfg=gameData.settings?.cloud;
+    const preferCloud=opts.preferCloud===true || !cloudBaselineReady;
+    const pureCloud=opts.pureCloud===true || preferCloud;
 
     // 1. 先找這個 Google 帳號是否已經加入家庭。
     currentFamilyId=await readUserFamilyId(currentUser.uid);
@@ -6463,33 +6491,33 @@ async function pullCloud(opts={}){
       }
     }
 
-    // 2. 已加入家庭：所有裝置、所有授權家長帳號都讀同一份家庭存檔。
+    // 2. 已加入家庭：登入/新 session 的第一份基準一律先採用既有雲端。
     if(currentFamilyId){
       const shared=await readFamilyCloud(currentFamilyId);
       if(shared){
-        const decision=decideCloudReconciliation(shared);
-        if(decision==='cloud' && applyCloudFamilyPayload(shared,localCfg)){
-          lastCloudPullUid=currentUser.uid;
-          startFamilyRealtime();
-          const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已從家庭雲端取回較新的角色資料';
-          updateFamilyCloudStatus();
-          boot();
-          return true;
-        }
-        if(decision==='local'){
-          setCloudSyncStatus('protected','本機版本較新，正在回存雲端');
-          await pushCloud({reason:'pull-local-newer'});
-          lastCloudPullUid=currentUser.uid;
-          startFamilyRealtime();
-          updateFamilyCloudStatus();
-          return true;
-        }
-        if(decision==='same'){
-          setCloudSyncStatus('synced');
-          lastCloudPullUid=currentUser.uid;
-          startFamilyRealtime();
-          updateFamilyCloudStatus();
-          return true;
+        if(preferCloud){
+          if(applyCloudFamilyPayload(shared,localCfg,{pureCloud})){
+            cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;
+            startFamilyRealtime();
+            const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已以家庭雲端建立本機安全基準';
+            updateFamilyCloudStatus();boot();return true;
+          }
+        }else{
+          const decision=decideCloudReconciliation(shared);
+          if(decision==='cloud' && applyCloudFamilyPayload(shared,localCfg,{pureCloud:true})){
+            cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;
+            startFamilyRealtime();updateFamilyCloudStatus();boot();return true;
+          }
+          if(decision==='local'){
+            // 不再由 pull 自動把本機較新的資料回推。避免舊手機只因 timestamp 較新就覆蓋正確雲端。
+            setCloudSyncStatus('protected','本機版本較新；等待明確的使用者存檔，不自動覆蓋雲端');
+            cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;
+            startFamilyRealtime();updateFamilyCloudStatus();return true;
+          }
+          if(decision==='same'){
+            setCloudSyncStatus('synced');cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;
+            startFamilyRealtime();updateFamilyCloudStatus();return true;
+          }
         }
       }
     }
@@ -6500,49 +6528,60 @@ async function pullCloud(opts={}){
     if(!legacySnap.exists()&&currentSeasonStorageId()!==CURRENT_SEASON_ID){legacyRef=doc(db,'users',currentUser.uid,'seasons',CURRENT_SEASON_ID);legacySnap=await getDoc(legacyRef);}
     if(legacySnap.exists()){
       const payload=legacySnap.data();
-      const decision=decideCloudReconciliation(payload);
-      if(decision==='cloud' && applyCloudFamilyPayload(payload,localCfg)){
-        lastCloudPullUid=currentUser.uid;
-        const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已取回較新的原有雲端角色';
-        updateFamilyCloudStatus();
-        boot();
-        return true;
-      }
-      if(decision==='local'){
-        setCloudSyncStatus('protected','本機版本較新，正在回存雲端');
-        await pushCloud({reason:'legacy-local-newer'});
-        lastCloudPullUid=currentUser.uid;
-        updateFamilyCloudStatus();
-        return true;
-      }
-      if(decision==='same'){
-        setCloudSyncStatus('synced');
-        lastCloudPullUid=currentUser.uid;
-        updateFamilyCloudStatus();
-        return true;
+      if(preferCloud){
+        if(applyCloudFamilyPayload(payload,localCfg,{pureCloud})){
+          cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;
+          const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已以原有雲端建立本機安全基準';
+          updateFamilyCloudStatus();boot();return true;
+        }
+      }else{
+        const decision=decideCloudReconciliation(payload);
+        if(decision==='cloud' && applyCloudFamilyPayload(payload,localCfg,{pureCloud:true})){
+          cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;updateFamilyCloudStatus();boot();return true;
+        }
+        if(decision==='local'){
+          setCloudSyncStatus('protected','本機版本較新；未自動覆蓋原有雲端');
+          cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;updateFamilyCloudStatus();return true;
+        }
+        if(decision==='same'){
+          setCloudSyncStatus('synced');cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;lastCloudPullUid=currentUser.uid;updateFamilyCloudStatus();return true;
+        }
       }
     }
 
-    // 4. 雲端完全沒有資料。只有真的已建角色才可建立第一份；空白新勇者禁止上傳。
+    // 4. 所有雲端讀取都成功且確認沒有任何角色資料，才允許建立第一份雲端存檔。
+    cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;
     const hasRealLocalHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
-    if(hasRealLocalHero){
-      await pushCloud({firstUpload:true});
+    if(hasRealLocalHero && opts.allowFirstUpload!==false){
+      await pushCloud({firstUpload:true,skipBaselineGuard:true});
       if(currentFamilyId)startFamilyRealtime();
       const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='✅ 已建立第一份雲端存檔';
-    }else{
+    }else if(!hasRealLocalHero){
       const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='☁️ 此帳號沒有角色，請建立第一個勇者或加入家庭';
     }
-    updateFamilyCloudStatus();
-    return false;
+    updateFamilyCloudStatus();return false;
   }catch(e){
+    cloudBaselineReady=false;
     console.error('讀取雲端失敗',e);
     const ss=document.getElementById('setupCloudStatus');if(ss)ss.textContent='⚠️ 雲端讀取失敗：'+String(e?.message||e);
+    setCloudSyncStatus('protected','尚未取得可靠雲端基準，已禁止本機覆蓋雲端');
     return false;
   }finally{pulling=false;}
 }
 async function pushCloud(opts={}){
   if(!currentUser||!db)return false;
   if(saving){cloudSaveQueued=true;return true;}
+
+  // 寫入前必須先有這個登入 session 的可靠雲端基準。
+  // 若尚未讀到雲端，先讀；讀取失敗時直接禁止寫入，絕不拿舊手機資料冒險覆蓋。
+  if(!opts.skipBaselineGuard && !cloudBaselineReady){
+    const baseline=await pullCloud({reason:'pre-write-guard',preferCloud:true,pureCloud:true,allowFirstUpload:false});
+    if(!baseline && !cloudBaselineReady){
+      setCloudSyncStatus('protected','尚未取得可靠雲端基準，已阻止這次寫入');
+      return false;
+    }
+  }
+
   setCloudSyncStatus('syncing');
   const hasRealHero=(familyData?.profiles||[]).some(p=>String(p?.data?.hero?.name||'').trim());
   if(!hasRealHero){console.warn('略過雲端寫入：目前沒有已建立的正式角色');return false;}
@@ -6552,7 +6591,12 @@ async function pushCloud(opts={}){
     do{
       cloudSaveQueued=false;
       const {doc,setDoc,serverTimestamp}=fb.fsMod;
-      persistFamily();
+      try{persistFamily();}
+      catch(e){
+        console.error('本機儲存失敗，已停止雲端寫入',e);
+        setCloudSyncStatus('protected',String(e?.message||e)+'｜雲端未被覆蓋');
+        return false;
+      }
       const clone=JSON.parse(JSON.stringify(familyData));
       if(currentFamilyId){
         const seasonId=currentSeasonStorageId();
@@ -6571,7 +6615,7 @@ async function pushCloud(opts={}){
     if(ok)setCloudSyncStatus('synced');
     return ok;
   }catch(e){console.error('雲端儲存失敗',e);setCloudSyncStatus('error',String(e?.message||e));return false;}
-  finally{saving=false;if(currentFamilyId)startFamilyRealtime();}
+  finally{saving=false;if(currentFamilyId&&cloudBaselineReady)startFamilyRealtime();}
 }
 window.cloudSaveGame=()=>{if(currentUser)pushCloud();};
 window.firebaseAnonymousLogin=async()=>{
@@ -6629,7 +6673,7 @@ window.firebaseGoogleLogin=async()=>{
     const user=result.user;
     currentUser=user;
 
-    const restored=await pullCloud({reason:'google-login'});
+    const restored=await pullCloud({reason:'google-login',preferCloud:true,pureCloud:true});
 
     // 雲端資料已取回後，再建立/更新家庭權限；避免先把新裝置空白 familyData 寫上去。
     const access=ensureFamilyAccessModel();
