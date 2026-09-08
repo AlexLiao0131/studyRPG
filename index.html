@@ -5966,7 +5966,9 @@ function gmAddTask(){
     });
   }
   gmEditingTaskId='';
-  saveGame();renderAll();
+  // 先立即重繪／重置任務輸入介面，讓家長能直接設定下一個任務；存檔與雲端同步在後面進行。
+  renderAll();
+  saveGame();
 }
 function deleteTask(id){
   const t=gameData.tasks.find(x=>x.id===id);if(!t)return;
