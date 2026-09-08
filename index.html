@@ -1440,6 +1440,8 @@ function loadGame(){
   }catch(e){return defaultData();}
 }
 function saveGame(){
+  // 標記本機有待送出的正式變更；成功寫入 Firebase 後才清除。
+  cloudLocalDirty=true;
   // 所有正式資料修改先安全落地本機，再非同步推送雲端。
   persistFamily(true);
   evaluateHiddenJob(false);
@@ -6277,6 +6279,8 @@ boot();
 let fb=null,auth=null,db=null,currentUser=null,saving=false,pulling=false,lastCloudPullUid='',currentFamilyId='';
 let familyRealtimeUnsub=null, familyRealtimeId='', cloudSaveQueued=false, applyingRealtimeCloud=false;
 let cloudBaselineReady=false, cloudBaselineUid='';
+// 多裝置同步：只有『尚未成功送上雲端的本機變更』才有資格阻擋 realtime 雲端更新。
+let cloudLocalDirty=false;
 
 async function initFirebase(){
   const c=gameData.settings?.cloud;
@@ -6452,17 +6456,19 @@ function startFamilyRealtime(){
       const localCfg=gameData.settings?.cloud;
       const payload=snap.data();
       const decision=decideCloudReconciliation(payload);
-      if(decision==='local'){
-        // 安全原則：realtime 絕不因 timestamp 判定就把本機資料自動反推覆蓋雲端。
-        // 正常使用者操作本來就會經 saveGame()->pushCloud()；此處自動回推是多餘且有風險的。
-        setCloudSyncStatus('protected','本機版本較新；未自動覆蓋雲端');
+      if(decision==='same')return;
+      // 多裝置安全規則：不能再用『哪台裝置 timestamp 較新』決定誰是主機。
+      // 只要本機沒有尚未成功送出的變更，Firebase realtime 就是共享家庭的最新基準，
+      // 因此手機新增任務後，iPad 會接收；iPad 修改後，手機也會接收。
+      if(cloudLocalDirty){
+        setCloudSyncStatus('protected','本機有尚未送出的變更；暫不以即時雲端覆蓋');
         return;
       }
-      if(decision==='same')return;
       applyingRealtimeCloud=true;
       try{
         if(applyCloudFamilyPayload(payload,localCfg,{pureCloud:true})){
           cloudBaselineReady=true;cloudBaselineUid=currentUser.uid;
+          cloudLocalDirty=false;
           renderAll();
           updateFamilyCloudStatus();
         }
@@ -6614,7 +6620,7 @@ async function pushCloud(opts={}){
       }
       ok=true;
     }while(cloudSaveQueued);
-    if(ok)setCloudSyncStatus('synced');
+    if(ok){cloudLocalDirty=false;setCloudSyncStatus('synced');}
     return ok;
   }catch(e){console.error('雲端儲存失敗',e);setCloudSyncStatus('error',String(e?.message||e));return false;}
   finally{saving=false;if(currentFamilyId&&cloudBaselineReady)startFamilyRealtime();}
