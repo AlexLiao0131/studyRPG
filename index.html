@@ -2861,8 +2861,8 @@ const WEEKLY_MAP_DATABASE=[
   {week:16,map:'沉沒古城',background:'images/backgrounds/week16_sunken_city.png',monsters:['skeleton_lizardman','wandering_zombie_lizardman','zombie_lizard_warrior','zombie_lizard_priest','hydra']},
   {week:17,map:'大裂谷',background:'images/backgrounds/week17_great_rift.png',monsters:['pigman','pigman_warrior','centaur','centaur_knight','cyclops']},
   {week:18,map:'飛空艇',background:'images/backgrounds/week18_airship.png',monsters:['harpy','flying_goblin','wyvern','sky_pirate','sky_pirate_captain']},
-  {week:19,map:'天空城',background:'images/backgrounds/week19_sky_city.png',monsters:['magic_armor','stone_gargoyle','sky_city_mage','sky_city_guardian_knight','sky_colossus']},
-  {week:20,map:'燃燒平原',background:'images/backgrounds/week20_burning_plain.png',monsters:['fire_lizard','lava_giant','demon_dragon_phase1','demon_dragon_phase2','grim_reaper'],finalWeek:true},
+  {week:19,map:'天空城',background:'images/backgrounds/week19_sky_city.png',monsters:['magic_armor','stone_gargoyle','sky_city_mage','pegasus_knight','sky_colossus']},
+  {week:20,map:'燃燒平原',background:'images/backgrounds/week20_burning_plain.png',monsters:['fire_lizard','lava_giant','demon_dragon_phase1','demon_dragon_phase2','final_necromancer'],finalWeek:true},
   {week:21,map:'皇都凱旋遊行',background:'images/backgrounds/week21_royal_parade.png',monsters:[null,null,null,null,null],mode:'celebration',noBattle:true}
 ];
 /* ===== V10.10.15 MULTI-ENEMY / SUMMON CORE =====
@@ -3621,7 +3621,7 @@ async function showSkillVisualImage(path,point,opts={}){
   if(!path||!point||!(await loadSkillVisualAsset(path)))return false;
   const layer=skillVisualLayer();if(!layer)return false;
   const img=document.createElement('img');img.className='skill-visual-img';img.src=sprite(path);img.alt='';
-  img.style.left=point.x+'px';img.style.top=point.y+'px';img.style.width=(opts.size||110)+'px';img.style.height=(opts.size||110)+'px';
+  img.style.left=point.x+'px';img.style.top=point.y+'px';img.style.width=(opts.size||110)+'px';img.style.height=(opts.size||110)+'px';img.style.scale=opts.mirrorX?'-1 1':'1 1';
   layer.appendChild(img);
   const duration=Number(opts.duration||360);
   const anim=img.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.65)'},{opacity:1,offset:.2,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(1.12)'}],{duration,easing:'ease-out'});
@@ -3631,7 +3631,7 @@ async function flySkillVisualImage(path,from,to,opts={}){
   if(!path||!from||!to||!(await loadSkillVisualAsset(path)))return false;
   const layer=skillVisualLayer();if(!layer)return false;
   const img=document.createElement('img');img.className='skill-visual-img';img.src=sprite(path);img.alt='';
-  img.style.left=from.x+'px';img.style.top=from.y+'px';img.style.width=(opts.size||82)+'px';img.style.height=(opts.size||82)+'px';layer.appendChild(img);
+  img.style.left=from.x+'px';img.style.top=from.y+'px';img.style.width=(opts.size||82)+'px';img.style.height=(opts.size||82)+'px';img.style.scale=opts.mirrorX?'-1 1':'1 1';layer.appendChild(img);
   const dx=to.x-from.x,dy=to.y-from.y,duration=Number(opts.duration||420);
   const mx=opts.mid&&Number.isFinite(opts.mid.x)?opts.mid.x-from.x:dx/2,my=opts.mid&&Number.isFinite(opts.mid.y)?opts.mid.y-from.y:dy/2-70;
   const frames=opts.path==='arc'?[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${mx}px),calc(-50% + ${my}px))`,offset:.5},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}]:[{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}];
@@ -5330,6 +5330,9 @@ function ensureAssetAudit(){
     if(!Number.isFinite(Number(lc.baseline)))lc.baseline=Number(gameData.hero?.lotteryCoins)||0;
     if(!Array.isArray(lc.entries))lc.entries=[];
   }
+  const coupons=gameData.assetAudit.coupons;
+  if(!coupons||typeof coupons!=='object')gameData.assetAudit.coupons={entries:[]};
+  else if(!Array.isArray(coupons.entries))coupons.entries=[];
   return gameData.assetAudit;
 }
 function changeLotteryCoins(delta,source='system',meta={}){
@@ -5362,13 +5365,30 @@ function assetAuditSummary(){
   });
   return {lottery:{actual,expected,diff:actual-expected,entries:entries.length,baseline:Number(lc.baseline)||0},coupon:{approved:approved.length,used:usedCoupons.length,pending:requests.filter(r=>r.status==='pending').length,issues}};
 }
+function gmBackfillCoupon(){
+  ensureAssetAudit();
+  const sel=document.getElementById('gmCouponBackfillItem'),count=Math.max(1,Math.min(20,Number(document.getElementById('gmCouponBackfillCount')?.value)||1)),reason=(document.getElementById('gmCouponBackfillReason')?.value||'舊同步遺失回補').trim()||'舊同步遺失回補';
+  const item=gameData.shopItems.find(x=>x.id===sel?.value&&itemCategory(x)==='coupon');
+  if(!item)return alert('請先選擇要回補的兌換券。');
+  if(!confirm(`回補【${item.name}】×${count}？\n原因：${reason}\n\n此功能只新增券，不會自動刪除或修改既有紀錄。`))return;
+  const ids=[];
+  for(let i=0;i<count;i++){const inv={id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'gm_backfill',backfill:true,backfillReason:reason,backfilledAt:new Date().toISOString()};gameData.inventory.push(inv);ids.push(inv.id);}
+  gameData.assetAudit.coupons.entries.push({id:uid(),at:new Date().toISOString(),date:today(),action:'backfill',itemId:item.id,itemName:item.name,count,reason,inventoryIds:ids});
+  saveGame();renderAll();renderGM();alert(`已回補 ${item.name} ×${count}。`);
+}
+window.gmBackfillCoupon=gmBackfillCoupon;
 function assetAuditHTML(){
   const a=assetAuditSummary(),coinOk=a.lottery.diff===0,couponOk=a.coupon.issues.length===0&&a.coupon.approved===a.coupon.used;
+  const couponDefs=(gameData.shopItems||[]).filter(x=>itemCategory(x)==='coupon'),backfills=(gameData.assetAudit?.coupons?.entries||[]).filter(x=>x.action==='backfill').slice(-5).reverse();
   return `<div class="card"><h3>🧾 資產核對</h3>
     <div>${coinOk?'✅':'⚠️'} 抽獎幣｜目前 <b>${a.lottery.actual}</b>｜帳本應有 <b>${a.lottery.expected}</b>${coinOk?'':'｜差異 '+a.lottery.diff}</div>
     <div class="small">首次啟用基準 ${a.lottery.baseline} 枚；既有抽獎幣不會被修改。之後取得／消耗才逐筆記帳。</div>
     <div style="margin-top:8px">${couponOk?'✅':'⚠️'} 兌換核銷｜待核准 ${a.coupon.pending}｜已核准 ${a.coupon.approved}｜背包已使用 ${a.coupon.used}</div>
     ${a.coupon.issues.length?`<div class="small bad" style="margin-top:6px">${a.coupon.issues.slice(0,8).map(x=>'⚠️ '+esc(x)).join('<br>')}</div>`:'<div class="small good">每筆已核准申請都能對到已使用的唯一背包項目。</div>'}
+  </div><div class="card"><h3>🎟️ 兌換券人工回補</h3><div class="small">只用於確認遭舊同步洗掉的券。每張回補仍建立獨立 inventory ID，後續照正常申請／核准流程；不會自動推算或改寫既有紀錄。</div>
+    <div class="grid3"><div><label>兌換券</label><select id="gmCouponBackfillItem">${couponDefs.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div><label>張數</label><input id="gmCouponBackfillCount" type="number" min="1" max="20" value="1"></div><div><label>原因</label><input id="gmCouponBackfillReason" value="舊同步遺失回補"></div></div>
+    <button class="btn gold" onclick="gmBackfillCoupon()" ${couponDefs.length?'':'disabled'}>＋ 回補兌換券</button>
+    ${backfills.length?`<details style="margin-top:8px"><summary>最近回補紀錄（${backfills.length}）</summary><div class="small" style="margin-top:6px">${backfills.map(x=>`${esc(x.date||'')}｜${esc(x.itemName||'兌換券')} ×${Number(x.count)||1}｜${esc(x.reason||'')}`).join('<br>')}</div></details>`:''}
   </div>`;
 }
 function equipmentStatText(item){const s=item?.stats||{},labels={attack:'ATK',magicAttack:'MATK',defense:'DEF',magicDefense:'MDEF',speed:'SPD',maxHp:'HP',maxEnergy:'EN'};const out=[];Object.entries(labels).forEach(([k,l])=>{if(Number(s[k]))out.push(`${l} +${Number(s[k])}`)});if(Number(s.crit))out.push(`暴擊 +${Math.round(Number(s.crit)*100)}%`);if(Number(s.evade))out.push(`閃避 +${Math.round(Number(s.evade)*100)}%`);if(Number(s.block))out.push(`格擋 +${Math.round(Number(s.block)*100)}%`);return out.join('、')||'無額外能力';}
@@ -10090,8 +10110,6 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     sprites:{idle:'images/monsters/pegasus_knight_idle.png',battle:'images/monsters/pegasus_knight_battle.png'}
   };
   delete MONSTER_DATABASE.sky_city_guardian_knight;
-  const skyWeek=(SEMESTER_ADVENTURE_MAP||[]).find(x=>Number(x.week)===19);
-  if(skyWeek)skyWeek.monsters=['magic_armor','stone_gargoyle','sky_city_mage','pegasus_knight','sky_colossus'];
 
   Object.assign(STATUS_DATABASE,{
     sky_wind_bind:{id:'sky_wind_bind',name:'風之束縛',icon:'🌪️',kind:'debuff',defaultTurns:2},
@@ -10203,8 +10221,6 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   MONSTER_DATABASE.final_necromancer={id:'final_necromancer',name:'死靈法師',family:'undead',boss:true,finalBoss:true,sprites:{idle:'images/monsters/final_necromancer_idle.png',battle:'images/monsters/final_necromancer_battle.png'}};
   MONSTER_DATABASE.skeleton_dragon={id:'skeleton_dragon',name:'骷髏巨龍',family:'undead_dragon',element:'dark',sprites:{idle:'images/monsters/skeleton_dragon_idle.png',battle:'images/monsters/skeleton_dragon_battle.png'}};
   delete MONSTER_DATABASE.grim_reaper;
-  const finalWeek=(SEMESTER_ADVENTURE_MAP||[]).find(x=>Number(x.week)===20);
-  if(finalWeek)finalWeek.monsters=['fire_lizard','lava_giant','demon_dragon_phase1','demon_dragon_phase2','final_necromancer'];
 
   Object.assign(STATUS_DATABASE,{
     final_corruption:{id:'final_corruption',name:'死亡腐化',icon:'☠️',kind:'debuff',defaultTurns:3},
@@ -10564,6 +10580,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   window.challengeCelebrationBossReplay=function(){if(!isEquipmentEndgameUnlocked())return alert('必須先完成第一學期最終戰。');return previousChallengeCelebrationBossReplayV101193();};
 })();
 </script>
+<script src="tools/Equipment/equipment-database.js"></script>
 <script>
 /* StudyRPG V10.11.94 - embedded item/equipment database */
 (function(){
@@ -10580,12 +10597,15 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     replay:{common:0,uncommon:0,rare:0,epic:100,legendary:0},
     tower:{common:0,uncommon:0,rare:0,epic:98.5,legendary:1.5}
   };
+  function externalEquipmentDatabase(){
+    const ext=window.STUDYRPG_EQUIPMENT_DATABASE;
+    return ext&&typeof ext==='object'?ext:null;
+  }
   function ensureEquipmentRuntimeData(){
-    gameData.equipmentRewardPool=Array.isArray(gameData.equipmentRewardPool)?gameData.equipmentRewardPool:[];
-    gameData.hero=gameData.hero||{};gameData.hero.enhancementShards=Math.max(0,Number(gameData.hero.enhancementShards)||0);
-    const saved=gameData.equipmentDropRates&&typeof gameData.equipmentDropRates==='object'?gameData.equipmentDropRates:{};
-    gameData.equipmentDropRates={};
-    for(const [source,defaults] of Object.entries(DEFAULT_DROP_RATES))gameData.equipmentDropRates[source]={...defaults,...(saved[source]&&typeof saved[source]==='object'?saved[source]:{})};
+    gameData.hero=gameData.hero||{};
+    gameData.hero.enhancementShards=Math.max(0,Number(gameData.hero.enhancementShards)||0);
+    const ext=externalEquipmentDatabase();
+    if(ext?.uniqueEquipment&&typeof ext.uniqueEquipment==='object')Object.assign(window.EQUIPMENT_UNIQUE_DATABASE,JSON.parse(JSON.stringify(ext.uniqueEquipment)));
     return gameData;
   }
   window.ensureEquipmentRuntimeData=ensureEquipmentRuntimeData;
@@ -10693,83 +10713,69 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return best;
   };
 
-  window.generateEquipmentBatch=function(opts={}){
-    ensureEquipmentRuntimeData();
-    const count=Math.max(1,Math.min(100,Number(opts.count)||10)),out=[];
-    for(let i=0;i<count;i++){
-      const item=generateSmartEquipment(opts),row={id:'equipment_pool_'+uid(),name:item.name,rarity:item.rarity||opts.rarity||'common',equipSlot:item.equipSlot,icon:item.icon||'🛡️',iconId:item.visualId||'',templateData:JSON.parse(JSON.stringify(item)),enabled:true,weight:10,sources:['weekday','friday','apocalypse','demon_general','midterm','final','replay','tower'],minWeek:1,maxWeek:999,dropCount:0,createdAt:new Date().toISOString()};
-      gameData.equipmentRewardPool.push(row);out.push(row);
-    }
-    saveGame();return out;
-  };
-  window.saveEquipmentBlueprint=function(item,templateId){
-    if(!item||!['rare','epic'].includes(item.rarity))throw new Error('只有藍色與紫色裝備可以保存模板');
-    const id=String(templateId||`template_${uid()}`),copy=JSON.parse(JSON.stringify(item));delete copy.id;delete copy.createdAt;
-    DB.blueprints[item.rarity][id]={id,rarity:item.rarity,item:copy,locked:true};return id;
-  };
-  window.generateFromEquipmentBlueprint=function(templateId,count=1){
-    const row=[...Object.values(DB.blueprints.rare),...Object.values(DB.blueprints.epic)].find(x=>x.id===templateId);if(!row)throw new Error('找不到裝備模板');
-    const out=[];for(let i=0;i<Math.max(1,Math.min(100,Number(count)||1));i++){
-      const item=JSON.parse(JSON.stringify(row.item));item.id='template_equipment_'+uid();item.templateId=row.id;item.createdAt=new Date().toISOString();
-      const inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source:'template',affixes:item.affixes,tier:item.tier,generated:true,templateId:row.id};gameData.inventory.push(inv);out.push(inv);
-    }
-    saveGame();renderAll();return out;
-  };
-
-  DB.sets=window.EQUIPMENT_SET_DATABASE=window.EQUIPMENT_SET_DATABASE||{};
-  DB.uniques=window.EQUIPMENT_UNIQUE_DATABASE=window.EQUIPMENT_UNIQUE_DATABASE||{};
-  const originalTowerUnique=window.rollTowerUniqueEquipment;
-  window.rollTowerUniqueEquipment=function(floor){
-    const ids=Object.keys(DB.uniques).filter(id=>Number(DB.uniques[id]?.minFloor||1)<=Number(floor||1));if(!ids.length)return null;
-    const chance=Number(floor)%5===0?DB.orangeDrop.bossFloorChance:DB.orangeDrop.normalFloorChance;if(Math.random()>=chance)return null;
-    const weighted=ids.flatMap(id=>Array(Math.max(1,Number(DB.uniques[id]?.weight||1))).fill(id));const id=weighted[Math.floor(Math.random()*weighted.length)];
-    return typeof window.createUniqueEquipmentDrop==='function'?window.createUniqueEquipmentDrop(id,'tower'):originalTowerUnique?.(floor)||null;
-  };
-
-  window.gmGenerateEquipmentBatchV101194=function(){try{
-    const count=Math.max(1,Math.min(100,Number(document.getElementById('gmEqBatchCount')?.value)||10)),rarity=document.getElementById('gmEqBatchRarity')?.value||'uncommon',slot=document.getElementById('gmEqBatchSlot')?.value||'';
-    const made=generateEquipmentBatch({count,rarity,slot:slot||undefined,forceAffix:rarity!=='common'});renderGM();alert(`已生成 ${made.length} 件裝備模板並加入獎勵池。`);
-  }catch(err){alert('生成裝備失敗，錯誤訊息：\n'+(err?.message||err)+'\n\n請把這段錯誤訊息截圖傳給我，我幫你查。');console.error('gmGenerateEquipmentBatchV101194 error:',err);}};
-
-  const RARITY_LABEL={common:'⚪ 白',uncommon:'🟢 綠',rare:'🔵 藍',epic:'🟣 紫',legendary:'🟠 橘'};
-  const SOURCE_LABEL={weekday:'週一～週四',friday:'週五',apocalypse:'天啟四騎士',demon_general:'魔將',midterm:'期中',final:'期末',replay:'第21週回顧',tower:'無盡之塔'};
-  function rarityOf(item){return item?.rarity||'common';}
-  function equippedInventory(inv){return Object.values(gameData.hero.equipment||{}).includes(inv?.id);}
-  function poolRowHTML(row){
-    const item=row.templateData||{},stats=typeof equipmentStatText==='function'?equipmentStatText(item):'';
-    return `<details class="card"><summary><b>${RARITY_LABEL[row.rarity]||row.rarity}｜${row.icon||'🛡️'} ${escapeHtml(row.name)}</b></summary><div class="small">${stats}<br>部位：${row.equipSlot}｜掉落次數：${row.dropCount||0}</div><div class="grid2"><div><label>權重</label><input id="poolWeight_${row.id}" type="number" min="0" value="${Number(row.weight)||0}"></div><div><label>狀態</label><select id="poolEnabled_${row.id}"><option value="1" ${row.enabled!==false?'selected':''}>啟用</option><option value="0" ${row.enabled===false?'selected':''}>停用</option></select></div></div><button class="btn blue" onclick="gmSavePoolRow('${row.id}')">儲存</button> <button class="btn gray" onclick="gmGrantPoolTest('${row.id}')">發測試品</button> <button class="btn red" onclick="gmDeletePoolRow('${row.id}')">刪除模板</button></details>`;
-  }
-  window.gmSavePoolRow=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id);if(!row)return;row.weight=Math.max(0,Number(document.getElementById('poolWeight_'+id)?.value)||0);row.enabled=document.getElementById('poolEnabled_'+id)?.value!=='0';saveGame();renderGM();};
-  window.gmDeletePoolRow=function(id){if(!confirm('刪除這個獎勵池模板？玩家已取得的裝備不受影響。'))return;gameData.equipmentRewardPool=gameData.equipmentRewardPool.filter(x=>x.id!==id);saveGame();renderGM();};
-  function grantPoolItem(row,source='pool_test'){
-    if(!row)return null;const seed=row.templateData||{},fixed=seed.templateLocked===true;
-    let item=fixed?JSON.parse(JSON.stringify(seed)):generateSmartEquipment({rarity:row.rarity,slot:row.equipSlot,baseId:seed.baseId,forcedAffixIds:(seed.affixes||[]).map(a=>a.id),forceAffix:row.rarity!=='common'});
-    item.id='equipment_instance_'+uid();item.poolTemplateId=row.id;item.enhancementLevel=0;item.unenhancedStats={...(item.stats||{})};item.baseStatsForEnhancement={...(item.stats||{})};item.createdAt=new Date().toISOString();
-    const inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source,affixes:item.affixes,tier:item.tier,generated:true,poolTemplateId:row.id,locked:false};gameData.inventory.push(inv);row.dropCount=(Number(row.dropCount)||0)+1;return inv;
-  }
-  window.gmGrantPoolTest=function(id){const row=gameData.equipmentRewardPool.find(x=>x.id===id),inv=grantPoolItem(row);if(!inv)return;saveGame();renderGM();alert(`測試品【${inv.name}】已放入背包。`);};
-
-  window.gmSaveEquipmentDropRates=function(){
-    ensureEquipmentRuntimeData();
-    for(const source of Object.keys(SOURCE_LABEL))for(const rarity of Object.keys(RARITY_LABEL)){const el=document.getElementById(`drop_${source}_${rarity}`);if(el)gameData.equipmentDropRates[source][rarity]=Math.max(0,Math.min(100,Number(el.value)||0));}
-    saveGame();renderGM();alert('裝備掉落機率已儲存。每列超過100%時，抽取時會按比例自動正規化。');
-  };
-  function dropRatesHTML(){ensureEquipmentRuntimeData();return `<div style="overflow-x:auto"><table><thead><tr><th>來源</th>${Object.values(RARITY_LABEL).map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${Object.entries(SOURCE_LABEL).map(([source,label])=>`<tr><td>${label}</td>${Object.keys(RARITY_LABEL).map(r=>`<td><input id="drop_${source}_${r}" type="number" min="0" max="100" value="${Number(gameData.equipmentDropRates[source]?.[r])||0}" style="width:64px">%</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="small">每列合計低於100%時，剩餘機率代表沒有裝備；高於100%會自動按比例換算。</div><button class="btn blue" onclick="gmSaveEquipmentDropRates()">儲存掉落機率</button>`;}
-  function renderPoolManager(){ensureEquipmentRuntimeData();const rows=gameData.equipmentRewardPool||[];return `<div class="card"><h3>🎁 裝備獎勵池（${rows.length}）</h3><div class="small">模板可停用、調整權重、發測試品或刪除；刪除不影響已掉落裝備。</div>${rows.length?rows.map(poolRowHTML).join(''):'<div class="small">獎勵池目前是空的，請先批量生成。</div>'}</div><div class="card"><h3>🎯 掉落品質機率</h3>${dropRatesHTML()}</div>`;}
+  const SOURCE_LABEL={weekday:'平日一般怪',friday:'週五強敵',apocalypse:'天啟四騎士',demon_general:'魔王大將',midterm:'期中Boss',final:'期末Boss',replay:'第21週回憶戰',tower:'無盡之塔'};
+  const RARITY_LABEL={common:'⚪白',uncommon:'🟢綠',rare:'🔵藍',epic:'🟣紫',legendary:'🟠橘'};
   window.renderEquipmentGMPanelHTML=function(){
-    ensureEquipmentRuntimeData();
-    return `<div id="gmEquipmentBatchV101194" class="card"><h3>🎲 智慧裝備生成與獎勵池</h3><div class="small">依目前職業、能力與週數生成適配裝備；生成結果先加入裝備獎勵池，不會直接塞進背包。橘裝禁止隨機生成。</div><div class="grid3"><div><label>數量</label><input id="gmEqBatchCount" type="number" min="1" max="100" value="10"></div><div><label>稀有度</label><select id="gmEqBatchRarity"><option value="common">⚪ 白色</option><option value="uncommon" selected>🟢 綠色</option><option value="rare">🔵 藍色</option><option value="epic">🟣 紫色</option></select></div><div><label>部位</label><select id="gmEqBatchSlot"><option value="">全部隨機</option><option value="weapon">武器</option><option value="head">頭部</option><option value="body">身體</option><option value="accessory">飾品</option></select></div></div><button class="btn purple" onclick="gmGenerateEquipmentBatchV101194()">批量生成並加入獎勵池</button>${renderPoolManager()}</div>`;
+    const ext=externalEquipmentDatabase(),ver=ext?.databaseVersion||'未載入',templates=Object.keys(ext?.templates||{}).length,uniques=Object.keys(ext?.uniqueEquipment||{}).length;
+    return `<div id="gmEquipmentDatabaseStatus" class="card"><h3>🛡️ Equipment Database</h3><div class="small">正式掉落率、模板與橘裝已由 <b>tools/Equipment/equipment-database.js</b> 統一管理；家長存檔不再保存裝備獎勵池或掉落率。</div><div style="margin-top:6px">版本：<b>${escapeHtml(ver)}</b>｜模板 ${templates}｜橘裝 ${uniques}</div></div>`;
   };
 
-  function chooseRarity(source){ensureEquipmentRuntimeData();const rates=gameData.equipmentDropRates[source]||{},entries=Object.keys(RARITY_LABEL).map(id=>[id,Math.max(0,Number(rates[id])||0)]),total=entries.reduce((n,x)=>n+x[1],0);if(total<=0)return null;let r=Math.random()*Math.max(100,total);for(const [id,w] of entries){r-=w;if(r<0)return id;}return null;}
+  function equipmentDropRates(source){
+    const ext=externalEquipmentDatabase(),rates=ext?.dropRates?.[source];
+    return rates&&typeof rates==='object'?rates:(DEFAULT_DROP_RATES[source]||{});
+  }
+  function chooseRarity(source){
+    const rates=equipmentDropRates(source),entries=Object.keys(RARITY_LABEL).map(id=>[id,Math.max(0,Number(rates[id])||0)]),total=entries.reduce((n,x)=>n+x[1],0);
+    if(total<=0)return null;
+    let r=Math.random()*Math.max(100,total);
+    for(const [id,w] of entries){r-=w;if(r<0)return id;}
+    return null;
+  }
   function dropSource(){const s=window.battleStateV10||{},id=s.monsterId;if(s.towerMode||s.eventType==='tower')return'tower';if(s.celebrationReplay||s.eventType==='replay')return'replay';if(s.eventType==='final')return'final';if(s.eventType==='midterm')return'midterm';if(String(id||'').startsWith('apocalypse_'))return'apocalypse';if(id==='demon_general')return'demon_general';return new Date(today()+'T12:00:00').getDay()===5?'friday':'weekday';}
-  function weightedPoolRow(source,rarity){const week=Math.max(1,Number(semesterWeekIndex?.())||1),rows=(gameData.equipmentRewardPool||[]).filter(x=>x.enabled!==false&&x.rarity===rarity&&(x.sources||[]).includes(source)&&week>=Number(x.minWeek||1)&&week<=Number(x.maxWeek||999));const total=rows.reduce((n,x)=>n+Math.max(0,Number(x.weight)||0),0);if(!rows.length||total<=0)return null;let r=Math.random()*total;for(const x of rows){r-=Math.max(0,Number(x.weight)||0);if(r<=0)return x;}return rows.at(-1);}
-  window.rollEquipmentPoolDrop=function(source=dropSource(),forcedRarity=null){const rarity=forcedRarity||chooseRarity(source);if(!rarity)return null;if(rarity==='legendary'&&source==='tower'){const unique=rollTowerUniqueEquipment(Number(battleStateV10?.towerFloor)||1);if(unique)return unique;return null;}const row=weightedPoolRow(source,rarity);if(!row)return null;const inv=grantPoolItem(row,source);return {type:'equipment',label:`${RARITY_LABEL[rarity]} ${inv.name}`,value:inv.id,itemData:inv.itemData};};
+  function databaseTemplateRows(source,rarity){
+    const week=Math.max(1,Number(semesterWeekIndex?.())||1),rows=Object.values(externalEquipmentDatabase()?.templates||{});
+    return rows.filter(row=>{
+      const item=row?.itemData||{};
+      return row?.enabled!==false&&item.rarity===rarity&&(row.sources||[]).includes(source)&&week>=Math.max(1,Number(row.minWeek)||1)&&week<=Math.max(1,Number(row.maxWeek)||999);
+    });
+  }
+  function weightedDatabaseTemplate(source,rarity){
+    const rows=databaseTemplateRows(source,rarity),total=rows.reduce((n,row)=>n+Math.max(0,Number(row.weight??10)),0);
+    if(!rows.length||total<=0)return null;
+    let r=Math.random()*total;
+    for(const row of rows){r-=Math.max(0,Number(row.weight??10));if(r<=0)return row;}
+    return rows.at(-1)||null;
+  }
+  function grantDatabaseEquipment(source,rarity){
+    const row=weightedDatabaseTemplate(source,rarity);
+    let item=row?.itemData?JSON.parse(JSON.stringify(row.itemData)):generateSmartEquipment({rarity,forceAffix:rarity!=='common'});
+    if(!item)return null;
+    item.id='equipment_instance_'+uid();item.rarity=rarity;item.enhancementLevel=0;item.unenhancedStats={...(item.stats||{})};item.baseStatsForEnhancement={...(item.stats||{})};item.createdAt=new Date().toISOString();
+    const inv={id:uid(),itemId:item.id,itemData:item,name:item.name,status:'unused',boughtDate:today(),source,affixes:item.affixes,tier:item.tier,generated:true,templateId:row?.templateId||item.templateId||null,locked:false};
+    gameData.inventory.push(inv);
+    return {type:'equipment',label:`${RARITY_LABEL[rarity]||rarity} ${inv.name}`,value:inv.id,itemData:item};
+  }
+  function rollDatabaseUnique(source){
+    if(source!=='tower')return null;
+    const ext=externalEquipmentDatabase(),floor=Math.max(1,Number(battleStateV10?.towerFloor)||1),orange=ext?.orangeDrop||DB.orangeDrop||{},chance=floor%5===0?Number(orange.bossFloorChance||0):Number(orange.normalFloorChance||0);
+    if(chance<=0||Math.random()>=chance)return null;
+    const defs=ext?.uniqueEquipment||window.EQUIPMENT_UNIQUE_DATABASE||{};
+    Object.assign(window.EQUIPMENT_UNIQUE_DATABASE,JSON.parse(JSON.stringify(defs)));
+    const ids=Object.keys(defs).filter(id=>Number(defs[id]?.minFloor||1)<=floor),weighted=ids.flatMap(id=>Array(Math.max(1,Number(defs[id]?.weight||1))).fill(id));
+    return weighted.length?createUniqueEquipmentDrop(weighted[Math.floor(Math.random()*weighted.length)],'tower'):null;
+  }
+  window.rollEquipmentDatabaseDrop=function(source=dropSource(),forcedRarity=null){
+    const unique=forcedRarity?null:rollDatabaseUnique(source);if(unique)return unique;
+    const rarity=forcedRarity||chooseRarity(source);if(!rarity||rarity==='legendary')return null;
+    return grantDatabaseEquipment(source,rarity);
+  };
+  // 相容舊函式名稱，但正式來源已改為 Equipment Database；不再讀 gameData.equipmentRewardPool。
+  window.rollEquipmentPoolDrop=window.rollEquipmentDatabaseDrop;
 
   const originalDungeonDrop=window.rollDungeonDrop;
-  window.rollDungeonDrop=function(rating=1){const source=dropSource(),drop=rollEquipmentPoolDrop(source);if(drop)return drop;const active=[];for(const item of gameData.shopItems){if(item.category==='equipment'&&item.active){active.push(item);item.active=false;}}try{return originalDungeonDrop(rating);}finally{active.forEach(x=>x.active=true);}};
+  window.rollDungeonDrop=function(rating=1){const source=dropSource(),drop=rollEquipmentDatabaseDrop(source);if(drop)return drop;const active=[];for(const item of gameData.shopItems){if(item.category==='equipment'&&item.active){active.push(item);item.active=false;}}try{return originalDungeonDrop(rating);}finally{active.forEach(x=>x.active=true);}};
   const originalRandomDrop=window.generateRandomEquipmentDrop;
-  window.generateRandomEquipmentDrop=function(opts={}){const source=opts.source==='tower'?'tower':opts.source==='boss_replay'?'replay':opts.source||dropSource(),forced=source==='tower'||source==='replay'?'epic':null,drop=rollEquipmentPoolDrop(source,forced);if(drop)return drop;return originalRandomDrop(opts);};
+  window.generateRandomEquipmentDrop=function(opts={}){const source=opts.source==='tower'?'tower':opts.source==='boss_replay'?'replay':opts.source||dropSource(),drop=rollEquipmentDatabaseDrop(source,opts.rarity||null);if(drop)return drop;return originalRandomDrop(opts);};
 
   function enhancementBase(item){if(item.baseStatsForEnhancement)return item.baseStatsForEnhancement;const raw={...(item.stats||{})};item.baseStatsForEnhancement={...raw};item.unenhancedStats={...raw};return item.baseStatsForEnhancement;}
   const ENHANCE_COST=[0,2,3,4,5,6,8,10,12,15,20],ENHANCE_KEYS=new Set(['attack','magicAttack','defense','magicDefense','maxHp','maxEnergy','speed']);
@@ -10877,26 +10883,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   const oldPerform=window.performAction;
   if(typeof oldPerform==='function')window.performAction=async function(side,action){if(side!=='hero')return oldPerform.apply(this,arguments);const m=equippedSkillBoost(action);if(m===1)return oldPerform.apply(this,arguments);const copy={...action};if(Number(copy.multiplier))copy.multiplier*=m;if(copy.effect?.mods){copy.effect=clone(copy.effect);for(const k of ['heal','healing','shield'])if(Number(copy.effect.mods[k]))copy.effect.mods[k]*=m;}addBattleLog(`✨ ${action.name}受到職業專屬詞條強化！`);return oldPerform.call(this,side,copy);};
 
-  /* 裝備獎勵池完整編輯。 */
-  function compatibleAffixes(slot){return Object.values(AFF).filter(a=>(a.slots||[]).includes(slot));}
-  function recalcItemAffixes(item,ids){
-    const previous=item.affixes||[],stats={...(item.stats||{})};
-    previous.filter(a=>a.kind==='stat').forEach(a=>stats[a.stat]=(Number(stats[a.stat])||0)-(Number(a.value)||0));
-    const chosen=[];for(const id of ids){const def=Object.values(AFF).find(a=>a.id===id);if(!def||chosen.some(a=>a.id===def.id))continue;const a=clone(def);if(a.kind==='stat'){const old=previous.find(x=>x.id===a.id);a.value=Number(old?.value??a.max??a.min??0);a.power=a.value*Number(a.powerPerUnit||1);stats[a.stat]=(Number(stats[a.stat])||0)+a.value;}chosen.push(a);}
-    item.stats=stats;item.affixes=chosen;item.powerScore=Number(window.equipmentPowerScore?.(item)||0);
-  }
-  window.gmEditPoolRowV10120=function(id){const row=gameData.equipmentRewardPool?.find(x=>x.id===id);if(!row)return;row.editing=!row.editing;renderGM();};
-  window.gmSavePoolDetailV10120=function(id){
-    const row=gameData.equipmentRewardPool?.find(x=>x.id===id);if(!row)return;const item=row.templateData||{};
-    row.name=(document.getElementById('poolName_'+id)?.value||row.name).trim();item.name=row.name;row.iconId=(document.getElementById('poolIcon_'+id)?.value||'').trim();item.visualId=row.iconId||item.visualId;item.inventoryIcon=(document.getElementById('poolIconPath_'+id)?.value||'').trim()||item.inventoryIcon;item.setId=(document.getElementById('poolSetId_'+id)?.value||'').trim()||null;
-    for(const k of ['attack','magicAttack','defense','magicDefense','speed','maxHp','maxEnergy','crit','evade','block']){const el=document.getElementById(`poolStat_${k}_${id}`);if(!el)continue;let v=Number(el.value)||0;if(['crit','evade','block'].includes(k))v/=100;if(v)item.stats[k]=v;else delete item.stats[k];}
-    row.weight=Math.max(0,Number(document.getElementById('poolWeight2_'+id)?.value)||0);row.minWeek=Math.max(1,Number(document.getElementById('poolMinWeek_'+id)?.value)||1);row.maxWeek=Math.max(row.minWeek,Number(document.getElementById('poolMaxWeek_'+id)?.value)||999);
-    row.sources=[...document.querySelectorAll(`[data-pool-source="${id}"]:checked`)].map(x=>x.value);const ids=[...document.querySelectorAll(`[data-pool-affix="${id}"]:checked`)].map(x=>x.value);
-    const max=row.rarity==='epic'?4:(rarityCount[row.rarity]??ids.length);if(ids.length>max)return alert(`此稀有度最多 ${max} 條詞條。`);if(row.rarity!=='epic'&&ids.length!==max)return alert(`此稀有度必須是 ${max} 條詞條。`);
-    recalcItemAffixes(item,ids);item.templateLocked=['rare','epic'].includes(row.rarity);row.editing=false;saveGame();renderGM();alert('裝備模板已更新，仍留在獎勵池中。');
-  };
-  function poolEditor(row){const item=row.templateData||{},sources=['weekday','friday','apocalypse','demon_general','midterm','final','replay','tower'],statLabel={attack:'ATK',magicAttack:'MATK',defense:'DEF',magicDefense:'MDEF',speed:'SPD',maxHp:'HP',maxEnergy:'EN',crit:'暴擊%',evade:'閃避%',block:'格擋%'};return `<div class="card"><h3>🧰 完整編輯：${esc(row.name)}</h3><label>裝備名稱</label><input id="poolName_${row.id}" value="${esc(row.name)}"><div class="pool-edit-grid"><div><label>圖示ID</label><input id="poolIcon_${row.id}" value="${esc(row.iconId||'')}"></div><div><label>PNG路徑</label><input id="poolIconPath_${row.id}" value="${esc(item.inventoryIcon||'')}"></div><div><label>套裝ID（僅紫裝）</label><input id="poolSetId_${row.id}" value="${esc(item.setId||'')}" ${row.rarity==='epic'?'':'disabled'}></div><div><label>權重</label><input id="poolWeight2_${row.id}" type="number" value="${Number(row.weight)||0}"></div><div><label>最早週</label><input id="poolMinWeek_${row.id}" type="number" value="${Number(row.minWeek)||1}"></div><div><label>最晚週</label><input id="poolMaxWeek_${row.id}" type="number" value="${Number(row.maxWeek)||999}"></div></div><label>基礎能力</label><div class="pool-edit-grid">${Object.entries(statLabel).map(([k,l])=>`<div><label>${l}</label><input id="poolStat_${k}_${row.id}" type="number" step="${['crit','evade','block'].includes(k)?1:1}" value="${['crit','evade','block'].includes(k)?Math.round(Number(item.stats?.[k]||0)*100):Number(item.stats?.[k]||0)}"></div>`).join('')}</div><label>掉落來源</label><div class="affix-checks">${sources.map(s=>`<label><input data-pool-source="${row.id}" type="checkbox" value="${s}" ${(row.sources||[]).includes(s)?'checked':''}> ${s}</label>`).join('')}</div><label>詞條（藍2條、紫3～4條；同件不可重複）</label><div class="affix-checks">${compatibleAffixes(row.equipSlot).map(a=>`<label><input data-pool-affix="${row.id}" type="checkbox" value="${a.id}" ${(item.affixes||[]).some(x=>x.id===a.id)?'checked':''}> <b>${esc(a.name)}</b><br><span class="small">${esc(a.text||a.stat||'')}</span></label>`).join('')}</div><button class="btn purple" onclick="gmSavePoolDetailV10120('${row.id}')">儲存模板</button> <button class="btn gray" onclick="gmEditPoolRowV10120('${row.id}')">取消</button></div>`;}
-
+  /* 裝備模板與掉落率已移至 tools/Equipment/equipment-database.js；主程式不再提供舊獎勵池編輯器。 */
   window.gmSaveUniqueV10120=function(){try{
     gameData.uniqueEquipmentDefinitions=gameData.uniqueEquipmentDefinitions||{};
     const name=(document.getElementById('gmUniqueName')?.value||'').trim(),baseId=document.getElementById('gmUniqueBase')?.value||'',id=(document.getElementById('gmUniqueId')?.value||name).trim().replace(/[^a-zA-Z0-9_\-]/g,'_');if(!name||!id||!baseId)return alert('請填寫橘裝名稱、ID與基底。');const affixIds=[...document.querySelectorAll('[data-unique-affix]:checked')].map(x=>x.value);if(!affixIds.length)return alert('橘裝至少要有一個固定詞條或專屬功能。');const def={id,name,baseId,visualId:(document.getElementById('gmUniqueVisual')?.value||id).trim(),description:(document.getElementById('gmUniqueEffect')?.value||'').trim(),affixIds,minFloor:Math.max(1,Number(document.getElementById('gmUniqueFloor')?.value)||1),weight:Math.max(1,Number(document.getElementById('gmUniqueWeight')?.value)||1)};gameData.uniqueEquipmentDefinitions[id]=clone(def);window.EQUIPMENT_UNIQUE_DATABASE[id]=clone(def);saveGame();renderGM();alert('橘裝已人工建檔；只會進無盡之塔的固定獨特裝清單，不會被隨機生成。');
@@ -10948,13 +10935,11 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   const priorPanel=window.renderEquipmentGMPanelHTML;
   window.renderEquipmentGMPanelHTML=function(){
-    const baseline=ensureSemesterGearBaseline(),rate=Math.round(Number(gameData.balanceSettings?.gearCarryRate??.55)*100);
-    let html=priorPanel?.()||'';html=html.replace(/<div class="card"><h3>🎁 裝備獎勵池[\s\S]*?<\/div><div class="card"><h3>🎯 掉落品質機率/,m=>m);
-    const rows=(gameData.equipmentRewardPool||[]).filter(x=>x.editing).map(poolEditor).join('');
-    return `<div class="card"><h3>⚖️ 下學期裝備戰力折算</h3><div>開學裝備快照：<b>${Number(baseline.equipmentScore)||0}</b>｜目前加入怪物基準：<b>${semesterGearBonus()}</b></div><div class="small">只在新學期開始時記錄一次，避免換裝後怪物跟著無限膨脹。每日怪與期中／期末Boss都會使用。</div><label>裝備評分折算比例</label><input id="gmGearCarryRate" type="number" min="0" max="100" value="${rate}"><button class="btn blue" onclick="gmSaveGearCarryRate()">儲存比例</button> <button class="btn gray" onclick="gmRefreshGearBaseline()">重新記錄目前裝備</button></div>${html}${rows}${uniqueEditorHTML()}${fxEditorHTML()}`;
+    const baseline=ensureSemesterGearBaseline(),rate=Math.round(Number(gameData.balanceSettings?.gearCarryRate??.55)*100),html=priorPanel?.()||'';
+    return `<div class="card"><h3>⚖️ 下學期裝備戰力折算</h3><div>開學裝備快照：<b>${Number(baseline.equipmentScore)||0}</b>｜目前加入怪物基準：<b>${semesterGearBonus()}</b></div><div class="small">只在新學期開始時記錄一次，避免換裝後怪物跟著無限膨脹。每日怪與期中／期末Boss都會使用。</div><label>裝備評分折算比例</label><input id="gmGearCarryRate" type="number" min="0" max="100" value="${rate}"><button class="btn blue" onclick="gmSaveGearCarryRate()">儲存比例</button> <button class="btn gray" onclick="gmRefreshGearBaseline()">重新記錄目前裝備</button></div>${html}${uniqueEditorHTML()}${fxEditorHTML()}`;
   };
   const oldRender=window.renderGM;
-  window.renderGM=function(){const r=oldRender.apply(this,arguments);document.getElementById('gmT0Forge')?.remove();setTimeout(window.gmFxBind,0);const pool=(gameData.equipmentRewardPool||[]);document.querySelectorAll('[id^="poolWeight_"]').forEach(el=>{const id=el.id.slice(11),details=el.closest('details');if(details&&!details.querySelector('.v10120-edit')){const b=document.createElement('button');b.className='btn purple v10120-edit';b.textContent='完整編輯';b.onclick=()=>window.gmEditPoolRowV10120(id);details.querySelector('summary')?.after(b);}});return r;};
+  window.renderGM=function(){const r=oldRender.apply(this,arguments);document.getElementById('gmT0Forge')?.remove();setTimeout(window.gmFxBind,0);return r;};
   if(gameData.hero?.name)renderAll();
 })();
 </script>
@@ -11043,11 +11028,11 @@ function heroKey(){try{return typeof heroAssetKey==='function'?heroAssetKey():'n
 window.heroMotionAction=function(name){const set=window.HERO_MOTION_ACTIONS[heroKey()]||HERO_DEFAULT;return set[name]||set.melee||HERO_DEFAULT.melee};
 if(typeof MONSTER_DATABASE!=='undefined') Object.values(MONSTER_DATABASE).forEach(m=>{m.motionActions=merge(MON_DEFAULT,C.monsters?.[m.id]?.motionActions);});
 function guessAction(s,enemy=false){if(!s)return enemy?'melee':'melee';const k=String(s.kind||s.type||'').toLowerCase();if(k.includes('buff')||k.includes('heal'))return'buff';if(k.includes('magic')||['fire','water','ice','lightning','holy','dark','nature'].includes(k))return'cast';if(k.includes('ranged')||k.includes('projectile'))return'shoot';return'melee'}
-function normalizeSkill(s,bucket){if(!s)return;const configured=bucket?.[s.id];s.presentation=Object.assign({enabled:false,actorAction:guessAction(s),selfFX:[],pathFX:null,targetFX:[]},s.presentation||{},configured||{});if(configured)s.presentation.enabled=true;}
+function normalizeSkill(s,bucket){if(!s)return;const configured=bucket?.[s.id];s.presentation=Object.assign({enabled:false,actorAction:guessAction(s),selfFX:[],pathFX:null,targetFX:[],summons:[]},s.presentation||{},configured||{});if(configured)s.presentation.enabled=true;}
 if(typeof BEGINNER_SKILLS!=='undefined')BEGINNER_SKILLS.forEach(s=>normalizeSkill(s,C.playerSkills));
 if(typeof JOB_SKILL_LIBRARY!=='undefined')Object.values(JOB_SKILL_LIBRARY).forEach(s=>normalizeSkill(s,C.playerSkills));
 if(typeof MONSTER_SKILL_DATABASE!=='undefined')Object.values(MONSTER_SKILL_DATABASE).forEach(s=>normalizeSkill(s,C.monsterSkills));
-window.studyRPGResolvePresentation=function(action={},enemy=false){const db=enemy?C.monsterSkills:C.playerSkills;const base=action.presentation||{};const ext=db?.[action.id]||{};return Object.assign({enabled:false,actorAction:guessAction(action,enemy),selfFX:[],pathFX:null,targetFX:[]},clone(base),clone(ext),{enabled:!!(ext.enabled||base.enabled)});};
+window.studyRPGResolvePresentation=function(action={},enemy=false){const db=enemy?C.monsterSkills:C.playerSkills;const base=action.presentation||{};const ext=db?.[action.id]||{};return Object.assign({enabled:false,actorAction:guessAction(action,enemy),selfFX:[],pathFX:null,targetFX:[],summons:[]},clone(base),clone(ext),{enabled:!!(ext.enabled||base.enabled)});};
 function ref(name){const d=device();const p=window.studyRPGResolveBattlePointV10179?.(name)||C.referencePoints?.[d]?.[name]||defaultRefs[d][name]||defaultRefs[d].hero_home;return p;}
 function monsterMotion(unit,name){const m=typeof MONSTER_DATABASE!=='undefined'?MONSTER_DATABASE[unit?.monsterId]:null;return m?.motionActions?.[name]||m?.motionActions?.melee||MON_DEFAULT.melee;}
 async function fxList(list,point){let ok=false;for(const it of (list||[])){const x=typeof it==='string'?{image:it}:it;if(!x?.image)continue;try{ok=(await showSkillVisualImage(x.image,point,{size:Number(x.size)||96,duration:Number(x.duration)||350}))||ok}catch(e){console.warn('VFX skipped',e)}}return ok;}
@@ -11079,9 +11064,32 @@ const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
 function currentElement(side){if(side==='hero')return document.getElementById('battleHeroSprite')||document.getElementById('battleChar_hero');const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;return u?document.querySelector(`[data-enemy-uid="${u.uid}"]`):document.querySelector('.battle-enemy-unit-sprite');}
 function anchorBox(side,fx){const arena=document.getElementById('battleArena');if(!arena)return null;let el=currentElement(side),r=el?.getBoundingClientRect(),a=arena.getBoundingClientRect();if(!r){const p=point(side==='hero'?'hero_home':'enemy_home');return {x:a.width*p.x/100,y:a.height*p.y/100,w:100,h:100};}let key='novice';if(side!=='hero'){const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;key=u?.monsterId||''}const ea=side==='hero'?C.heroes?.[key]?.effectAnchor:C.monsters?.[key]?.effectAnchor;const ew=Number(ea?.width||100)/100,eh=Number(ea?.height||100)/100,ey=Number(ea?.y||0)/100;return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2+r.height*ey,w:r.width*ew,h:r.height*eh};}
 function transFrames(type,enter=true){switch(type){case'fade':return enter?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}];case'dissolve':return enter?[{opacity:0,clipPath:'inset(50% 50% 50% 50%)',filter:'blur(6px)'},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'blur(0)'}]:[{opacity:1,clipPath:'inset(0 0 0 0)'},{opacity:0,clipPath:'inset(45% 45% 45% 45%)',filter:'blur(7px)'}];case'scale':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.2)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(.2)'}];case'pop':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.4)'},{opacity:1,transform:'translate(-50%,-50%) scale(1.18)'},{transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) scale(1.25)'}];case'slide':return enter?[{opacity:0,transform:'translate(-80%,-50%)'},{opacity:1,transform:'translate(-50%,-50%)'}]:[{opacity:1,transform:'translate(-50%,-50%)'},{opacity:0,transform:'translate(-20%,-50%)'}];case'flash':return enter?[{opacity:0},{opacity:1,filter:'brightness(3)'},{filter:'brightness(1)'}]:[{opacity:1},{opacity:0,filter:'brightness(3)'}];case'rotate':return enter?[{opacity:0,transform:'translate(-50%,-50%) rotate(-180deg) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) rotate(0) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) rotate(180deg) scale(.5)'}];case'blur':return enter?[{opacity:0,filter:'blur(12px)'},{opacity:1,filter:'blur(0)'}]:[{opacity:1,filter:'blur(0)'},{opacity:0,filter:'blur(12px)'}];default:return null}}
-async function playFx(fx,defaultSide){if(!fx?.image)return false;if(fx.delay)await sleep(Number(fx.delay)||0);const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=fx.scaleMode==='fixed'?96:(fx.scaleMode==='self'?anchorBox(defaultSide,fx)?.h:b.h);const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
+async function playFx(fx,defaultSide){if(!fx?.image)return false;if(fx.delay)await sleep(Number(fx.delay)||0);const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=fx.scaleMode==='fixed'?96:(fx.scaleMode==='self'?anchorBox(defaultSide,fx)?.h:b.h);const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';img.style.scale=fx.mirrorX?'-1 1':'1 1';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
 async function playList(list,side){let ok=false;for(const f of list||[])ok=(await playFx(typeof f==='string'?{image:f}:f,side))||ok;return ok}
-const oldSeq=window.playSkillVisualSequence;window.playSkillVisualSequence=async function(side,action={}){const p=typeof window.studyRPGResolvePresentation==='function'?window.studyRPGResolvePresentation(action,side==='enemy'):(action.presentation||{});if(!p?.enabled)return oldSeq?.(side,action)||false;let ok=await playList(p.selfFX,side);if(p.pathFX?.image){try{if(p.pathFX.delay)await sleep(Number(p.pathFX.delay)||0);const arena=document.getElementById('battleArena');const pp=n=>{const q=point(n);return arena?{x:arena.clientWidth*q.x/100,y:arena.clientHeight*q.y/100}:null};const defaultFrom=skillVisualPoint(side),defaultTo=skillVisualPoint(side==='hero'?'enemy':'hero');const from=p.pathFX.fromPoint?pp(p.pathFX.fromPoint):defaultFrom,to=p.pathFX.toPoint?pp(p.pathFX.toPoint):defaultTo;ok=(await flySkillVisualImage(p.pathFX.image,from,to,{size:Math.round(82*Number(p.pathFX.scale||1)),duration:Number(p.pathFX.duration||420),path:p.pathFX.path||'straight',mid:p.pathFX.viaPoint?pp(p.pathFX.viaPoint):null}))||ok}catch(e){console.warn('path fx fallback',e)}}ok=(await playList(p.targetFX,side))||ok;return ok};
+const oldSeq=window.playSkillVisualSequence;
+async function playPathFx(p,side){
+  if(!p?.image)return false;
+  const arena=document.getElementById('battleArena');if(!arena)return false;
+  const pp=n=>{const q=point(n);return {x:arena.clientWidth*q.x/100,y:arena.clientHeight*q.y/100}};
+  const defaultFrom=skillVisualPoint(side),defaultTo=skillVisualPoint(side==='hero'?'enemy':'hero'),from=p.fromPoint?pp(p.fromPoint):defaultFrom,to=p.toPoint?pp(p.toPoint):defaultTo;
+  return flySkillVisualImage(p.image,from,to,{size:Math.round(82*Number(p.scale||1)),duration:Number(p.duration||420),path:p.path||'straight',mid:p.viaPoint?pp(p.viaPoint):null,mirrorX:!!p.mirrorX});
+}
+window.playSkillVisualSequence=async function(side,action={}){
+  const p=typeof window.studyRPGResolvePresentation==='function'?window.studyRPGResolvePresentation(action,side==='enemy'):(action.presentation||{});if(!p?.enabled)return oldSeq?.(side,action)||false;
+  const timeline=[];let cursor=0,hasAbsolute=false;
+  const addFxEvent=f=>{if(!f?.image)return;const explicit=f.at!==null&&f.at!==''&&Number.isFinite(Number(f.at));hasAbsolute=hasAbsolute||explicit;const at=explicit?Math.max(0,Number(f.at)):cursor+Math.max(0,Number(f.delay)||0);timeline.push({at,run:()=>playFx({...f,delay:0},side)});cursor=Math.max(cursor,at+Math.max(0,Number(f.duration)||350));};
+  (p.selfFX||[]).forEach(addFxEvent);
+  if(p.pathFX?.image){const q=p.pathFX,explicit=q.at!==null&&q.at!==''&&Number.isFinite(Number(q.at));hasAbsolute=hasAbsolute||explicit;const at=explicit?Math.max(0,Number(q.at)):cursor+Math.max(0,Number(q.delay)||0);timeline.push({at,run:()=>playPathFx({...q,delay:0},side)});cursor=Math.max(cursor,at+Math.max(0,Number(q.duration)||420));}
+  (p.targetFX||[]).forEach(addFxEvent);
+  if(hasAbsolute&&timeline.length){
+    const started=performance.now();let ok=false;
+    await Promise.all(timeline.map(async ev=>{const wait=Math.max(0,ev.at-(performance.now()-started));if(wait)await sleep(wait);try{ok=(await ev.run())||ok}catch(e){console.warn('timeline fx skipped',e)}}));
+    return ok;
+  }
+  let ok=await playList(p.selfFX,side);
+  if(p.pathFX?.image){try{if(p.pathFX.delay)await sleep(Number(p.pathFX.delay)||0);ok=(await playPathFx(p.pathFX,side))||ok}catch(e){console.warn('path fx fallback',e)}}
+  ok=(await playList(p.targetFX,side))||ok;return ok;
+};
 function skillPresentationForSummoner(summoner){const id=summoner?.lastSkillId;if(!id)return null;const db=summoner?.isSummon||summoner?.monsterId?(C.monsterSkills||{}):(C.playerSkills||{});return db[id]||null}
 function summonSpec(summoner,monsterId){const p=skillPresentationForSummoner(summoner);const arr=p?.summons||[];return arr.find(x=>!x.unitId||x.unitId===monsterId)||arr[0]||null}
 function animateSummonUnit(unit,spec){if(!unit||!spec)return;setTimeout(async()=>{if(spec.delay)await sleep(spec.delay);if(typeof renderBattleEnemySprites==='function')renderBattleEnemySprites();await sleep(20);const el=document.querySelector(`[data-enemy-uid="${unit.uid}"]`),arena=document.getElementById('battleArena');if(!el||!arena)return;const end=point(spec.standPoint||spec.to||'summon_center'),start=point(spec.from||'air_high'),via=point(spec.via||'air_high'),sc=Number(spec.scale||1);el.classList.add('study-summon-positioned');el.style.width=(190*sc)+'px';el.style.height=(190*sc)+'px';el.style.left=end.x+'%';el.style.top=end.y+'%';el.style.bottom='auto';el.style.right='auto';el.style.transform='translate(-50%,-100%)';const dx=(start.x-end.x)*arena.clientWidth/100,dy=(start.y-end.y)*arena.clientHeight/100;const vx=(via.x-end.x)*arena.clientWidth/100,vy=(via.y-end.y)*arena.clientHeight/100;let frames;if(spec.path==='fade')frames=[{opacity:0},{opacity:1}];else if(spec.path==='straight'||spec.path==='drop')frames=[{transform:`translate(calc(-50% + ${dx}px),calc(-100% + ${dy}px)) scale(${sc})`,opacity:0.2},{transform:`translate(-50%,-100%) scale(${sc})`,opacity:1}];else frames=[{transform:`translate(calc(-50% + ${dx}px),calc(-100% + ${dy}px)) scale(${sc})`,opacity:0},{transform:`translate(calc(-50% + ${vx}px),calc(-100% + ${vy}px)) scale(${sc})`,opacity:1,offset:.55},{transform:`translate(-50%,-100%) scale(${sc})`,opacity:1}];await el.animate(frames,{duration:Number(spec.duration||500),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});el.style.transform='translate(-50%,-100%)';},0)}
