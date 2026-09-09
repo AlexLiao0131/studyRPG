@@ -157,14 +157,48 @@ async function fingerprint(text){
     return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,16);
   }catch(e){return 'len-'+text.length}
 }
+function literalAfterAnchor(anchor,tokens){
+  const a=mainText.indexOf(anchor);if(a<0)return {};
+  for(const token of tokens){
+    const i=mainText.indexOf(token,a+anchor.length);if(i<0)continue;
+    const s=mainText.indexOf('{',i+token.length);if(s<0)continue;
+    const raw=balanced(mainText,s);if(!raw)continue;
+    try{return Function('"use strict";return ('+raw+')')()}catch(e){console.warn(anchor,token,e)}
+  }
+  return {};
+}
+function deriveCurrentEquipmentRules(){
+  const legacy=literalAfter(['window.EQUIPMENT_GENERATION_RULES=']);
+  if(legacy?.version)return legacy;
+  const version=(mainText.match(/STUDYRPG_ITEM_EQUIPMENT_DB\s*=\s*\{version:['"]([^'"]+)['"]/i)||[])[1]||'';
+  const powerWeights=literalAfterAnchor('function statPower(stats={})',['const w=']);
+  const classWeights=literalAfterAnchor('function classWeights()',['return ']);
+  const tierExpr=mainText.match(/Math\.floor\(\(week-1\)\/(\d+)\)\+Math\.floor\(floor\/(\d+)\)\+cycle-1/);
+  const growthExpr=mainText.match(/rarity\.powerMult\*\(1\+tier\*([.\d]+)\)/);
+  const epicExpr=mainText.match(/item\?\.rarity!==['"]epic['"][\s\S]{0,120}?Math\.random\(\)>=([.\d]+)/);
+  const triesExpr=mainText.match(/Math\.max\(6,Number\(opts\.tries\)\|\|(\d+)\)/);
+  if(!version||!Object.keys(powerWeights).length||!Object.keys(classWeights).length||!tierExpr||!growthExpr||!triesExpr)return {};
+  return {
+    version,
+    powerWeights,
+    classWeights,
+    tier:{
+      weekStep:Number(tierExpr[1]),
+      floorStep:Number(tierExpr[2]),
+      tierGrowth:Number(growthExpr[1]),
+      epicFourthChance:epicExpr?Number(epicExpr[1]):.35,
+      defaultTries:Number(triesExpr[1])
+    }
+  };
+}
 async function parseMain(){
   DB.rarities=literalAfter(['const RARITIES=','window.EQUIPMENT_RARITY_DATABASE=']);
   DB.bases=literalAfter(['const BASES=','window.EQUIPMENT_BASE_DATABASE_T0=']);
   DB.affixes=literalAfter(['const AFFIXES=','window.EQUIPMENT_AFFIX_DATABASE=']);
-  DB.rules=literalAfter(['window.EQUIPMENT_GENERATION_RULES=']);
-  DB.iconPools=literalAfter(['DB.iconPools=window.EQUIPMENT_ICON_POOLS=','window.EQUIPMENT_ICON_POOLS=']);
-  DB.dropRates=literalAfter(['const DEFAULT_DROP_RATES=window.EQUIPMENT_DROP_RATE_DEFAULTS=','window.EQUIPMENT_DROP_RATE_DEFAULTS=']);
-  DB.orangeDrop=literalAfter(['DB.orangeDrop=window.EQUIPMENT_ORANGE_DROP_DEFAULTS=','window.EQUIPMENT_ORANGE_DROP_DEFAULTS=']);
+  DB.rules=deriveCurrentEquipmentRules();
+  DB.iconPools=literalAfter(['DB.iconPools=window.EQUIPMENT_ICON_POOLS=','window.EQUIPMENT_ICON_POOLS=','DB.iconPools=']);
+  DB.dropRates=literalAfter(['const DEFAULT_DROP_RATES=window.EQUIPMENT_DROP_RATE_DEFAULTS=','window.EQUIPMENT_DROP_RATE_DEFAULTS=','const DEFAULT_DROP_RATES=']);
+  DB.orangeDrop=literalAfter(['DB.orangeDrop=window.EQUIPMENT_ORANGE_DROP_DEFAULTS=','window.EQUIPMENT_ORANGE_DROP_DEFAULTS=','DB.orangeDrop=']);
   sourceFingerprint=await fingerprint(mainText);
   renderValidation();
   buildDropRates();
