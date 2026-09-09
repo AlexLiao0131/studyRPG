@@ -10833,8 +10833,6 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   const db=window.STUDYRPG_ITEM_EQUIPMENT_DB||{};
   const AFF=window.EQUIPMENT_AFFIX_DATABASE||{};
   const rarityCount={common:0,uncommon:1,rare:2,epic:3};
-  gameData.uniqueEquipmentDefinitions=gameData.uniqueEquipmentDefinitions||{};
-  Object.assign(window.EQUIPMENT_UNIQUE_DATABASE||{},gameData.uniqueEquipmentDefinitions);
 
   /* 下一學期只在開學時記錄一次裝備，不隨換裝追漲。 */
   function equippedScore(){
@@ -10887,48 +10885,6 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   if(typeof oldPerform==='function')window.performAction=async function(side,action){if(side!=='hero')return oldPerform.apply(this,arguments);const m=equippedSkillBoost(action);if(m===1)return oldPerform.apply(this,arguments);const copy={...action};if(Number(copy.multiplier))copy.multiplier*=m;if(copy.effect?.mods){copy.effect=clone(copy.effect);for(const k of ['heal','healing','shield'])if(Number(copy.effect.mods[k]))copy.effect.mods[k]*=m;}addBattleLog(`✨ ${action.name}受到職業專屬詞條強化！`);return oldPerform.call(this,side,copy);};
 
   /* 裝備模板與掉落率已移至 tools/Equipment/equipment-database.js；主程式不再提供舊獎勵池編輯器。 */
-  window.gmSaveUniqueV10120=function(){try{
-    gameData.uniqueEquipmentDefinitions=gameData.uniqueEquipmentDefinitions||{};
-    const name=(document.getElementById('gmUniqueName')?.value||'').trim(),baseId=document.getElementById('gmUniqueBase')?.value||'',id=(document.getElementById('gmUniqueId')?.value||name).trim().replace(/[^a-zA-Z0-9_\-]/g,'_');if(!name||!id||!baseId)return alert('請填寫橘裝名稱、ID與基底。');const affixIds=[...document.querySelectorAll('[data-unique-affix]:checked')].map(x=>x.value);if(!affixIds.length)return alert('橘裝至少要有一個固定詞條或專屬功能。');const def={id,name,baseId,visualId:(document.getElementById('gmUniqueVisual')?.value||id).trim(),description:(document.getElementById('gmUniqueEffect')?.value||'').trim(),affixIds,minFloor:Math.max(1,Number(document.getElementById('gmUniqueFloor')?.value)||1),weight:Math.max(1,Number(document.getElementById('gmUniqueWeight')?.value)||1)};gameData.uniqueEquipmentDefinitions[id]=clone(def);window.EQUIPMENT_UNIQUE_DATABASE[id]=clone(def);saveGame();renderGM();alert('橘裝已人工建檔；只會進無盡之塔的固定獨特裝清單，不會被隨機生成。');
-  }catch(err){alert('建立橘裝失敗，錯誤訊息：\n'+(err?.message||err)+'\n\n請把這段錯誤訊息截圖傳給我，我幫你查。');console.error('gmSaveUniqueV10120 error:',err);}};
-  window.gmUniqueTestV10120=function(id){const result=window.createUniqueEquipmentDrop?.(id,'gm_test');if(!result)return alert('建立測試品失敗。');saveGame();renderAll();alert('橘裝測試品已放入背包。');};
-  function uniqueEditorHTML(){const bases=Object.values(window.EQUIPMENT_BASE_DATABASE_T0||{}),rows=Object.values(gameData.uniqueEquipmentDefinitions||{});return `<div class="card"><h3>🟠 橘色獨特裝人工建檔</h3><div class="small">橘裝不使用隨機生成。可指定多個固定詞條、職業技能強化與專屬效果說明，建檔後才有機會從無盡之塔掉落。</div><div class="pool-edit-grid"><div><label>內部ID</label><input id="gmUniqueId" placeholder="phoenix_heart"></div><div><label>名稱</label><input id="gmUniqueName" placeholder="不死鳥之心"></div><div><label>基底</label><select id="gmUniqueBase">${bases.map(b=>`<option value="${b.id}">${b.icon} ${esc(b.name)}</option>`).join('')}</select></div><div><label>PNG／圖示ID</label><input id="gmUniqueVisual" placeholder="phoenix_heart"></div><div><label>最低塔層</label><input id="gmUniqueFloor" type="number" value="1"></div><div><label>掉落權重</label><input id="gmUniqueWeight" type="number" value="1"></div></div><label>專屬效果說明</label><input id="gmUniqueEffect" placeholder="每場首次受到致命傷害時，以1HP存活"><label>固定詞條與專屬功能（可複選）</label><div class="affix-checks">${Object.values(AFF).map(a=>`<label><input data-unique-affix type="checkbox" value="${a.id}"> <b>${esc(a.name)}</b><br><span class="small">${esc(a.text||a.stat||'')}</span></label>`).join('')}</div><button class="btn gold" onclick="gmSaveUniqueV10120()">建立橘裝</button>${rows.length?`<hr>${rows.map(x=>`<div class="card"><b>🟠 ${esc(x.name)}</b>｜最低${x.minFloor}層<br><span class="small">${esc(x.description||'')}</span><br><button class="btn gray" onclick="gmUniqueTestV10120('${x.id}')">發測試品</button></div>`).join('')}`:''}</div>`;}
-
-  /* 技能特效工作台。部署路徑可正式儲存；本機 PNG 只做本次分頁預覽，不再寫入 localStorage。 */
-  let fxState={skillId:'fireball',start:{x:25,y:58},mid:{x:50,y:25},end:{x:75,y:58}};
-  const fxSessionPreview={};
-  const localFx=()=>fxSessionPreview;
-  const isEphemeralFxSource=src=>/^(?:data:image\/|blob:)/i.test(String(src||''));
-  function allSkills(){const beginner=typeof BEGINNER_SKILLS!=='undefined'?BEGINNER_SKILLS:[],jobs=typeof JOB_SKILL_LIBRARY!=='undefined'?JOB_SKILL_LIBRARY:{};return [...beginner,...Object.values(jobs)].filter((x,i,a)=>x?.id&&a.findIndex(y=>y.id===x.id)===i);}
-  window.gmFxLoad=function(){const id=document.getElementById('gmFxSkill')?.value||fxState.skillId,cfg=(gameData.skillVisuals||{})[id]||localFx()[id]||{};fxState={skillId:id,start:cfg.start||{x:25,y:58},mid:cfg.mid||{x:50,y:25},end:cfg.end||{x:75,y:58}};renderGM();};
-  function readFile(input,key){
-    const f=input.files?.[0];if(!f)return;
-    const all=localFx(),id=document.getElementById('gmFxSkill')?.value||fxState.skillId;
-    all[id]=all[id]||{};
-    const old=all[id][key];
-    if(/^blob:/i.test(String(old||'')))try{URL.revokeObjectURL(old);}catch(_e){}
-    const url=URL.createObjectURL(f);
-    all[id][key]=url;
-    const path=document.getElementById('gmFx'+key[0].toUpperCase()+key.slice(1));
-    if(path)path.value=url;
-    previewFx();
-  }
-  window.gmFxFile=(input,key)=>readFile(input,key);
-  function pointDown(ev){const key=ev.currentTarget.dataset.point,stage=ev.currentTarget.parentElement;ev.currentTarget.setPointerCapture(ev.pointerId);const move=e=>{const r=stage.getBoundingClientRect();fxState[key]={x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))};ev.currentTarget.style.left=fxState[key].x+'%';ev.currentTarget.style.top=fxState[key].y+'%';};ev.currentTarget.onpointermove=move;ev.currentTarget.onpointerup=()=>{ev.currentTarget.onpointermove=null;};}
-  window.gmFxBind=function(){document.querySelectorAll('.fx-point').forEach(p=>p.onpointerdown=pointDown);};
-  function fxValue(id){return document.getElementById(id)?.value||'';}
-  window.previewFx=async function(){const stage=document.getElementById('gmFxStage');if(!stage)return;stage.querySelectorAll('.fx-preview-img').forEach(x=>x.remove());const cast=fxValue('gmFxCast'),projectile=fxValue('gmFxProjectile'),impact=fxValue('gmFxImpact'),duration=Math.max(100,Number(fxValue('gmFxDuration'))||700),size=Math.max(16,Number(fxValue('gmFxSize'))||80);const add=src=>{if(!src)return null;const img=document.createElement('img');img.src=src;img.className='fx-preview-img';img.style.width=size+'px';img.style.height=size+'px';stage.appendChild(img);return img;};const at=(img,p)=>{if(img){img.style.left=p.x+'%';img.style.top=p.y+'%';}};const c=add(cast);at(c,fxState.start);if(c){await c.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.5)'},{opacity:1},{opacity:0}],{duration:Math.min(500,duration)}).finished.catch(()=>{});c.remove();}const p=add(projectile);at(p,fxState.start);if(p){const dx=fxState.end.x-fxState.start.x,dy=fxState.end.y-fxState.start.y,mx=fxState.mid.x-fxState.start.x,my=fxState.mid.y-fxState.start.y;await p.animate([{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${mx/100*stage.clientWidth}px),calc(-50% + ${my/100*stage.clientHeight}px))`,offset:.5},{transform:`translate(calc(-50% + ${dx/100*stage.clientWidth}px),calc(-50% + ${dy/100*stage.clientHeight}px))`}],{duration,easing:'ease-in-out'}).finished.catch(()=>{});p.remove();}const i=add(impact);at(i,fxState.end);if(i){await i.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.5)'},{opacity:1},{opacity:0,transform:'translate(-50%,-50%) scale(1.3)'}],{duration:Math.min(500,duration)}).finished.catch(()=>{});i.remove();}};
-  window.gmSaveFx=function(){
-    gameData.skillVisuals=gameData.skillVisuals||{};
-    const id=fxValue('gmFxSkill')||fxState.skillId;
-    const cast=fxValue('gmFxCast'),projectile=fxValue('gmFxProjectile'),impact=fxValue('gmFxImpact');
-    if([cast,projectile,impact].some(isEphemeralFxSource)){
-      alert('本機 PNG 目前只供預覽，不會塞進 Safari 儲存空間。\n請先把素材放到正式 images 路徑，再填入相對路徑後儲存。');
-      return false;
-    }
-    gameData.skillVisuals[id]={cast,projectile,impact,duration:Math.max(100,Number(fxValue('gmFxDuration'))||700),size:Math.max(16,Number(fxValue('gmFxSize'))||80),start:fxState.start,mid:fxState.mid,end:fxState.end,path:'custom'};
-    saveGame();alert('技能特效已儲存並接入正式戰鬥。');return true;
-  };
   function fxEditorHTML(){const skills=allSkills(),saved=(gameData.skillVisuals||{})[fxState.skillId]||localFx()[fxState.skillId]||{};return `<div class="card"><h3>✨ 技能特效與路徑工作台</h3><div class="small">綠點＝施法位置、紫點＝路徑轉折、紅點＝命中位置。三個點都能用滑鼠或手指拖動；可分別匯入施法、飛行、命中特效PNG。</div><div class="fx-editor"><div><label>技能</label><select id="gmFxSkill" onchange="gmFxLoad()">${skills.map(s=>`<option value="${s.id}" ${s.id===fxState.skillId?'selected':''}>${esc(s.name)} (${s.id})</option>`).join('')}</select><label>施法PNG路徑</label><input id="gmFxCast" value="${esc(saved.cast||'')}"><input type="file" accept="image/png" onchange="gmFxFile(this,'cast')"><label>飛行PNG路徑</label><input id="gmFxProjectile" value="${esc(saved.projectile||'')}"><input type="file" accept="image/png" onchange="gmFxFile(this,'projectile')"><label>命中PNG路徑</label><input id="gmFxImpact" value="${esc(saved.impact||'')}"><input type="file" accept="image/png" onchange="gmFxFile(this,'impact')"><div class="grid2"><div><label>總時間(ms)</label><input id="gmFxDuration" type="number" value="${Number(saved.duration)||700}"></div><div><label>尺寸(px)</label><input id="gmFxSize" type="number" value="${Number(saved.size)||80}"></div></div><button class="btn blue" onclick="previewFx()">▶ 預覽</button> <button class="btn purple" onclick="gmSaveFx()">儲存並套用</button></div><div id="gmFxStage" class="fx-stage"><div class="fx-stage-unit hero">🧙</div><div class="fx-stage-unit enemy">👹</div>${[['start','施'],['mid','路'],['end','擊']].map(([k,t])=>`<div class="fx-point ${k}" data-point="${k}" style="left:${fxState[k].x}%;top:${fxState[k].y}%">${t}</div>`).join('')}</div></div></div>`;}
 
   const oldSkillCfg=window.skillVisualConfig;
@@ -10939,7 +10895,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   const priorPanel=window.renderEquipmentGMPanelHTML;
   window.renderEquipmentGMPanelHTML=function(){
     const baseline=ensureSemesterGearBaseline(),rate=Math.round(Number(gameData.balanceSettings?.gearCarryRate??.55)*100),html=priorPanel?.()||'';
-    return `<div class="card"><h3>⚖️ 下學期裝備戰力折算</h3><div>開學裝備快照：<b>${Number(baseline.equipmentScore)||0}</b>｜目前加入怪物基準：<b>${semesterGearBonus()}</b></div><div class="small">只在新學期開始時記錄一次，避免換裝後怪物跟著無限膨脹。每日怪與期中／期末Boss都會使用。</div><label>裝備評分折算比例</label><input id="gmGearCarryRate" type="number" min="0" max="100" value="${rate}"><button class="btn blue" onclick="gmSaveGearCarryRate()">儲存比例</button> <button class="btn gray" onclick="gmRefreshGearBaseline()">重新記錄目前裝備</button></div>${html}${uniqueEditorHTML()}${fxEditorHTML()}`;
+    return `<div class="card"><h3>⚖️ 下學期裝備戰力折算</h3><div>開學裝備快照：<b>${Number(baseline.equipmentScore)||0}</b>｜目前加入怪物基準：<b>${semesterGearBonus()}</b></div><div class="small">只在新學期開始時記錄一次，避免換裝後怪物跟著無限膨脹。每日怪與期中／期末Boss都會使用。</div><label>裝備評分折算比例</label><input id="gmGearCarryRate" type="number" min="0" max="100" value="${rate}"><button class="btn blue" onclick="gmSaveGearCarryRate()">儲存比例</button> <button class="btn gray" onclick="gmRefreshGearBaseline()">重新記錄目前裝備</button></div>${html}${fxEditorHTML()}`;
   };
   const oldRender=window.renderGM;
   window.renderGM=function(){const r=oldRender.apply(this,arguments);document.getElementById('gmT0Forge')?.remove();setTimeout(window.gmFxBind,0);return r;};
