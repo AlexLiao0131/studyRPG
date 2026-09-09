@@ -5377,6 +5377,7 @@ function gmBackfillCoupon(){
   saveGame();renderAll();renderGM();alert(`已回補 ${item.name} ×${count}。`);
 }
 window.gmBackfillCoupon=gmBackfillCoupon;
+function assetAuditEscape(v){return String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 function assetAuditHTML(){
   const a=assetAuditSummary(),coinOk=a.lottery.diff===0,couponOk=a.coupon.issues.length===0&&a.coupon.approved===a.coupon.used;
   const couponDefs=(gameData.shopItems||[]).filter(x=>itemCategory(x)==='coupon'),backfills=(gameData.assetAudit?.coupons?.entries||[]).filter(x=>x.action==='backfill').slice(-5).reverse();
@@ -5384,11 +5385,11 @@ function assetAuditHTML(){
     <div>${coinOk?'✅':'⚠️'} 抽獎幣｜目前 <b>${a.lottery.actual}</b>｜帳本應有 <b>${a.lottery.expected}</b>${coinOk?'':'｜差異 '+a.lottery.diff}</div>
     <div class="small">首次啟用基準 ${a.lottery.baseline} 枚；既有抽獎幣不會被修改。之後取得／消耗才逐筆記帳。</div>
     <div style="margin-top:8px">${couponOk?'✅':'⚠️'} 兌換核銷｜待核准 ${a.coupon.pending}｜已核准 ${a.coupon.approved}｜背包已使用 ${a.coupon.used}</div>
-    ${a.coupon.issues.length?`<div class="small bad" style="margin-top:6px">${a.coupon.issues.slice(0,8).map(x=>'⚠️ '+esc(x)).join('<br>')}</div>`:'<div class="small good">每筆已核准申請都能對到已使用的唯一背包項目。</div>'}
+    ${a.coupon.issues.length?`<div class="small bad" style="margin-top:6px">${a.coupon.issues.slice(0,8).map(x=>'⚠️ '+assetAuditEscape(x)).join('<br>')}</div>`:'<div class="small good">每筆已核准申請都能對到已使用的唯一背包項目。</div>'}
   </div><div class="card"><h3>🎟️ 兌換券人工回補</h3><div class="small">只用於確認遭舊同步洗掉的券。每張回補仍建立獨立 inventory ID，後續照正常申請／核准流程；不會自動推算或改寫既有紀錄。</div>
-    <div class="grid3"><div><label>兌換券</label><select id="gmCouponBackfillItem">${couponDefs.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div><label>張數</label><input id="gmCouponBackfillCount" type="number" min="1" max="20" value="1"></div><div><label>原因</label><input id="gmCouponBackfillReason" value="舊同步遺失回補"></div></div>
+    <div class="grid3"><div><label>兌換券</label><select id="gmCouponBackfillItem">${couponDefs.map(x=>`<option value="${x.id}">${assetAuditEscape(x.name)}</option>`).join('')}</select></div><div><label>張數</label><input id="gmCouponBackfillCount" type="number" min="1" max="20" value="1"></div><div><label>原因</label><input id="gmCouponBackfillReason" value="舊同步遺失回補"></div></div>
     <button class="btn gold" onclick="gmBackfillCoupon()" ${couponDefs.length?'':'disabled'}>＋ 回補兌換券</button>
-    ${backfills.length?`<details style="margin-top:8px"><summary>最近回補紀錄（${backfills.length}）</summary><div class="small" style="margin-top:6px">${backfills.map(x=>`${esc(x.date||'')}｜${esc(x.itemName||'兌換券')} ×${Number(x.count)||1}｜${esc(x.reason||'')}`).join('<br>')}</div></details>`:''}
+    ${backfills.length?`<details style="margin-top:8px"><summary>最近回補紀錄（${backfills.length}）</summary><div class="small" style="margin-top:6px">${backfills.map(x=>`${assetAuditEscape(x.date||'')}｜${assetAuditEscape(x.itemName||'兌換券')} ×${Number(x.count)||1}｜${assetAuditEscape(x.reason||'')}`).join('<br>')}</div></details>`:''}
   </div>`;
 }
 function equipmentStatText(item){const s=item?.stats||{},labels={attack:'ATK',magicAttack:'MATK',defense:'DEF',magicDefense:'MDEF',speed:'SPD',maxHp:'HP',maxEnergy:'EN'};const out=[];Object.entries(labels).forEach(([k,l])=>{if(Number(s[k]))out.push(`${l} +${Number(s[k])}`)});if(Number(s.crit))out.push(`暴擊 +${Math.round(Number(s.crit)*100)}%`);if(Number(s.evade))out.push(`閃避 +${Math.round(Number(s.evade)*100)}%`);if(Number(s.block))out.push(`格擋 +${Math.round(Number(s.block)*100)}%`);return out.join('、')||'無額外能力';}
@@ -10715,6 +10716,8 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   const SOURCE_LABEL={weekday:'平日一般怪',friday:'週五強敵',apocalypse:'天啟四騎士',demon_general:'魔王大將',midterm:'期中Boss',final:'期末Boss',replay:'第21週回憶戰',tower:'無盡之塔'};
   const RARITY_LABEL={common:'⚪白',uncommon:'🟢綠',rare:'🔵藍',epic:'🟣紫',legendary:'🟠橘'};
+  function rarityOf(item){return item?.rarity||'common';}
+  function equippedInventory(inv){return Object.values(gameData.hero.equipment||{}).includes(inv?.id);}
   window.renderEquipmentGMPanelHTML=function(){
     const ext=externalEquipmentDatabase(),ver=ext?.databaseVersion||'未載入',templates=Object.keys(ext?.templates||{}).length,uniques=Object.keys(ext?.uniqueEquipment||{}).length;
     return `<div id="gmEquipmentDatabaseStatus" class="card"><h3>🛡️ Equipment Database</h3><div class="small">正式掉落率、模板與橘裝已由 <b>tools/Equipment/equipment-database.js</b> 統一管理；家長存檔不再保存裝備獎勵池或掉落率。</div><div style="margin-top:6px">版本：<b>${escapeHtml(ver)}</b>｜模板 ${templates}｜橘裝 ${uniques}</div></div>`;
