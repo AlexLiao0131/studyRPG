@@ -2483,7 +2483,7 @@ function reviewTaskRecord(recordId,ratio){
   // 優秀任務的額外抽獎幣只在家長 100% 核定時觸發。
   const excellent=r.rewards?.timerTier==='excellent';
   if(ratio===1 && excellent){
-    if(Math.random()<.08)gameData.hero.lotteryCoins+=1;
+    if(Math.random()<.08)changeLotteryCoins(1,'task_excellent',{recordId:r.id||'',taskId:r.taskId||''});
   }
   saveGame();renderAll();
 }
@@ -2622,7 +2622,7 @@ function weightedPick(items){
 }
 function rollDungeonDrop(rating=1){
   // 抽獎幣不是爛獎：只有優秀表現才有低機率出現。
-  const lotteryChance=rating===3?.10:rating===2?.05:0;if(lotteryChance>0&&Math.random()<lotteryChance){gameData.hero.lotteryCoins+=1;return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};}
+  const lotteryChance=rating===3?.10:rating===2?.05:0;if(lotteryChance>0&&Math.random()<lotteryChance){changeLotteryCoins(1,'dungeon_drop',{rating:Number(rating)||1});return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};}
   const couponChance=rating===3?.45:rating===2?.25:.10;
   if(Math.random()<couponChance){
     const available=gameData.shopItems.filter(x=>x.active&&!x.battleConsumable);
@@ -4947,7 +4947,7 @@ function drawLottery(){
   if(gameData.hero.lotteryCoins<1){alert('沒有抽獎幣');return;}
   const pool=(gameData.lotteryPool||[]).filter(x=>x.active!==false&&(Number(x.stock)||0)!==0);
   const item=weightedPick(pool);if(!item){alert('抽獎池目前沒有可抽獎項');return;}
-  gameData.hero.lotteryCoins--;
+  changeLotteryCoins(-1,'lottery_draw',{rewardId:item.id||'',rewardLabel:item.label||''});
   if(Number(item.stock)>0)item.stock--;
   gameData.inventory.push({id:uid(),itemId:'lottery_reward_'+item.id,name:item.label,status:'unused',boughtDate:today(),source:'lottery',lotteryReward:true});
   saveGame();renderAll();alert('🎉 抽中了：'+item.label+'\n已放入背包，可向家長申請兌換。');
@@ -5221,6 +5221,14 @@ function repairRuntimeData(){
   if(!gameData.hero.stats)gameData.hero.stats={str:10,agi:10,int:10,will:10};
   if(gameData.hero.gold==null)gameData.hero.gold=0;
   if(gameData.hero.lotteryCoins==null)gameData.hero.lotteryCoins=0;
+  // 資產核對原生基準：首次升級只把「目前既有抽獎幣」記為基準，不增不減現有餘額。
+  if(!gameData.assetAudit||typeof gameData.assetAudit!=='object')gameData.assetAudit={};
+  if(!gameData.assetAudit.lotteryCoins||typeof gameData.assetAudit.lotteryCoins!=='object'){
+    gameData.assetAudit.lotteryCoins={baseline:Number(gameData.hero.lotteryCoins)||0,initializedAt:new Date().toISOString(),entries:[]};
+  }else{
+    if(!Number.isFinite(Number(gameData.assetAudit.lotteryCoins.baseline)))gameData.assetAudit.lotteryCoins.baseline=Number(gameData.hero.lotteryCoins)||0;
+    if(!Array.isArray(gameData.assetAudit.lotteryCoins.entries))gameData.assetAudit.lotteryCoins.entries=[];
+  }
 
   if(!Array.isArray(gameData.shopItems))gameData.shopItems=[];
   if(!Array.isArray(gameData.inventory))gameData.inventory=[];
@@ -5312,6 +5320,57 @@ const EQUIP_SLOT_LABELS={weapon:'⚔️ 武器',head:'🪖 頭部',body:'👕 �
 let shopCategoryFilter='all',bagCategoryFilter='all';
 function itemDefinition(inv){return gameData.shopItems.find(x=>x.id===inv?.itemId)||inv?.itemData||null;}
 function itemCategory(itemOrInv){const item=itemOrInv?.itemId?itemDefinition(itemOrInv):itemOrInv;return item?.category||(item?.battleConsumable?'consumable':'coupon');}
+
+function ensureAssetAudit(){
+  gameData.assetAudit=gameData.assetAudit&&typeof gameData.assetAudit==='object'?gameData.assetAudit:{};
+  const lc=gameData.assetAudit.lotteryCoins;
+  if(!lc||typeof lc!=='object'){
+    gameData.assetAudit.lotteryCoins={baseline:Number(gameData.hero?.lotteryCoins)||0,initializedAt:new Date().toISOString(),entries:[]};
+  }else{
+    if(!Number.isFinite(Number(lc.baseline)))lc.baseline=Number(gameData.hero?.lotteryCoins)||0;
+    if(!Array.isArray(lc.entries))lc.entries=[];
+  }
+  return gameData.assetAudit;
+}
+function changeLotteryCoins(delta,source='system',meta={}){
+  ensureAssetAudit();
+  const n=Number(delta)||0;if(!n)return Number(gameData.hero.lotteryCoins)||0;
+  const before=Number(gameData.hero.lotteryCoins)||0,after=Math.max(0,before+n);
+  const applied=after-before;if(!applied)return after;
+  gameData.hero.lotteryCoins=after;
+  gameData.assetAudit.lotteryCoins.entries.push({id:uid(),at:new Date().toISOString(),date:today(),delta:applied,source,before,after,...meta});
+  return after;
+}
+function assetAuditSummary(){
+  ensureAssetAudit();
+  const lc=gameData.assetAudit.lotteryCoins,entries=lc.entries||[];
+  const expected=(Number(lc.baseline)||0)+entries.reduce((n,e)=>n+(Number(e.delta)||0),0);
+  const actual=Number(gameData.hero?.lotteryCoins)||0;
+  const requests=gameData.couponRequests||[],inventory=gameData.inventory||[];
+  const approved=requests.filter(r=>r.status==='approved');
+  const usedCoupons=inventory.filter(inv=>inv.status==='used'&&itemCategory(inv)==='coupon');
+  const issues=[];
+  approved.forEach(r=>{
+    const inv=inventory.find(x=>x.id===r.inventoryId);
+    if(!inv)issues.push(`${r.itemName||'兌換品'}：已核准但找不到背包項目`);
+    else if(inv.status!=='used')issues.push(`${r.itemName||inv.name||'兌換品'}：申請已核准，但背包狀態為 ${inv.status||'未知'}`);
+    else if(inv.usedRequestId&&inv.usedRequestId!==r.id)issues.push(`${r.itemName||inv.name||'兌換品'}：核銷申請 ID 不一致`);
+  });
+  usedCoupons.forEach(inv=>{
+    const r=requests.find(x=>x.id===inv.usedRequestId)||requests.find(x=>x.inventoryId===inv.id&&x.status==='approved');
+    if(!r)issues.push(`${inv.name||'兌換品'}：背包已使用，但找不到核准紀錄`);
+  });
+  return {lottery:{actual,expected,diff:actual-expected,entries:entries.length,baseline:Number(lc.baseline)||0},coupon:{approved:approved.length,used:usedCoupons.length,pending:requests.filter(r=>r.status==='pending').length,issues}};
+}
+function assetAuditHTML(){
+  const a=assetAuditSummary(),coinOk=a.lottery.diff===0,couponOk=a.coupon.issues.length===0&&a.coupon.approved===a.coupon.used;
+  return `<div class="card"><h3>🧾 資產核對</h3>
+    <div>${coinOk?'✅':'⚠️'} 抽獎幣｜目前 <b>${a.lottery.actual}</b>｜帳本應有 <b>${a.lottery.expected}</b>${coinOk?'':'｜差異 '+a.lottery.diff}</div>
+    <div class="small">首次啟用基準 ${a.lottery.baseline} 枚；既有抽獎幣不會被修改。之後取得／消耗才逐筆記帳。</div>
+    <div style="margin-top:8px">${couponOk?'✅':'⚠️'} 兌換核銷｜待核准 ${a.coupon.pending}｜已核准 ${a.coupon.approved}｜背包已使用 ${a.coupon.used}</div>
+    ${a.coupon.issues.length?`<div class="small bad" style="margin-top:6px">${a.coupon.issues.slice(0,8).map(x=>'⚠️ '+esc(x)).join('<br>')}</div>`:'<div class="small good">每筆已核准申請都能對到已使用的唯一背包項目。</div>'}
+  </div>`;
+}
 function equipmentStatText(item){const s=item?.stats||{},labels={attack:'ATK',magicAttack:'MATK',defense:'DEF',magicDefense:'MDEF',speed:'SPD',maxHp:'HP',maxEnergy:'EN'};const out=[];Object.entries(labels).forEach(([k,l])=>{if(Number(s[k]))out.push(`${l} +${Number(s[k])}`)});if(Number(s.crit))out.push(`暴擊 +${Math.round(Number(s.crit)*100)}%`);if(Number(s.evade))out.push(`閃避 +${Math.round(Number(s.evade)*100)}%`);if(Number(s.block))out.push(`格擋 +${Math.round(Number(s.block)*100)}%`);return out.join('、')||'無額外能力';}
 function ensureItemSystem(){
  repairRuntimeData();
@@ -5342,10 +5401,24 @@ function renderBag(){
   const activeItems=inventory.filter(inv=>inv.status!=='used'&&(bagCategoryFilter==='all'||itemCategory(inv)===bagCategoryFilter));
   const usedCoupons=inventory.filter(inv=>inv.status==='used'&&itemCategory(inv)==='coupon'&&(bagCategoryFilter==='all'||bagCategoryFilter==='coupon'));
   if(!activeItems.length)html+='<div class="card small">這個分類目前沒有可使用的物品。</div>';
+  // 兌換券維持「一張 = 一筆 inventory」的正式資料結構，只在背包 UI 合併顯示張數。
+  // 申請使用時仍只送出其中一張 inv.id，因此不影響既有核准／核銷／使用紀錄。
+  const couponGroups=new Map(),renderItems=[];
   activeItems.forEach(inv=>{
-    const item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);
+    const cat=itemCategory(inv);
+    if(cat!=='coupon'){renderItems.push({inv,count:1,sources:[inv.source]});return;}
+    const key=[inv.itemId||'',inv.name||'',inv.status||'unused'].join('||');
+    let g=couponGroups.get(key);
+    if(!g){g={inv,count:0,sources:[]};couponGroups.set(key,g);renderItems.push(g);}
+    g.count++;
+    if(inv.source&&!g.sources.includes(inv.source))g.sources.push(inv.source);
+  });
+  renderItems.forEach(entry=>{
+    const inv=entry.inv,item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);
     const statusText=inv.status==='pending'?'<div class="small">狀態：等待家長核准</div>':'';
-    html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong> <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${inv.source==='dungeon'?'副本掉落':inv.source==='lottery'?'抽獎':'商店'}</div>${statusText}${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`;
+    const countText=cat==='coupon'&&entry.count>1?` <span class="pill good">×${entry.count}</span>`:'';
+    const sourceText=entry.sources.length>1?'多重來源':entry.sources[0]==='dungeon'?'副本掉落':entry.sources[0]==='lottery'?'抽獎':'商店';
+    html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong>${countText} <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${sourceText}</div>${statusText}${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用 1 張</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`;
   });
   if(usedCoupons.length){
     const rows=usedCoupons.slice().sort((a,b)=>String(b.usedDate||b.boughtDate||'').localeCompare(String(a.usedDate||a.boughtDate||''))).map(inv=>{
@@ -5362,7 +5435,7 @@ function gmShopTypeFields(){const cat=document.getElementById('gmShopCategory')?
 function gmAddShopItem(){ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name){alert('請輸入商品名稱');return;}const category=document.getElementById('gmShopCategory')?.value||'coupon';const item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};if(category==='equipment'){item.equipSlot=document.getElementById('gmEquipSlot')?.value||'weapon';const k=document.getElementById('gmEquipStat')?.value||'attack';let v=Number(document.getElementById('gmEquipValue')?.value)||0;if(['crit','evade','block'].includes(k))v/=100;item.stats[k]=v;}if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}gameData.shopItems.push(item);saveGame();renderAll();}
 
 // 掉落：評分越高越偏向裝備／商品，不再幾乎只看到金幣。
-function rollDungeonDrop(rating=1){ensureItemSystem();const lotteryChance=rating===3?.10:rating===2?.05:0;if(lotteryChance>0&&Math.random()<lotteryChance){gameData.hero.lotteryCoins+=1;return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};}const roll=Math.random();const itemChance=rating===3?.72:rating===2?.50:.28;if(roll<itemChance){const pool=gameData.shopItems.filter(x=>x.active&&['equipment','consumable','coupon'].includes(itemCategory(x)));if(pool.length){const weighted=pool.flatMap(i=>Array(itemCategory(i)==='equipment'?(rating===3?4:2):itemCategory(i)==='consumable'?3:2).fill(i));const item=weighted[Math.floor(Math.random()*weighted.length)];gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});return {type:itemCategory(item),label:`${item.icon||'🎁'} ${item.name}`,value:item.id};}}const amount=rating===3?5+Math.floor(Math.random()*6):rating===2?3+Math.floor(Math.random()*3):1+Math.floor(Math.random()*3);gameData.hero.gold+=amount;return {type:'gold',label:`金幣 +${amount} G`,value:amount};}
+function rollDungeonDrop(rating=1){ensureItemSystem();const lotteryChance=rating===3?.10:rating===2?.05:0;if(lotteryChance>0&&Math.random()<lotteryChance){changeLotteryCoins(1,'dungeon_drop',{rating:Number(rating)||1});return {type:'lottery',label:'稀有抽獎幣 ×1',value:1};}const roll=Math.random();const itemChance=rating===3?.72:rating===2?.50:.28;if(roll<itemChance){const pool=gameData.shopItems.filter(x=>x.active&&['equipment','consumable','coupon'].includes(itemCategory(x)));if(pool.length){const weighted=pool.flatMap(i=>Array(itemCategory(i)==='equipment'?(rating===3?4:2):itemCategory(i)==='consumable'?3:2).fill(i));const item=weighted[Math.floor(Math.random()*weighted.length)];gameData.inventory.push({id:uid(),itemId:item.id,name:item.name,status:'unused',boughtDate:today(),source:'dungeon'});return {type:itemCategory(item),label:`${item.icon||'🎁'} ${item.name}`,value:item.id};}}const amount=rating===3?5+Math.floor(Math.random()*6):rating===2?3+Math.floor(Math.random()*3):1+Math.floor(Math.random()*3);gameData.hero.gold+=amount;return {type:'gold',label:`金幣 +${amount} G`,value:amount};}
 
 // 裝備能力實際套入戰鬥數值。
 const __makeHeroBattleStatsV10109=makeHeroBattleStats;
@@ -5499,6 +5572,7 @@ function renderGM(){
   document.getElementById('panel-gm').innerHTML=`
     <h2>🛠️ 家長控制後台</h2>
     <div class="card small">🔧 V10.10.3 資料保護：舊測試存檔缺少商店／背包／抽獎欄位時會自動補齊；單一頁面錯誤不再拖垮其他分頁。</div>
+    ${assetAuditHTML()}
     <div class="card"><strong>📅 2026 秋季正式學期</strong>
       <div class="small">正式上線：2026/08/31｜Season：2026_FALL｜AUTO怪物週數從 8/31 起算。</div>
       <div class="small">8/31 第一次開啟會捨棄本機測試角色與測試經濟；雲端也使用新的 Season 路徑，不會讀回測試檔。</div>
@@ -6322,7 +6396,7 @@ function gmDeleteLotteryReward(id){
   gameData.lotteryPool=gameData.lotteryPool.filter(x=>x.id!==id);saveGame();renderAll();
 }
 
-function gmAddLotteryCoin(n){gameData.hero.lotteryCoins+=n;saveGame();renderAll();}
+function gmAddLotteryCoin(n){changeLotteryCoins(Number(n)||0,'gm_adjustment',{note:'家長後台調整'});saveGame();renderAll();}
 function gmResetDailyDungeon(){
   if(!confirm('重置今天的副本挑戰狀態？\n不會刪除戰鬥紀錄、角色、EXP、金幣或掉落。'))return;
   ensureDailyDungeon();
