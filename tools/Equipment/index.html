@@ -26,7 +26,7 @@ code{color:#a5d6ff}.rate-table{overflow:auto}.rate-table input{min-width:68px}.u
 <body>
 <header>
 <h1>🛡️ StudyRPG Equipment Generator Lab</h1>
-<div class="sub">獨立工具｜讀正式 index.html 的裝備公式｜輸出正式 equipment-database.js</div>
+<div class="sub">獨立工具｜讀正式 index.html 裝備公式＋affix-database.js｜輸出 tools/Equipment/equipment-database.js</div>
 </header>
 <main><div class="layout">
 <section>
@@ -37,6 +37,7 @@ code{color:#a5d6ff}.rate-table{overflow:auto}.rate-table input{min-width:68px}.u
 <div style="height:8px"></div>
 <button id="reload" class="primary">↻ 重新讀取 GitHub index.html</button>
 <label>或手動載入 index.html</label><input id="file" type="file" accept=".html,text/html">
+<label>手動載入 affix-database.js</label><input id="affixFile" type="file" accept=".js,text/javascript">
 </div>
 
 <div class="card">
@@ -97,7 +98,7 @@ code{color:#a5d6ff}.rate-table{overflow:auto}.rate-table input{min-width:68px}.u
 
 <div class="card">
 <h2>匯出正式裝備資料庫</h2>
-<div class="muted">匯出後把 <code>equipment-database.js</code> 放在主程式同一層。這份檔案是唯一正式模板／掉落率／橘裝來源；玩家背包、已強化與已穿戴裝備仍只讀自己的 itemData 快照。</div>
+<div class="muted">匯出後覆蓋 <code>tools/Equipment/equipment-database.js</code>。這份檔案是唯一正式模板／掉落率／橘裝來源；玩家背包、已強化與已穿戴裝備仍只讀自己的 itemData 快照。</div>
 <div style="height:8px"></div>
 <button id="export" class="green" disabled>⬇ 匯出 equipment-database.js</button>
 <button id="clear" class="red" style="margin-top:6px">清空結果</button>
@@ -118,7 +119,9 @@ code{color:#a5d6ff}.rate-table{overflow:auto}.rate-table input{min-width:68px}.u
 
 <script>
 const RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/index.html';
-let mainText='',items=[],sourceFingerprint='',loadedDatabase=false;
+const AFFIX_RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/affix-database.js';
+const EQUIPMENT_DB_RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/tools/Equipment/equipment-database.js';
+let mainText='',affixDbText='',items=[],sourceFingerprint='',loadedDatabase=false;
 const templateMeta={};
 const DB={rarities:{},bases:{},affixes:{},rules:{},iconPools:{},dropRates:{},orangeDrop:{}};
 const activeDropRates={};
@@ -191,14 +194,69 @@ function deriveCurrentEquipmentRules(){
     }
   };
 }
+function parseAffixDatabaseText(text){
+  const key='window.STUDYRPG_AFFIX_DATABASE=';
+  const i=text.indexOf(key);
+  if(i<0)throw new Error('找不到 STUDYRPG_AFFIX_DATABASE');
+  const s=text.indexOf('{',i+key.length);
+  if(s<0)throw new Error('詞綴資料庫格式錯誤');
+  const raw=balanced(text,s);
+  if(!raw)throw new Error('詞綴資料庫物件不完整');
+  return Function('"use strict";return ('+raw+')')();
+}
+
+function applyFormalEquipmentDatabase(db){
+  if(!db||Number(db.schemaVersion)!==1)return false;
+  Object.keys(templateMeta).forEach(k=>delete templateMeta[k]);
+  items=Object.values(db.templates||{}).map(row=>{
+    const item=JSON.parse(JSON.stringify(row.itemData||{}));
+    item.templateId=row.templateId||item.templateId||'';
+    if(item.templateId)templateMeta[item.templateId]={
+      enabled:row.enabled!==false,
+      weight:Math.max(0,Number(row.weight??10)),
+      sources:Array.isArray(row.sources)?[...row.sources]:[],
+      minWeek:Math.max(1,Number(row.minWeek)||1),
+      maxWeek:Math.max(1,Number(row.maxWeek)||999)
+    };
+    return item;
+  }).filter(x=>x&&x.name);
+  Object.keys(activeDropRates).forEach(k=>delete activeDropRates[k]);
+  Object.assign(activeDropRates,JSON.parse(JSON.stringify(db.dropRates||{})));
+  Object.keys(activeOrangeDrop).forEach(k=>delete activeOrangeDrop[k]);
+  Object.assign(activeOrangeDrop,JSON.parse(JSON.stringify(db.orangeDrop||{})));
+  Object.keys(uniqueDefinitions).forEach(k=>delete uniqueDefinitions[k]);
+  Object.assign(uniqueDefinitions,JSON.parse(JSON.stringify(db.uniqueEquipment||{})));
+  loadedDatabase=true;
+  $('dbStatus').textContent=`已載入正式 DB｜${items.length} 個模板｜${Object.keys(uniqueDefinitions).length} 件橘裝｜${db.databaseVersion||'無版本號'}`;
+  return true;
+}
+
 async function parseMain(){
   DB.rarities=literalAfter(['const RARITIES=','window.EQUIPMENT_RARITY_DATABASE=']);
   DB.bases=literalAfter(['const BASES=','window.EQUIPMENT_BASE_DATABASE_T0=']);
-  DB.affixes=literalAfter(['const AFFIXES=','window.EQUIPMENT_AFFIX_DATABASE=']);
   DB.rules=deriveCurrentEquipmentRules();
   DB.iconPools=literalAfter(['DB.iconPools=window.EQUIPMENT_ICON_POOLS=','window.EQUIPMENT_ICON_POOLS=','DB.iconPools=']);
-  DB.dropRates=literalAfter(['const DEFAULT_DROP_RATES=window.EQUIPMENT_DROP_RATE_DEFAULTS=','window.EQUIPMENT_DROP_RATE_DEFAULTS=','const DEFAULT_DROP_RATES=']);
-  DB.orangeDrop=literalAfter(['DB.orangeDrop=window.EQUIPMENT_ORANGE_DROP_DEFAULTS=','window.EQUIPMENT_ORANGE_DROP_DEFAULTS=','DB.orangeDrop=']);
+
+  // 正式詞綴來源：根目錄 affix-database.js。只有外部 DB 不可用時才回退舊 index 內嵌來源。
+  try{
+    const affixDb=parseAffixDatabaseText(affixDbText||'');
+    DB.affixes=affixDb.affixes||{};
+  }catch(e){
+    DB.affixes=literalAfter(['const AFFIXES=','window.EQUIPMENT_AFFIX_DATABASE=']);
+  }
+
+  // 掉落率 / 橘裝正式來源是 equipment-database.js；保留舊 index fallback 供舊版本相容。
+  if(!Object.keys(activeDropRates).length){
+    DB.dropRates=literalAfter(['const DEFAULT_DROP_RATES=window.EQUIPMENT_DROP_RATE_DEFAULTS=','window.EQUIPMENT_DROP_RATE_DEFAULTS=','const DEFAULT_DROP_RATES=']);
+  }else{
+    DB.dropRates=JSON.parse(JSON.stringify(activeDropRates));
+  }
+  if(!Object.keys(activeOrangeDrop).length){
+    DB.orangeDrop=literalAfter(['DB.orangeDrop=window.EQUIPMENT_ORANGE_DROP_DEFAULTS=','window.EQUIPMENT_ORANGE_DROP_DEFAULTS=','DB.orangeDrop=']);
+  }else{
+    DB.orangeDrop=JSON.parse(JSON.stringify(activeOrangeDrop));
+  }
+
   sourceFingerprint=await fingerprint(mainText);
   renderValidation();
   buildDropRates();
@@ -465,27 +523,7 @@ $('dbFile').onchange=async e=>{
   try{
     const db=parseEquipmentDatabaseFile(await f.text());
     if(Number(db.schemaVersion)!==1)throw new Error('目前只支援 schemaVersion 1');
-    Object.keys(templateMeta).forEach(k=>delete templateMeta[k]);
-    items=Object.values(db.templates||{}).map(row=>{
-      const item=JSON.parse(JSON.stringify(row.itemData||{}));
-      item.templateId=row.templateId||item.templateId||'';
-      if(item.templateId)templateMeta[item.templateId]={
-        enabled:row.enabled!==false,
-        weight:Math.max(0,Number(row.weight??10)),
-        sources:Array.isArray(row.sources)?[...row.sources]:[],
-        minWeek:Math.max(1,Number(row.minWeek)||1),
-        maxWeek:Math.max(1,Number(row.maxWeek)||999)
-      };
-      return item;
-    }).filter(x=>x&&x.name);
-    Object.keys(activeDropRates).forEach(k=>delete activeDropRates[k]);
-    Object.assign(activeDropRates,JSON.parse(JSON.stringify(db.dropRates||DB.dropRates||{})));
-    Object.keys(activeOrangeDrop).forEach(k=>delete activeOrangeDrop[k]);
-    Object.assign(activeOrangeDrop,JSON.parse(JSON.stringify(db.orangeDrop||DB.orangeDrop||{})));
-    Object.keys(uniqueDefinitions).forEach(k=>delete uniqueDefinitions[k]);
-    Object.assign(uniqueDefinitions,JSON.parse(JSON.stringify(db.uniqueEquipment||{})));
-    loadedDatabase=true;
-    $('dbStatus').textContent=`已載入 ${items.length} 個模板｜${Object.keys(uniqueDefinitions).length} 件橘裝｜${db.databaseVersion||'無版本號'}`;
+    applyFormalEquipmentDatabase(db);
     buildDropRates();buildUniqueEditor();renderRows();updateExportState();
   }catch(err){
     $('dbStatus').innerHTML=`<span class="badtext">載入失敗：${esc(err.message)}</span>`;
@@ -493,12 +531,32 @@ $('dbFile').onchange=async e=>{
 };
 
 async function loadRemote(){
-  $('source').className='status';$('source').textContent='正在讀取 GitHub index.html…';
-  try{const r=await fetch(RAW+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);mainText=await r.text();await parseMain()}
-  catch(e){$('source').className='status bad';$('source').textContent='GitHub 讀取失敗：'+e.message+'。可改用手動載入。'}
+  $('source').className='status';$('source').textContent='正在讀取 GitHub 主程式＋詞綴 DB＋裝備 DB…';
+  try{
+    const t=Date.now();
+    const [mainRes,affixRes,equipRes]=await Promise.all([
+      fetch(RAW+'?t='+t,{cache:'no-store'}),
+      fetch(AFFIX_RAW+'?t='+t,{cache:'no-store'}),
+      fetch(EQUIPMENT_DB_RAW+'?t='+t,{cache:'no-store'})
+    ]);
+    if(!mainRes.ok)throw Error('index.html HTTP '+mainRes.status);
+    if(!affixRes.ok)throw Error('affix-database.js HTTP '+affixRes.status);
+    mainText=await mainRes.text();
+    affixDbText=await affixRes.text();
+    if(equipRes.ok){
+      try{applyFormalEquipmentDatabase(parseEquipmentDatabaseFile(await equipRes.text()))}
+      catch(e){console.warn('正式 equipment-database.js 解析失敗，改用 index fallback',e)}
+    }
+    await parseMain();
+    renderRows();updateExportState();
+  }catch(e){
+    $('source').className='status bad';
+    $('source').textContent='GitHub 讀取失敗：'+e.message+'。可改用手動載入。';
+  }
 }
 $('reload').onclick=loadRemote;
 $('file').onchange=async e=>{const f=e.target.files[0];if(f){mainText=await f.text();await parseMain()}};
+$('affixFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{affixDbText=await f.text();await parseMain()}catch(err){$('source').className='status bad';$('source').textContent='詞綴 DB 載入失敗：'+err.message}};
 renderRows();loadRemote();
 </script>
 </body>
