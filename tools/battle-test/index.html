@@ -37,7 +37,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 <h2>正式主程式來源</h2>
 <div id="source" class="status">尚未讀取</div><div id="dbValidation" class="muted" style="margin-top:7px"></div>
 <div style="height:8px"></div>
-<button id="reload" class="primary">↻ 重新讀取 GitHub index.html</button>
+<button id="reload" class="primary">↻ 重新讀取 GitHub 正式資料</button>
 <label>或手動載入 index.html</label><input id="file" type="file" accept=".html,text/html">
 </div>
 
@@ -143,7 +143,9 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 
 <script>
 const RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/index.html';
-let mainText='', DB={}, state={
+const SKILL_RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/skill-database.js';
+const AFFIX_RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/affix-database.js';
+let mainText='', skillText='', affixText='', DB={}, state={
   mode:'hero',stats:{},log:[],elapsed:0,paused:false,stop:false,
   lastStep:null
 };
@@ -198,16 +200,27 @@ const findObject=n=>literal(n,'object');
 const findArray=n=>literal(n,'array');
 function arr(v){return Array.isArray(v)?v:Object.values(v||{}).filter(x=>x&&typeof x==='object')}
 
+function evalExternalDB(text, globalNames){
+  if(!text)return null;
+  const box={};
+  try{
+    Function('window', text+'\n')(box);
+    for(const n of globalNames){if(box[n])return box[n]}
+  }catch(e){console.error('External DB parse failed',e)}
+  return null;
+}
 function parseDB(){
-  DB.beginner=findArray('BEGINNER_SKILLS')||[];
-  DB.jobLibrary=findObject('JOB_SKILL_LIBRARY')||{};
-  DB.formal=findObject('FORMAL_CLASS_SKILLS')||{};
-  DB.jobRules=findArray('JOB_RULES')||findObject('JOB_RULES')||[];
+  const skillDB=evalExternalDB(skillText,['STUDYRPG_SKILL_DATABASE','STUDYRPG_SKILL_DATABASE_V2'])||{};
+  const affixDB=evalExternalDB(affixText,['STUDYRPG_AFFIX_DATABASE'])||{};
+  DB.beginner=skillDB.beginner||findArray('BEGINNER_SKILLS')||[];
+  DB.jobLibrary=skillDB.jobs||skillDB.jobLibrary||findObject('JOB_SKILL_LIBRARY')||{};
+  DB.formal=skillDB.formalClassSkills||skillDB.formal||findObject('FORMAL_CLASS_SKILLS')||{};
+  DB.jobRules=skillDB.jobRules||findArray('JOB_RULES')||findObject('JOB_RULES')||[];
   DB.monsters=findObject('MONSTER_DATABASE')||{};
-  DB.monsterSkills=findObject('MONSTER_SKILL_DATABASE')||{};
-  DB.monsterAI=findObject('MONSTER_AI_DATABASE')||{};
+  DB.monsterSkills=skillDB.monsterSkills||findObject('MONSTER_SKILL_DATABASE')||{};
+  DB.monsterAI=skillDB.monsterAI||findObject('MONSTER_AI_DATABASE')||{};
   DB.weekly=findArray('WEEKLY_MAP_DATABASE')||[];
-  DB.affixes=findObject('AFFIXES')||{};
+  DB.affixes=affixDB.affixes||findObject('AFFIXES')||{};
   DB.school=findObject('SCHOOL_DATABASE')||{};
   DB.damageTypes=findObject('DAMAGE_TYPE_DATABASE')||{};
   DB.statusCategories=findObject('STATUS_CATEGORY_DATABASE')||{};
@@ -645,13 +658,22 @@ function setMode(mode){
   ['hero','monster','buff','affix'].forEach(m=>$(m+'Mode').classList.toggle('hidden',m!==mode));analyzeCurrent();
 }
 async function loadRemote(){
-  $('source').className='status';$('source').textContent='正在讀取 GitHub 根目錄 index.html…';
+  $('source').className='status';$('source').textContent='正在讀取 GitHub 主程式＋技能／詞綴資料庫…';
   try{
-    const r=await fetch(RAW+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
-    mainText=await r.text();parseDB();
+    const stamp='?t='+Date.now();
+    const [mainR,skillR,affixR]=await Promise.all([
+      fetch(RAW+stamp,{cache:'no-store'}),
+      fetch(SKILL_RAW+stamp,{cache:'no-store'}),
+      fetch(AFFIX_RAW+stamp,{cache:'no-store'})
+    ]);
+    if(!mainR.ok)throw Error('index.html HTTP '+mainR.status);
+    if(!skillR.ok)throw Error('skill-database.js HTTP '+skillR.status);
+    if(!affixR.ok)throw Error('affix-database.js HTTP '+affixR.status);
+    [mainText,skillText,affixText]=await Promise.all([mainR.text(),skillR.text(),affixR.text()]);
+    parseDB();
   }catch(e){
-    $('source').className='status bad';$('source').textContent='GitHub 讀取失敗：'+e.message+'。可用下方手動載入。';
-    $('dbValidation').innerHTML='<span class="badtext">尚未取得正式主程式資料。</span>';
+    $('source').className='status bad';$('source').textContent='GitHub 讀取失敗：'+e.message+'。';
+    $('dbValidation').innerHTML='<span class="badtext">尚未取得完整正式資料來源。</span>';
   }
 }
 document.querySelectorAll('#modeTabs button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
