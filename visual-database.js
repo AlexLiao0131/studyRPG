@@ -37,6 +37,16 @@ window.STUDYRPG_VISUAL_DATABASE={
         "status": 79,
         "dungeonEntry": 81
       }
+    },
+    "3": {
+      "desktop": {
+        "dungeon": 93.5,
+        "status": 93.5
+      },
+      "tablet": {
+        "status": 95,
+        "dungeon": 95
+      }
     }
   },
   "devices": {
@@ -406,6 +416,28 @@ window.STUDYRPG_VISUAL_DATABASE={
         "mobile": 220,
         "tablet": 330
       }
+    },
+    "forest_spider": {
+      "battleSize": {}
+    },
+    "forest_wolf": {
+      "battleSize": {}
+    },
+    "forest_bear": {
+      "battleSize": {}
+    },
+    "treant": {
+      "battleSize": {
+        "desktop": 420,
+        "tablet": 360
+      },
+      "idleSize": {}
+    },
+    "dark_elf": {
+      "battleSize": {
+        "desktop": 135,
+        "tablet": 140
+      }
     }
   },
   "heroes": {
@@ -497,6 +529,98 @@ window.STUDYRPG_VISUAL_DATABASE={
           "x": 26.8,
           "y": -32.6,
           "size": 135
+        }
+      }
+    },
+    "forest_spider": {
+      "desktop": {
+        "battle": {
+          "x": 82,
+          "y": 0,
+          "size": 190
+        }
+      },
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    },
+    "forest_wolf": {
+      "desktop": {
+        "battle": {
+          "x": 82,
+          "y": 0,
+          "size": 190
+        }
+      },
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    },
+    "forest_bear": {
+      "desktop": {
+        "battle": {
+          "x": 82,
+          "y": 0,
+          "size": 190
+        }
+      },
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    },
+    "treant": {
+      "desktop": {
+        "battle": {
+          "x": 82,
+          "y": 0,
+          "size": 190
+        },
+        "dungeonEntry": {
+          "x": 50,
+          "y": 0,
+          "size": 180
+        },
+        "status": {}
+      },
+      "tablet": {
+        "status": {},
+        "dungeonEntry": {
+          "x": 40.7,
+          "y": -2.4,
+          "size": 165
+        },
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    },
+    "dark_elf": {
+      "desktop": {
+        "battle": {
+          "x": 82,
+          "y": 0,
+          "size": 190
+        }
+      },
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
         }
       }
     }
