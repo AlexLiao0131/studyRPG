@@ -912,6 +912,12 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   </div>
 </div>
 
+<script src="skill-database.js"></script>
+<script src="affix-database.js"></script>
+<script>
+if(!window.STUDYRPG_SKILL_DATABASE) console.error('[StudyRPG] skill-database.js failed to load');
+if(!window.STUDYRPG_AFFIX_DATABASE) console.error('[StudyRPG] affix-database.js failed to load');
+</script>
 <script>
 // V10.10.23：週數浮動強度除錯修正
 const OFFICIAL_LAUNCH_DATE='2026-08-31';
@@ -3016,170 +3022,10 @@ Object.assign(STATUS_DATABASE,{
   death_mark:{id:'death_mark',name:'死亡標記',icon:'☠️',kind:'debuff',defaultTurns:10}
 });
 
-const MONSTER_SKILL_DATABASE={
-  /* Week 1 史萊姆 */
-  slime_tackle:{id:'slime_tackle',name:'史萊姆撞擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  water_bullet:{id:'water_bullet',name:'水彈',school:'elemental',effects:[{type:'damage',damageType:'water',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'water',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.70}},
-  fire_bullet:{id:'fire_bullet',name:'火焰彈',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'fire',target:'single',multiplier:1.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05}},
-  nature_heal:{id:'nature_heal',name:'自然治癒',school:'nature',effects:[{type:'recovery',recoveryType:'regeneration'}],kind:'heal',element:'nature',target:'self',healMaxHp:.20},
-  thunder_bullet:{id:'thunder_bullet',name:'雷電彈',school:'elemental',effects:[{type:'damage',damageType:'lightning',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'lightning',target:'single',multiplier:1.0,status:{id:'paralysis',chance:.30,duration:1}},
-
-  /* Week 2 哥布林 */
-  goblin_club:{id:'goblin_club',name:'木棒敲擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  goblin_slash:{id:'goblin_slash',name:'短劍斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  goblin_guard:{id:'goblin_guard',name:'舉盾防禦',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1},
-  goblin_magic_bolt:{id:'goblin_magic_bolt',name:'魔力彈',school:'arcane',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:1.0}],kind:'magic',target:'single',multiplier:1.0},
-  goblin_poison_curse:{id:'goblin_poison_curse',name:'毒咒',school:'arcane',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:.35}],kind:'magic',target:'single',multiplier:.35,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
-  goblin_heal:{id:'goblin_heal',name:'治療術',school:'martial',effects:[{type:'recovery',recoveryType:'heal'}],kind:'heal',target:'ally_lowest_hp',healMaxHp:.15,conditionHpBelow:.40,maxUsesPerBattle:1},
-  goblin_heavy_slash:{id:'goblin_heavy_slash',name:'重斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.4}],kind:'physical',target:'single',multiplier:1.4},
-  goblin_warcry:{id:'goblin_warcry',name:'戰吼',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',atkMultiplier:1.20,duration:3,maxUsesPerBattle:1},
-  goblin_summon:{id:'goblin_summon',name:'召喚哥布林',school:'martial',kind:'summon',target:'none',mpCost:40},
-
-  /* Week 3 森林 */
-  spider_poison_fang:{id:'spider_poison_fang',name:'毒牙',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,status:{id:'poison',chance:1,duration:3,maxHpDot:.03}},
-  spider_web:{id:'spider_web',name:'蛛網',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'slow',chance:1,duration:2,speedMultiplier:.60}},
-  wolf_bite:{id:'wolf_bite',name:'撕咬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,status:{id:'bleed',chance:1,duration:3,maxHpDot:.04}},
-  bear_slam:{id:'bear_slam',name:'熊掌猛擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.4}],kind:'physical',target:'single',multiplier:1.4},
-  bear_claw:{id:'bear_claw',name:'撕裂爪擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-  vine_whip:{id:'vine_whip',name:'藤蔓鞭打',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  vine_bind:{id:'vine_bind',name:'藤蔓綑綁',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'bind',chance:1,duration:2,speedMultiplier:.50,evasionMultiplier:0}},
-  shadow_arrow:{id:'shadow_arrow',name:'暗影箭',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'dark',target:'single',multiplier:1.0,status:{id:'weak',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
-  double_shot:{id:'double_shot',name:'二連射',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1}],kind:'physical',target:'single',hits:2,multiplierPerHit:.55},
-  shadow_step:{id:'shadow_step',name:'暗影步',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',evasionBonus:.20,duration:2,maxUsesPerBattle:1},
-
-  /* Week 4 獸人 */
-  orc_swing:{id:'orc_swing',name:'粗暴揮擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  orc_charge:{id:'orc_charge',name:'蓄力',school:'martial',kind:'charge',target:'self',nextSkill:'orc_charged_smash'},
-  orc_charged_smash:{id:'orc_charged_smash',name:'蓄力重擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.8}],kind:'physical',target:'single',multiplier:1.8,requiresCharge:true},
-  chain_lightning:{id:'chain_lightning',name:'連鎖閃電',school:'elemental',effects:[{type:'damage',damageType:'lightning',source:'magicAttack',multiplier:1}],kind:'magic',element:'lightning',target:'single',hitsMin:2,hitsMax:3,multiplierPerHit:.45},
-  staff_hit:{id:'staff_hit',name:'法杖敲擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:.8}],kind:'physical',target:'single',multiplier:.8},
-  sword_slash:{id:'sword_slash',name:'劍刃斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  whirlwind:{id:'whirlwind',name:'旋風斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1}],kind:'physical',target:'all',hits:3,multiplierPerHit:.45},
-  general_axe:{id:'general_axe',name:'巨斧斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  general_order:{id:'general_order',name:'下令進攻',school:'martial',kind:'support_attack',target:'single',multiplier:.70,maxUsesPerBattle:2,noPersistentSummon:true},
-
-  /* Week 5 邪惡巫師塔 */
-  skeleton_slash:{id:'skeleton_slash',name:'普通攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  throw_bone:{id:'throw_bone',name:'丟骨頭',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.3}],kind:'physical',target:'single',multiplier:1.3,selfDestruct:true,conditionHpBelow:.30},
-  zombie_bite:{id:'zombie_bite',name:'腐爛撕咬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  hook_smash:{id:'hook_smash',name:'肉鉤重擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.2}],kind:'physical',target:'single',multiplier:1.2},
-  frenzy_smash:{id:'frenzy_smash',name:'瘋狂猛擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.6}],kind:'physical',target:'single',multiplier:1.6,selfMaxHpDamage:.08},
-  evil_eye_beam:{id:'evil_eye_beam',name:'魔眼光束',school:'arcane',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:1.0}],kind:'magic',target:'single',multiplier:1.0},
-  evil_gaze:{id:'evil_gaze',name:'凝視',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
-  necro_shadow_bolt:{id:'necro_shadow_bolt',name:'暗影魔彈',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:.85}],kind:'magic',element:'dark',target:'single',multiplier:.85},
-  summon_three_skeletons:{id:'summon_three_skeletons',name:'召喚骷髏',school:'martial',kind:'summon',target:'none',count:2,maxUsesPerBattle:1},
-
-  /* Week 6 沙漠 */
-  mummy_claw:{id:'mummy_claw',name:'木乃伊爪擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  decaying_breath:{id:'decaying_breath',name:'腐朽氣息',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-  beetle_charge:{id:'beetle_charge',name:'衝撞',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-  shell_guard:{id:'shell_guard',name:'甲殼防禦',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',damageTakenMultiplier:.55,duration:1},
-  scorpion_claw:{id:'scorpion_claw',name:'巨鉗攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  venom_sting:{id:'venom_sting',name:'毒尾刺',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
-  spear_thrust:{id:'spear_thrust',name:'長矛突刺',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-  tail_escape:{id:'tail_escape',name:'斷尾求生',school:'martial',kind:'trigger',target:'self',conditionHpBelow:.30,healMaxHp:.15,speedMultiplier:1.20,maxUsesPerBattle:1},
-  lion_bite:{id:'lion_bite',name:'獅首猛咬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.2}],kind:'physical',target:'single',multiplier:1.2},
-  goat_flame:{id:'goat_flame',name:'羊首火焰',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.1}],kind:'magic',element:'fire',target:'single',multiplier:1.1},
-  snake_venom:{id:'snake_venom',name:'蛇尾毒刺',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:.9}],kind:'physical',target:'single',multiplier:.9,status:{id:'poison',chance:1,duration:3,maxHpDot:.05}},
-
-  /* Week 7 金字塔 */
-  lizard_fire_magic:{id:'lizard_fire_magic',name:'火焰魔法',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.1}],kind:'magic',element:'fire',target:'single',multiplier:1.1},
-  sand_spell:{id:'sand_spell',name:'沙塵術',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'blind',chance:1,duration:2,accuracyPenalty:.20}},
-  pharaoh_staff:{id:'pharaoh_staff',name:'權杖攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  golden_shield:{id:'golden_shield',name:'黃金護盾',school:'martial',kind:'shield',target:'self',maxUsesPerBattle:1},
-  death_scythe:{id:'death_scythe',name:'死神鐮斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.25}],kind:'physical',target:'single',multiplier:1.25},
-  soul_judgment:{id:'soul_judgment',name:'靈魂審判',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.15}],kind:'magic',element:'dark',target:'single',multiplier:1.15},
-  solar_flame:{id:'solar_flame',name:'太陽火焰',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.1}],kind:'magic',element:'fire',target:'single',multiplier:1.1},
-  solar_charge:{id:'solar_charge',name:'聚集太陽能量',school:'martial',kind:'charge',target:'self',nextSkill:'wrath_of_ra'},
-  wrath_of_ra:{id:'wrath_of_ra',name:'太陽神之怒',school:'elemental',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.8}],kind:'magic',element:'fire',target:'single',multiplier:1.8,requiresCharge:true},
-
-  /* Week 8 魔王城郊區 */
-  rogue_stab:{id:'rogue_stab',name:'短刀攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  rogue_stun:{id:'rogue_stun',name:'柄擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:.8}],kind:'physical',target:'single',multiplier:.8,status:{id:'stun',chance:.30,duration:1},cannotUseConsecutively:true},
-  cult_curse:{id:'cult_curse',name:'詛咒',school:'martial',effects:[{type:'status',category:'debuff'}],kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-  life_drain:{id:'life_drain',name:'生命吸取',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'dark',target:'single',multiplier:1.0,healFromDamage:.50},
-  ogre_swing:{id:'ogre_swing',name:'巨棒揮擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.2}],kind:'physical',target:'single',multiplier:1.2},
-  frost_arrow:{id:'frost_arrow',name:'冰霜箭',school:'elemental',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'ice',target:'single',multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
-  blizzard:{id:'blizzard',name:'暴風雪',school:'elemental',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.3}],kind:'magic',element:'ice',target:'single',multiplier:1.3,cooldown:2},
-
-  /* Week 9 天啟四騎士 */
-  apocalypse_slash:{id:'apocalypse_slash',name:'重劍斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-  war_rage:{id:'war_rage',name:'戰爭狂暴',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',atkMultiplier:1.30,duration:3,maxUsesPerBattle:1},
-  plague_slash:{id:'plague_slash',name:'腐疫斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-  famine_strike:{id:'famine_strike',name:'虛弱打擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,resourceDamageMaxPct:.05},
-  death_slash:{id:'death_slash',name:'死亡斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-  demon_general_slash:{id:'demon_general_slash',name:'魔將斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-
-  /* Week 10 魔王城內部 */
-  gargoyle_claw:{id:'gargoyle_claw',name:'石爪攻擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0},
-  petrify_guard:{id:'petrify_guard',name:'石化防禦',school:'martial',effects:[{type:'status',category:'buff'}],kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1},
-  blood_blade:{id:'blood_blade',name:'血刃斬擊',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.1}],kind:'physical',target:'single',multiplier:1.1},
-  vampire_slash:{id:'vampire_slash',name:'吸血斬',school:'martial',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.0}],kind:'physical',target:'single',multiplier:1.0,healFromDamage:.50},
-  demon_dark_bolt:{id:'demon_dark_bolt',name:'暗影魔彈',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.0}],kind:'magic',element:'dark',target:'single',multiplier:1.0},
-  dark_burst:{id:'dark_burst',name:'黑暗爆發',school:'shadow',effects:[{type:'damage',damageType:'shadow',source:'magicAttack',multiplier:1.35}],kind:'magic',element:'dark',target:'single',multiplier:1.35,cooldown:2},
-  mana_shield:{id:'mana_shield',name:'魔力護盾',school:'martial',kind:'shield',target:'self'}
-};
+const MONSTER_SKILL_DATABASE=(window.STUDYRPG_SKILL_DATABASE?.monsterSkills)||{};
 
 window.STUDYRPG_MONSTER_SKILL_DATABASE=MONSTER_SKILL_DATABASE;
-const MONSTER_AI_DATABASE={
-  slime_water:{skills:[{id:'slime_tackle',weight:1},{id:'water_bullet',weight:1}]},
-  slime_fire:{skills:[{id:'slime_tackle',weight:1},{id:'fire_bullet',weight:1}]},
-  slime_grass:{skills:[{id:'slime_tackle',weight:2},{id:'nature_heal',weight:3,condition:'low_hp',threshold:.55}]},
-  slime_lightning:{skills:[{id:'slime_tackle',weight:1},{id:'thunder_bullet',weight:1}]},
-  slime_king:{skills:[{id:'slime_tackle',weight:1},{id:'water_bullet',weight:1},{id:'fire_bullet',weight:1},{id:'thunder_bullet',weight:1},{id:'nature_heal',weight:4,condition:'low_hp',threshold:.40}]},
-
-  goblin_slave:{skills:[{id:'goblin_club',weight:1}]},
-  goblin_soldier:{skills:[{id:'goblin_slash',weight:3},{id:'goblin_guard',weight:1}]},
-  goblin_shaman:{skills:[{id:'goblin_magic_bolt',weight:2},{id:'goblin_poison_curse',weight:2},{id:'goblin_heal',weight:4,condition:'low_hp',threshold:.40}],healMaxUses:1},
-  goblin_general:{skills:[{id:'goblin_warcry',weight:5,maxUses:1},{id:'goblin_heavy_slash',weight:2},{id:'goblin_slash',weight:2}]},
-  goblin_king:{skills:[{id:'goblin_summon',weight:1,maxUses:2}],mp:100,maxMp:100,mpRegen:0,noAttack:true},
-
-  forest_spider:{skills:[{id:'spider_poison_fang',weight:1},{id:'spider_web',weight:1}]},
-  forest_wolf:{skills:[{id:'wolf_bite',weight:1}]},
-  forest_bear:{skills:[{id:'bear_slam',weight:1},{id:'bear_claw',weight:1}],statProfile:{hp:'high',atk:'high',speed:'low'}},
-  treant:{skills:[{id:'vine_whip',weight:2},{id:'vine_bind',weight:1}]},
-  dark_elf:{skills:[{id:'shadow_arrow',weight:2},{id:'double_shot',weight:2},{id:'shadow_step',weight:1,maxUses:1}]},
-
-  orc_slave:{skills:[{id:'orc_swing',weight:1}]},
-  orc_warrior:{skills:[{id:'orc_swing',weight:2},{id:'orc_charge',weight:1}],chargeSequence:['orc_charge','orc_charged_smash']},
-  orc_shaman:{skills:[{id:'staff_hit',weight:2},{id:'chain_lightning',weight:3}]},
-  orc_champion:{skills:[{id:'sword_slash',weight:2},{id:'whirlwind',weight:1}]},
-  orc_general:{skills:[{id:'goblin_warcry',weight:1,maxUses:1},{id:'general_axe',weight:2},{id:'general_order',weight:1,maxUses:2},{id:'orc_charge',weight:1}],chargeSequence:['orc_charge','orc_charged_smash']},
-
-  skeleton:{skills:[{id:'skeleton_slash',weight:3},{id:'throw_bone',weight:5,condition:'low_hp',threshold:.30}]},
-  zombie:{skills:[{id:'zombie_bite',weight:1}],passive:{id:'zombie_revive',maxUses:1,reviveHpPct:.30}},
-  abomination:{skills:[{id:'hook_smash',weight:2},{id:'frenzy_smash',weight:1}],statProfile:{hp:'very_high',speed:'very_low'}},
-  eyeball_monster:{skills:[{id:'evil_eye_beam',weight:2},{id:'evil_gaze',weight:1}]},
-  necromancer:{skills:[{id:'necro_shadow_bolt',weight:1}],ritualTriggerHpPct:.70},
-
-  lizard_mummy:{skills:[{id:'mummy_claw',weight:2},{id:'decaying_breath',weight:1}]},
-  giant_beetle:{skills:[{id:'beetle_charge',weight:3},{id:'shell_guard',weight:1}],statProfile:{def:'high'}},
-  giant_scorpion:{skills:[{id:'scorpion_claw',weight:2},{id:'venom_sting',weight:1}]},
-  lizard_warrior:{skills:[{id:'spear_thrust',weight:1}],triggerSkills:['tail_escape']},
-  chimera:{rotation:['lion_bite','goat_flame','snake_venom'],singleActionPerTurn:true},
-
-  lizard_mage:{skills:[{id:'lizard_fire_magic',weight:2},{id:'sand_spell',weight:1}]},
-  lizard_pharaoh:{skills:[{id:'pharaoh_staff',weight:3},{id:'golden_shield',weight:1,maxUses:1}]},
-  lizard_anubis:{skills:[{id:'death_scythe',weight:1},{id:'soul_judgment',weight:1}]},
-  lizard_ra:{skills:[{id:'solar_flame',weight:3},{id:'solar_charge',weight:1}],chargeSequence:['solar_charge','wrath_of_ra']},
-
-  human_bandit_rogue:{skills:[{id:'rogue_stab',weight:3},{id:'rogue_stun',weight:1}],alwaysActsFirstOnBattleStart:true},
-  cult_mage:{skills:[{id:'cult_curse',weight:1},{id:'life_drain',weight:3}],doNotReapplyActiveCurse:true},
-  ogre:{skills:[{id:'ogre_swing',weight:1}],passive:{id:'troll_regeneration',healMaxHpPerTurn:.05},statProfile:{hp:'very_high',speed:'very_low'}},
-  two_headed_ogre_mage:{skills:[{id:'frost_arrow',weight:3},{id:'blizzard',weight:1}],passive:{id:'troll_regeneration',healMaxHpPerTurn:.05},statProfile:{hp:'very_high',speed:'very_low'}},
-
-  apocalypse_war:{skills:[{id:'apocalypse_slash',weight:3},{id:'war_rage',weight:3,condition:'low_hp',threshold:.60,maxUses:1}]},
-  apocalypse_plague:{skills:[{id:'plague_slash',weight:1}],battleStartMechanic:'plague_field'},
-  apocalypse_famine:{skills:[{id:'famine_strike',weight:1}]},
-  apocalypse_death:{skills:[{id:'death_slash',weight:1}],battleStartMechanic:'death_mark'},
-  demon_general:{skills:[{id:'demon_general_slash',weight:1}],battleStartMechanic:'roll_two_apocalypse_powers'},
-
-  gargoyle:{skills:[{id:'gargoyle_claw',weight:3},{id:'petrify_guard',weight:1}]},
-  vampire_swordsman:{skills:[{id:'blood_blade',weight:2},{id:'vampire_slash',weight:1}]},
-  hero_mirror:{copyHero:true,statScale:.85,copyEquippedSkills:true,copyJob:true,copyAppearance:true,horizontalFlip:true},
-  demon_king_phase1:{skills:[{id:'demon_dark_bolt',weight:3},{id:'dark_burst',weight:1},{id:'mana_shield',weight:1}]},
-  demon_king_phase2:{phase2ReadsPhase1Damage:true,startsAtFullHp:true,inheritPhase1Hp:false}
-};
+const MONSTER_AI_DATABASE=(window.STUDYRPG_SKILL_DATABASE?.monsterAI)||{};
 
 const MONSTER_MECHANIC_DATABASE={
   necromancer_soul_link:{
@@ -3691,56 +3537,11 @@ const TRIGGER_DATABASE={
 };
 window.STUDYRPG_COMBAT_SCHEMA={schools:SCHOOL_DATABASE,damageTypes:DAMAGE_TYPE_DATABASE,recoveryTypes:RECOVERY_TYPE_DATABASE,statusCategories:STATUS_CATEGORY_DATABASE,effectTypes:EFFECT_TYPE_DATABASE,triggers:TRIGGER_DATABASE};
 
-const BEGINNER_SKILLS=[
-  {id:'power_strike',name:'奮力一擊',icon:'💥',cost:20,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.60}],description:'ATK×1.60－敵DEF×0.5 的強力近戰攻擊。'},
-  {id:'ember',name:'魔力彈',icon:'🔮',cost:18,school:'arcane',actionType:'ranged',effects:[{type:'damage',damageType:'arcane',source:'magicAttack',multiplier:1.45}],description:'MATK×1.45－敵MDEF×0.5 的秘法遠程攻擊。'},
-  {id:'defense_stance',name:'防禦姿態',icon:'🛡️',cost:0,energyGain:8,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:1,modifiers:[{target:'damageTaken',operation:'add',value:-.50}]}],description:'本回合承受傷害減半，並回復8能量。'},
-  {id:'focus',name:'專注',icon:'🎯',cost:10,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:99,modifiers:[{target:'nextAttackMultiplier',operation:'add',value:.40}]}],description:'下一次造成傷害的攻擊×1.40；命中後消耗。'}
-];
-const JOB_SKILL_LIBRARY={
-  heavy_strike:{id:'heavy_strike',name:'重擊',icon:'💢',cost:35,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.65}],description:'戰士高威力一擊。'},
-  guard_break:{id:'guard_break',name:'破甲斬',icon:'🪓',cost:30,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.25}],description:'傷害並削弱敵方防禦。'},
-  battle_cry:{id:'battle_cry',name:'戰吼',icon:'📣',cost:20,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'attack',operation:'add',value:8}]}],description:'攻擊提升3回合。'},
-  iron_stance:{id:'iron_stance',name:'鋼鐵架勢',icon:'🛡️',cost:20,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.25},{target:'block',operation:'add',value:.12}]}],description:'承傷降低、格擋提高。'},
-  fireball:{id:'fireball',name:'火球術',icon:'🔥',cost:35,school:'elemental',actionType:'ranged',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.60}],description:'強力火元素法術。'},
-  ice_lance:{id:'ice_lance',name:'冰槍術',icon:'❄️',cost:35,school:'elemental',actionType:'ranged',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.55}],description:'冰元素法術。'},
-  thunderbolt:{id:'thunderbolt',name:'雷擊術',icon:'⚡',cost:40,school:'elemental',actionType:'ranged',effects:[{type:'damage',damageType:'lightning',source:'magicAttack',multiplier:1.70}],description:'高威力雷元素法術。'},
-  mana_guard:{id:'mana_guard',name:'魔力護盾',icon:'🔷',cost:20,school:'arcane',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.25}]}],description:'承傷降低3回合。'},
-  holy_light:{id:'holy_light',name:'聖光',icon:'✨',cost:35,school:'holy',actionType:'ranged',effects:[{type:'damage',damageType:'holy',source:'magicAttack',multiplier:1.25}],description:'神聖傷害。'},
-  heal_prayer:{id:'heal_prayer',name:'治癒祈禱',icon:'💚',cost:30,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.20}]}],description:'提高生存能力。'},
-  purify:{id:'purify',name:'淨化',icon:'🕊️',cost:20,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'statusRes',operation:'add',value:.20}]}],description:'提高狀態抗性。'},
-  sanctuary:{id:'sanctuary',name:'聖域',icon:'⛪',cost:35,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:2,modifiers:[{target:'damageTaken',operation:'add',value:-.35}]}],description:'大幅降低承傷2回合。'},
-  aimed_shot:{id:'aimed_shot',name:'瞄準射擊',icon:'🏹',cost:30,school:'martial',actionType:'ranged',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.45}],description:'精準遠程攻擊。'},
-  poison_arrow:{id:'poison_arrow',name:'毒箭',icon:'☠️',cost:30,school:'nature',actionType:'ranged',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.15}],description:'獵人的毒系射擊。'},
-  trap:{id:'trap',name:'陷阱',icon:'🪤',cost:25,school:'martial',actionType:'ranged',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.10}],description:'戰術型傷害技能。'},
-  eagle_eye:{id:'eagle_eye',name:'鷹眼',icon:'👁️',cost:20,school:'martial',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'crit',operation:'add',value:.12}]}],description:'暴擊與命中思路強化。'},
-  backstab:{id:'backstab',name:'背刺',icon:'🗡️',cost:30,school:'shadow',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.55}],description:'盜賊爆發傷害。'},
-  venom_blade:{id:'venom_blade',name:'毒刃',icon:'☠️',cost:30,school:'nature',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.20}],description:'毒系近戰技能。'},
-  bleed_cut:{id:'bleed_cut',name:'割裂',icon:'🩸',cost:30,school:'martial',actionType:'melee',effects:[{type:'damage',damageType:'physical',source:'attack',multiplier:1.25}],description:'流血系技能。'},
-  smoke_step:{id:'smoke_step',name:'煙霧步',icon:'💨',cost:20,school:'shadow',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'evade',operation:'add',value:.15}]}],description:'閃避率提升。'},
-  holy_slash:{id:'holy_slash',name:'聖光斬',icon:'✨',cost:35,school:'holy',actionType:'melee',effects:[{type:'damage',damageType:'holy',source:'magicAttack',multiplier:1.30}],description:'神聖近戰。'},
-  guardian_stance:{id:'guardian_stance',name:'守護',icon:'🛡️',cost:20,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.30},{target:'block',operation:'add',value:.12}]}],description:'承傷降低、格擋提高。'},
-  lay_on_hands:{id:'lay_on_hands',name:'聖療',icon:'🙏',cost:30,school:'holy',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.22}]}],description:'提高生存能力。'},
-  judgment:{id:'judgment',name:'審判',icon:'⚖️',cost:40,school:'holy',actionType:'ranged',effects:[{type:'damage',damageType:'holy',source:'magicAttack',multiplier:1.50}],description:'高倍率神聖傷害。'},
-  magic_slash:{id:'magic_slash',name:'魔力斬',icon:'🌀',cost:35,school:'arcane',actionType:'melee',effects:[{type:'damage',damageType:'wind',source:'magicAttack',multiplier:1.45}],description:'秘法驅動的風屬性劍技。'},
-  flame_edge:{id:'flame_edge',name:'炎刃',icon:'🔥',cost:35,school:'arcane',actionType:'melee',effects:[{type:'damage',damageType:'fire',source:'magicAttack',multiplier:1.45}],description:'秘法驅動的火元素劍技。'},
-  frost_edge:{id:'frost_edge',name:'冰刃',icon:'❄️',cost:35,school:'arcane',actionType:'melee',effects:[{type:'damage',damageType:'ice',source:'magicAttack',multiplier:1.45}],description:'秘法驅動的冰元素劍技。'},
-  arcane_guard:{id:'arcane_guard',name:'奧術防護',icon:'🔮',cost:20,school:'arcane',actionType:'self',effects:[{type:'status',category:'buff',duration:3,modifiers:[{target:'damageTaken',operation:'add',value:-.20},{target:'crit',operation:'add',value:.08}]}],description:'承傷降低、暴擊提高。'}
-};
-window.STUDYRPG_SKILL_DATABASE={beginner:BEGINNER_SKILLS,jobs:JOB_SKILL_LIBRARY};
-const JOB_PASSIVES={
-  warrior_grit:'堅韌：戰士的物理生存能力常駐提升。',
-  mana_echo:'魔力共鳴：法術循環更有效率。',
-  blessing:'祝福：提高神聖與狀態抗性相關表現。',
-  hunter_instinct:'獵殺本能：擅長針對弱點與DOT。',
-  shadow_step:'暗影步：提高閃避與爆發特性。',
-  holy_guard:'聖護：神聖防禦能力常駐。',
-  spellblade:'魔力武裝：物理與元素攻擊協同。'
-};
-const ULTIMATE_SKILLS={
-  limit_break:'極限突破',meteor:'隕石術',miracle:'奇蹟',
-  arrow_storm:'箭雨',assassinate:'暗殺',divine_verdict:'神聖裁決',elemental_break:'元素破斬'
-};
+const BEGINNER_SKILLS=(window.STUDYRPG_SKILL_DATABASE?.beginner)||[];
+const JOB_SKILL_LIBRARY=(window.STUDYRPG_SKILL_DATABASE?.jobs)||{};
+/* external STUDYRPG_SKILL_DATABASE is the formal source */
+const JOB_PASSIVES=(window.STUDYRPG_SKILL_DATABASE?.jobPassives)||{};
+const ULTIMATE_SKILLS=(window.STUDYRPG_SKILL_DATABASE?.ultimates)||{};
 function knownSkillIds(){
   const h=gameData.hero;
   return [...new Set([...(h.knownSkills||[]),...(h.skills||[])])];
@@ -6981,23 +6782,8 @@ if(gameData.settings?.cloud?.enabled)initFirebase();</script>
 .combo-orbs{letter-spacing:4px;font-weight:900}.resource-note{font-size:12px;opacity:.8}
 </style>
 <script>
-const FORMAL_CLASS_SKILLS={
-'戰士':[
-{id:'war_heroic',name:'英勇打擊',icon:'⚔️',cost:30,type:'physical',multiplier:1.8},{id:'war_shockwave',name:'震盪波',icon:'🌪️',cost:35,type:'physical',multiplier:1.25,aoe:true},{id:'war_laststand',name:'破釜沉舟',icon:'🔥',cost:50,type:'buff',effect:{effectType:'buff',turns:2,mods:{deathPrevent:true}}},{id:'war_ragefill',name:'怒氣強化',icon:'😡',cost:0,type:'special'},{id:'war_charge',name:'衝鋒',icon:'🦬',cost:40,type:'physical',multiplier:1.2,status:{type:'stun',turns:1,bossChance:.65},armorBreak:true},{id:'war_blade_storm',name:'劍刃風暴',icon:'🌪️',cost:45,type:'buff',effect:{effectType:'buff',turns:2,mods:{counterAoe:.8}}},{id:'war_execute',name:'斬殺',icon:'☠️',cost:0,type:'physical',special:'execute'},{id:'war_bloodstrike',name:'嗜血打擊',icon:'🩸',cost:35,type:'physical',multiplier:1.45,healDamage:.35}],
-'法師':[
-{id:'mage_blast',name:'魔力爆破',icon:'💥',cost:35,type:'arcane',multiplier:1.9},{id:'mage_missile',name:'奧術飛彈',icon:'✨',cost:12,type:'arcane',multiplier:1.2},{id:'mage_mana_shield',name:'魔力護盾',icon:'🔷',cost:0,type:'buff',effect:{effectType:'buff',turns:2,mods:{manaShield:.5}}},{id:'mage_meditation',name:'魔力冥想',icon:'🌀',cost:0,type:'buff',special:'meditate'},{id:'mage_haste',name:'加速術',icon:'⏩',cost:25,type:'buff',effect:{effectType:'buff',turns:5,mods:{speedPct:.30}}},{id:'mage_blizzard',name:'冰風暴',icon:'❄️',cost:40,type:'ice',multiplier:1.2,aoe:true,status:{type:'freeze',turns:1,chance:.30}},{id:'mage_burn',name:'烈焰灼燒',icon:'🔥',cost:25,type:'fire',multiplier:1.0,status:{type:'burn',turns:3,dotMatk:.25}},{id:'mage_icefire',name:'冰火爆裂',icon:'🔥❄️',cost:55,type:'arcane',multiplier:2.3,special:'icefire'}],
-'牧師':[
-{id:'priest_smite',name:'鞭撻懲戒',icon:'⚡',cost:22,type:'holy',multiplier:1.5},{id:'priest_lightbolt',name:'聖光彈',icon:'✨',cost:18,type:'holy',multiplier:1.25,special:'lightbolt'},{id:'priest_protection',name:'神聖防護',icon:'🛡️',cost:15,type:'buff',effect:{effectType:'buff',turns:5,mods:{damageTaken:-.18,mpReturnChance:.30}}},{id:'priest_grace',name:'神恩',icon:'🌟',cost:20,type:'buff',effect:{effectType:'buff',turns:3,mods:{virtuePct:.50}}},{id:'priest_exorcism',name:'驅除禱言',icon:'✝️',cost:32,type:'holy',multiplier:1.15,aoe:true},{id:'priest_holy_prayer',name:'神聖禱言',icon:'🙏',cost:40,type:'heal',special:'bigheal'},{id:'priest_cleanse',name:'淨化',icon:'✨',cost:18,type:'special',special:'cleanse'},{id:'priest_miracle',name:'奇蹟',icon:'🌟',cost:45,type:'buff',special:'miracle'}],
-'獵人':[
-{id:'hunter_trip',name:'摔絆',icon:'🪤',cost:22,type:'physical',multiplier:1.2,status:{type:'slow',turns:3,mods:{speedPct:-.25}}},{id:'hunter_magic_arrow',name:'魔法箭',icon:'✨',cost:18,type:'arcane',multiplier:1.25},{id:'hunter_counter',name:'反擊',icon:'↩️',cost:25,type:'buff',effect:{effectType:'buff',turns:2,mods:{counter:.8}}},{id:'hunter_focus',name:'凝神專注',icon:'🎯',cost:20,type:'buff',effect:{effectType:'buff',turns:4,mods:{speedPct:.25,energyProc:.35}}},{id:'hunter_explosive',name:'爆炸箭',icon:'💥',cost:38,type:'physical',multiplier:1.0,aoe:true,status:{type:'burn',turns:3,dotAtk:.22}},{id:'hunter_hound',name:'召喚獵犬',icon:'🐕',cost:30,type:'special',special:'hound'},{id:'hunter_deadly',name:'致命射擊',icon:'🎯',cost:35,type:'physical',multiplier:1.35,special:'weakshot'},{id:'hunter_snipe',name:'狙擊',icon:'🔭',cost:35,type:'physical',special:'snipe',description:'瞄準1回合；下一次行動必定命中、必定暴擊。目標HP≤20%且有弱點時觸發狙殺。'}],
-'盜賊':[
-{id:'rogue_ambush',name:'伏擊',icon:'🗡️',cost:22,type:'physical',multiplier:1.45,special:'ambush'},{id:'rogue_poison',name:'毒藥投擲',icon:'☠️',cost:22,type:'buff',special:'poison_coating'},{id:'rogue_evade',name:'閃避',icon:'💨',cost:25,type:'buff',effect:{effectType:'buff',turns:3,mods:{evade:.50}}},{id:'rogue_burst',name:'能量爆發',icon:'⚡',cost:20,type:'buff',effect:{effectType:'buff',turns:4,mods:{speedPct:.30,energyRegenPct:.50}}},{id:'rogue_rupture',name:'撕裂',icon:'🩸',cost:0,type:'physical',special:'rupture'},{id:'rogue_steal',name:'盜竊',icon:'👜',cost:15,type:'special',special:'steal'},{id:'rogue_cloak',name:'暗影披風',icon:'🌑',cost:25,type:'buff',effect:{effectType:'buff',turns:3,mods:{magicImmune:true}}},{id:'rogue_frenzy',name:'暗影狂殺',icon:'⚔️🌑',cost:0,type:'physical',special:'frenzy'}],
-'聖騎士':[
-{id:'pal_crusader',name:'十字軍打擊',icon:'✝️',cost:0,type:'holy',special:'crusader'},{id:'pal_shock',name:'神聖震擊',icon:'⚡',cost:0,type:'holy',special:'holyshock'},{id:'pal_divine_shield',name:'聖盾',icon:'🛡️',cost:45,type:'buff',effect:{effectType:'buff',turns:3,mods:{immuneDamage:true,willAfter:true}}},{id:'pal_wings',name:'復仇之怒',icon:'🔥',cost:35,type:'buff',effect:{effectType:'buff',turns:4,mods:{damagePct:.40,healingPct:.40}}},{id:'pal_blade',name:'正義之刃',icon:'⚔️',cost:0,type:'physical',multiplier:1.35,special:'justice'},{id:'pal_freedom',name:'自由祝福',icon:'🪽',cost:20,type:'special',special:'freedom'},{id:'pal_consecrate',name:'奉獻',icon:'✨',cost:35,type:'holy',special:'consecrate'},{id:'pal_verdict',name:'最終裁決',icon:'⚖️',cost:45,type:'holy',multiplier:2.2,special:'verdict'}],
-'魔劍士':[
-{id:'sb_arcane_strike',name:'秘法打擊',icon:'🌀⚔️',cost:22,type:'physical',special:'arcane_strike'},{id:'sb_element_bolt',name:'元素彈',icon:'🔥❄️⚡',cost:22,type:'arcane',special:'element_bolt'},{id:'sb_barrier',name:'秘法屏障',icon:'🔷',cost:30,type:'buff',effect:{effectType:'buff',turns:3,mods:{magicImmune:true}}},{id:'sb_disrupt',name:'亂魔',icon:'🌀',cost:25,type:'special',special:'disrupt'},{id:'sb_accel',name:'力場加速',icon:'⚡',cost:25,type:'buff',special:'accel'},{id:'sb_frost_armor',name:'冰霜護甲',icon:'❄️🛡️',cost:30,type:'buff',special:'frostarmor'},{id:'sb_firestorm',name:'火風暴',icon:'🔥🌪️',cost:40,type:'fire',special:'firestorm'},{id:'sb_element_burst',name:'元素爆發',icon:'🌈💥',cost:55,type:'arcane',special:'elementburst'}]
-};
-const FORMAL_PASSIVES={'戰士':'🩸 戰意沸騰','法師':'🔮 魔力增幅','牧師':'🪽 神恩護盾','獵人':'🎯 弱點發現','盜賊':'🗡️ 隱藏殺意','聖騎士':'✨ 聖印','魔劍士':'🗡️✨ 附魔武器'};
+const FORMAL_CLASS_SKILLS=(window.STUDYRPG_SKILL_DATABASE?.formalClassSkills)||{};
+const FORMAL_PASSIVES=(window.STUDYRPG_SKILL_DATABASE?.formalPassives)||{};
 Object.values(FORMAL_CLASS_SKILLS).flat().forEach(s=>{s.description=s.description||formalSkillDesc(s);JOB_SKILL_LIBRARY[s.id]=s;});
 function formalSkillDesc(s){const bits=[];if(s.aoe)bits.push('全體');if(s.multiplier)bits.push(`${Math.round(s.multiplier*100)}%傷害`);if(s.effect?.turns)bits.push(`${s.effect.turns}回合效果`);if(s.status?.type)bits.push(`附加${s.status.type}`);return bits.join('｜')||'職業特殊技能';}
 JOB_RULES.forEach(r=>{if(FORMAL_CLASS_SKILLS[r.name])r.skills=FORMAL_CLASS_SKILLS[r.name].map(x=>x.id)});
@@ -9301,48 +9087,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     machine_bind:{id:'machine_bind',name:'機械腕束縛',icon:'🦾',kind:'debuff',defaultTurns:2}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    /* Week 11 */
-    bandit_slash:{id:'bandit_slash',name:'砍擊',kind:'physical',target:'single',multiplier:1.0},
-    bandit_double_slash:{id:'bandit_double_slash',name:'連續砍擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
-    bandit_smoke:{id:'bandit_smoke',name:'煙霧彈',kind:'debuff',target:'single',status:{id:'smoke_blind',chance:1,duration:2,accuracyPenalty:.20}},
-    goblin_fierce_thrust:{id:'goblin_fierce_thrust',name:'兇狠突刺',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
-    orc_undead_rage:{id:'orc_undead_rage',name:'亡者狂暴',kind:'trigger',target:'self'},
-    orc_soul_heal:{id:'orc_soul_heal',name:'亡魂治療',kind:'heal',target:'self',healMaxHp:.20,conditionHpBelow:.40,maxUsesPerBattle:1},
-    reborn_shadow_bolt:{id:'reborn_shadow_bolt',name:'暗影魔彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
-    reborn_life_drain:{id:'reborn_life_drain',name:'生命吸取',kind:'magic',element:'dark',target:'single',multiplier:.90,healFromDamage:.50},
-    reborn_soul_curse:{id:'reborn_soul_curse',name:'亡魂詛咒',kind:'debuff',target:'single',status:{id:'soul_curse',chance:1,duration:2,mdefMultiplier:.80}},
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-    /* Week 12 */
-    stone_fist:{id:'stone_fist',name:'石拳',kind:'physical',target:'single',multiplier:1.10},
-    stone_charge:{id:'stone_charge',name:'岩石衝撞',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
-    stone_defense:{id:'stone_defense',name:'石像防禦',kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1,cannotUseConsecutively:true},
-    metal_slash:{id:'metal_slash',name:'金屬斬擊',kind:'physical',target:'single',multiplier:1.0},
-    gear_combo:{id:'gear_combo',name:'齒輪連擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.70},
-    core_overheat:{id:'core_overheat',name:'核心過熱',kind:'physical',target:'single',multiplier:1.50,cooldown:2},
-    machine_arm_hit:{id:'machine_arm_hit',name:'機械腕打擊',kind:'physical',target:'single',multiplier:1.0},
-    machine_arm_combo:{id:'machine_arm_combo',name:'連續腕擊',kind:'physical',target:'single',hitsMin:2,hitsMax:4,multiplierPerHit:.40},
-    machine_arm_bind:{id:'machine_arm_bind',name:'機械腕束縛',kind:'physical',target:'single',multiplier:.70,status:{id:'machine_bind',chance:1,duration:2,speedMultiplier:.70}},
-    doll_slash:{id:'doll_slash',name:'人偶斬擊',kind:'physical',target:'single',multiplier:1.0},
-    doll_cross_slash:{id:'doll_cross_slash',name:'交叉斬擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
-    doll_counter_stance:{id:'doll_counter_stance',name:'反擊姿態',kind:'buff',target:'self',duration:1,cannotUseConsecutively:true},
-    doll_self_repair:{id:'doll_self_repair',name:'自我修復',kind:'heal',target:'self',healMaxHp:.20,conditionHpBelow:.35,maxUsesPerBattle:1},
-    pillar_dark_beam:{id:'pillar_dark_beam',name:'黑色光束',kind:'magic',element:'dark',target:'single',multiplier:1.0},
-    pillar_energy_pulse:{id:'pillar_energy_pulse',name:'能量脈衝',kind:'magic',element:'arcane',target:'single',multiplier:1.20,cooldown:2},
-    pillar_defense_order:{id:'pillar_defense_order',name:'防衛指令',kind:'buff',target:'self',damageTakenMultiplier:.75,duration:2,cannotUseConsecutively:true},
-    pillar_attack_order:{id:'pillar_attack_order',name:'攻擊指令',kind:'command',target:'all_allies',cannotUseConsecutively:true},
-    pillar_repair_order:{id:'pillar_repair_order',name:'修復指令',kind:'command',target:'all_allies',cannotUseConsecutively:true}
-  });
-
-  Object.assign(MONSTER_AI_DATABASE,{
-    human_bandit:{skills:[{id:'bandit_slash',weight:3},{id:'bandit_double_slash',weight:2},{id:'bandit_smoke',weight:1}]},
-    reborn_necromancer:{skills:[{id:'reborn_shadow_bolt',weight:3},{id:'reborn_life_drain',weight:2},{id:'reborn_soul_curse',weight:1}]},
-    guardian_stone:{skills:[{id:'stone_fist',weight:3},{id:'stone_charge',weight:2},{id:'stone_defense',weight:1}]},
-    guardian_metal:{skills:[{id:'metal_slash',weight:3},{id:'gear_combo',weight:2},{id:'core_overheat',weight:1}]},
-    guardian_octopus_machine:{skills:[{id:'machine_arm_hit',weight:3},{id:'machine_arm_combo',weight:2},{id:'machine_arm_bind',weight:1}]},
-    guardian_doll:{skills:[{id:'doll_slash',weight:3},{id:'doll_cross_slash',weight:2},{id:'doll_counter_stance',weight:1},{id:'doll_self_repair',weight:5,condition:'low_hp',threshold:.35}]},
-    black_command_pillar:{skills:[{id:'pillar_dark_beam',weight:3},{id:'pillar_energy_pulse',weight:2},{id:'pillar_defense_order',weight:1},{id:'pillar_attack_order',weight:2},{id:'pillar_repair_order',weight:1}]}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
   Object.assign(ENEMY_SUMMON_DATABASE,{
     reborn_necromancer:{maxActiveSummons:2,maxTotalSummons:2,candidates:['human_bandit','goblin_soldier','orc_warrior','orc_shaman'],summonOnce:true,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true},
     black_command_pillar:{maxActiveSummons:2,maxTotalSummons:2,candidates:['guardian_doll'],summonOnce:true,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true}
@@ -9533,38 +9280,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   MONSTER_DATABASE.kraken_tentacle_left={id:'kraken_tentacle_left',name:'克拉肯左觸手',family:'sea',sprites:{idle:'images/monsters/kraken_idle.png',battle:'images/monsters/kraken_battle.png'}};
   MONSTER_DATABASE.kraken_tentacle_right={id:'kraken_tentacle_right',name:'克拉肯右觸手',family:'sea',sprites:{idle:'images/monsters/kraken_idle.png',battle:'images/monsters/kraken_battle.png'}};
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    pirate_cutlass:{id:'pirate_cutlass',name:'彎刀斬擊',kind:'physical',target:'single',multiplier:1.0},
-    pirate_double_cut:{id:'pirate_double_cut',name:'快速連斬',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
-    pirate_powder_shot:{id:'pirate_powder_shot',name:'火藥射擊',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
-    pirate_evasion:{id:'pirate_evasion',name:'閃避步伐',kind:'buff',target:'self',evasionBonus:.20,duration:1,cannotUseConsecutively:true},
-    murloc_hit:{id:'murloc_hit',name:'魚人打擊',kind:'physical',target:'single',multiplier:1.0},
-    murloc_leap:{id:'murloc_leap',name:'飛撲',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
-    murloc_slime_spit:{id:'murloc_slime_spit',name:'黏液噴吐',kind:'physical',target:'single',multiplier:.70,status:{id:'murloc_slime',chance:1,duration:2,speedMultiplier:.75}},
-    murloc_water_bolt:{id:'murloc_water_bolt',name:'水彈',kind:'magic',element:'water',target:'single',multiplier:1.05},
-    murloc_water_impact:{id:'murloc_water_impact',name:'水流衝擊',kind:'magic',element:'water',target:'single',multiplier:1.30,cooldown:2},
-    murloc_healing_water:{id:'murloc_healing_water',name:'治療水流',kind:'heal',target:'self',healMaxHp:.20,conditionHpBelow:.40,maxUsesPerBattle:1},
-    murloc_water_shield:{id:'murloc_water_shield',name:'水之護盾',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
-    evil_dark_water_bolt:{id:'evil_dark_water_bolt',name:'黑暗水彈',kind:'magic',element:'dark',target:'single',multiplier:1.0},
-    evil_corrupt_water:{id:'evil_corrupt_water',name:'腐化水流',kind:'magic',element:'water',target:'single',multiplier:.90,status:{id:'corrupt_water',chance:1,duration:2,mdefMultiplier:.80}},
-    evil_murloc_heal:{id:'evil_murloc_heal',name:'邪惡治療',kind:'heal',target:'ally_lowest_hp',healMaxHp:.15},
-    kraken_body_slam:{id:'kraken_body_slam',name:'深海撞擊',kind:'physical',target:'single',multiplier:1.10},
-    kraken_ink_shot:{id:'kraken_ink_shot',name:'墨汁噴射',kind:'magic',element:'water',target:'single',multiplier:.80,status:{id:'kraken_ink',chance:1,duration:2,accuracyPenalty:.20}},
-    kraken_giant_wave:{id:'kraken_giant_wave',name:'巨浪',kind:'magic',element:'water',target:'all',aoe:true,multiplier:1.30,cooldown:3},
-    kraken_raging_tsunami:{id:'kraken_raging_tsunami',name:'狂怒海嘯',kind:'magic',element:'water',target:'all',aoe:true,multiplier:1.60,conditionHpBelow:.30,maxUsesPerBattle:1},
-    tentacle_slam:{id:'tentacle_slam',name:'觸手拍擊',kind:'physical',target:'single',multiplier:.70},
-    tentacle_entangle:{id:'tentacle_entangle',name:'觸手纏繞',kind:'physical',target:'single',multiplier:.60,status:{id:'tentacle_bind',chance:1,duration:2,speedMultiplier:.75}}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    human_pirate:{skills:[{id:'pirate_cutlass',weight:3},{id:'pirate_double_cut',weight:2},{id:'pirate_powder_shot',weight:1},{id:'pirate_evasion',weight:1}]},
-    murloc:{skills:[{id:'murloc_hit',weight:3},{id:'murloc_leap',weight:2},{id:'murloc_slime_spit',weight:1}]},
-    murloc_mage:{skills:[{id:'murloc_water_bolt',weight:3},{id:'murloc_water_impact',weight:2},{id:'murloc_healing_water',weight:5,condition:'low_hp',threshold:.40},{id:'murloc_water_shield',weight:1}]},
-    evil_murloc_summoner:{skills:[{id:'evil_dark_water_bolt',weight:3},{id:'evil_corrupt_water',weight:2},{id:'evil_murloc_heal',weight:3,condition:'low_hp',threshold:.75}]},
-    kraken:{skills:[{id:'kraken_body_slam',weight:3},{id:'kraken_ink_shot',weight:2},{id:'kraken_giant_wave',weight:1},{id:'kraken_raging_tsunami',weight:8,condition:'low_hp',threshold:.30,maxUses:1}]},
-    kraken_tentacle_left:{skills:[{id:'tentacle_slam',weight:3},{id:'tentacle_entangle',weight:1}]},
-    kraken_tentacle_right:{skills:[{id:'tentacle_slam',weight:3},{id:'tentacle_entangle',weight:1}]}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
   ENEMY_SUMMON_DATABASE.evil_murloc_summoner={maxActiveSummons:2,maxTotalSummons:2,candidates:['murloc'],thresholds:[.70,.40],rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true};
   ENEMY_SUMMON_DATABASE.kraken={maxActiveSummons:2,maxTotalSummons:2,candidates:['kraken_tentacle_left','kraken_tentacle_right'],battleStart:true,rewardExp:0,rewardGold:0,drops:false,removeWhenBossDies:true};
 
@@ -9641,32 +9359,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     primal_fear:{id:'primal_fear',name:'威嚇',icon:'🦖',kind:'debuff',defaultTurns:2}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    flower_vine_whip:{id:'flower_vine_whip',name:'藤蔓鞭打',kind:'physical',target:'single',multiplier:.95},
-    flower_poison_pollen:{id:'flower_poison_pollen',name:'毒粉',kind:'debuff',target:'single',status:{id:'poison',chance:1,duration:3,maxHpDot:.04}},
-    flower_vine_bind:{id:'flower_vine_bind',name:'藤蔓束縛',kind:'debuff',target:'single',status:{id:'bind',chance:1,duration:2,speedMultiplier:.55,evasionMultiplier:0}},
-    crocodile_bite:{id:'crocodile_bite',name:'撕咬',kind:'physical',target:'single',multiplier:1.10,status:{id:'bleed',chance:1,duration:3,maxHpDot:.04}},
-    crocodile_tail_sweep:{id:'crocodile_tail_sweep',name:'掃尾',kind:'physical',target:'single',multiplier:1.0},
-    crocodile_death_roll:{id:'crocodile_death_roll',name:'死亡翻滾',kind:'physical',target:'single',multiplier:1.50,cooldown:2,requiresHeroStatus:'bleed'},
-    python_bite:{id:'python_bite',name:'巨蟒咬擊',kind:'physical',target:'single',multiplier:.95},
-    python_constrict:{id:'python_constrict',name:'巨蟒纏繞',kind:'physical',target:'single',multiplier:.75,status:{id:'python_constrict',chance:1,duration:3,maxHpDot:.03,speedMultiplier:.75}},
-    python_tail_strike:{id:'python_tail_strike',name:'蛇尾重擊',kind:'physical',target:'single',multiplier:1.30,cooldown:2},
-    gorilla_punch:{id:'gorilla_punch',name:'重拳',kind:'physical',target:'single',multiplier:1.10},
-    gorilla_chest_beat:{id:'gorilla_chest_beat',name:'捶胸咆哮',kind:'buff',target:'self',atkMultiplier:1.25,duration:3,maxUsesPerBattle:1},
-    gorilla_ground_slam:{id:'gorilla_ground_slam',name:'震地猛擊',kind:'physical',target:'all',aoe:true,multiplier:1.35,cooldown:2},
-    tyranno_bite:{id:'tyranno_bite',name:'暴龍撕咬',kind:'physical',target:'single',multiplier:1.25,status:{id:'bleed',chance:1,duration:3,maxHpDot:.05}},
-    tyranno_roar:{id:'tyranno_roar',name:'威嚇怒吼',kind:'debuff',target:'single',status:{id:'primal_fear',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
-    tyranno_blood_chase:{id:'tyranno_blood_chase',name:'嗜血追擊',kind:'physical',target:'single',multiplier:1.55,cooldown:2,requiresHeroStatus:'bleed'},
-    tyranno_tail_crush:{id:'tyranno_tail_crush',name:'巨尾粉碎',kind:'physical',target:'all',aoe:true,multiplier:1.20,cooldown:2}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    man_eating_flower:{skills:[{id:'flower_vine_whip',weight:3},{id:'flower_poison_pollen',weight:1},{id:'flower_vine_bind',weight:1}]},
-    crocodile:{skills:[{id:'crocodile_bite',weight:3},{id:'crocodile_tail_sweep',weight:2},{id:'crocodile_death_roll',weight:5}]},
-    giant_python:{skills:[{id:'python_bite',weight:3},{id:'python_constrict',weight:2},{id:'python_tail_strike',weight:1}]},
-    gorilla:{skills:[{id:'gorilla_punch',weight:3},{id:'gorilla_chest_beat',weight:4,maxUses:1},{id:'gorilla_ground_slam',weight:2}]},
-    tyrannosaurus:{skills:[{id:'tyranno_bite',weight:3},{id:'tyranno_roar',weight:1},{id:'tyranno_blood_chase',weight:5},{id:'tyranno_tail_crush',weight:2}]}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
   const previousSkillUsableByEnemyV101185=skillUsableByEnemy;
   skillUsableByEnemy=function(unit,entry,skill){
@@ -9708,35 +9403,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     swamp_corruption:{id:'swamp_corruption',name:'腐化',icon:'🟤',kind:'debuff',defaultTurns:3}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    bat_fang_bite:{id:'bat_fang_bite',name:'尖牙撕咬',kind:'physical',target:'single',multiplier:1.0},
-    bat_blood_drain:{id:'bat_blood_drain',name:'吸血',kind:'physical',target:'single',multiplier:.90,healFromDamage:.50},
-    bat_disease_bite:{id:'bat_disease_bite',name:'帶病撕咬',kind:'physical',target:'single',multiplier:.80,status:{id:'disease',chance:1,duration:3,healingReceivedMultiplier:.70}},
-    ghost_touch:{id:'ghost_touch',name:'幽魂觸碰',kind:'magic',element:'dark',target:'single',multiplier:1.0},
-    ghost_terror:{id:'ghost_terror',name:'恐怖現身',kind:'debuff',target:'single',status:{id:'fear',chance:1,duration:2}},
-    ghost_soul_curse:{id:'ghost_soul_curse',name:'靈魂詛咒',kind:'magic',element:'dark',target:'single',multiplier:.80,status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-    swamp_skeleton_rust_slash:{id:'swamp_skeleton_rust_slash',name:'鏽蝕斬擊',kind:'physical',target:'single',multiplier:1.10},
-    swamp_skeleton_cursed_blade:{id:'swamp_skeleton_cursed_blade',name:'詛咒刀刃',kind:'physical',target:'single',multiplier:.90,status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-    swamp_skeleton_corrupt_dust:{id:'swamp_skeleton_corrupt_dust',name:'腐化骨粉',kind:'debuff',target:'single',status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
-    swamp_skeleton_bone_smash:{id:'swamp_skeleton_bone_smash',name:'碎骨重擊',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
-    banshee_scream:{id:'banshee_scream',name:'女妖尖嘯',kind:'magic',element:'dark',target:'all',aoe:true,multiplier:.90,status:{id:'fear',chance:1,duration:2},cooldown:2,cannotUseConsecutively:true},
-    banshee_curse_song:{id:'banshee_curse_song',name:'哀歌詛咒',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-    banshee_corrupt_wave:{id:'banshee_corrupt_wave',name:'腐化聲波',kind:'magic',element:'dark',target:'single',multiplier:1.10,status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
-    banshee_soul_wail:{id:'banshee_soul_wail',name:'吸魂哀鳴',kind:'magic',element:'dark',target:'single',multiplier:.90,healFromDamage:.40},
-    reaper_scythe:{id:'reaper_scythe',name:'鐮刀斬擊',kind:'physical',target:'single',multiplier:1.20},
-    reaper_rotten_blade:{id:'reaper_rotten_blade',name:'腐爛鐮刃',kind:'physical',target:'single',multiplier:1.0,status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
-    reaper_fear_gaze:{id:'reaper_fear_gaze',name:'恐懼凝視',kind:'debuff',target:'single',status:{id:'fear',chance:1,duration:2}},
-    reaper_harvest_curse:{id:'reaper_harvest_curse',name:'收割詛咒',kind:'debuff',target:'single',status:{id:'curse',chance:1,duration:3,defMultiplier:.80,mdefMultiplier:.80}},
-    reaper_soul_harvest:{id:'reaper_soul_harvest',name:'靈魂收割',kind:'magic',element:'dark',target:'single',multiplier:1.0,cooldown:3,requiresAnyHarvestStatus:true}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    giant_bat:{skills:[{id:'bat_fang_bite',weight:3},{id:'bat_blood_drain',weight:2},{id:'bat_disease_bite',weight:1}]},
-    ghost:{skills:[{id:'ghost_touch',weight:3},{id:'ghost_terror',weight:1},{id:'ghost_soul_curse',weight:2}]},
-    swamp_skeleton:{skills:[{id:'swamp_skeleton_rust_slash',weight:3},{id:'swamp_skeleton_cursed_blade',weight:2},{id:'swamp_skeleton_corrupt_dust',weight:1},{id:'swamp_skeleton_bone_smash',weight:1}]},
-    banshee:{skills:[{id:'banshee_scream',weight:1},{id:'banshee_curse_song',weight:2},{id:'banshee_corrupt_wave',weight:2},{id:'banshee_soul_wail',weight:3}]},
-    scarecrow_reaper:{skills:[{id:'reaper_scythe',weight:3},{id:'reaper_rotten_blade',weight:2},{id:'reaper_fear_gaze',weight:1},{id:'reaper_harvest_curse',weight:1},{id:'reaper_soul_harvest',weight:5}]}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
   const HARVEST_STATUS_TYPES_V101186=['disease','curse','fear','swamp_corruption'];
   function activeHarvestStatusesV101186(){
@@ -9830,33 +9499,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     ancient_corrosion:{id:'ancient_corrosion',name:'古城腐蝕',icon:'🧪',kind:'debuff',defaultTurns:2}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    skeleton_lizard_bone_spear:{id:'skeleton_lizard_bone_spear',name:'骨矛突刺',kind:'physical',target:'single',multiplier:1.10},
-    skeleton_lizard_tail_sweep:{id:'skeleton_lizard_tail_sweep',name:'骸骨掃尾',kind:'physical',target:'all',aoe:true,multiplier:1.15,cooldown:2},
-    skeleton_lizard_bone_guard:{id:'skeleton_lizard_bone_guard',name:'骨甲防禦',kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1,cannotUseConsecutively:true},
-    zombie_lizard_rotten_bite:{id:'zombie_lizard_rotten_bite',name:'腐爛撕咬',kind:'physical',target:'single',multiplier:1.0,status:{id:'disease',chance:1,duration:3,healingReceivedMultiplier:.70}},
-    zombie_lizard_claw:{id:'zombie_lizard_claw',name:'殭屍爪擊',kind:'physical',target:'single',multiplier:1.10},
-    zombie_lizard_corrupt_breath:{id:'zombie_lizard_corrupt_breath',name:'腐化吐息',kind:'magic',element:'poison',target:'single',multiplier:.85,status:{id:'swamp_corruption',chance:1,duration:3,maxHpDot:.03,healingReceivedMultiplier:.75}},
-    zombie_warrior_spear:{id:'zombie_warrior_spear',name:'腐朽長矛',kind:'physical',target:'single',multiplier:1.15},
-    zombie_warrior_combo:{id:'zombie_warrior_combo',name:'亡者連擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
-    zombie_warrior_charge:{id:'zombie_warrior_charge',name:'亡者衝鋒',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
-    zombie_priest_shadow_bolt:{id:'zombie_priest_shadow_bolt',name:'暗影法球',kind:'magic',element:'dark',target:'single',multiplier:1.0},
-    zombie_priest_corrupt_heal:{id:'zombie_priest_corrupt_heal',name:'腐化治療',kind:'heal',target:'self',healMaxHp:.25,conditionHpBelow:.45,maxUsesPerBattle:1},
-    zombie_priest_dark_blessing:{id:'zombie_priest_dark_blessing',name:'黑暗祝福',kind:'special_buff',target:'self',duration:3,maxUsesPerBattle:1},
-    zombie_priest_undead_prayer:{id:'zombie_priest_undead_prayer',name:'不死祈禱',kind:'buff',target:'self',damageTakenMultiplier:.55,duration:2,maxUsesPerBattle:1},
-    hydra_multi_bite:{id:'hydra_multi_bite',name:'群首撕咬',kind:'physical',target:'single',hits:3,multiplierPerHit:.45,dynamicHydraHeads:true},
-    hydra_venom_breath:{id:'hydra_venom_breath',name:'劇毒吐息',kind:'magic',element:'poison',target:'all',aoe:true,multiplier:1.0,status:{id:'poison',chance:1,duration:3,maxHpDot:.04},cooldown:2},
-    hydra_corrosive_breath:{id:'hydra_corrosive_breath',name:'腐蝕吐息',kind:'magic',element:'poison',target:'single',multiplier:.90,status:{id:'ancient_corrosion',chance:1,duration:2,defMultiplier:.75,mdefMultiplier:.75}},
-    hydra_tail_crush:{id:'hydra_tail_crush',name:'巨尾橫掃',kind:'physical',target:'all',aoe:true,multiplier:1.20,cooldown:2}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    skeleton_lizardman:{skills:[{id:'skeleton_lizard_bone_spear',weight:3},{id:'skeleton_lizard_tail_sweep',weight:2},{id:'skeleton_lizard_bone_guard',weight:1}]},
-    wandering_zombie_lizardman:{skills:[{id:'zombie_lizard_rotten_bite',weight:2},{id:'zombie_lizard_claw',weight:3},{id:'zombie_lizard_corrupt_breath',weight:1}]},
-    zombie_lizard_warrior:{skills:[{id:'zombie_warrior_spear',weight:3},{id:'zombie_warrior_combo',weight:2},{id:'zombie_warrior_charge',weight:1}]},
-    zombie_lizard_priest:{skills:[{id:'zombie_priest_shadow_bolt',weight:3},{id:'zombie_priest_corrupt_heal',weight:5,condition:'low_hp',threshold:.45},{id:'zombie_priest_dark_blessing',weight:2,maxUses:1},{id:'zombie_priest_undead_prayer',weight:2,maxUses:1}]},
-    hydra:{skills:[{id:'hydra_multi_bite',weight:3},{id:'hydra_venom_breath',weight:1},{id:'hydra_corrosive_breath',weight:2},{id:'hydra_tail_crush',weight:2}]}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
   const previousSkillUsableByEnemyV101187=skillUsableByEnemy;
   skillUsableByEnemy=function(unit,entry,skill){
@@ -9935,34 +9580,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     rift_armor_break:{id:'rift_armor_break',name:'裂谷破甲',icon:'🪓',kind:'debuff',defaultTurns:2}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    pigman_chop:{id:'pigman_chop',name:'粗暴劈砍',kind:'physical',target:'single',multiplier:1.0},
-    pigman_headbutt:{id:'pigman_headbutt',name:'頭槌',kind:'physical',target:'single',multiplier:1.20,status:{id:'stun',chance:.20,duration:1}},
-    pigman_wild_combo:{id:'pigman_wild_combo',name:'野蠻連擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.60},
-    pigman_warrior_axe:{id:'pigman_warrior_axe',name:'戰斧斬擊',kind:'physical',target:'single',multiplier:1.10},
-    pigman_warrior_breaker:{id:'pigman_warrior_breaker',name:'破甲重斧',kind:'physical',target:'single',multiplier:1.20,status:{id:'rift_armor_break',chance:1,duration:2,defMultiplier:.80}},
-    pigman_warrior_spin:{id:'pigman_warrior_spin',name:'旋轉斬擊',kind:'physical',target:'all',aoe:true,multiplier:1.10,cooldown:2},
-    centaur_stomp:{id:'centaur_stomp',name:'馬蹄踐踏',kind:'physical',target:'single',multiplier:1.0},
-    centaur_charge:{id:'centaur_charge',name:'疾速衝鋒',kind:'physical',target:'single',multiplier:1.40,cooldown:2,speedAfter:.20},
-    centaur_back_kick:{id:'centaur_back_kick',name:'迴旋踢',kind:'physical',target:'single',multiplier:1.20},
-    centaur_knight_lance:{id:'centaur_knight_lance',name:'騎槍突刺',kind:'physical',target:'single',multiplier:1.10},
-    centaur_knight_charge_prep:{id:'centaur_knight_charge_prep',name:'準備衝鋒',kind:'charge',target:'self',nextSkill:'centaur_knight_charge'},
-    centaur_knight_charge:{id:'centaur_knight_charge',name:'騎士衝鋒',kind:'physical',target:'single',multiplier:1.80,requiresCharge:true,status:{id:'rift_armor_break',chance:1,duration:2,defMultiplier:.80}},
-    centaur_knight_guard:{id:'centaur_knight_guard',name:'騎士防禦',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
-    cyclops_mighty_swing:{id:'cyclops_mighty_swing',name:'巨力揮擊',kind:'physical',target:'single',multiplier:1.20},
-    cyclops_wide_swing:{id:'cyclops_wide_swing',name:'橫向揮擊',kind:'physical',target:'all',aoe:true,multiplier:1.10,cooldown:2},
-    cyclops_double_swing:{id:'cyclops_double_swing',name:'連續揮擊',kind:'physical',target:'single',hits:2,multiplierPerHit:.75},
-    cyclops_charge_swing:{id:'cyclops_charge_swing',name:'蓄力揮擊',kind:'charge',target:'self',nextSkill:'cyclops_devastating_swing'},
-    cyclops_devastating_swing:{id:'cyclops_devastating_swing',name:'毀滅揮擊',kind:'physical',target:'single',multiplier:2.0,requiresCharge:true}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    pigman:{skills:[{id:'pigman_chop',weight:3},{id:'pigman_headbutt',weight:1},{id:'pigman_wild_combo',weight:2}]},
-    pigman_warrior:{skills:[{id:'pigman_warrior_axe',weight:3},{id:'pigman_warrior_breaker',weight:2},{id:'pigman_warrior_spin',weight:1}]},
-    centaur:{skills:[{id:'centaur_stomp',weight:3},{id:'centaur_charge',weight:2},{id:'centaur_back_kick',weight:2}]},
-    centaur_knight:{skills:[{id:'centaur_knight_lance',weight:3},{id:'centaur_knight_charge_prep',weight:2},{id:'centaur_knight_guard',weight:1}],chargeSequence:['centaur_knight_charge_prep','centaur_knight_charge']},
-    cyclops:{skills:[{id:'cyclops_mighty_swing',weight:3},{id:'cyclops_wide_swing',weight:2},{id:'cyclops_double_swing',weight:2},{id:'cyclops_charge_swing',weight:1}],chargeSequence:['cyclops_charge_swing','cyclops_devastating_swing']}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
   const previousSkillUsableByEnemyV101188=skillUsableByEnemy;
   skillUsableByEnemy=function(unit,entry,skill){
@@ -10023,37 +9643,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     sky_smoke:{id:'sky_smoke',name:'煙霧遮蔽',icon:'💨',kind:'debuff',defaultTurns:2}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    harpy_claw:{id:'harpy_claw',name:'爪擊',kind:'physical',target:'single',multiplier:1.0},
-    harpy_feather_darts:{id:'harpy_feather_darts',name:'羽毛飛鏢',kind:'physical',target:'single',hits:3,multiplierPerHit:.45},
-    harpy_wing_pressure:{id:'harpy_wing_pressure',name:'羽翼風壓',kind:'magic',element:'wind',target:'single',multiplier:.90,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
-    harpy_high_evasion:{id:'harpy_high_evasion',name:'高空迴避',kind:'buff',target:'self',evasionBonus:.20,duration:1,cannotUseConsecutively:true},
-    flying_goblin_rock:{id:'flying_goblin_rock',name:'石塊投擲',kind:'physical',target:'single',multiplier:1.0},
-    flying_goblin_double_throw:{id:'flying_goblin_double_throw',name:'連續投擲',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
-    flying_goblin_bomb:{id:'flying_goblin_bomb',name:'炸彈投擲',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.30,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},cooldown:2},
-    flying_goblin_smoke:{id:'flying_goblin_smoke',name:'煙霧彈投擲',kind:'debuff',target:'single',status:{id:'sky_smoke',chance:1,duration:2,accuracyPenalty:.20}},
-    wyvern_bite:{id:'wyvern_bite',name:'翼龍撕咬',kind:'physical',target:'single',multiplier:1.10},
-    wyvern_dive:{id:'wyvern_dive',name:'翼爪俯衝',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
-    wyvern_whirlwind:{id:'wyvern_whirlwind',name:'旋風',kind:'debuff',target:'single',status:{id:'wyvern_whirlwind',chance:1,duration:3,maxHpDot:.03,speedMultiplier:.80}},
-    wyvern_wing_sweep:{id:'wyvern_wing_sweep',name:'振翅橫掃',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.10,cooldown:2},
-    sky_pirate_cutlass:{id:'sky_pirate_cutlass',name:'彎刀斬擊',kind:'physical',target:'single',multiplier:1.0},
-    sky_pirate_throwing_knife:{id:'sky_pirate_throwing_knife',name:'飛刀投擲',kind:'physical',target:'single',multiplier:1.20},
-    sky_pirate_hook:{id:'sky_pirate_hook',name:'鉤索纏繞',kind:'physical',target:'single',multiplier:.80,status:{id:'sky_hook',chance:1,duration:2,speedMultiplier:.75}},
-    sky_pirate_powder_flask:{id:'sky_pirate_powder_flask',name:'火藥瓶投擲',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.10,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},cooldown:2},
-    captain_slash:{id:'captain_slash',name:'船長斬擊',kind:'physical',target:'single',multiplier:1.20},
-    captain_triple_knife:{id:'captain_triple_knife',name:'連續飛刀',kind:'physical',target:'single',hits:3,multiplierPerHit:.50},
-    captain_bomb:{id:'captain_bomb',name:'投擲炸彈',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.30,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},cooldown:2},
-    captain_load_cannon:{id:'captain_load_cannon',name:'下令裝填',kind:'charge',target:'self',nextSkill:'captain_airship_cannon'},
-    captain_airship_cannon:{id:'captain_airship_cannon',name:'飛空艇砲擊',kind:'physical',target:'all',aoe:true,multiplier:2.0,requiresCharge:true,cooldown:3,combinedCannon:true}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    harpy:{skills:[{id:'harpy_claw',weight:3},{id:'harpy_feather_darts',weight:2},{id:'harpy_wing_pressure',weight:1},{id:'harpy_high_evasion',weight:1}]},
-    flying_goblin:{skills:[{id:'flying_goblin_rock',weight:3},{id:'flying_goblin_double_throw',weight:2},{id:'flying_goblin_bomb',weight:1},{id:'flying_goblin_smoke',weight:1}]},
-    wyvern:{skills:[{id:'wyvern_bite',weight:3},{id:'wyvern_dive',weight:2},{id:'wyvern_whirlwind',weight:1},{id:'wyvern_wing_sweep',weight:1}]},
-    sky_pirate:{skills:[{id:'sky_pirate_cutlass',weight:3},{id:'sky_pirate_throwing_knife',weight:2},{id:'sky_pirate_hook',weight:1},{id:'sky_pirate_powder_flask',weight:1}]},
-    sky_pirate_captain:{skills:[{id:'captain_slash',weight:3},{id:'captain_triple_knife',weight:2},{id:'captain_bomb',weight:1},{id:'captain_load_cannon',weight:2}],chargeSequence:['captain_load_cannon','captain_airship_cannon']}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
   const previousSkillUsableByEnemyV101189=skillUsableByEnemy;
   skillUsableByEnemy=function(unit,entry,skill){
@@ -10117,37 +9709,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     sky_armor_break:{id:'sky_armor_break',name:'天翔破甲',icon:'🪽',kind:'debuff',defaultTurns:2}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    armor_magic_slash:{id:'armor_magic_slash',name:'魔力斬擊',kind:'magic',element:'arcane',target:'single',multiplier:1.05},
-    armor_double_slash:{id:'armor_double_slash',name:'鎧甲連斬',kind:'physical',target:'single',hits:2,multiplierPerHit:.65},
-    armor_magic_guard:{id:'armor_magic_guard',name:'魔力護甲',kind:'buff',target:'self',damageTakenMultiplier:.50,duration:1,cannotUseConsecutively:true},
-    gargoyle_claw:{id:'gargoyle_claw',name:'石爪攻擊',kind:'physical',target:'single',multiplier:1.05},
-    gargoyle_dive:{id:'gargoyle_dive',name:'俯衝猛擊',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
-    gargoyle_guard:{id:'gargoyle_guard',name:'石像防禦',kind:'buff',target:'self',damageTakenMultiplier:.40,duration:1,cannotUseConsecutively:true},
-    gargoyle_wing_sweep:{id:'gargoyle_wing_sweep',name:'翼擊',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.05},
-    sky_mage_arcane_bolt:{id:'sky_mage_arcane_bolt',name:'秘法彈',kind:'magic',element:'arcane',target:'single',multiplier:1.10},
-    sky_mage_chain_lightning:{id:'sky_mage_chain_lightning',name:'連鎖閃電',kind:'magic',element:'lightning',target:'single',hitsMin:2,hitsMax:3,multiplierPerHit:.45},
-    sky_mage_wind_bind:{id:'sky_mage_wind_bind',name:'風之束縛',kind:'magic',element:'wind',target:'single',multiplier:.80,status:{id:'sky_wind_bind',chance:1,duration:2,speedMultiplier:.75}},
-    sky_mage_barrier:{id:'sky_mage_barrier',name:'魔力屏障',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
-    pegasus_lance:{id:'pegasus_lance',name:'騎槍突刺',kind:'physical',target:'single',multiplier:1.10},
-    pegasus_trample:{id:'pegasus_trample',name:'飛馬踐踏',kind:'physical',target:'single',multiplier:1.20,status:{id:'stun',chance:.20,duration:1},cooldown:2},
-    pegasus_wing_whirlwind:{id:'pegasus_wing_whirlwind',name:'羽翼旋風',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.0,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
-    pegasus_takeoff:{id:'pegasus_takeoff',name:'展翼升空',kind:'charge',target:'self',nextSkill:'pegasus_sky_charge'},
-    pegasus_sky_charge:{id:'pegasus_sky_charge',name:'天翔衝鋒',kind:'physical',target:'single',requiresCharge:true,cooldown:3,combinedPegasusCharge:true},
-    colossus_fist:{id:'colossus_fist',name:'巨像重拳',kind:'physical',target:'single',multiplier:1.25},
-    colossus_beam:{id:'colossus_beam',name:'能量光束',kind:'magic',element:'arcane',target:'single',multiplier:1.20},
-    colossus_sky_quake:{id:'colossus_sky_quake',name:'天空震擊',kind:'physical',target:'all',aoe:true,multiplier:1.35,cooldown:2},
-    colossus_core_charge:{id:'colossus_core_charge',name:'核心充能',kind:'charge',target:'self',nextSkill:'colossus_destruction_cannon'},
-    colossus_destruction_cannon:{id:'colossus_destruction_cannon',name:'天空毀滅砲',kind:'magic',element:'arcane',target:'all',aoe:true,multiplier:2.0,requiresCharge:true,cooldown:3,colossusCannon:true}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    magic_armor:{skills:[{id:'armor_magic_slash',weight:3},{id:'armor_double_slash',weight:2},{id:'armor_magic_guard',weight:1}]},
-    stone_gargoyle:{skills:[{id:'gargoyle_claw',weight:3},{id:'gargoyle_dive',weight:2},{id:'gargoyle_guard',weight:1},{id:'gargoyle_wing_sweep',weight:1}]},
-    sky_city_mage:{skills:[{id:'sky_mage_arcane_bolt',weight:3},{id:'sky_mage_chain_lightning',weight:2},{id:'sky_mage_wind_bind',weight:1},{id:'sky_mage_barrier',weight:1}]},
-    pegasus_knight:{skills:[{id:'pegasus_lance',weight:3},{id:'pegasus_trample',weight:2},{id:'pegasus_wing_whirlwind',weight:1},{id:'pegasus_takeoff',weight:2}],chargeSequence:['pegasus_takeoff','pegasus_sky_charge']},
-    sky_colossus:{skills:[{id:'colossus_fist',weight:3},{id:'colossus_beam',weight:2},{id:'colossus_sky_quake',weight:2},{id:'colossus_core_charge',weight:2}],chargeSequence:['colossus_core_charge','colossus_destruction_cannon']}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
   const previousSkillUsableByEnemyV101190=skillUsableByEnemy;
   skillUsableByEnemy=function(unit,entry,skill){
@@ -10229,40 +9793,9 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     lava_break:{id:'lava_break',name:'熔岩破甲',icon:'💧',kind:'debuff',defaultTurns:2}
   });
 
-  Object.assign(MONSTER_SKILL_DATABASE,{
-    fire_lizard_bite:{id:'fire_lizard_bite',name:'火蜥撕咬',kind:'physical',target:'single',multiplier:1.05},
-    fire_lizard_breath:{id:'fire_lizard_breath',name:'火焰吐息',kind:'magic',element:'fire',target:'single',multiplier:1.15,status:{id:'burn',chance:1,duration:3,maxHpDot:.04}},
-    fire_lizard_tail:{id:'fire_lizard_tail',name:'烈焰甩尾',kind:'physical',target:'single',multiplier:1.20,cooldown:2},
-    lava_giant_fist:{id:'lava_giant_fist',name:'熔岩重拳',kind:'physical',target:'single',multiplier:1.20},
-    lava_giant_quake:{id:'lava_giant_quake',name:'地面震擊',kind:'physical',target:'all',aoe:true,multiplier:1.25,cooldown:2},
-    lava_giant_eruption:{id:'lava_giant_eruption',name:'熔岩噴發',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.10,status:{id:'burn',chance:1,duration:3,maxHpDot:.04}},
-    lava_giant_armor:{id:'lava_giant_armor',name:'熔岩護甲',kind:'buff',target:'self',damageTakenMultiplier:.60,duration:1,cannotUseConsecutively:true},
-    dragon1_claw:{id:'dragon1_claw',name:'魔龍爪擊',kind:'physical',target:'single',multiplier:1.20},
-    dragon1_tail:{id:'dragon1_tail',name:'魔龍甩尾',kind:'physical',target:'all',aoe:true,multiplier:1.10,cooldown:2},
-    dragon1_breath_prep:{id:'dragon1_breath_prep',name:'聚集龍焰',kind:'charge',target:'self',nextSkill:'dragon1_breath'},
-    dragon1_breath:{id:'dragon1_breath',name:'毀滅龍焰',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:1.80,status:{id:'burn',chance:1,duration:3,maxHpDot:.04},requiresCharge:true,cooldown:3},
-    dragon2_dive:{id:'dragon2_dive',name:'魔龍俯衝',kind:'physical',target:'single',multiplier:1.40,cooldown:2},
-    dragon2_wing_storm:{id:'dragon2_wing_storm',name:'羽翼風暴',kind:'magic',element:'wind',target:'all',aoe:true,multiplier:1.15,status:{id:'slow',chance:1,duration:2,speedMultiplier:.80}},
-    dragon2_meteor_breath_prep:{id:'dragon2_meteor_breath_prep',name:'召集隕火',kind:'charge',target:'self',nextSkill:'dragon2_meteor_breath'},
-    dragon2_meteor_breath:{id:'dragon2_meteor_breath',name:'隕火龍息',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:2.0,status:{id:'burn',chance:1,duration:3,maxHpDot:.05},requiresCharge:true,cooldown:3},
-    skeleton_dragon_claw:{id:'skeleton_dragon_claw',name:'骸骨龍爪',kind:'physical',target:'single',multiplier:1.20},
-    skeleton_dragon_breath:{id:'skeleton_dragon_breath',name:'腐化龍息',kind:'magic',element:'dark',target:'all',aoe:true,multiplier:1.30,status:{id:'final_corruption',chance:1,duration:3,maxHpDot:.04}},
-    skeleton_dragon_tail:{id:'skeleton_dragon_tail',name:'骸骨甩尾',kind:'physical',target:'all',aoe:true,multiplier:1.10,status:{id:'stun',chance:.20,duration:1},cooldown:2},
-    skeleton_dragon_roar:{id:'skeleton_dragon_roar',name:'亡骨咆哮',kind:'debuff',target:'single',status:{id:'bone_roar',chance:1,duration:2,atkMultiplier:.80,matkMultiplier:.80}},
-    final_necro_bolt:{id:'final_necro_bolt',name:'暗影箭',kind:'magic',element:'dark',target:'single',multiplier:1.10},
-    final_necro_curse:{id:'final_necro_curse',name:'死亡詛咒',kind:'debuff',target:'single',status:{id:'final_corruption',chance:1,duration:3,maxHpDot:.04}},
-    final_necro_repair:{id:'final_necro_repair',name:'骸骨修復',kind:'heal',target:'ally_monster',targetMonsterId:'skeleton_dragon',healMaxHp:.15,cooldown:2},
-    final_necro_drain:{id:'final_necro_drain',name:'靈魂抽取',kind:'magic',element:'dark',target:'single',multiplier:1.0,healFromDamage:1.0,cooldown:2}
-  });
+  /* MONSTER_SKILL_DATABASE data moved to skill-database.js */
 
-  Object.assign(MONSTER_AI_DATABASE,{
-    fire_lizard:{skills:[{id:'fire_lizard_bite',weight:3},{id:'fire_lizard_breath',weight:2},{id:'fire_lizard_tail',weight:2}]},
-    lava_giant:{skills:[{id:'lava_giant_fist',weight:3},{id:'lava_giant_quake',weight:2},{id:'lava_giant_eruption',weight:2},{id:'lava_giant_armor',weight:1}]},
-    demon_dragon_phase1:{skills:[{id:'dragon1_claw',weight:3},{id:'dragon1_tail',weight:2},{id:'dragon1_breath_prep',weight:2}],chargeSequence:['dragon1_breath_prep','dragon1_breath']},
-    demon_dragon_phase2:{skills:[{id:'dragon2_dive',weight:3},{id:'dragon2_wing_storm',weight:2},{id:'dragon2_meteor_breath_prep',weight:2}],chargeSequence:['dragon2_meteor_breath_prep','dragon2_meteor_breath']},
-    skeleton_dragon:{skills:[{id:'skeleton_dragon_claw',weight:3},{id:'skeleton_dragon_breath',weight:2},{id:'skeleton_dragon_tail',weight:2},{id:'skeleton_dragon_roar',weight:1}]},
-    final_necromancer:{skills:[{id:'final_necro_bolt',weight:3},{id:'final_necro_curse',weight:2},{id:'final_necro_repair',weight:1},{id:'final_necro_drain',weight:2}]}
-  });
+  /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
   function finalLinkedDragonV101191(){return (battleStateV10?.enemies||[]).find(x=>x.monsterId==='skeleton_dragon'&&x.hp>0&&x.alive!==false)||null;}
   function finalNecromancerV101191(){return (battleStateV10?.enemies||[]).find(x=>x.monsterId==='final_necromancer'&&x.hp>0&&x.alive!==false)||null;}
@@ -10371,24 +9904,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       paperDollBattle:`images/equipment/paperdoll/t0/${base.visualId}_battle.png`
     };
   });
-  const AFFIXES={
-    assault:{id:'assault',name:'猛攻',slots:['weapon','accessory'],kind:'stat',stat:'attack',min:3,max:6,powerPerUnit:1},
-    arcane:{id:'arcane',name:'祕法',slots:['weapon','head','accessory'],kind:'stat',stat:'magicAttack',min:3,max:6,powerPerUnit:1},
-    ironwall:{id:'ironwall',name:'鐵壁',slots:['head','body'],kind:'stat',stat:'defense',min:3,max:6,powerPerUnit:.8},
-    warding:{id:'warding',name:'護法',slots:['head','body','accessory'],kind:'stat',stat:'magicDefense',min:3,max:6,powerPerUnit:.8},
-    vitality:{id:'vitality',name:'生命',slots:['head','body','accessory'],kind:'stat',stat:'maxHp',min:15,max:30,powerPerUnit:.10},
-    swiftness:{id:'swiftness',name:'迅捷',slots:['weapon','head','accessory'],kind:'stat',stat:'speed',min:2,max:5,powerPerUnit:1},
-    precision:{id:'precision',name:'精準',slots:['weapon','accessory'],kind:'stat',stat:'crit',min:.02,max:.04,step:.01,powerPerUnit:100},
-    shadowstep:{id:'shadowstep',name:'幻步',slots:['head','body','accessory'],kind:'stat',stat:'evade',min:.02,max:.04,step:.01,powerPerUnit:110},
-    bastion:{id:'bastion',name:'壁壘',slots:['head','body'],kind:'stat',stat:'block',min:.02,max:.04,step:.01,powerPerUnit:100},
-    ember_echo:{id:'ember_echo',name:'餘燼回響',slots:['weapon','accessory'],kind:'trigger',trigger:'after_attack',effect:'echo_fire',chance:.10,multiplier:.60,power:4.5,text:'攻擊命中時10%機率追加60%火焰傷害'},
-    phantom_echo:{id:'phantom_echo',name:'幻影追擊',slots:['weapon','accessory'],kind:'trigger',trigger:'after_attack',effect:'echo_physical',chance:.08,multiplier:.70,power:4.5,text:'攻擊命中時8%機率追加70%物理傷害'},
-    blood_drink:{id:'blood_drink',name:'飲血',slots:['weapon','accessory'],kind:'trigger',trigger:'after_attack',effect:'lifesteal',ratio:.18,power:4,text:'每次行動造成傷害後，恢復該傷害18%的HP'},
-    royal_guard:{id:'royal_guard',name:'王者庇護',slots:['head','body','accessory'],kind:'trigger',trigger:'battle_start',effect:'opening_guard',power:4,text:'開戰前3回合受到傷害降低15%'},
-    phoenix_oath:{id:'phoenix_oath',name:'不死鳥誓約',slots:['body','accessory'],kind:'trigger',trigger:'lethal',effect:'death_prevent',power:7,text:'每場首次受到致命傷害時，以1HP存活'},
-    flame_spirit:{id:'flame_spirit',name:'火靈契約',slots:['weapon','head','accessory'],kind:'summon',trigger:'battle_start',effect:'summon_flame',power:7,text:'開戰召喚火靈；每次勇者攻擊後追加35%魔攻火焰傷害'},
-    blade_spirit:{id:'blade_spirit',name:'劍魂契約',slots:['weapon','body','accessory'],kind:'summon',trigger:'battle_start',effect:'summon_blade',power:7,text:'開戰召喚劍魂；每次勇者攻擊後追加35%物攻傷害'}
-  };
+  const AFFIXES=(window.STUDYRPG_AFFIX_DATABASE?.affixes)||{};
   window.EQUIPMENT_TIER_DATABASE={T0:{id:'T0',name:'第一學期終局裝備',basePower:10,bases:Object.keys(BASES)}};
   window.EQUIPMENT_BASE_DATABASE_T0=BASES;
   window.EQUIPMENT_AFFIX_DATABASE=AFFIXES;
