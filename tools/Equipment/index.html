@@ -195,14 +195,18 @@ function deriveCurrentEquipmentRules(){
   };
 }
 function parseAffixDatabaseText(text){
-  const key='window.STUDYRPG_AFFIX_DATABASE=';
-  const i=text.indexOf(key);
-  if(i<0)throw new Error('找不到 STUDYRPG_AFFIX_DATABASE');
-  const s=text.indexOf('{',i+key.length);
+  // affix-database.js 的 window.STUDYRPG_AFFIX_DATABASE 物件內
+  // affixes 欄位引用區域變數 AFFIXES，因此不能把最外層物件單獨 Function()。
+  // 直接解析 const AFFIXES 本體才是正確資料來源。
+  const marker='const AFFIXES=';
+  const i=text.indexOf(marker);
+  if(i<0)throw new Error('找不到 const AFFIXES');
+  const s=text.indexOf('{',i+marker.length);
   if(s<0)throw new Error('詞綴資料庫格式錯誤');
   const raw=balanced(text,s);
   if(!raw)throw new Error('詞綴資料庫物件不完整');
-  return Function('"use strict";return ('+raw+')')();
+  const affixes=Function('"use strict";return ('+raw+')')();
+  return {affixes};
 }
 
 function applyFormalEquipmentDatabase(db){
