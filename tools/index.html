@@ -15,11 +15,11 @@
 <div class="card"><b>Path：飛行/路徑 FX</b><label>PNG</label><select id="pathImg"></select><div class="row3"><div><label>路徑</label><select id="pathMode"><option>straight</option><option>arc</option><option>tracking</option></select></div><div><label>時間 ms</label><input id="pathDuration" type="number" value="420"></div><div><label>倍率 %</label><input id="pathScale" type="number" value="100"></div></div><div class="row3"><div><label>舊格式延遲 ms</label><input id="pathDelay" type="number" value="0"></div><div><label>Timeline 起點 ms</label><input id="pathAt" type="number" min="0" placeholder="留空＝舊順序"></div><div><label>↔ PNG 水平鏡像</label><select id="pathMirror"><option value="0">原方向</option><option value="1">鏡像</option></select></div></div><div class="row3"><div><label>起點</label><select id="pathFrom"></select></div><div><label>中繼點</label><select id="pathVia"></select></div><div><label>終點</label><select id="pathTo"></select></div></div></div>
 <div class="card"><div class="headrow"><b>B：目標/敵方 FX</b><button id="addB">＋B</button></div><div id="bList"></div></div>
 <div class="card"><div class="headrow"><b>召喚物</b><button id="addSummon">＋召喚</button></div><div class="muted">可指定怪物、出發點→中繼點→站位、大小、延遲與進場轉場。實際怪物 idle/battle/motionActions 仍使用怪物本身資料。</div><div id="summonList"></div></div>
-<div class="card" id="combatSchemaCard"><div class="headrow"><b>🧩 戰鬥分類資料庫 V10.19</b><span class="muted">直接讀正式 index.html</span></div><div class="muted">School（學派）與 Damage Type（傷害屬性）分離；Buff/Debuff/Recovery/Trigger 共用統一分類。現有英雄與怪物技能已遷移到同一套 Schema。</div><div class="row"><div><label>School 學派</label><select id="schemaSchool"><option>martial</option><option>elemental</option><option>arcane</option><option>holy</option><option>shadow</option><option>nature</option></select></div><div><label>Damage Type</label><select id="schemaDamage"><option>physical</option><option>fire</option><option>ice</option><option>water</option><option>lightning</option><option>wind</option><option>nature</option><option>poison</option><option>arcane</option><option>holy</option><option>shadow</option></select></div></div><div class="row"><div><label>Recovery</label><select id="schemaRecovery"><option>heal</option><option>regeneration</option></select></div><div><label>Status Category</label><select id="schemaStatus"><option>buff</option><option>debuff</option><option>dot</option><option>hot</option><option>control</option><option>special</option></select></div></div><div class="muted">這張卡是正式內容分類基準；技能、裝備、詞綴、怪物編輯器之後都引用相同 ID，不再各自發明 type。</div></div>
-<div class="card" id="affixEditorCard"><div class="headrow"><b>💎 裝備詞綴顯示</b><span class="muted">直接讀正式 index.html</span></div><label>裝備詞綴</label><select id="affixSelect"></select><div id="affixMeta" class="muted"></div><label><input id="affixFxEnabled" type="checkbox" style="width:auto"> 戰場顯示 PNG（未勾選只顯示 Buff）</label><div class="row"><div><label>Buff 圖示</label><input id="affixBuffIcon" placeholder="例如 ⚔️"></div><div><label>PNG</label><select id="affixImage"></select></div></div><div class="row3"><div><label>倍率</label><input id="affixScale" type="number" min="0.1" step="0.1" value="1"></div><div><label>X 偏移 px</label><input id="affixOffsetX" type="number" value="0"></div><div><label>Y 偏移 px</label><input id="affixOffsetY" type="number" value="0"></div></div><div class="muted">觸發型／契約型裝備詞綴會顯示在戰鬥 Buff；不歸類為召喚技能。PNG 為選配；未設定 PNG 不會再用 Emoji 當戰場常駐物件。</div></div>
+<div class="card" id="combatSchemaCard"><div class="headrow"><b>🧩 戰鬥分類資料庫 V10.19</b><span class="muted">主程式 + Skill DB</span></div><div class="muted">School（學派）與 Damage Type（傷害屬性）分離；Buff/Debuff/Recovery/Trigger 共用統一分類。現有英雄與怪物技能已遷移到同一套 Schema。</div><div class="row"><div><label>School 學派</label><select id="schemaSchool"><option>martial</option><option>elemental</option><option>arcane</option><option>holy</option><option>shadow</option><option>nature</option></select></div><div><label>Damage Type</label><select id="schemaDamage"><option>physical</option><option>fire</option><option>ice</option><option>water</option><option>lightning</option><option>wind</option><option>nature</option><option>poison</option><option>arcane</option><option>holy</option><option>shadow</option></select></div></div><div class="row"><div><label>Recovery</label><select id="schemaRecovery"><option>heal</option><option>regeneration</option></select></div><div><label>Status Category</label><select id="schemaStatus"><option>buff</option><option>debuff</option><option>dot</option><option>hot</option><option>control</option><option>special</option></select></div></div><div class="muted">這張卡是正式內容分類基準；技能、裝備、詞綴、怪物編輯器之後都引用相同 ID，不再各自發明 type。</div></div>
+<div class="card" id="affixEditorCard"><div class="headrow"><b>💎 裝備詞綴顯示</b><span class="muted">直接讀 affix-database.js</span></div><label>裝備詞綴</label><select id="affixSelect"></select><div id="affixMeta" class="muted"></div><label><input id="affixFxEnabled" type="checkbox" style="width:auto"> 戰場顯示 PNG（未勾選只顯示 Buff）</label><div class="row"><div><label>Buff 圖示</label><input id="affixBuffIcon" placeholder="例如 ⚔️"></div><div><label>PNG</label><select id="affixImage"></select></div></div><div class="row3"><div><label>倍率</label><input id="affixScale" type="number" min="0.1" step="0.1" value="1"></div><div><label>X 偏移 px</label><input id="affixOffsetX" type="number" value="0"></div><div><label>Y 偏移 px</label><input id="affixOffsetY" type="number" value="0"></div></div><div class="muted">觸發型／契約型裝備詞綴會顯示在戰鬥 Buff；不歸類為召喚技能。PNG 為選配；未設定 PNG 不會再用 Emoji 當戰場常駐物件。</div></div>
 <div class="card"><b>角色 motionActions</b><div class="row"><div><label>動作</label><select id="motionName"></select></div><div><label>spriteState</label><input id="spriteState"></div></div><div class="row3"><div><label>motion</label><select id="motion"><option>stay</option><option>forward</option><option>jump</option><option>dash</option></select></div><div><label>時間 ms</label><input id="motionDuration" type="number"></div><div></div></div><div class="row"><div><label>from</label><select id="from"></select></div><div><label>via</label><select id="via"></select></div><div><label>to</label><select id="to"></select></div><div><label>returnTo</label><select id="returnTo"></select></div></div></div>
 <div class="card"><b>怪物/角色身體特效參考框</b><div class="muted">DOT / Buff / Debuff 的 followTarget / followSelf 會依這個比例縮放。</div><div class="row3"><div><label>寬 %</label><input id="anchorW" type="number" value="100"></div><div><label>高 %</label><input id="anchorH" type="number" value="100"></div><div><label>Y 偏移 %</label><input id="anchorY" type="number" value="0"></div></div></div>
-<div class="card"><b>🔗 正式主程式來源</b><div id="mainSourceStatus" class="repoStatus">尚未讀取 GitHub 主程式 / Visual DB</div><div class="muted">修改器直接讀取正式 <code>index.html</code> 與 <code>visual-database.js</code>。場景畫面由正式 index.html 本身渲染；Tool 只疊加地板線／拖曳編輯層，設定寫入 visual-database.js。</div><div style="height:6px"></div><input id="mainIndexImport" type="file" accept=".html"><div style="height:4px"></div><button id="reloadMainIndex">↻ 重新讀取正式 index.html</button></div>
+<div class="card"><b>🔗 正式資料來源</b><div id="mainSourceStatus" class="repoStatus">尚未讀取 GitHub 主程式 / Skill DB / Affix DB / Visual DB</div><div class="muted">修改器讀取正式 <code>index.html</code>、<code>skill-database.js</code>、<code>affix-database.js</code> 與 <code>visual-database.js</code>。技能名稱/清單來自 Skill DB；詞綴來自 Affix DB；場景由正式 index.html 渲染；演出設定仍只寫入 visual-database.js。</div><div style="height:6px"></div><input id="mainIndexImport" type="file" accept=".html"><div style="height:4px"></div><button id="reloadMainIndex">↻ 重新讀取正式 index.html</button></div>
 <div class="card"><div class="row"><button id="undoBtn">↶ Undo</button><button id="deleteSelectedBtn">⌫ 刪除目前選取</button></div><div style="height:6px"></div><button class="primary" id="saveAll">💾 儲存全部變更（瀏覽器草稿）</button><div style="height:6px"></div><button id="export">⬇️ 下載 Visual DB ZIP</button><div style="height:6px"></div><button id="exportFullProgram">📦 下載正式程式 ZIP（index + Visual DB）</button><label>匯入 visual-database.js</label><input id="import" type="file" accept=".js,.zip,application/javascript"></div>
 </section><section>
 
@@ -71,6 +71,8 @@ function toolAssetUrl(p){
 }
 
 const GITHUB_RAW_MAIN='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/index.html';
+const GITHUB_RAW_SKILL_DB='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/skill-database.js';
+const GITHUB_RAW_AFFIX_DB='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/affix-database.js';
 const GITHUB_RAW_VISUAL_DB='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/visual-database.js';
 let MAIN_SOURCE_URL='../index.html';
 let SOURCE_READY=false;
@@ -190,11 +192,36 @@ function mergeUniqueById(base,extra){const m=new Map((base||[]).map(x=>[x.id,x])
 function hydrateManifestFromIndex(src){try{
   const imgs=[...String(src).matchAll(/["'`](images\/[^"'`?#]+?\.(?:png|jpe?g|webp|gif|svg))["'`]/gi)].map(m=>m[1]);if(imgs.length)MANIFEST.assets=[...new Set([...(MANIFEST.assets||[]),...imgs])].sort();
   const mb=assignedBlock(src,'MONSTER_DATABASE');if(mb){const found=[];for(const m of mb.matchAll(/(?:^|\n)\s*([A-Za-z0-9_]+)\s*:\s*\{[\s\S]{0,500}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))found.push({id:m[1],name:m[2]});if(found.length)MANIFEST.monsters=mergeUniqueById(MANIFEST.monsters,found)}
-  const collectSkills=(name)=>{const b=assignedBlock(src,name);if(!b)return[];const a=[];for(const m of b.matchAll(/\bid\s*:\s*["'`]([A-Za-z0-9_\-]+)["'`][\s\S]{0,240}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))a.push({id:m[1],name:m[2]});return a};
-  const ps=[...collectSkills('BEGINNER_SKILLS'),...collectSkills('JOB_SKILL_LIBRARY')],ms=collectSkills('MONSTER_SKILL_DATABASE');if(ps.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,ps);if(ms.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,ms);
-  const ab=assignedBlock(src,'AFFIXES');if(ab){const found=[];for(const m of ab.matchAll(/([A-Za-z0-9_]+)\s*:\s*\{\s*id\s*:\s*['"`]([^'"`]+)['"`][\s\S]{0,500}?name\s*:\s*['"`]([^'"`]+)['"`][\s\S]{0,500}?(?:kind\s*:\s*['"`]([^'"`]+)['"`])?/g))found.push({key:m[1],id:m[2],name:m[3],kind:m[4]||''});if(found.length)MANIFEST.affixes=found;}
   const wb=assignedBlock(src,'WEEKLY_MAP_DATABASE');if(wb){for(const w of MANIFEST.weeks||[]){const re=new RegExp('(?:week\\s*:\\s*'+w.week+'|\\b'+w.week+'\\s*:)','i');const hit=re.exec(wb);if(hit){const seg=wb.slice(hit.index,hit.index+1800),bg=seg.match(/background\s*:\s*["'`]([^"'`]+)["'`]/i);if(bg)w.background=bg[1]}}}
-}catch(e){console.warn('從 index 解析素材/資料清單失敗，使用內建 fallback',e)}}
+}catch(e){console.warn('從 index 解析素材/怪物/週表失敗，使用內建 fallback',e)}}
+
+function collectNamedIds(src,startToken,endTokens=[]){
+  const s=String(src||''),start=s.indexOf(startToken);if(start<0)return[];
+  let end=s.length;
+  for(const token of endTokens){const i=s.indexOf(token,start+startToken.length);if(i>=0&&i<end)end=i}
+  const seg=s.slice(start,end),out=[];
+  for(const m of seg.matchAll(/\bid\s*:\s*["'`]([A-Za-z0-9_\-]+)["'`][\s\S]{0,260}?\bname\s*:\s*["'`]([^"'`]+)["'`]/g))out.push({id:m[1],name:m[2]});
+  return out;
+}
+function hydrateManifestFromSkillDb(src){try{
+  const beginner=collectNamedIds(src,'const BEGINNER_SKILLS',['const JOB_SKILL_LIBRARY']);
+  const jobs=collectNamedIds(src,'const JOB_SKILL_LIBRARY',['const MONSTER_SKILL_DATABASE']);
+  const formal=collectNamedIds(src,'const FORMAL_CLASS_SKILLS',['const FORMAL_PASSIVES','window.STUDYRPG_SKILL_DATABASE','window.STUDYRPG_SKILL_DATABASE_V2']);
+  const monsters=collectNamedIds(src,'const MONSTER_SKILL_DATABASE',['const MONSTER_AI_DATABASE']);
+  const player=[...beginner,...jobs,...formal];
+  if(player.length)MANIFEST.playerSkills=mergeUniqueById(MANIFEST.playerSkills,player);
+  if(monsters.length)MANIFEST.monsterSkills=mergeUniqueById(MANIFEST.monsterSkills,monsters);
+}catch(e){console.warn('從 skill-database.js 解析技能清單失敗，使用內建 fallback',e)}}
+function hydrateManifestFromAffixDb(src){try{
+  const start=String(src||'').indexOf('const AFFIXES');
+  if(start<0)return;
+  const endCandidates=['window.STUDYRPG_AFFIX_DATABASE'];
+  let end=String(src).length;
+  for(const token of endCandidates){const i=String(src).indexOf(token,start);if(i>=0&&i<end)end=i}
+  const seg=String(src).slice(start,end),found=[];
+  for(const m of seg.matchAll(/([A-Za-z0-9_]+)\s*:\s*\{\s*id\s*:\s*['"`]([^'"`]+)['"`][\s\S]{0,520}?name\s*:\s*['"`]([^'"`]+)['"`][\s\S]{0,520}?(?:kind\s*:\s*['"`]([^'"`]+)['"`])?/g))found.push({key:m[1],id:m[2],name:m[3],kind:m[4]||''});
+  if(found.length)MANIFEST.affixes=found;
+}catch(e){console.warn('從 affix-database.js 解析詞綴清單失敗，使用內建 fallback',e)}}
 async function loadMainIndex(){
   const status=$('mainSourceStatus');
 
@@ -211,22 +238,29 @@ async function loadMainIndex(){
 
   const stamp='?editor_read='+Date.now();
   try{
-    status&&(status.textContent='正在讀取 GitHub main/index.html + visual-database.js…');
-    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('讀取逾時')),3500));
-    const fetchPair=Promise.all([
+    status&&(status.textContent='正在讀取 GitHub index.html + skill-database.js + affix-database.js + visual-database.js…');
+    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('讀取逾時')),5000));
+    const fetchAll=Promise.all([
       fetch(GITHUB_RAW_MAIN+stamp,{cache:'no-store'}),
+      fetch(GITHUB_RAW_SKILL_DB+stamp,{cache:'no-store'}),
+      fetch(GITHUB_RAW_AFFIX_DB+stamp,{cache:'no-store'}),
       fetch(GITHUB_RAW_VISUAL_DB+stamp,{cache:'no-store'})
     ]);
-    const [ir,dr]=await Promise.race([fetchPair,timeout]);
+    const [ir,sr,ar,dr]=await Promise.race([fetchAll,timeout]);
     if(!ir.ok)throw Error('index.html HTTP '+ir.status);
+    if(!sr.ok)throw Error('skill-database.js HTTP '+sr.status);
+    if(!ar.ok)throw Error('affix-database.js HTTP '+ar.status);
     if(!dr.ok)throw Error('visual-database.js HTTP '+dr.status);
     MAIN_SOURCE=await ir.text();
+    const skillSource=await sr.text(),affixSource=await ar.text();
     VISUAL_DB=parseVisualDatabase(await dr.text());
     CFG=dbToEditorCfg(VISUAL_DB);
     hydrateManifestFromIndex(MAIN_SOURCE);
+    hydrateManifestFromSkillDb(skillSource);
+    hydrateManifestFromAffixDb(affixSource);
     SOURCE_READY=true;
     try{localStorage.setItem('studyRPGGithubRepo','AlexLiao0131/studyRPG')}catch(e){}
-    status&&(status.textContent='✅ 已讀取 GitHub 最新 index.html + visual-database.js。');
+    status&&(status.textContent=`✅ 已讀取 GitHub 最新主程式 + Skill DB + Affix DB + Visual DB｜英雄技能 ${MANIFEST.playerSkills.length}｜怪物技能 ${MANIFEST.monsterSkills.length}｜詞綴 ${MANIFEST.affixes.length}`);
     return true;
   }catch(e){
     console.warn(e);
@@ -641,7 +675,7 @@ function renderTimeline(){if(!$('timeline')||!draft)return;const items=timelineI
 function affixDefaults(id){const icons={ember_echo:'🔥',phantom_echo:'👤',blood_drink:'🩸',royal_guard:'🛡️',phoenix_oath:'🔥',flame_spirit:'🔥',blade_spirit:'⚔️'};return {enabled:false,buffIcon:icons[id]||'💎',image:'',scale:1,offsetX:0,offsetY:0};}
 function currentAffix(){return $('affixSelect')?.value||'';}
 function affixCfg(id=currentAffix()){if(!id)return null;CFG.equipmentAffixes=CFG.equipmentAffixes||{};return CFG.equipmentAffixes[id]||(CFG.equipmentAffixes[id]=affixDefaults(id));}
-function renderAffixEditor(){if(!$('affixSelect'))return;const list=MANIFEST.affixes||[],$sel=$('affixSelect'),keep=$sel.value;$sel.innerHTML=list.map(a=>`<option value="${a.id}">${a.name} (${a.id})</option>`).join('');if(keep&&list.some(a=>a.id===keep))$sel.value=keep;const a=list.find(x=>x.id===$sel.value);$('affixMeta').textContent=a?`類型：${a.kind||'未標示'}｜正式資料來源：EQUIPMENT_AFFIX_DATABASE`:'尚未從主程式讀到詞綴';const c=affixCfg();if(!c)return;$('affixFxEnabled').checked=!!c.enabled;$('affixBuffIcon').value=c.buffIcon||'';const assets=(MANIFEST.assets||[]).filter(x=>/\.(png|jpe?g|webp|gif)$/i.test(x));$('affixImage').innerHTML='<option value="">（不顯示戰場 PNG）</option>'+assets.map(p=>`<option value="${p}">${p}</option>`).join('');$('affixImage').value=c.image||'';$('affixScale').value=Number(c.scale||1);$('affixOffsetX').value=Number(c.offsetX||0);$('affixOffsetY').value=Number(c.offsetY||0);}
+function renderAffixEditor(){if(!$('affixSelect'))return;const list=MANIFEST.affixes||[],$sel=$('affixSelect'),keep=$sel.value;$sel.innerHTML=list.map(a=>`<option value="${a.id}">${a.name} (${a.id})</option>`).join('');if(keep&&list.some(a=>a.id===keep))$sel.value=keep;const a=list.find(x=>x.id===$sel.value);$('affixMeta').textContent=a?`類型：${a.kind||'未標示'}｜正式資料來源：affix-database.js`:'尚未從主程式讀到詞綴';const c=affixCfg();if(!c)return;$('affixFxEnabled').checked=!!c.enabled;$('affixBuffIcon').value=c.buffIcon||'';const assets=(MANIFEST.assets||[]).filter(x=>/\.(png|jpe?g|webp|gif)$/i.test(x));$('affixImage').innerHTML='<option value="">（不顯示戰場 PNG）</option>'+assets.map(p=>`<option value="${p}">${p}</option>`).join('');$('affixImage').value=c.image||'';$('affixScale').value=Number(c.scale||1);$('affixOffsetX').value=Number(c.offsetX||0);$('affixOffsetY').value=Number(c.offsetY||0);}
 function commitAffix(){const id=currentAffix();if(!id)return;const c=affixCfg(id);c.enabled=$('affixFxEnabled').checked;c.buffIcon=$('affixBuffIcon').value||'💎';c.image=$('affixImage').value||'';c.scale=Math.max(.1,Number($('affixScale').value)||1);c.offsetX=Number($('affixOffsetX').value)||0;c.offsetY=Number($('affixOffsetY').value)||0;dirty.add('equipmentAffixes');$('dirty').textContent=`未儲存 ${dirty.size} 項`;}
 $('affixSelect')?.addEventListener('change',renderAffixEditor);for(const id of ['affixFxEnabled','affixBuffIcon','affixImage','affixScale','affixOffsetX','affixOffsetY'])$(id)?.addEventListener('change',commitAffix);
 function renderAssetGallery(){renderAffixEditor();if(!$('assetGallery'))return;const q=($('assetSearch').value||'').toLowerCase().trim(),arr=(MANIFEST.assets||[]).filter(x=>!q||x.toLowerCase().includes(q)).slice(0,300);$('assetCount').textContent=`${arr.length}/${MANIFEST.assets.length}`;$('assetGallery').innerHTML=arr.map(p=>`<div class="asset-item" data-asset="${p}"><img loading="lazy" src="${editorImg(p)}"><div>${p.split('/').pop()}</div></div>`).join('');document.querySelectorAll('[data-asset]').forEach(el=>el.onclick=()=>{const p=el.dataset.asset;if(selectedFx){const f=fxArr(selectedFx.kind)?.[selectedFx.index];if(f){f.image=p;commitCurrent();renderFx();renderSkillPreview();renderTimeline();toast('已套用到 '+selectedFx.kind+(selectedFx.index+1));return}}$('pathImg').value=p;commitCurrent();renderSkillPreview();renderTimeline();toast('未選 A/B，已套用到 Path')})}
