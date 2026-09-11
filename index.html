@@ -2324,8 +2324,19 @@ function createHero(){
 function switchTab(name,btn){
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  document.getElementById('panel-'+name).classList.add('active');
-  if(btn)btn.classList.add('active');renderAll();
+  const panel=document.getElementById('panel-'+name);
+  if(panel)panel.classList.add('active');
+  if(btn)btn.classList.add('active');
+
+  // 副本入口只更新副本本身。renderDungeon() 內仍會照原流程執行
+  // ensureDailyDungeon()、每日任務戰力基準、考試 Boss 分流與下學期裝備快照折算；
+  // 不再為了開副本重畫商店、抽獎、背包、好友與家長後台等無關 UI。
+  if(name==='dungeon'){
+    if(typeof window.renderDungeon==='function')window.renderDungeon();
+    startLiveTimer();startStatusClock();
+    return;
+  }
+  renderAll();
 }
 function addExp(v){
   gameData.hero.exp+=v;
@@ -6238,16 +6249,27 @@ function renderAll(){
   migrateTaskRewardLedger();
   recoverProvableDuplicateTaskRewards();
   repairRuntimeData();
+  const panelMap={'狀態':'hero','任務':'tasks','副本':'dungeon','商店':'shop','抽獎':'lottery','背包':'bag','好友':'social','家長後台':'gm'};
+  // 啟動時後段模組（例如好友系統）可能尚未完成註冊；單一模組不得拖垮整個主畫面。
   const jobs=[
-    ['狀態',renderHero],['任務',renderTasks],['副本',renderDungeon],
-    ['商店',renderShop],['抽獎',renderLottery],['背包',renderBag],['好友',renderSocialHub],['家長後台',renderGM]
+    ['狀態',typeof window.renderHero==='function'?window.renderHero:null],
+    ['任務',typeof window.renderTasks==='function'?window.renderTasks:null],
+    ['副本',typeof window.renderDungeon==='function'?window.renderDungeon:null],
+    ['商店',typeof window.renderShop==='function'?window.renderShop:null],
+    ['抽獎',typeof window.renderLottery==='function'?window.renderLottery:null],
+    ['背包',typeof window.renderBag==='function'?window.renderBag:null],
+    ['好友',typeof window.renderSocialHub==='function'?window.renderSocialHub:null],
+    ['家長後台',typeof window.renderGM==='function'?window.renderGM:null]
   ];
   for(const [name,fn] of jobs){
+    const el=document.getElementById('panel-'+panelMap[name]);
+    if(typeof fn!=='function'){
+      if(el&&!el.innerHTML.trim())el.innerHTML=`<div class="card small">${name}模組載入中…</div>`;
+      continue;
+    }
     try{fn();}
     catch(e){
       console.error(`Render ${name} failed`,e);
-      const panelMap={'狀態':'hero','任務':'tasks','副本':'dungeon','商店':'shop','抽獎':'lottery','背包':'bag','好友':'social','家長後台':'gm'};
-      const el=document.getElementById('panel-'+panelMap[name]);
       if(el)el.innerHTML=`<div class="card bad"><strong>⚠️ ${name}載入失敗</strong><div class="small">${String(e?.message||e)}</div></div>`;
     }
   }
@@ -6276,7 +6298,8 @@ function boot(){
     ensureDailyDungeon();renderAll();setTimeout(()=>{refreshAutoRewardPreview();toggleRewardMode();updateTimerModeLabels();},0);
   }
 }
-boot();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+else boot();
 </script>
 
 <script type="module">
@@ -8776,13 +8799,42 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 </script>
 <script>
 /* V10.11.78：法師魔力增幅常駐與魔力護盾實際承傷。 */
+/* =========================================================
+   StudyRPG Canonical Combat Runtime Pipeline
+   Consolidates legacy V10.11.78~V10.11.91 wrapper chains.
+   Feature behavior is preserved; core functions are composed once after registration.
+   ========================================================= */
+window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()=>{
+  const chains=new Map();
+  return {
+    register(name,middleware){
+      if(typeof middleware!=='function')throw new TypeError('runtime middleware must be a function');
+      if(!chains.has(name))chains.set(name,[]);
+      chains.get(name).push(middleware);
+    },
+    finalize(){
+      for(const [name,list] of chains){
+        let current=window[name];
+        if(typeof current!=='function'){
+          console.warn(`[StudyRPG] canonical runtime skipped missing function: ${name}`);
+          continue;
+        }
+        for(const middleware of list){
+          const next=current;
+          current=function(...args){return middleware.call(this,next.bind(this),...args);};
+        }
+        window[name]=current;
+      }
+      chains.clear();
+    }
+  };
+})();
 (function(){
-  const previousExecuteEnemyHitV101178=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
     const f=battleStateV10?.formal,hero=battleStateV10?.hero;
     const shield=f?.cls==='法師'?(hero?.statuses||[]).find(s=>Number(s.mods?.manaShield||0)>0):null;
     const hpBefore=Number(battleStateV10?.heroHp)||0;
-    await previousExecuteEnemyHitV101178(unit,skill);
+    await next(unit,skill);
     if(!shield||!battleStateV10||battleStateV10.ended)return;
     const lost=Math.max(0,hpBefore-(Number(battleStateV10.heroHp)||0));
     const ratio=Math.max(0,Math.min(1,Number(shield.mods.manaShield)||0));
@@ -8794,14 +8846,13 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     updateBattleHp('hero',battleStateV10.heroHp,hero.maxHp);
     updateFormalResourceUI();
     addBattleLog(`🔷 魔力護盾消耗 ${absorbed} MP，抵消 ${absorbed} 傷害。`);
-  };
+  });
 })();
 </script>
 <script>
 /* V10.11.79：牧師聖光彈分流與奇蹟重複施放前置攔截。 */
 (function(){
-  const previousBattlePlayerActionV101179=battlePlayerAction;
-  battlePlayerAction=async function(action){
+  window.StudyRPGCombatRuntimeCanonical.register('battlePlayerAction',async function(next,action){
     const f=battleStateV10?.formal;
     if(f?.cls==='牧師'&&action?.id==='priest_miracle'&&(f.miracle||(f.uses?.priest_miracle||0)>=1)){
       addBattleLog('🌟 奇蹟每場只能準備一次；本次未消耗MP與回合。');
@@ -8816,20 +8867,19 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       addBattleLog('🔴🔴🔴 暗影狂殺需要3顆能量球；本次未消耗回合。');
       return;
     }
-    return previousBattlePlayerActionV101179(action);
-  };
+    return next(action);
+  });
 })();
 </script>
 <script>
 /* V10.11.80：盜賊毒藥附魔、通用玩家DOT與百分比戰鬥修正。 */
 (function(){
-  const previousEffectiveBattleValueV101180=effectiveBattleValue;
-  effectiveBattleValue=function(unit,key){
-    const base=previousEffectiveBattleValueV101180(unit,key);
+  window.StudyRPGCombatRuntimeCanonical.register('effectiveBattleValue',function(next,unit,key){
+    const base=next(unit,key);
     const percentKeys={attack:'attackPct',magicAttack:'magicAttackPct',defense:'defensePct',magicDefense:'magicDefensePct',speed:'speedPct'};
     const pctKey=percentKeys[key];
     return pctKey?Math.max(0,base*(1+effectMod(unit,pctKey))):base;
-  };
+  });
 
   function roguePoisonCoatingActive(){
     return battleStateV10?.formal?.cls==='盜賊'&&(battleStateV10.hero?.statuses||[]).some(s=>s.turns>0&&s.mods?.poisonCoating);
@@ -8845,24 +8895,21 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     updateBattleStatuses();renderBattleTargets();
   }
 
-  const previousHitTargetV101180=hitTarget;
-  hitTarget=async function(target,a,mult,type){
+  window.StudyRPGCombatRuntimeCanonical.register('hitTarget',async function(next,target,a,mult,type){
     const hpBefore=Number(target?.hp)||0;
-    const result=await previousHitTargetV101180(target,a,mult,type);
+    const result=await next(target,a,mult,type);
     if(battleStateV10?.formal?.cls==='盜賊'&&hpBefore>Number(target?.hp||0)&&Number(target?.hp)>0)triggerRoguePoison(target);
     return result;
-  };
+  });
 
-  const previousExecuteHeroAgainstTargetV101180=executeHeroAgainstTarget;
-  executeHeroAgainstTarget=async function(action){
+  window.StudyRPGCombatRuntimeCanonical.register('executeHeroAgainstTarget',async function(next,action){
     const target=selectedBattleEnemy(),hpBefore=Number(target?.hp)||0;
-    const result=await previousExecuteHeroAgainstTargetV101180(action);
+    const result=await next(action);
     if(action?.kind==='attack'&&battleStateV10?.formal?.cls==='盜賊'&&hpBefore>Number(target?.hp||0)&&Number(target?.hp)>0)triggerRoguePoison(target);
     return result;
-  };
+  });
 
-  const previousTickLiveUnitV101180=tickLiveUnit;
-  tickLiveUnit=async function(unit,isHero=false){
+  window.StudyRPGCombatRuntimeCanonical.register('tickLiveUnit',async function(next,unit,isHero=false){
     const regenPct=isHero&&battleStateV10?.formal?.resourceType==='energy'?effectMod(unit,'energyRegenPct'):0;
     if(!isHero&&unit&&unit.hp>0){
       for(const st of [...(unit.statuses||[])]){
@@ -8874,10 +8921,10 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
         }
       }
     }
-    const result=await previousTickLiveUnitV101180(unit,isHero);
+    const result=await next(unit,isHero);
     if(regenPct>0&&battleStateV10?.formal?.resourceType==='energy')gainFormal('energy',Math.max(1,Math.round(8*regenPct)));
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -8959,8 +9006,7 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     renderBattleTargets();renderHunterHoundV101182();
   };
 
-  const previousFormalSkillActionV101182=formalSkillAction;
-  formalSkillAction=async function(a){
+  window.StudyRPGCombatRuntimeCanonical.register('formalSkillAction',async function(next,a){
     const f=battleStateV10?.formal,target=selectedBattleEnemy();
     if(f?.cls==='戰士'&&a.id==='war_ragefill'){spendFormalActionV101182(a);f.rage=100;updateFormalResourceUI();addBattleLog('🔥 怒氣強化：怒氣補滿100，本場使用次數已耗盡。');return;}
     if(f?.cls==='戰士'&&a.id==='war_charge'){
@@ -8987,76 +9033,68 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(f?.cls==='聖騎士'&&a.id==='pal_consecrate'){
       spendFormalActionV101182(a);addTimedEffect(battleStateV10.hero,{name:'奉獻',effectType:'buff',turns:3,mods:{consecrate:.45,consecrateTick:0}});updateBattleStatuses();return;
     }
-    const result=await previousFormalSkillActionV101182(a);syncHunterWeaknessV101182();return result;
-  };
+    const result=await next(a);syncHunterWeaknessV101182();return result;
+  });
 
-  const previousResolveAttackV101182=resolveAttack;
-  resolveAttack=function(att,def,a={}){
-    const result=previousResolveAttackV101182(att,def,a);
+  window.StudyRPGCombatRuntimeCanonical.register('resolveAttack',function(next,att,def,a={}){
+    const result=next(att,def,a);
     if(result?.damage&&(a.type||'physical')==='holy'&&hasJudgmentMarkV101182(def))result.damage=Math.max(1,Math.round(result.damage*1.15));
     return result;
-  };
+  });
 
-  const previousHitTargetV101182=hitTarget;
-  hitTarget=async function(target,a,mult,type){const result=await previousHitTargetV101182(target,a,mult,type);hunterFocusProcV101182(a,result);return result;};
+  window.StudyRPGCombatRuntimeCanonical.register('hitTarget',async function(next,target,a,mult,type){const result=await next(target,a,mult,type);hunterFocusProcV101182(a,result);return result;});
 
-  const previousExecuteHeroAgainstTargetV101182=executeHeroAgainstTarget;
-  executeHeroAgainstTarget=async function(action){
+  window.StudyRPGCombatRuntimeCanonical.register('executeHeroAgainstTarget',async function(next,action){
     const f=battleStateV10?.formal,target=selectedBattleEnemy(),sealed=f?.cls==='聖騎士'&&f.seal&&action?.kind==='attack';
     const actual=sealed?{...action,type:'holy'}:action;
-    const result=await previousExecuteHeroAgainstTargetV101182(actual);
+    const result=await next(actual);
     if(f?.cls==='聖騎士'&&action?.kind==='attack'&&result?.damage){
       if(sealed){gainFormal('mp',Math.max(1,Math.round(result.damage*.35)));consumeSeal();applyJudgmentMarkV101182(target);addBattleLog('✨ 聖印普攻：恢復本次傷害35%的MP，聖印轉移為審判印記。');}
       else{const mp=Math.max(1,Math.round(f.maxMp*.05));gainFormal('mp',mp);addBattleLog(`🔵 普攻命中恢復 ${mp} MP（5% MaxMP）。`);}
     }
     hunterFocusProcV101182(action,result);return result;
-  };
+  });
 
-  const previousTickLiveUnitV101182=tickLiveUnit;
-  tickLiveUnit=async function(unit,isHero=false){
+  window.StudyRPGCombatRuntimeCanonical.register('tickLiveUnit',async function(next,unit,isHero=false){
     const f=battleStateV10?.formal,legacyHound=f?.hound,independent=legacyHound?.independentUnit;
     const consecrate=isHero?(unit.statuses||[]).find(s=>s.mods?.consecrate):null;
     const bleedingBefore=!isHero&&f?.cls==='獵人'&&(unit.statuses||[]).some(s=>s.type==='bleed'&&s.turns>0&&Number(s.power)>0);
     if(independent)f.hound=null;
-    const result=await previousTickLiveUnitV101182(unit,isHero);
+    const result=await next(unit,isHero);
     if(independent)f.hound=legacyHound;
     if(consecrate){consecrate.mods.consecrateTick=(consecrate.mods.consecrateTick||0)+1;if(consecrate.mods.consecrateTick>=3)await detonateJudgmentMarksV101182();}
     if(bleedingBefore&&unit.hp>0&&Math.random()<.25)addHunterWeaknessV101182(unit,'流血揭露');
     if(!isHero)syncHunterWeaknessV101182();renderHunterHoundV101182();return result;
-  };
+  });
 
   function enemyHitHoundV101182(unit,skill,hound){
     return (async()=>{const type=skill.kind==='magic'?(skill.element||'arcane'):'physical',hits=Number(skill.hits||0)||(skill.hitsMin?Math.floor(Math.random()*(skill.hitsMax-skill.hitsMin+1))+skill.hitsMin:1);let total=0;
       for(let i=0;i<hits;i++){const result=resolveAttack(unit,hound,{type,multiplier:skill.multiplierPerHit||skill.multiplier||1,defensePierce:Number(skill.defensePierce||0)});if(result.damage){hound.hp=Math.max(0,hound.hp-result.damage);total+=result.damage;addBattleLog(`👹 ${unit.name}攻擊獵犬，造成 ${result.damage} 傷害。`);}else addBattleLog(`🐕 獵犬閃過 ${unit.name} 的攻擊。`);}
       if(total&&skill.status)tryApplyMonsterStatus(skill,hound);if(skill.healFromDamage&&total)unit.hp=Math.min(unit.maxHp,unit.hp+Math.round(total*skill.healFromDamage));if(hound.hp<=0){hound.alive=false;addBattleLog('💀 獵犬倒下了，本場無法再次召喚。');}renderHunterHoundV101182();})();
   }
-  const previousExecuteEnemyHitV101182=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
     const h=battleStateV10?.formal?.cls==='獵人'?battleStateV10.formal.hound:null;
-    if(!h?.independentUnit||h.alive===false||h.hp<=0)return previousExecuteEnemyHitV101182(unit,skill);
+    if(!h?.independentUnit||h.alive===false||h.hp<=0)return next(unit,skill);
     const aoe=skill?.target==='all'||skill?.aoe===true;
-    if(aoe){await previousExecuteEnemyHitV101182(unit,skill);if(h.hp>0)await enemyHitHoundV101182(unit,skill,h);return;}
+    if(aoe){await next(unit,skill);if(h.hp>0)await enemyHitHoundV101182(unit,skill,h);return;}
     if(Math.random()<.35)return enemyHitHoundV101182(unit,skill,h);
-    return previousExecuteEnemyHitV101182(unit,skill);
-  };
+    return next(unit,skill);
+  });
 
-  const previousCheckBattleEndV101182=checkBattleEnd;
-  checkBattleEnd=async function(){
+  window.StudyRPGCombatRuntimeCanonical.register('checkBattleEnd',async function(next){
     const prevent=(battleStateV10?.hero?.statuses||[]).some(s=>s.turns>0&&s.mods?.deathPrevent);
     if(battleStateV10?.heroHp<=0&&prevent){battleStateV10.heroHp=1;updateBattleHp('hero',1,battleStateV10.hero.maxHp);addBattleLog('🔥 破釜沉舟：抵抗致命傷害，保留1 HP！');return false;}
-    return previousCheckBattleEndV101182();
-  };
+    return next();
+  });
 
-  const previousBattlePlayerActionV101182=battlePlayerAction;
-  battlePlayerAction=async function(action){
+  window.StudyRPGCombatRuntimeCanonical.register('battlePlayerAction',async function(next,action){
     const f=battleStateV10?.formal;
     if(f?.cls==='戰士'&&action?.id==='war_ragefill'&&(f.uses?.war_ragefill||0)>=1){addBattleLog('🔥 怒氣強化每場只能使用一次；本次未消耗回合。');return;}
     if(f?.cls==='獵人'&&action?.id==='hunter_hound'&&(f.uses?.hunter_hound||0)>=1){addBattleLog('🐕 召喚獵犬每場只能使用一次；本次未消耗能量與回合。');return;}
-    return previousBattlePlayerActionV101182(action);
-  };
+    return next(action);
+  });
 
-  const previousRenderBattleTargetsV101182=renderBattleTargets;
-  renderBattleTargets=function(){const result=previousRenderBattleTargetsV101182();renderHunterHoundV101182();return result;};
+  window.StudyRPGCombatRuntimeCanonical.register('renderBattleTargets',function(next){const result=next();renderHunterHoundV101182();return result;});
 
   if(typeof FORMAL_SKILL_HELP!=='undefined'){
     FORMAL_SKILL_HELP.war_ragefill='不消耗怒氣，每場限用一次，立即將怒氣補滿至100。重複點擊不消耗回合。';
@@ -9114,15 +9152,14 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return null;
   }
 
-  const previousChooseLiveEnemySkillV101183=chooseLiveEnemySkill;
-  chooseLiveEnemySkill=function(unit){
+  window.StudyRPGCombatRuntimeCanonical.register('chooseLiveEnemySkill',function(next,unit){
     const entries=week11RepeatedSkillsV101183(unit);
     if(entries){
       const picked=weightedSkillV101183(unit,entries);
       if(picked)return picked;
     }
-    return previousChooseLiveEnemySkillV101183(unit);
-  };
+    return next(unit);
+  });
 
   function aliveLinkedSoulsV101183(boss){
     return (battleStateV10?.enemies||[]).filter(x=>x.isSummon&&x.week11Soul&&x.summonedBy===boss.uid&&x.hp>0&&x.alive!==false);
@@ -9168,20 +9205,18 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     addBattleLog('⚫ 兩具指令人偶全數停止：黑色發光石柱失去指令技能，防禦與魔防永久降低30%！');showBattleWord('核心暴露！');renderBattleTargets();
   }
 
-  const previousResolveAttackV101183=resolveAttack;
-  resolveAttack=function(attacker,defender,action={}){
-    const result=previousResolveAttackV101183(attacker,defender,action);
+  window.StudyRPGCombatRuntimeCanonical.register('resolveAttack',function(next,attacker,defender,action={}){
+    const result=next(attacker,defender,action);
     if(result?.damage&&defender?.monsterId==='reborn_necromancer'&&defender.week11SoulLinkActive){
       const count=aliveLinkedSoulsV101183(defender).length;
       if(count>=2)result.damage=Math.max(1,Math.round(result.damage*.30));
       else if(count===1)result.damage=Math.max(1,Math.round(result.damage*.65));
     }
     return result;
-  };
+  });
 
-  const previousApplyDamageToEnemyV101183=applyDamageToEnemy;
-  applyDamageToEnemy=function(unit,damage){
-    const dealt=previousApplyDamageToEnemyV101183(unit,damage);
+  window.StudyRPGCombatRuntimeCanonical.register('applyDamageToEnemy',function(next,unit,damage){
+    const dealt=next(unit,damage);
     if(unit?.monsterId==='reborn_necromancer'&&unit.hp>0&&unit.hp/unit.maxHp<=.70)summonWeek11SoulsV101183(unit);
     if(unit?.week11Soul&&unit.hp<=0){
       const boss=(battleStateV10?.enemies||[]).find(x=>x.uid===unit.summonedBy&&x.monsterId==='reborn_necromancer'&&x.hp>0);
@@ -9193,25 +9228,23 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       if(pillar)exposePillarCoreV101183(pillar);
     }
     return dealt;
-  };
+  });
 
-  const previousPerformLiveEnemyTurnV101183=performLiveEnemyTurn;
-  performLiveEnemyTurn=async function(unit){
+  window.StudyRPGCombatRuntimeCanonical.register('performLiveEnemyTurn',async function(next,unit){
     if(unit?.monsterId==='orc_warrior'&&battleWeekV101183()===11&&unit.hp>0&&unit.hp/unit.maxHp<=.35&&!unit.week11RageTriggered){
       unit.week11RageTriggered=true;
       addTimedEffect(unit,{name:'亡者狂暴',effectType:'buff',turns:999,mods:{attack:unit.attack*.30,defense:-unit.defense*.20}});
       addBattleLog(`🔥 ${unit.name}發動亡者狂暴：攻擊提高30%、防禦降低20%！`);showBattleWord('亡者狂暴！');renderBattleTargets();
     }
-    return previousPerformLiveEnemyTurnV101183(unit);
-  };
+    return next(unit);
+  });
 
-  const previousExecuteEnemyHitV101183=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
     if(skill?.id==='pillar_attack_order'){
       const dolls=(battleStateV10?.enemies||[]).filter(x=>x.commandDoll&&x.summonedBy===unit.uid&&x.hp>0&&x.alive!==false);
       if(!dolls.length){addBattleLog('⚫ 場上已無守護人偶，攻擊指令無法執行。');return;}
       addBattleLog(`⚔️ 攻擊指令：${dolls.length}具守護人偶立即追加攻擊！`);
-      for(const doll of dolls)await previousExecuteEnemyHitV101183(doll,{id:'pillar_order_slash',name:'指令斬擊',kind:'physical',target:'single',multiplier:.50});
+      for(const doll of dolls)await next(doll,{id:'pillar_order_slash',name:'指令斬擊',kind:'physical',target:'single',multiplier:.50});
       return;
     }
     if(skill?.id==='pillar_repair_order'){
@@ -9220,12 +9253,12 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       for(const doll of dolls){const heal=Math.max(1,Math.round(doll.maxHp*.15));doll.hp=Math.min(doll.maxHp,doll.hp+heal);addBattleLog(`🔧 ${doll.name}恢復 ${heal} HP。`);}
       renderBattleTargets();return;
     }
-    await previousExecuteEnemyHitV101183(unit,skill);
+    await next(unit,skill);
     if(skill?.id==='core_overheat'&&unit.hp>0){
       addTimedEffect(unit,{name:'核心過熱',effectType:'debuff',turns:1,mods:{defense:-unit.defense*.25,magicDefense:-unit.magicDefense*.25}});
       addBattleLog(`♨️ ${unit.name}核心過熱：防禦與魔防降低25%，持續至下次行動。`);renderBattleTargets();
     }
-  };
+  });
 
   async function guardianDollCounterV101183(target,result){
     if(!target||target.monsterId!=='guardian_doll'||target.hp<=0||!result?.damage)return;
@@ -9237,14 +9270,11 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     finally{if(formal)formal.hound=oldHound;}
     updateBattleStatuses();renderBattleTargets();
   }
-  const previousHitTargetV101183=hitTarget;
-  hitTarget=async function(target,action,mult,type){const result=await previousHitTargetV101183(target,action,mult,type);await guardianDollCounterV101183(target,result);return result;};
-  const previousExecuteHeroAgainstTargetV101183=executeHeroAgainstTarget;
-  executeHeroAgainstTarget=async function(action){const target=selectedBattleEnemy(),result=await previousExecuteHeroAgainstTargetV101183(action);await guardianDollCounterV101183(target,result);return result;};
+  window.StudyRPGCombatRuntimeCanonical.register('hitTarget',async function(next,target,action,mult,type){const result=await next(target,action,mult,type);await guardianDollCounterV101183(target,result);return result;});
+  window.StudyRPGCombatRuntimeCanonical.register('executeHeroAgainstTarget',async function(next,action){const target=selectedBattleEnemy(),result=await next(action);await guardianDollCounterV101183(target,result);return result;});
 
-  const previousSkillUsableByEnemyV101183=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101183(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     if(unit?.monsterId==='black_command_pillar'&&unit.coreExposed&&['pillar_attack_order','pillar_repair_order','pillar_defense_order'].includes(skill?.id))return false;
     if(['pillar_attack_order','pillar_repair_order'].includes(skill?.id)){
       const dolls=(battleStateV10?.enemies||[]).filter(x=>x.commandDoll&&x.summonedBy===unit.uid&&x.hp>0&&x.alive!==false);
@@ -9255,16 +9285,15 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(skill?.id==='bandit_smoke'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='smoke_blind'))return false;
     if(skill?.id==='machine_arm_bind'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='machine_bind'))return false;
     return true;
-  };
+  });
 
-  const previousRunBattleSequenceV101183=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101183(...args);
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args);
     const id=battleStateV10?.monsterId;
     if(id==='reborn_necromancer')addBattleLog('👻 70% HP時只會召喚一次：隨機兩隻本週亡魂並建立靈魂連結。');
     if(id==='black_command_pillar')addBattleLog('⚫ 70% HP時只會喚醒一次兩具守護人偶；擊破兩具人偶可永久暴露控制核心。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9319,9 +9348,8 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     addBattleLog('⚔️ 左右觸手全數斬斷：克拉肯防禦永久降低20%！');showBattleWord('觸手盡斷！');renderBattleTargets();
   }
 
-  const previousSkillUsableByEnemyV101184=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101184(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     if(skill?.id==='murloc_slime_spit'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='murloc_slime'))return false;
     if(skill?.id==='kraken_ink_shot'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='kraken_ink'))return false;
     if(skill?.id==='tentacle_entangle'&&(battleStateV10?.hero?.statuses||[]).some(x=>x.type==='tentacle_bind'))return false;
@@ -9329,26 +9357,24 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       return murlocSummonsV101184(unit).some(x=>x.hp<x.maxHp);
     }
     return true;
-  };
+  });
 
-  const previousApplyDamageToEnemyV101184=applyDamageToEnemy;
-  applyDamageToEnemy=function(unit,damage){
-    const dealt=previousApplyDamageToEnemyV101184(unit,damage);
+  window.StudyRPGCombatRuntimeCanonical.register('applyDamageToEnemy',function(next,unit,damage){
+    const dealt=next(unit,damage);
     if(unit?.monsterId==='evil_murloc_summoner')checkMurlocThresholdsV101184(unit);
     if(unit?.krakenTentacle&&unit.hp<=0){
       const kraken=(battleStateV10?.enemies||[]).find(x=>x.uid===unit.summonedBy&&x.monsterId==='kraken'&&x.hp>0);
       if(kraken)exposeKrakenV101184(kraken);
     }
     return dealt;
-  };
+  });
 
-  const previousRunBattleSequenceV101184=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101184(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='kraken')summonKrakenTentaclesV101184(battleStateV10.enemies?.[0]);
     if(id==='evil_murloc_summoner')addBattleLog('📣 70%與40% HP各召喚一隻魚人；召喚師死亡時魚人一起退場。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9363,9 +9389,8 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
-  const previousSkillUsableByEnemyV101185=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101185(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     const heroStatuses=battleStateV10?.hero?.statuses||[];
     if(skill?.requiresHeroStatus&&!heroStatuses.some(x=>x.type===skill.requiresHeroStatus&&x.turns>0))return false;
     if(skill?.id==='flower_poison_pollen'&&heroStatuses.some(x=>x.type==='poison'))return false;
@@ -9373,26 +9398,24 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(skill?.id==='python_constrict'&&heroStatuses.some(x=>x.type==='python_constrict'))return false;
     if(skill?.id==='tyranno_roar'&&heroStatuses.some(x=>x.type==='primal_fear'))return false;
     return true;
-  };
+  });
 
-  const previousPerformLiveEnemyTurnV101185=performLiveEnemyTurn;
-  performLiveEnemyTurn=async function(unit){
+  window.StudyRPGCombatRuntimeCanonical.register('performLiveEnemyTurn',async function(next,unit){
     if(unit?.monsterId==='tyrannosaurus'&&unit.hp>0&&unit.hp/unit.maxHp<=.30&&!unit.primalRageTriggered){
       unit.primalRageTriggered=true;
       addTimedEffect(unit,{name:'瀕死狂暴',effectType:'buff',turns:999,mods:{attack:unit.attack*.30}});
       addBattleLog('🔥 霸王龍陷入瀕死狂暴：攻擊永久提高30%！');showBattleWord('瀕死狂暴！');renderBattleTargets();
     }
-    return previousPerformLiveEnemyTurnV101185(unit);
-  };
+    return next(unit);
+  });
 
-  const previousRunBattleSequenceV101185=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101185(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='crocodile')addBattleLog('🐊 撕咬會造成流血；只有玩家正在流血時，鱷魚才會使用死亡翻滾。');
     if(id==='giant_python')addBattleLog('🐍 巨蟒纏繞持續3回合：每回合造成3%最大HP傷害並降低25%速度。');
     if(id==='tyrannosaurus')addBattleLog('🦖 霸王龍會追擊流血目標；HP低於30%後只觸發一次瀕死狂暴。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9413,22 +9436,19 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return HARVEST_STATUS_TYPES_V101186.filter(type=>statuses.some(s=>s.type===type&&s.turns>0));
   }
 
-  const previousLiveStatusFromSkillV101186=liveStatusFromSkill;
-  liveStatusFromSkill=function(status,target){
-    const live=previousLiveStatusFromSkillV101186(status,target);
+  window.StudyRPGCombatRuntimeCanonical.register('liveStatusFromSkill',function(next,status,target){
+    const live=next(status,target);
     if(live&&status?.healingReceivedMultiplier!=null)live.mods.healingReceived=Number(status.healingReceivedMultiplier)-1;
     return live;
-  };
+  });
 
-  const previousHeroHealV101186=heroHeal;
-  heroHeal=function(amount,message='恢復'){
+  window.StudyRPGCombatRuntimeCanonical.register('heroHeal',function(next,amount,message='恢復'){
     const received=Math.max(.10,1+effectMod(battleStateV10?.hero||{statuses:[]},'healingReceived'));
-    return previousHeroHealV101186(Number(amount||0)*received,message);
-  };
+    return next(Number(amount||0)*received,message);
+  });
 
-  const previousSkillUsableByEnemyV101186=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101186(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     const statuses=battleStateV10?.hero?.statuses||[];
     if(skill?.id==='bat_disease_bite'&&statuses.some(x=>x.type==='disease'))return false;
     if(['ghost_terror','banshee_scream','reaper_fear_gaze'].includes(skill?.id)&&statuses.some(x=>x.type==='fear'))return false;
@@ -9436,41 +9456,37 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(['swamp_skeleton_corrupt_dust','banshee_corrupt_wave','reaper_rotten_blade'].includes(skill?.id)&&statuses.some(x=>x.type==='swamp_corruption'))return false;
     if(skill?.requiresAnyHarvestStatus&&!activeHarvestStatusesV101186().length)return false;
     return true;
-  };
+  });
 
-  const previousTickLiveUnitV101186=tickLiveUnit;
-  tickLiveUnit=async function(unit,isHero=false){
+  window.StudyRPGCombatRuntimeCanonical.register('tickLiveUnit',async function(next,unit,isHero=false){
     const feared=isHero&&(unit?.statuses||[]).some(s=>s.type==='fear'&&s.turns>0);
     const fearSkip=feared&&Math.random()<.35;
-    const normalSkip=await previousTickLiveUnitV101186(unit,isHero);
+    const normalSkip=await next(unit,isHero);
     if(fearSkip){addBattleLog(`😱 ${unit.name}受到恐懼影響，本回合無法行動！`);showBattleWord('恐懼！');}
     return normalSkip||fearSkip;
-  };
+  });
 
-  const previousHoundTurnV101186=window.performHunterHoundTurn;
-  if(typeof previousHoundTurnV101186==='function')window.performHunterHoundTurn=async function(hound){
+  window.StudyRPGCombatRuntimeCanonical.register('performHunterHoundTurn',async function(next,hound){
     const fear=(hound?.statuses||[]).some(s=>s.type==='fear'&&s.turns>0);
     if(fear&&Math.random()<.35)addStatus(hound,{type:'stun',name:'恐懼失控',turns:1,effectType:'debuff',mods:{},guaranteedSkip:true});
-    return previousHoundTurnV101186(hound);
-  };
+    return next(hound);
+  });
 
-  const previousExecuteEnemyHitV101186=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
-    if(skill?.id!=='reaper_soul_harvest')return previousExecuteEnemyHitV101186(unit,skill);
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
+    if(skill?.id!=='reaper_soul_harvest')return next(unit,skill);
     const consumed=activeHarvestStatusesV101186();if(!consumed.length)return;
     const before=Number(battleStateV10?.heroHp)||0,formal=battleStateV10?.formal,oldHound=formal?.hound;
     if(formal)formal.hound=null;
-    try{await previousExecuteEnemyHitV101186(unit,{...skill,multiplier:1+.25*consumed.length});}
+    try{await next(unit,{...skill,multiplier:1+.25*consumed.length});}
     finally{if(formal)formal.hound=oldHound;}
     const hit=before>Number(battleStateV10?.heroHp||0);if(!hit)return;
     battleStateV10.hero.statuses=(battleStateV10.hero.statuses||[]).filter(s=>!consumed.includes(s.type));
     const heal=Math.max(1,Math.round(unit.maxHp*.05*consumed.length));unit.hp=Math.min(unit.maxHp,unit.hp+heal);
     addBattleLog(`🌾 靈魂收割消耗 ${consumed.length} 種負面狀態，恢復 ${heal} HP！`);updateBattleStatuses();renderBattleTargets();
-  };
+  });
 
-  const previousFormalSkillActionV101186=formalSkillAction;
-  formalSkillAction=async function(action){
-    const result=await previousFormalSkillActionV101186(action),hero=battleStateV10?.hero;if(!hero)return result;
+  window.StudyRPGCombatRuntimeCanonical.register('formalSkillAction',async function(next,action){
+    const result=await next(action),hero=battleStateV10?.hero;if(!hero)return result;
     if(action?.special==='cleanse'){
       const before=hero.statuses.length;hero.statuses=hero.statuses.filter(s=>!['disease','curse','swamp_corruption'].includes(s.type));
       if(hero.statuses.length<before)addBattleLog('✨ 淨化解除疾病、詛咒與腐化。');
@@ -9480,15 +9496,14 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       if(hero.statuses.length<before)addBattleLog('🪽 自由祝福解除恐懼與束縛。');
     }
     updateBattleStatuses();return result;
-  };
+  });
 
-  const previousRunBattleSequenceV101186=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101186(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='giant_bat')addBattleLog('🦇 疾病持續3回合，使實際治療效果降低30%。');
     if(id==='scarecrow_reaper')addBattleLog('🌾 靈魂收割依疾病／詛咒／恐懼／腐化種類增傷；命中後消耗狀態並替Boss回血。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9503,43 +9518,39 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
-  const previousSkillUsableByEnemyV101187=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101187(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     const statuses=battleStateV10?.hero?.statuses||[];
     if(skill?.id==='zombie_lizard_rotten_bite'&&statuses.some(x=>x.type==='disease'))return false;
     if(skill?.id==='zombie_lizard_corrupt_breath'&&statuses.some(x=>x.type==='swamp_corruption'))return false;
     if(skill?.id==='hydra_venom_breath'&&statuses.some(x=>x.type==='poison'))return false;
     if(skill?.id==='hydra_corrosive_breath'&&statuses.some(x=>x.type==='ancient_corrosion'))return false;
     return true;
-  };
+  });
 
-  const previousApplyDamageToEnemyV101187=applyDamageToEnemy;
-  applyDamageToEnemy=function(unit,damage){
+  window.StudyRPGCombatRuntimeCanonical.register('applyDamageToEnemy',function(next,unit,damage){
     if(unit?.monsterId==='wandering_zombie_lizardman'&&unit.hp>0&&Number(damage)>=unit.hp&&!unit.reviveUsed){
       const originalId=unit.monsterId;unit.monsterId='zombie';
-      const dealt=previousApplyDamageToEnemyV101187(unit,damage);unit.monsterId=originalId;
+      const dealt=next(unit,damage);unit.monsterId=originalId;
       addBattleLog('🧟 遊蕩的殭屍蜥蜴人死而復生，本場只能發動一次！');renderBattleTargets();return dealt;
     }
-    return previousApplyDamageToEnemyV101187(unit,damage);
-  };
+    return next(unit,damage);
+  });
 
-  const previousExecuteEnemyHitV101187=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
     if(skill?.id==='zombie_priest_dark_blessing'){
       addTimedEffect(unit,{name:'黑暗祝福',effectType:'buff',turns:3,mods:{attack:unit.attack*.25,magicAttack:unit.magicAttack*.25}});
       addBattleLog('🌑 黑暗祝福：攻擊與魔攻提高25%，持續3回合。');renderBattleTargets();return;
     }
     if(skill?.dynamicHydraHeads&&unit?.monsterId==='hydra'){
       const ratio=unit.hp/unit.maxHp,hits=ratio<=.33?5:ratio<=.66?4:3;
-      await previousExecuteEnemyHitV101187(unit,{...skill,hits,multiplierPerHit:.45});
+      await next(unit,{...skill,hits,multiplierPerHit:.45});
       addBattleLog(`🐲 九頭巨蛇目前以 ${hits} 組蛇首連續撕咬。`);return;
     }
-    return previousExecuteEnemyHitV101187(unit,skill);
-  };
+    return next(unit,skill);
+  });
 
-  const previousPerformLiveEnemyTurnV101187=performLiveEnemyTurn;
-  performLiveEnemyTurn=async function(unit){
+  window.StudyRPGCombatRuntimeCanonical.register('performLiveEnemyTurn',async function(next,unit){
     if(unit?.monsterId==='zombie_lizard_warrior'&&unit.hp>0&&unit.hp/unit.maxHp<=.35&&!unit.undeadRageTriggered){
       unit.undeadRageTriggered=true;
       addTimedEffect(unit,{name:'亡者狂暴',effectType:'buff',turns:999,mods:{attack:unit.attack*.25,defense:-unit.defense*.15}});
@@ -9551,26 +9562,23 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       else if(blocked)addBattleLog('🔥 九頭巨蛇的傷口正在燃燒，本回合無法再生。');
       if(unit.hp/unit.maxHp<=.30&&!unit.hydraRageTriggered){unit.hydraRageTriggered=true;addTimedEffect(unit,{name:'群首狂怒',effectType:'buff',turns:999,mods:{attack:unit.attack*.20,magicAttack:unit.magicAttack*.20}});addBattleLog('🐲 九頭巨蛇進入群首狂怒：攻擊與魔攻永久提高20%！');showBattleWord('群首狂怒！');}
     }
-    return previousPerformLiveEnemyTurnV101187(unit);
-  };
+    return next(unit);
+  });
 
   function cauterizeHydraV101187(target,result,type){
     if(target?.monsterId!=='hydra'||target.hp<=0||!result?.damage||type!=='fire')return;
     addStatus(target,{type:'hydra_cauterized',name:'傷口灼燒',turns:2,effectType:'debuff',mods:{}});
     addBattleLog('🔥 火焰灼燒九頭巨蛇的傷口：再生暫停2回合。');updateBattleStatuses();renderBattleTargets();
   }
-  const previousHitTargetV101187=hitTarget;
-  hitTarget=async function(target,action,mult,type){const result=await previousHitTargetV101187(target,action,mult,type);cauterizeHydraV101187(target,result,type||action?.type);return result;};
-  const previousExecuteHeroAgainstTargetV101187=executeHeroAgainstTarget;
-  executeHeroAgainstTarget=async function(action){const target=selectedBattleEnemy(),result=await previousExecuteHeroAgainstTargetV101187(action);cauterizeHydraV101187(target,result,action?.type);return result;};
+  window.StudyRPGCombatRuntimeCanonical.register('hitTarget',async function(next,target,action,mult,type){const result=await next(target,action,mult,type);cauterizeHydraV101187(target,result,type||action?.type);return result;});
+  window.StudyRPGCombatRuntimeCanonical.register('executeHeroAgainstTarget',async function(next,action){const target=selectedBattleEnemy(),result=await next(action);cauterizeHydraV101187(target,result,action?.type);return result;});
 
-  const previousRunBattleSequenceV101187=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101187(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='wandering_zombie_lizardman')addBattleLog('🧟 第一次受到致命傷害時，會以30% HP死而復生。');
     if(id==='hydra')addBattleLog('🐲 九頭巨蛇每回合再生4% HP；燃燒可暫停再生，HP下降後群首撕咬會增加段數。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9584,35 +9592,31 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
-  const previousSkillUsableByEnemyV101188=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101188(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     if(skill?.id==='pigman_warrior_breaker'&&(battleStateV10?.hero?.statuses||[]).some(s=>s.type==='rift_armor_break'))return false;
     return true;
-  };
+  });
 
-  const previousExecuteEnemyHitV101188=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
-    const result=await previousExecuteEnemyHitV101188(unit,skill);
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
+    const result=await next(unit,skill);
     if(skill?.speedAfter&&unit?.hp>0){
       addTimedEffect(unit,{name:'衝鋒加速',effectType:'buff',turns:1,mods:{speed:unit.speed*Number(skill.speedAfter)}});
       addBattleLog(`💨 ${unit.name}衝鋒後速度提高${Math.round(Number(skill.speedAfter)*100)}%，持續1回合。`);renderBattleTargets();
     }
     return result;
-  };
+  });
 
-  const previousTickLiveUnitV101188=tickLiveUnit;
-  tickLiveUnit=async function(unit,isHero=false){
+  window.StudyRPGCombatRuntimeCanonical.register('tickLiveUnit',async function(next,unit,isHero=false){
     const interruptible=!isHero&&['centaur_knight','cyclops'].includes(unit?.monsterId)&&!!unit?.chargedSkill;
     const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
     const chargedName=unit?.chargedSkill?MONSTER_SKILL_DATABASE[unit.chargedSkill]?.name:'';
-    const skip=await previousTickLiveUnitV101188(unit,isHero);
+    const skip=await next(unit,isHero);
     if(controlled&&skip&&unit.chargedSkill){unit.chargedSkill=null;addBattleLog(`💥 ${unit.name}受到控制，「${chargedName||'蓄力攻擊'}」被打斷！`);showBattleWord('蓄力中斷！');}
     return skip;
-  };
+  });
 
-  const previousPerformLiveEnemyTurnV101188=performLiveEnemyTurn;
-  performLiveEnemyTurn=async function(unit){
+  window.StudyRPGCombatRuntimeCanonical.register('performLiveEnemyTurn',async function(next,unit){
     if(unit?.monsterId==='pigman_warrior'&&unit.hp>0&&unit.hp/unit.maxHp<=.35&&!unit.riftRageTriggered){
       unit.riftRageTriggered=true;addTimedEffect(unit,{name:'戰鬥狂怒',effectType:'buff',turns:999,mods:{attack:unit.attack*.25}});
       addBattleLog('🔥 豬頭人戰士發動戰鬥狂怒：攻擊永久提高25%！');showBattleWord('戰鬥狂怒！');
@@ -9621,17 +9625,16 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
       unit.cyclopsRageTriggered=true;addTimedEffect(unit,{name:'獨眼狂怒',effectType:'buff',turns:999,mods:{attack:unit.attack*.25,defense:-unit.defense*.20}});
       addBattleLog('👁️ 獨眼巨人進入狂怒：揮擊傷害提高25%、防禦降低20%！');showBattleWord('獨眼狂怒！');
     }
-    return previousPerformLiveEnemyTurnV101188(unit);
-  };
+    return next(unit);
+  });
 
-  const previousRunBattleSequenceV101188=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101188(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='centaur')addBattleLog('🐎 半人馬可直接使用疾速衝鋒，衝鋒後短暫提高速度。');
     if(id==='centaur_knight')addBattleLog('🏇 半人馬騎士會先準備衝鋒；暈眩、冰凍或麻痺可中斷蓄力。');
     if(id==='cyclops')addBattleLog('👁️ 獨眼巨人的毀滅揮擊會先蓄力，可用控制技能打斷。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9647,52 +9650,47 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
-  const previousSkillUsableByEnemyV101189=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101189(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     const statuses=battleStateV10?.hero?.statuses||[];
     if(skill?.id==='flying_goblin_smoke'&&statuses.some(s=>s.type==='sky_smoke'))return false;
     if(skill?.id==='wyvern_whirlwind'&&statuses.some(s=>s.type==='wyvern_whirlwind'))return false;
     if(skill?.id==='sky_pirate_hook'&&statuses.some(s=>s.type==='sky_hook'))return false;
     if(skill?.id==='captain_load_cannon'&&Number(unit?.cooldowns?.captain_airship_cannon||0)>0)return false;
     return true;
-  };
+  });
 
-  const previousExecuteEnemyHitV101189=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
-    if(!skill?.combinedCannon)return previousExecuteEnemyHitV101189(unit,skill);
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
+    if(!skill?.combinedCannon)return next(unit,skill);
     addBattleLog('💥 飛空艇主砲命中，接著引爆火藥！');
-    await previousExecuteEnemyHitV101189(unit,{id:'captain_cannon_impact',name:'主砲撞擊',kind:'physical',target:'all',aoe:true,multiplier:1.30});
-    if(battleStateV10?.heroHp>0)await previousExecuteEnemyHitV101189(unit,{id:'captain_cannon_blast',name:'火藥爆炸',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:.70,status:{id:'burn',chance:1,duration:3,maxHpDot:.04}});
-  };
+    await next(unit,{id:'captain_cannon_impact',name:'主砲撞擊',kind:'physical',target:'all',aoe:true,multiplier:1.30});
+    if(battleStateV10?.heroHp>0)await next(unit,{id:'captain_cannon_blast',name:'火藥爆炸',kind:'magic',element:'fire',target:'all',aoe:true,multiplier:.70,status:{id:'burn',chance:1,duration:3,maxHpDot:.04}});
+  });
 
-  const previousTickLiveUnitV101189=tickLiveUnit;
-  tickLiveUnit=async function(unit,isHero=false){
+  window.StudyRPGCombatRuntimeCanonical.register('tickLiveUnit',async function(next,unit,isHero=false){
     const interruptible=!isHero&&unit?.monsterId==='sky_pirate_captain'&&unit?.chargedSkill==='captain_airship_cannon';
     const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
-    const skip=await previousTickLiveUnitV101189(unit,isHero);
+    const skip=await next(unit,isHero);
     if(controlled&&skip&&unit.chargedSkill){unit.chargedSkill=null;addBattleLog('💥 天空海盜船長受到控制，飛空艇砲擊裝填中斷！');showBattleWord('裝填中斷！');}
     return skip;
-  };
+  });
 
-  const previousPerformLiveEnemyTurnV101189=performLiveEnemyTurn;
-  performLiveEnemyTurn=async function(unit){
+  window.StudyRPGCombatRuntimeCanonical.register('performLiveEnemyTurn',async function(next,unit){
     if(unit?.monsterId==='sky_pirate_captain'&&unit.hp>0&&unit.hp/unit.maxHp<=.30&&!unit.desperateCaptainTriggered){
       unit.desperateCaptainTriggered=true;
       addTimedEffect(unit,{name:'亡命狀態',effectType:'buff',turns:999,mods:{attack:unit.attack*.20,magicAttack:unit.magicAttack*.20,speed:unit.speed*.20,defense:-unit.defense*.20}});
       addBattleLog('🏴‍☠️ 天空海盜船長進入亡命狀態：攻擊、魔攻與速度提高20%，防禦降低20%！');showBattleWord('亡命狀態！');
     }
-    return previousPerformLiveEnemyTurnV101189(unit);
-  };
+    return next(unit);
+  });
 
-  const previousRunBattleSequenceV101189=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101189(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='harpy')addBattleLog('🪶 鷹身女妖的羽毛飛鏢會連續攻擊3次。');
     if(id==='wyvern')addBattleLog('🌪️ 翼龍旋風持續3回合：每回合造成3%最大HP傷害並降低20%速度。');
     if(id==='sky_pirate_captain')addBattleLog('💣 飛空艇砲擊需先裝填，可被控制中斷；命中分為130%物理撞擊與70%火焰爆炸。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9713,71 +9711,66 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
 
   /* MONSTER_AI_DATABASE data moved to skill-database.js */
 
-  const previousSkillUsableByEnemyV101190=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101190(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     const heroStatuses=battleStateV10?.hero?.statuses||[];
     if(skill?.id==='sky_mage_wind_bind'&&heroStatuses.some(s=>s.type==='sky_wind_bind'))return false;
     if(skill?.id==='pegasus_wing_whirlwind'&&heroStatuses.some(s=>s.type==='slow'))return false;
     if(skill?.id==='pegasus_takeoff'&&Number(unit?.cooldowns?.pegasus_sky_charge||0)>0)return false;
     if(skill?.id==='colossus_core_charge'&&Number(unit?.cooldowns?.colossus_destruction_cannon||0)>0)return false;
     return true;
-  };
+  });
 
-  const previousExecuteEnemyHitV101190=executeEnemyHit;
-  executeEnemyHit=async function(unit,skill){
+  window.StudyRPGCombatRuntimeCanonical.register('executeEnemyHit',async function(next,unit,skill){
     if(skill?.combinedPegasusCharge){
       addBattleLog('🪽 飛馬騎士自高空俯衝：騎槍命中後爆發風屬性衝擊！');
-      await previousExecuteEnemyHitV101190(unit,{id:'pegasus_charge_lance',name:'天翔騎槍',kind:'physical',target:'single',multiplier:1.30});
-      if(battleStateV10?.heroHp>0)await previousExecuteEnemyHitV101190(unit,{id:'pegasus_charge_wind',name:'天翔風爆',kind:'magic',element:'wind',target:'single',multiplier:.50,status:{id:'sky_armor_break',chance:1,duration:2,defMultiplier:.80}});
+      await next(unit,{id:'pegasus_charge_lance',name:'天翔騎槍',kind:'physical',target:'single',multiplier:1.30});
+      if(battleStateV10?.heroHp>0)await next(unit,{id:'pegasus_charge_wind',name:'天翔風爆',kind:'magic',element:'wind',target:'single',multiplier:.50,status:{id:'sky_armor_break',chance:1,duration:2,defMultiplier:.80}});
       unit.statuses=(unit.statuses||[]).filter(s=>s.name!=='飛馬升空');renderBattleTargets();return;
     }
-    const result=await previousExecuteEnemyHitV101190(unit,skill);
+    const result=await next(unit,skill);
     if(skill?.colossusCannon&&unit?.hp>0){
       addTimedEffect(unit,{name:'核心過熱',effectType:'debuff',turns:1,mods:{damageTaken:.30}});
       addBattleLog('🔥 天空巨像核心過熱：接下來受到傷害增加30%，持續1回合。');renderBattleTargets();
     }
     return result;
-  };
+  });
 
-  const previousTickLiveUnitV101190=tickLiveUnit;
-  tickLiveUnit=async function(unit,isHero=false){
+  window.StudyRPGCombatRuntimeCanonical.register('tickLiveUnit',async function(next,unit,isHero=false){
     const chargeIds={pegasus_knight:'pegasus_sky_charge',sky_colossus:'colossus_destruction_cannon'};
     const interruptible=!isHero&&unit?.chargedSkill===chargeIds[unit?.monsterId];
     const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
     const chargedName=unit?.chargedSkill?MONSTER_SKILL_DATABASE[unit.chargedSkill]?.name:'';
-    const skip=await previousTickLiveUnitV101190(unit,isHero);
+    const skip=await next(unit,isHero);
     if(controlled&&skip&&unit.chargedSkill){
       unit.chargedSkill=null;unit.statuses=(unit.statuses||[]).filter(s=>s.name!=='飛馬升空');
       addBattleLog(`💥 ${unit.name}受到控制，「${chargedName||'蓄力技能'}」被打斷！`);showBattleWord('蓄力中斷！');renderBattleTargets();
     }
     return skip;
-  };
+  });
 
-  const previousPerformLiveEnemyTurnV101190=performLiveEnemyTurn;
-  performLiveEnemyTurn=async function(unit){
+  window.StudyRPGCombatRuntimeCanonical.register('performLiveEnemyTurn',async function(next,unit){
     if(unit?.monsterId==='sky_colossus'&&unit.hp>0&&unit.hp/unit.maxHp<=.30&&!unit.coreOverloadTriggered){
       unit.coreOverloadTriggered=true;
       addTimedEffect(unit,{name:'核心超載',effectType:'buff',turns:999,mods:{attack:unit.attack*.25,magicAttack:unit.magicAttack*.25,speed:unit.speed*.15,defense:-unit.defense*.20}});
       addBattleLog('⚡ 天空巨像進入核心超載：攻擊與魔攻提高25%、速度提高15%，防禦降低20%！');showBattleWord('核心超載！');
     }
     const before=unit?.lastSkillId;
-    const result=await previousPerformLiveEnemyTurnV101190(unit);
+    const result=await next(unit);
     if(unit?.monsterId==='pegasus_knight'&&unit.lastSkillId==='pegasus_takeoff'&&before!=='pegasus_takeoff'&&unit.chargedSkill==='pegasus_sky_charge'){
       addTimedEffect(unit,{name:'飛馬升空',effectType:'buff',turns:1,mods:{evade:.25}});
       addBattleLog('🪽 飛馬騎士升空期間仍可被鎖定，但閃避率提高25%。');renderBattleTargets();
     }
     return result;
-  };
+  });
 
-  const previousRunBattleSequenceV101190=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101190(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='sky_city_mage')addBattleLog('🪄 天空城魔導士擅長連鎖閃電、風之束縛與短暫魔力屏障。');
     if(id==='pegasus_knight')addBattleLog('🪽 飛馬騎士升空後提高25%閃避，下一回合發動兩段天翔衝鋒；控制效果可中斷。');
     if(id==='sky_colossus')addBattleLog('⚙️ 天空毀滅砲需先充能，可被控制中斷；砲擊後核心過熱，HP低於30%則進入核心超載。');
     return result;
-  };
+  });
 })();
 </script>
 <script>
@@ -9800,9 +9793,8 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
   function finalLinkedDragonV101191(){return (battleStateV10?.enemies||[]).find(x=>x.monsterId==='skeleton_dragon'&&x.hp>0&&x.alive!==false)||null;}
   function finalNecromancerV101191(){return (battleStateV10?.enemies||[]).find(x=>x.monsterId==='final_necromancer'&&x.hp>0&&x.alive!==false)||null;}
 
-  const previousSkillUsableByEnemyV101191=skillUsableByEnemy;
-  skillUsableByEnemy=function(unit,entry,skill){
-    if(!previousSkillUsableByEnemyV101191(unit,entry,skill))return false;
+  window.StudyRPGCombatRuntimeCanonical.register('skillUsableByEnemy',function(next,unit,entry,skill){
+    if(!next(unit,entry,skill))return false;
     const heroStatuses=battleStateV10?.hero?.statuses||[];
     if(['final_necro_curse','skeleton_dragon_breath'].includes(skill?.id)&&heroStatuses.some(s=>s.type==='final_corruption'))return false;
     if(skill?.id==='skeleton_dragon_roar'&&heroStatuses.some(s=>s.type==='bone_roar'))return false;
@@ -9812,38 +9804,35 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(skill?.id==='dragon1_breath_prep'&&Number(unit?.cooldowns?.dragon1_breath||0)>0)return false;
     if(skill?.id==='dragon2_meteor_breath_prep'&&Number(unit?.cooldowns?.dragon2_meteor_breath||0)>0)return false;
     return true;
-  };
+  });
 
-  const previousApplyDamageToEnemyV101191=applyDamageToEnemy;
-  applyDamageToEnemy=function(unit,damage){
+  window.StudyRPGCombatRuntimeCanonical.register('applyDamageToEnemy',function(next,unit,damage){
     const wasAlive=unit?.hp>0;
-    const dealt=previousApplyDamageToEnemyV101191(unit,damage);
+    const dealt=next(unit,damage);
     if(wasAlive&&unit?.monsterId==='skeleton_dragon'&&unit.hp<=0&&unit.finalDragonLink&&!unit.linkBacklashDone){
       unit.linkBacklashDone=true;const boss=finalNecromancerV101191();
       if(boss){
         boss.statuses=(boss.statuses||[]).filter(s=>s.type!=='dragon_soul_guard');
-        const backlash=Math.max(1,Math.round(boss.hp));previousApplyDamageToEnemyV101191(boss,backlash);
+        const backlash=Math.max(1,Math.round(boss.hp));next(boss,backlash);
         boss.dragonLinkBroken=true;
         addBattleLog('💥 靈魂連結斷裂！死靈法師的生命與骷髏巨龍一同消滅！');showBattleWord('靈魂連結斷裂！');renderBattleTargets();
       }
     }
     return dealt;
-  };
+  });
 
-  const previousTickLiveUnitV101191=tickLiveUnit;
-  tickLiveUnit=async function(unit,isHero=false){
+  window.StudyRPGCombatRuntimeCanonical.register('tickLiveUnit',async function(next,unit,isHero=false){
     const chargedIds={demon_dragon_phase1:'dragon1_breath',demon_dragon_phase2:'dragon2_meteor_breath'};
     const interruptible=!isHero&&unit?.chargedSkill===chargedIds[unit?.monsterId];
     const controlled=interruptible&&(unit.statuses||[]).some(s=>['stun','freeze','paralysis'].includes(s.type)&&s.turns>0);
     const name=unit?.chargedSkill?MONSTER_SKILL_DATABASE[unit.chargedSkill]?.name:'';
-    const skip=await previousTickLiveUnitV101191(unit,isHero);
+    const skip=await next(unit,isHero);
     if(controlled&&skip&&unit.chargedSkill){unit.chargedSkill=null;addBattleLog(`💥 ${unit.name}受到控制，「${name||'蓄力龍息'}」被打斷！`);showBattleWord('龍息中斷！');}
     return skip;
-  };
+  });
 
-  const previousRunBattleSequenceV101191=runBattleSequence;
-  runBattleSequence=function(...args){
-    const result=previousRunBattleSequenceV101191(...args),id=battleStateV10?.monsterId;
+  window.StudyRPGCombatRuntimeCanonical.register('runBattleSequence',function(next,...args){
+    const result=next(...args),id=battleStateV10?.monsterId;
     if(id==='final_necromancer'){
       const boss=battleStateV10.enemies?.[0];const dragon=summonLiveUnit('skeleton_dragon',boss,{statScale:.90,hpScale:.85});
       if(dragon){dragon.soulLinked=true;dragon.finalDragonLink=true;dragon.forceBasicOnly=false;dragon.name='骷髏巨龍';addStatus(boss,{type:'dragon_soul_guard',name:'魔龍靈魂連結',turns:999,effectType:'buff',mods:{damageTaken:-.70}});}
@@ -9862,18 +9851,22 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     if(id==='demon_dragon_phase1')addBattleLog('🐉 第一期魔龍以地面近戰為主；毀滅龍焰需先蓄力，可被控制技能中斷。');
     if(id==='demon_dragon_phase2')addBattleLog('🐲 第二期魔龍升空作戰；隕火龍息需先蓄力，可被控制技能中斷。');
     return result;
-  };
+  });
 
-  const previousFinishBattleV101191=finishBattleV10;
-  finishBattleV10=async function(win){
+  window.StudyRPGCombatRuntimeCanonical.register('finishBattleV10',async function(next,win){
     const id=battleStateV10?.monsterId;
     if(win&&id==='demon_dragon_phase2'){
       gameData.storyFlags=gameData.storyFlags||{};gameData.storyFlags.demonDragonEscaped=true;
       addBattleLog('🐉 魔龍戰敗後化為龍形飛離；死靈法師自暗處現身，收走墜落的龍骨與殘魂……');
     }
-    return previousFinishBattleV101191(win);
-  };
+    return next(win);
+  });
 })();
+</script>
+
+<script>
+/* Canonical combat runtime activation: one assignment per core function. */
+window.StudyRPGCombatRuntimeCanonical.finalize();
 </script>
 <script>
 /* V10.11.92：第21週 Boss 回憶戰、T0 隨機詞條裝與戰鬥觸發引擎。 */
