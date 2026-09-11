@@ -25,11 +25,21 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 .pill{display:inline-block;padding:2px 6px;border:1px solid var(--line);border-radius:999px;margin:2px;font-size:11px}.good{color:#7ee787}.badtext{color:#ff7b72}.muted{color:var(--muted);font-size:11px}
 .log{font-family:ui-monospace,monospace;font-size:11px;line-height:1.55;background:#090c10;padding:9px;border-radius:8px;height:260px;overflow:auto}
 .hidden{display:none!important}
+.live-runtime-wrap{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#090c10}
+.live-runtime-head{display:flex;gap:8px;align-items:center;padding:8px;background:#161b22;border-bottom:1px solid var(--line)}
+.live-runtime-head button{width:auto}
+#liveFrame{display:block;width:100%;height:760px;border:0;background:#0d1117}
+.skill-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.skill-pick{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#0d1117;cursor:pointer}
+.skill-pick input{width:auto;margin:0;flex:0 0 auto}.skill-pick b{font-size:12px}.skill-pick small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.skill-pick.selected{border-color:var(--green);box-shadow:0 0 0 1px #23863655}.slot-badge{display:inline-block;min-width:20px;text-align:center;border-radius:999px;background:#238636;color:#fff;font-size:10px;padding:2px 5px;margin-left:auto}
+.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:8px}.editor-field{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:7px}.editor-field label{margin:0 0 4px}.editor-field input{margin:0}.editor-field.full{grid-column:1/-1}
+.editor-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.row3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><h1>⚔️ StudyRPG Battle Test Lab</h1><div class="sub">V10.19 對齊版｜正式職業技能｜正式週表｜怪物 AI｜21週回顧刷裝池｜Buff｜詞綴｜Trigger｜即時統計</div></header>
+<header><h1>⚔️ StudyRPG Battle Test Lab</h1><div class="sub">V10.19 對齊版｜正式 Runtime 實戰恢復｜職業／怪物可選｜批次測試｜Buff｜詞綴｜Trigger｜即時統計</div></header>
 <main>
 <div class="layout">
 <section>
@@ -76,6 +86,18 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 </div>
 
 <div class="card">
+<h2>🛠️ 職業技能調整／8 選 4</h2>
+<div class="muted">正式職業會載入 skill-database.js 的 8 招。勾選 4 招作為本次測試技能列；下方可直接調整該技能目前存在的欄位。所有修改只存在這個 Battle Test 分頁與本次正式 Runtime iframe，不會寫入 GitHub、Firebase 或正式存檔。</div>
+<div id="skillLoadoutSummary" class="status" style="margin-top:8px">尚未載入職業技能</div>
+<div id="skillLoadoutGrid" class="skill-grid"></div>
+<label>要調整的技能</label><select id="editSkill"></select>
+<div id="skillEditorFields" class="editor-grid"></div>
+<div class="row" style="margin-top:8px"><button id="applySkillEdit" class="primary">套用技能調整</button><button id="resetSkillEdit">還原此技能</button></div>
+<button id="resetClassSkills" class="red" style="margin-top:8px">還原此職業全部 8 招</button>
+<div id="skillEditStatus" class="editor-note">尚未修改。技能 ID 為正式引用鍵，僅顯示、不允許改名；其餘既有數字／文字／布林欄位依正式資料動態產生。</div>
+</div>
+
+<div class="card">
 <h2>沙盒能力值</h2>
 <div class="row"><div><label>英雄 ATK</label><input id="hAtk" type="number" value="100"></div><div><label>英雄 MATK</label><input id="hMatk" type="number" value="100"></div></div>
 <div class="row"><div><label>英雄 DEF</label><input id="hDef" type="number" value="50"></div><div><label>英雄 MDEF</label><input id="hMdef" type="number" value="50"></div></div>
@@ -97,6 +119,20 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 <div><label>模擬秒數</label><input id="seconds" type="number" value="60" min="5"></div>
 <div><label>速度</label><select id="speed"><option value="1">1x</option><option value="2">2x</option><option value="5">5x</option><option value="10" selected>10x</option></select></div>
 <div><label>每次行動秒</label><input id="gcd" type="number" value="1.5" step=".1"></div>
+</div>
+</div>
+
+<div class="card">
+<h2>⚔️ 正式 Runtime 實戰</h2>
+<div class="muted">直接載入主程式正式戰鬥 Runtime。沿用上方選擇的「週數／怪物／職業」，以 GM 測試模式開戰；不給 EXP、金幣、掉落，也不寫正式戰鬥紀錄。</div>
+<div class="row" style="margin-top:8px">
+<button id="liveStart" class="green">⚔️ 用目前選擇進入實戰</button>
+<button id="liveReload">↻ 重載正式 Runtime</button>
+</div>
+<div id="liveStatus" class="status" style="margin-top:8px">尚未啟動實戰 Runtime</div>
+<div id="liveWrap" class="live-runtime-wrap hidden">
+  <div class="live-runtime-head"><b>主程式正式戰鬥畫面</b><button id="liveClose" class="red">關閉</button></div>
+  <iframe id="liveFrame" title="StudyRPG 正式 Runtime 實戰"></iframe>
 </div>
 </div>
 </section>
@@ -145,9 +181,10 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 const RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/index.html';
 const SKILL_RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/skill-database.js';
 const AFFIX_RAW='https://raw.githubusercontent.com/AlexLiao0131/studyRPG/main/affix-database.js';
+const LIVE_MAIN='../../index.html';
 let mainText='', skillText='', affixText='', DB={}, state={
   mode:'hero',stats:{},log:[],elapsed:0,paused:false,stop:false,
-  lastStep:null
+  lastStep:null,formalOriginal:null,skillLoadouts:{},editingSkillId:null
 };
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -226,6 +263,8 @@ function parseDB(){
   DB.statusCategories=findObject('STATUS_CATEGORY_DATABASE')||{};
   DB.effectTypes=findObject('EFFECT_TYPE_DATABASE')||{};
   DB.triggers=findObject('TRIGGER_DATABASE')||{};
+  state.formalOriginal=JSON.parse(JSON.stringify(DB.formal||{}));
+  state.skillLoadouts={};
   buildControls();
 }
 function validationRows(){
@@ -325,6 +364,125 @@ function jobSkills(jobId){
   return (rule?.skills||[]).map(skillById).filter(Boolean).map(s=>normalizeLegacySkill(s,jobId));
 }
 
+function selectedSkillIds(jobId){
+  if(jobId==='novice')return jobSkills('novice').slice(0,4).map(s=>s.id);
+  const all=jobSkills(jobId),valid=new Set(all.map(s=>s.id));
+  let ids=(state.skillLoadouts[jobId]||[]).filter(id=>valid.has(id));
+  if(!ids.length)ids=all.slice(0,4).map(s=>s.id);
+  state.skillLoadouts[jobId]=ids.slice(0,4);
+  return state.skillLoadouts[jobId];
+}
+function selectedJobSkills(jobId){
+  const all=jobSkills(jobId),map=new Map(all.map(s=>[s.id,s]));
+  return selectedSkillIds(jobId).map(id=>map.get(id)).filter(Boolean);
+}
+function loadoutReady(jobId=$('job')?.value){return jobId==='novice'||selectedSkillIds(jobId).length===4}
+function renderSkillLoadout(){
+  const jobId=$('job')?.value||'novice',all=jobSkills(jobId),ids=selectedSkillIds(jobId);
+  const grid=$('skillLoadoutGrid'),sum=$('skillLoadoutSummary');
+  if(!grid||!sum)return;
+  if(jobId==='novice'){
+    sum.className='status ok';sum.textContent=`初心者固定 ${all.length} 招｜不需 8 選 4`;
+  }else{
+    sum.className='status '+(ids.length===4?'ok':'warn');
+    sum.textContent=`${liveSelectedJobLabel()}｜正式技能 ${all.length} 招｜目前選擇 ${ids.length}/4${ids.length===4?'｜可進入實戰':'｜請選滿 4 招'}`;
+  }
+  grid.innerHTML=all.map(s=>{
+    const idx=ids.indexOf(s.id),checked=idx>=0;
+    return `<label class="skill-pick ${checked?'selected':''}"><input type="checkbox" data-skill-pick="${esc(s.id)}" ${checked?'checked':''} ${jobId==='novice'?'disabled':''}><span><b>${esc(s.icon||'')} ${esc(s.name||s.id)}</b><small>${esc(s.id)}｜${esc(s.type||s.school||'—')}｜cost ${esc(s.cost??'—')}</small></span>${checked?`<span class="slot-badge">${idx+1}</span>`:''}</label>`;
+  }).join('');
+  grid.querySelectorAll('[data-skill-pick]').forEach(cb=>cb.onchange=()=>toggleSkillPick(cb.dataset.skillPick,cb.checked));
+  renderSkillEditorSelect();
+}
+function toggleSkillPick(id,checked){
+  const jobId=$('job').value;if(jobId==='novice')return;
+  let ids=selectedSkillIds(jobId).slice();
+  if(checked){
+    if(!ids.includes(id)&&ids.length>=4){
+      $('skillEditStatus').textContent='最多只能選 4 招；請先取消一招再換入新技能。';
+      renderSkillLoadout();return;
+    }
+    if(!ids.includes(id))ids.push(id);
+  }else ids=ids.filter(x=>x!==id);
+  state.skillLoadouts[jobId]=ids;
+  renderSkillLoadout();refreshSkills();
+}
+function renderSkillEditorSelect(){
+  const sel=$('editSkill');if(!sel)return;
+  const all=jobSkills($('job')?.value||'novice');
+  const keep=state.editingSkillId;
+  sel.innerHTML=all.map(s=>`<option value="${esc(s.id)}">${esc(s.icon||'')} ${esc(s.name||s.id)}</option>`).join('');
+  if(keep&&all.some(s=>s.id===keep))sel.value=keep;
+  state.editingSkillId=sel.value||all[0]?.id||null;
+  renderSkillEditorFields();
+}
+function rawFormalSkill(jobId,id){
+  if(jobId==='novice')return arr(DB.beginner).find(s=>s.id===id)||null;
+  const key=formalJobKey(jobId);return arr(DB.formal?.[key]).find(s=>s.id===id)||null;
+}
+function primitiveFields(obj,prefix='',out=[]){
+  if(obj==null)return out;
+  for(const [k,v] of Object.entries(obj)){
+    const path=prefix?prefix+'.'+k:k;
+    if(k==='_raw'||k==='_normalizedFromLegacy')continue;
+    if(v!==null&&typeof v==='object'){primitiveFields(v,path,out);continue;}
+    out.push({path,value:v,type:typeof v});
+  }
+  return out;
+}
+function renderSkillEditorFields(){
+  const box=$('skillEditorFields');if(!box)return;
+  const jobId=$('job')?.value||'novice',id=$('editSkill')?.value||state.editingSkillId;
+  state.editingSkillId=id;
+  const skill=rawFormalSkill(jobId,id);
+  if(!skill){box.innerHTML='<div class="badtext">找不到技能原始資料。</div>';return;}
+  const fields=primitiveFields(skill);
+  box.innerHTML=fields.map(f=>{
+    const ro=f.path==='id',full=f.path==='description'?' full':'';
+    if(f.type==='boolean')return `<div class="editor-field${full}"><label>${esc(f.path)}</label><input data-edit-path="${esc(f.path)}" data-edit-type="boolean" type="checkbox" ${f.value?'checked':''} ${ro?'disabled':''}></div>`;
+    const typ=f.type==='number'?'number':'text',step=f.type==='number'?' step="any"':'';
+    return `<div class="editor-field${full}"><label>${esc(f.path)}${ro?'（固定）':''}</label><input data-edit-path="${esc(f.path)}" data-edit-type="${esc(f.type)}" type="${typ}"${step} value="${esc(f.value??'')}" ${ro?'readonly':''}></div>`;
+  }).join('')||'<div class="muted">此技能沒有可直接調整的 primitive 欄位。</div>';
+  $('skillEditStatus').textContent=`正在調整：${skill.name||skill.id}｜只顯示正式資料中實際存在的欄位。`;
+}
+function setByPath(obj,path,value){
+  const parts=path.split('.');let cur=obj;
+  for(let i=0;i<parts.length-1;i++){if(cur[parts[i]]==null)return false;cur=cur[parts[i]];}
+  cur[parts.at(-1)]=value;return true;
+}
+function applySkillEdit(){
+  const jobId=$('job').value,id=$('editSkill').value,skill=rawFormalSkill(jobId,id);
+  if(!skill)return;
+  $('skillEditorFields').querySelectorAll('[data-edit-path]').forEach(inp=>{
+    const path=inp.dataset.editPath;if(path==='id')return;
+    const kind=inp.dataset.editType;
+    let value=kind==='boolean'?inp.checked:kind==='number'?Number(inp.value):inp.value;
+    if(kind==='number'&&!Number.isFinite(value))return;
+    setByPath(skill,path,value);
+  });
+  $('skillEditStatus').textContent=`✅ 已套用到本次測試資料：${skill.name||skill.id}。單項／批次／正式 Runtime 實戰會使用此值。`;
+  renderSkillLoadout();refreshSkills();
+}
+function resetEditedSkill(){
+  const jobId=$('job').value,id=$('editSkill').value;
+  if(jobId==='novice'){
+    $('skillEditStatus').textContent='初心者技能此次不提供正式原值回復快照；重新讀取 GitHub 即可完整重置。';return;
+  }
+  const key=formalJobKey(jobId),src=arr(state.formalOriginal?.[key]).find(s=>s.id===id),list=DB.formal?.[key];
+  if(!src||!Array.isArray(list))return;
+  const i=list.findIndex(s=>s.id===id);if(i>=0)list[i]=JSON.parse(JSON.stringify(src));
+  $('skillEditStatus').textContent=`↩ 已還原 ${src.name||id} 的 GitHub 正式值。`;
+  renderSkillLoadout();refreshSkills();
+}
+function resetCurrentClassSkills(){
+  const jobId=$('job').value;if(jobId==='novice'){loadRemote();return;}
+  const key=formalJobKey(jobId),src=state.formalOriginal?.[key];if(!Array.isArray(src))return;
+  DB.formal[key]=JSON.parse(JSON.stringify(src));
+  state.skillLoadouts[jobId]=DB.formal[key].slice(0,4).map(s=>s.id);
+  $('skillEditStatus').textContent=`↩ 已還原 ${liveSelectedJobLabel()} 全部 8 招，測試配置回到前 4 招。`;
+  renderSkillLoadout();refreshSkills();
+}
+
 function allWeeks(){
   if(Array.isArray(DB.weekly)&&DB.weekly.length)
     return DB.weekly.slice().sort((a,b)=>Number(a.week)-Number(b.week));
@@ -370,6 +528,7 @@ function buildControls(){
   refreshWeek();
   buildStatus();
   buildAffixes();
+  renderSkillLoadout();
   const critical=renderValidation();
   $('source').className='status '+(critical.length?'warn':'ok');
   $('source').textContent=critical.length
@@ -388,7 +547,7 @@ function refreshWeek(){
   refreshSkills();
 }
 function refreshSkills(){
-  const hs=jobSkills($('job').value);
+  const hs=selectedJobSkills($('job').value);
   $('heroSkill').innerHTML=hs.map((s,i)=>`<option value="${i}">${esc(s.name||s.id||'技能')}</option>`).join('');
   const ms=monsterSkillList($('monster').value);
   $('monsterSkill').innerHTML=ms.map((s,i)=>`<option value="${i}">${esc(s.name||s.id||'技能')}${s._ai?.condition?'｜條件:'+esc(s._ai.condition):''}</option>`).join('');
@@ -418,7 +577,7 @@ function buildAffixes(){
   $('affixSelect').innerHTML=af.map(([id,a])=>`<option value="${esc(id)}">${esc(a.name||id)}</option>`).join('');
 }
 function currentSkill(){
-  if(state.mode==='hero')return jobSkills($('job').value)[+$('heroSkill').value];
+  if(state.mode==='hero')return selectedJobSkills($('job').value)[+$('heroSkill').value];
   if(state.mode==='monster')return monsterSkillList($('monster').value)[+$('monsterSkill').value];
   if(state.mode==='buff'){const a=JSON.parse($('statusSelect').dataset.json||'[]');return a[+$('statusSelect').value]}
   if(state.mode==='affix')return DB.affixes?.[$('affixSelect').value];
@@ -617,8 +776,9 @@ async function waitIfPaused(){
 }
 async function battleBatch(){
   resetStats();$('batchRows').innerHTML='';$('batchSummary').textContent='正在測試本週全部戰鬥…';
-  const wk=Number($('week').value),mids=monsterIdsForWeek(wk),hs=jobSkills($('job').value),sec=Math.max(5,num('seconds',60)),gcd=Math.max(.1,num('gcd',1.5)),speed=Math.max(1,num('speed',10));
+  const wk=Number($('week').value),mids=monsterIdsForWeek(wk),hs=selectedJobSkills($('job').value),sec=Math.max(5,num('seconds',60)),gcd=Math.max(.1,num('gcd',1.5)),speed=Math.max(1,num('speed',10));
   if(!mids.length){$('batchSummary').innerHTML='<span class="badtext">❌ 本週沒有可測怪物。</span>';return}
+  if($('job').value!=='novice'&&!loadoutReady()){$('batchSummary').innerHTML='<span class="badtext">❌ 正式職業必須先從 8 招選滿 4 招。</span>';return}
   const results=[];let actions=0;
   for(const mid of mids){
     const mn=DB.monsters?.[mid]?.name||mid,ms=monsterSkillList(mid);
@@ -657,6 +817,114 @@ function setMode(mode){
   state.mode=mode;document.querySelectorAll('#modeTabs button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
   ['hero','monster','buff','affix'].forEach(m=>$(m+'Mode').classList.toggle('hidden',m!==mode));analyzeCurrent();
 }
+
+function liveStatus(text,kind=''){
+  const el=$('liveStatus');
+  if(!el)return;
+  el.className='status '+kind;
+  el.textContent=text;
+}
+function liveSourceWeekDay(selectedWeek,monsterId){
+  const direct=weeklyEntry(selectedWeek);
+  const directIndex=(direct?.monsters||[]).indexOf(monsterId);
+  if(directIndex>=0)return {week:Number(selectedWeek),day:directIndex};
+  for(const row of (DB.weekly||[])){
+    const i=(row?.monsters||[]).indexOf(monsterId);
+    if(i>=0)return {week:Number(row.week),day:i};
+  }
+  return null;
+}
+function liveSelectedJobLabel(){
+  return HERO_JOBS.find(j=>j.id===$('job')?.value)?.label||'初心者';
+}
+function syncLiveSkillTestConfig(w){
+  const jobId=$('job')?.value||'novice',jobLabel=liveSelectedJobLabel();
+  const ids=selectedSkillIds(jobId);
+  if(jobId!=='novice'&&ids.length!==4)throw new Error('正式職業必須從 8 招選滿 4 招');
+  const gd=w?.gameData?.hero;
+  if(gd){
+    gd.jobAwakened=jobId!=='novice';
+    gd.heroClass=jobLabel;
+    gd.equippedSkills=ids.slice();
+    gd.knownSkills=[...new Set([...(gd.knownSkills||[]),...jobSkills(jobId).map(s=>s.id)])];
+    gd.skills=[...new Set([...(gd.skills||[]),...jobSkills(jobId).map(s=>s.id)])];
+  }
+  if(jobId!=='novice'){
+    const parentList=DB.formal?.[jobLabel]||[];
+    const liveList=w?.STUDYRPG_SKILL_DATABASE?.formalClassSkills?.[jobLabel];
+    if(!Array.isArray(liveList))throw new Error('正式 Runtime 找不到 '+jobLabel+' 的 8 招技能資料');
+    for(const edited of parentList){
+      const target=liveList.find(s=>s.id===edited.id);
+      if(target)Object.assign(target,JSON.parse(JSON.stringify(edited)));
+    }
+  }
+  return ids;
+}
+
+function startFormalRuntimeBattle(){
+  const frame=$('liveFrame');
+  const selectedWeek=Number($('week')?.value||1);
+  const monsterId=$('monster')?.value||'';
+  const source=liveSourceWeekDay(selectedWeek,monsterId);
+  if(!source){liveStatus('找不到這隻怪物在正式 WEEKLY_MAP_DATABASE 的來源週／日，無法啟動正式 Runtime。','bad');return false;}
+  let w;
+  try{w=frame?.contentWindow}catch(e){w=null}
+  if(!w){liveStatus('正式 Runtime iframe 尚未就緒。','warn');return false;}
+  try{
+    const doc=w.document;
+    if(typeof w.gmStartWeekBattleTest!=='function')throw new Error('主程式沒有 gmStartWeekBattleTest()');
+    const weekEl=doc.getElementById('gmTestWeek');
+    const dayEl=doc.getElementById('gmTestDay');
+    const jobEl=doc.getElementById('gmTestHeroJob');
+    const modeEl=doc.getElementById('gmTestHeroMode');
+    if(!weekEl||!dayEl||!jobEl)throw new Error('主程式 GM 實戰控制器尚未完成初始化');
+    const selectedIds=syncLiveSkillTestConfig(w);
+    weekEl.value=String(source.week);
+    dayEl.value=String(source.day);
+    jobEl.value=liveSelectedJobLabel();
+    if(modeEl)modeEl.value='standard';
+    w.sessionStorage.setItem('gmTestWeek',String(source.week));
+    w.sessionStorage.setItem('gmTestDay',String(source.day));
+    w.sessionStorage.setItem('gmBattleTestActive','1');
+    if(typeof w.gmRenderWeekTestMonsterOptions==='function')w.gmRenderWeekTestMonsterOptions();
+    w.gmStartWeekBattleTest();
+    const monName=DB.monsters?.[monsterId]?.name||monsterId;
+    const reviewNote=source.week!==selectedWeek?`（回顧怪來源：第 ${source.week} 週）`:'';
+    const selectedNames=selectedJobSkills($('job').value).map(s=>s.name||s.id).join('、');
+    liveStatus(`實戰已啟動｜${liveSelectedJobLabel()} vs ${monName} ${reviewNote}｜4招：${selectedNames}｜正式 Runtime / GM testMode`,'ok');
+    return true;
+  }catch(err){
+    console.error('正式 Runtime 實戰啟動失敗',err);
+    liveStatus('實戰啟動失敗：'+String(err?.message||err),'bad');
+    return false;
+  }
+}
+function loadFormalRuntimeAndBattle(autoStart=true){
+  const frame=$('liveFrame'),wrap=$('liveWrap');
+  if(!frame||!wrap)return;
+  wrap.classList.remove('hidden');
+  liveStatus('正在載入 GitHub Pages 同源主程式正式 Runtime…','warn');
+  frame.onload=()=>{
+    // 主程式 load 完後再多讓初始化流程完成一拍。
+    setTimeout(()=>{
+      if(autoStart)startFormalRuntimeBattle();
+      else liveStatus('正式 Runtime 已重載。按「用目前選擇進入實戰」即可開戰。','ok');
+    },350);
+  };
+  frame.src=LIVE_MAIN+'?battleTestLive='+Date.now();
+}
+function launchLiveBattle(){
+  const frame=$('liveFrame');
+  const wrap=$('liveWrap');
+  wrap?.classList.remove('hidden');
+  try{
+    if(frame?.contentWindow && frame.contentDocument?.readyState==='complete' && typeof frame.contentWindow.gmStartWeekBattleTest==='function'){
+      if(startFormalRuntimeBattle())return;
+    }
+  }catch(e){}
+  loadFormalRuntimeAndBattle(true);
+}
+
 async function loadRemote(){
   $('source').className='status';$('source').textContent='正在讀取 GitHub 主程式＋技能／詞綴資料庫…';
   try{
@@ -679,11 +947,16 @@ async function loadRemote(){
 document.querySelectorAll('#modeTabs button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('reload').onclick=loadRemote;
 $('file').onchange=async e=>{const f=e.target.files[0];if(f){mainText=await f.text();parseDB()}};
-$('week').onchange=refreshWeek;$('job').onchange=refreshSkills;$('monster').onchange=refreshSkills;
+$('week').onchange=refreshWeek;$('job').onchange=()=>{renderSkillLoadout();refreshSkills()};$('monster').onchange=refreshSkills;
 $('heroSkill').onchange=analyzeCurrent;$('monsterSkill').onchange=analyzeCurrent;$('statusSelect').onchange=analyzeCurrent;$('affixSelect').onchange=analyzeCurrent;
+$('editSkill').onchange=()=>{state.editingSkillId=$('editSkill').value;renderSkillEditorFields()};
+$('applySkillEdit').onclick=applySkillEdit;$('resetSkillEdit').onclick=resetEditedSkill;$('resetClassSkills').onclick=resetCurrentClassSkills;
 $('single').onclick=singleTest;$('batch').onclick=battleBatch;$('reset').onclick=resetStats;
 $('pause').onclick=()=>{state.paused=!state.paused;$('pause').textContent=state.paused?'▶ 繼續':'⏸ 暫停'};
 $('step').onclick=()=>{const x=currentSkill(),side=state.mode==='monster'?'monster':'hero';runObject(x,side,x?.name||x?.id||'單步',state.elapsed);state.elapsed+=Math.max(.1,num('gcd',1.5));renderStats()};
+$('liveStart').onclick=launchLiveBattle;
+$('liveReload').onclick=()=>loadFormalRuntimeAndBattle(false);
+$('liveClose').onclick=()=>{const f=$('liveFrame');if(f)f.src='about:blank';$('liveWrap')?.classList.add('hidden');liveStatus('實戰 Runtime 已關閉。');};
 resetStats();loadRemote();
 </script>
 </body></html>
