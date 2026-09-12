@@ -871,23 +871,14 @@ function startFormalRuntimeBattle(){
   try{w=frame?.contentWindow}catch(e){w=null}
   if(!w){liveStatus('正式 Runtime iframe 尚未就緒。','warn');return false;}
   try{
-    const doc=w.document;
     if(typeof w.gmStartWeekBattleTest!=='function')throw new Error('主程式沒有 gmStartWeekBattleTest()');
-    const weekEl=doc.getElementById('gmTestWeek');
-    const dayEl=doc.getElementById('gmTestDay');
-    const jobEl=doc.getElementById('gmTestHeroJob');
-    const modeEl=doc.getElementById('gmTestHeroMode');
-    if(!weekEl||!dayEl||!jobEl)throw new Error('主程式 GM 實戰控制器尚未完成初始化');
     const selectedIds=syncLiveSkillTestConfig(w);
-    weekEl.value=String(source.week);
-    dayEl.value=String(source.day);
-    jobEl.value=liveSelectedJobLabel();
-    if(modeEl)modeEl.value='standard';
-    w.sessionStorage.setItem('gmTestWeek',String(source.week));
-    w.sessionStorage.setItem('gmTestDay',String(source.day));
-    w.sessionStorage.setItem('gmBattleTestActive','1');
-    if(typeof w.gmRenderWeekTestMonsterOptions==='function')w.gmRenderWeekTestMonsterOptions();
-    w.gmStartWeekBattleTest();
+    w.gmStartWeekBattleTest({
+      week:source.week,
+      day:source.day,
+      job:liveSelectedJobLabel(),
+      mode:'standard'
+    });
     const monName=DB.monsters?.[monsterId]?.name||monsterId;
     const reviewNote=source.week!==selectedWeek?`（回顧怪來源：第 ${source.week} 週）`:'';
     const selectedNames=selectedJobSkills($('job').value).map(s=>s.name||s.id).join('、');
