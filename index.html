@@ -6068,11 +6068,11 @@ function gmNormalProgressRawStats(week,job){
   const a=map[job]||w;
   return {str:10+total*a.str,agi:10+total*a.agi,int:10+total*a.int,will:10+total*a.will,virtue:total*a.virtue};
 }
-function gmBuildTestHero(week,mode){
+function gmBuildTestHero(week,mode,selectedJob){
   mode=mode||document.getElementById('gmTestHeroMode')?.value||'standard';
   if(mode==='current')return makeHeroBattleStats();
   let lv,str,agi,intel,will,virtue=0;
-  const selected=document.getElementById('gmTestHeroJob')?.value||'auto';
+  const selected=selectedJob||document.getElementById('gmTestHeroJob')?.value||'auto';
   const job=selected==='auto'?(gameData.hero.jobAwakened?gameData.hero.heroClass:'初心者'):selected;
   if(mode==='custom'){
     lv=Math.max(1,Number(document.getElementById('gmTestHeroLv')?.value)||1);
@@ -6128,15 +6128,15 @@ function gmWeekTestPower(week,dayIndex=0,mon=null){
   }
   return Math.max(1,Math.round(basePower*currentBattleTestMultiplier()));
 }
-function gmStartWeekBattleTest(){
+function gmStartWeekBattleTest(options={}){
   try{
 
-  const w=Math.max(1,Math.min(21,Number(document.getElementById('gmTestWeek')?.value||1))),d=Math.max(0,Math.min(4,Number(document.getElementById('gmTestDay')?.value||0)));
+  const w=Math.max(1,Math.min(21,Number(options.week??document.getElementById('gmTestWeek')?.value??1))),d=Math.max(0,Math.min(4,Number(options.day??document.getElementById('gmTestDay')?.value??0)));
   const map=WEEKLY_MAP_DATABASE.find(x=>x.week===w);if(!map||map.noBattle){alert('這一週沒有戰鬥。');return;}
   const monsterId=map.monsters?.[d],mon=monsterDefinitionById(monsterId);if(!mon){alert('找不到這隻怪物的資料。');return;}
   sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));sessionStorage.setItem('gmBattleTestActive','1');
-  const encounter=gmTestEncounterInfo(w,d,mon),eventType=encounter.eventType,power=gmWeekTestPower(w,d,mon),heroMode=document.getElementById('gmTestHeroMode')?.value||'standard';
-  const testHero=gmBuildTestHero(w,heroMode);
+  const encounter=gmTestEncounterInfo(w,d,mon),eventType=encounter.eventType,power=gmWeekTestPower(w,d,mon),heroMode=options.mode||document.getElementById('gmTestHeroMode')?.value||'standard';
+  const testHero=gmBuildTestHero(w,heroMode,options.job);
   const iconEvt=eventType==='daily'?null:{type:eventType};
   runBattleSequence(mon.name,battleIconForEnemy(iconEvt,mon),power,0,0,eventType,monsterId,{testMode:true,testWeek:w,testDay:d,testHero});
   const formulaLabel=eventType==='final'?`期末公式 ×${SEMESTER_BALANCE.eventMultipliers.final}`:eventType==='midterm'?`期中公式 ×${SEMESTER_BALANCE.eventMultipliers.midterm}`:'週數日常公式';
