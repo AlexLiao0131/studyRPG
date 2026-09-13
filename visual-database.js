@@ -230,6 +230,30 @@ window.STUDYRPG_VISUAL_DATABASE={
       "summon_right": {
         "x": 82,
         "y": 69
+      },
+      "hero_center": {
+        "x": 18,
+        "y": 52
+      },
+      "hero_cast": {
+        "x": 22,
+        "y": 53
+      },
+      "hero_head": {
+        "x": 18,
+        "y": 40
+      },
+      "enemy_center": {
+        "x": 82,
+        "y": 52
+      },
+      "enemy_cast": {
+        "x": 78,
+        "y": 53
+      },
+      "enemy_head": {
+        "x": 82,
+        "y": 40
       }
     },
     "tablet": {
@@ -260,6 +284,30 @@ window.STUDYRPG_VISUAL_DATABASE={
       "summon_right": {
         "x": 84,
         "y": 69
+      },
+      "hero_center": {
+        "x": 17,
+        "y": 52
+      },
+      "hero_cast": {
+        "x": 21,
+        "y": 53
+      },
+      "hero_head": {
+        "x": 17,
+        "y": 40
+      },
+      "enemy_center": {
+        "x": 83,
+        "y": 52
+      },
+      "enemy_cast": {
+        "x": 79,
+        "y": 53
+      },
+      "enemy_head": {
+        "x": 83,
+        "y": 40
       }
     },
     "mobile": {
@@ -290,6 +338,30 @@ window.STUDYRPG_VISUAL_DATABASE={
       "summon_right": {
         "x": 86,
         "y": 67
+      },
+      "hero_center": {
+        "x": 18,
+        "y": 49
+      },
+      "hero_cast": {
+        "x": 22,
+        "y": 50
+      },
+      "hero_head": {
+        "x": 18,
+        "y": 37
+      },
+      "enemy_center": {
+        "x": 82,
+        "y": 49
+      },
+      "enemy_cast": {
+        "x": 78,
+        "y": 50
+      },
+      "enemy_head": {
+        "x": 82,
+        "y": 37
       }
     }
   },
@@ -458,6 +530,80 @@ window.STUDYRPG_VISUAL_DATABASE={
       "pathFX": null,
       "targetFX": [],
       "summons": []
+    },
+    "ember": {
+      "enabled": true,
+      "actorAction": "cast",
+      "selfFX": [
+        {
+          "image": "images/Skill Png/魔力彈匯聚.png",
+          "anchor": "self",
+          "point": "hero_cast",
+          "scaleMode": "self",
+          "scale": 1,
+          "offsetX": 9.8,
+          "offsetY": -21.2,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "dissolve",
+            "duration": 120
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "pathFX": {
+        "image": "images/Skill Png/魔力彈飛行.png",
+        "path": "straight",
+        "pathModeUserSet": false,
+        "duration": 420,
+        "scale": 1,
+        "delay": 0,
+        "at": null,
+        "mirrorX": false,
+        "fromPoint": "hero_cast",
+        "viaPoint": "",
+        "toPoint": "enemy_center"
+      },
+      "targetFX": [
+        {
+          "image": "images/Skill Png/魔力彈爆破.png",
+          "anchor": "target",
+          "point": "enemy_center",
+          "scaleMode": "target",
+          "scale": 1,
+          "offsetX": -5.2,
+          "offsetY": -22.6,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "pop",
+            "duration": 120
+          },
+          "exit": {
+            "type": "dissolve",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "summons": []
     }
   },
   "monsterSkills": {},
@@ -621,6 +767,78 @@ window.STUDYRPG_VISUAL_DATABASE={
           "x": 71.4,
           "y": -5,
           "size": 175
+        }
+      }
+    },
+    "slime_water": {
+      "tablet": {
+        "battle": {
+          "x": 71.4,
+          "y": -5,
+          "size": 175
+        }
+      }
+    }
+  },
+  "bodyAnchors": {
+    "heroes": {
+      "novice": {
+        "desktop": {
+          "head": -135,
+          "cast": -96,
+          "center": -99
+        },
+        "tablet": {
+          "head": -90.9,
+          "cast": -54.4,
+          "center": -42.4
+        }
+      }
+    },
+    "monsters": {
+      "desktop": {
+        "1": {
+          "slime_water": {
+            "head": -135,
+            "cast": -96,
+            "center": -99
+          }
+        }
+      },
+      "tablet": {
+        "1": {
+          "slime_water": {
+            "head": -120,
+            "cast": -81,
+            "center": -84
+          }
+        },
+        "3": {
+          "forest_spider": {
+            "head": -54.2,
+            "cast": -59.8,
+            "center": -45.2
+          },
+          "forest_wolf": {
+            "head": -150,
+            "cast": -111,
+            "center": -114
+          },
+          "forest_bear": {
+            "head": -150,
+            "cast": -111,
+            "center": -114
+          },
+          "treant": {
+            "head": -150,
+            "cast": -111,
+            "center": -114
+          },
+          "dark_elf": {
+            "head": -150,
+            "cast": -111,
+            "center": -114
+          }
         }
       }
     }
