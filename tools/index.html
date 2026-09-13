@@ -45,7 +45,7 @@
   <div class="scene-note">狀態 → 原本 sceneCoordinateLayout.statusHero；副本入口 → dungeonHero / dungeonEnemy；副本 → 原本 battleLayout.hero / enemy。沒有新增另一套座標。</div>
 </div>
 
-<div class="card" id="visualPreviewCard"><div class="headrow"><b>▶ 即時技能預覽 + Timeline</b><div style="display:flex;gap:6px"><button class="mini" id="previewReset">↩ 回原位</button><button class="mini primary" id="previewPlay">▶ 預覽技能</button></div></div><div class="muted">A → Path → B 與角色 motion 同步播放。HEAD / CAST / CENTER 三條身體輔助線可直接上下拖曳；怪物依「裝置 × 週次 × 怪物」獨立保存，不會互相覆蓋。點選 FX 後可直接在畫面拖位置；滑鼠滾輪可縮放。</div><div id="skillPreviewShell" class="skill-preview-shell"><div id="skillPreviewStage" class="skill-preview-stage"></div></div><div id="previewSelection" class="repoStatus">尚未選取 FX</div><div id="timeline" class="timeline"></div></div>
+<div class="card" id="visualPreviewCard"><div class="headrow"><b>▶ 即時技能預覽 + Timeline</b><div style="display:flex;gap:6px"><button class="mini" id="previewReset">↩ 回原位</button><button class="mini primary" id="previewPlay">▶ 預覽技能</button></div></div><div class="muted">A → Path → B 與角色 motion 同步播放。HEAD / CAST / CENTER 三條身體輔助線可直接上下拖曳；怪物依「裝置 × 週次 × 怪物」獨立保存。點選 FX 後可直接在畫面拖位置；滑鼠滾輪可縮放。</div><div id="skillPreviewShell" class="skill-preview-shell"><div id="skillPreviewStage" class="skill-preview-stage"></div></div><div id="previewSelection" class="repoStatus">尚未選取 FX</div><div id="timeline" class="timeline"></div></div>
 <div class="card"><div class="headrow"><b>🧰 圖片素材瀏覽器</b><span class="muted" id="assetCount"></span></div><div class="row"><div><label>資料夾</label><select id="assetFolder"></select></div><div><label>搜尋</label><input id="assetSearch" placeholder="例如 fire / slash / slime"></div></div><div id="assetGallery" class="asset-gallery"></div></div>
 <div class="card"><div class="row"><div><label>背景資料夾</label><select id="bgFolder"></select></div><div><label>戰鬥背景</label><select id="bg"></select></div></div><div><label>背景鎖定</label><button id="lock">🔒 背景鎖定</button></div><div><label>背景比例 %</label><input id="bs" type="number" value="100"></div><div class="muted">英雄大小依裝置共用；怪物大小依「怪物 × 裝置」獨立儲存，不再改一隻連其他天一起變。</div></div>
 <div id="stage"><img id="bgImg"><div id="hero">🧙</div><div id="enemy">👹</div></div><div class="muted">白點可拖曳。背景解鎖後可拖。召喚站位也是定位點，可供技能直接引用。</div>
@@ -360,8 +360,8 @@ function commitMotion(){const n=$('motionName').value;if(!n)return;motionStore()
 function loadAnchor(){ensure();const id=actorId();let a;if($('side').value==='player'){const id=actorId();CFG.heroes[id]=CFG.heroes[id]||{};a=CFG.heroes[id].effectAnchor=CFG.heroes[id].effectAnchor||{width:100,height:100,y:0}}else{CFG.monsters[id]=CFG.monsters[id]||{};a=CFG.monsters[id].effectAnchor=CFG.monsters[id].effectAnchor||{width:100,height:100,y:0}}$('anchorW').value=a.width;$('anchorH').value=a.height;$('anchorY').value=a.y}
 function commitAnchor(){const id=actorId(),a={width:+$('anchorW').value||100,height:+$('anchorH').value||100,y:+$('anchorY').value||0};if($('side').value==='player'){CFG.heroes[id]=CFG.heroes[id]||{};CFG.heroes[id].effectAnchor=a}else{CFG.monsters[id]=CFG.monsters[id]||{};CFG.monsters[id].effectAnchor=a}mark('anchor:'+id)}
 function ensureDevice(){ensureNativeLayouts?.();ensure();const d=$('device').value;CFG.referencePoints[d]=CFG.referencePoints[d]||{};const defs={enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};for(const p of Object.keys(defs))CFG.referencePoints[d][p]=CFG.referencePoints[d][p]||defs[p];CFG.stage[d]=CFG.stage[d]||{bg:{x:50,y:50,scale:1,locked:true}};CFG.stage[d].bg=CFG.stage[d].bg||{x:50,y:50,scale:1,locked:true};return d}
-function makePoints(){$('stage').querySelectorAll('.point').forEach(x=>x.remove());const bodyPts=new Set(['hero_head','hero_cast','hero_center','enemy_head','enemy_cast','enemy_center']);for(const p of points){if(bodyPts.has(p))continue;const e=document.createElement('div');e.className='point';e.dataset.p=p;$('stage').appendChild(e)}bindDrag()}
-function refBaseForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;if(name==='attack_mid')return CFG.battleLayout[d].attackMid;if(name==='attack_strike')return CFG.battleLayout[d].attackStrike;return CFG.referencePoints[d][name]}function refForEditor(d,name){return groundShift(refBaseForEditor(d,name),d,activeEditorWeek(),name,'dungeon')}function fitPointStage(){const d=$('device').value||'desktop',[w,h]=deviceCanvas(d),st=$('stage');st.style.aspectRatio=w+' / '+h}function renderStage(){const d=ensureDevice(),st=CFG.stage[d];fitPointStage();let gl=$('pointGroundLine');if(!gl){gl=document.createElement('div');gl.id='pointGroundLine';gl.className='scene-ground-line';$('stage').appendChild(gl)}gl.style.top=groundY(d,activeEditorWeek(),'dungeon')+'%';document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');$('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';$('hero').textContent='';$('enemy').textContent='';$('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';const currentMid=$('sceneMonster')?.value||$('monster')?.value||'';const enemyBattleSize=currentMid?monsterBattleSize(d,currentMid,CFG.objectSizes[d]?.battleEnemy||190):(CFG.objectSizes[d]?.battleEnemy||190);$('enemy').style.width=enemyBattleSize+'px';$('enemy').style.height=enemyBattleSize+'px';$('hero').style.background=`center/contain no-repeat url(${toolAssetUrl(sceneHeroSrc())})`;$('enemy').style.background=`center/contain no-repeat url(${toolAssetUrl(sceneMonsterSrc()||'')})`;$('bs').value=(st.bg.scale||1)*100;$('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';$('bgImg').src=toolAssetUrl(sceneWeekBackground());$('bgImg').style.transform=editorBgTransform(d);renderStageBodyGuides()}
+function makePoints(){$('stage').querySelectorAll('.point').forEach(x=>x.remove());for(const p of points){const e=document.createElement('div');e.className='point';e.dataset.p=p;$('stage').appendChild(e)}bindDrag()}
+function refBaseForEditor(d,name){ensureNativeLayouts();if(name==='hero_home')return CFG.battleLayout[d].hero;if(name==='enemy_home')return CFG.battleLayout[d].enemy;if(name==='attack_mid')return CFG.battleLayout[d].attackMid;if(name==='attack_strike')return CFG.battleLayout[d].attackStrike;return CFG.referencePoints[d][name]}function refForEditor(d,name){return groundShift(refBaseForEditor(d,name),d,activeEditorWeek(),name,'dungeon')}function fitPointStage(){const d=$('device').value||'desktop',[w,h]=deviceCanvas(d),st=$('stage');st.style.aspectRatio=w+' / '+h}function renderStage(){const d=ensureDevice(),st=CFG.stage[d];fitPointStage();let gl=$('pointGroundLine');if(!gl){gl=document.createElement('div');gl.id='pointGroundLine';gl.className='scene-ground-line';$('stage').appendChild(gl)}gl.style.top=groundY(d,activeEditorWeek(),'dungeon')+'%';document.querySelectorAll('.point').forEach(el=>{const q=refForEditor(d,el.dataset.p);if(!q)return;el.style.left=q.x+'%';el.style.top=q.y+'%'});const hp=refForEditor(d,'hero_home'),ep=refForEditor(d,'enemy_home');$('hero').style.left=hp.x+'%';$('hero').style.top=hp.y+'%';$('enemy').style.left=ep.x+'%';$('enemy').style.top=ep.y+'%';$('hero').textContent='';$('enemy').textContent='';$('hero').style.width=(CFG.objectSizes[d]?.battleHero||190)+'px';$('hero').style.height=(CFG.objectSizes[d]?.battleHero||190)+'px';const currentMid=$('sceneMonster')?.value||$('monster')?.value||'';const enemyBattleSize=currentMid?monsterBattleSize(d,currentMid,CFG.objectSizes[d]?.battleEnemy||190):(CFG.objectSizes[d]?.battleEnemy||190);$('enemy').style.width=enemyBattleSize+'px';$('enemy').style.height=enemyBattleSize+'px';$('hero').style.background=`center/contain no-repeat url(${toolAssetUrl(sceneHeroSrc())})`;$('enemy').style.background=`center/contain no-repeat url(${toolAssetUrl(sceneMonsterSrc()||'')})`;$('bs').value=(st.bg.scale||1)*100;$('lock').textContent=st.bg.locked?'🔒 背景鎖定':'🔓 背景解鎖';$('bgImg').src=toolAssetUrl(sceneWeekBackground());$('bgImg').style.transform=editorBgTransform(d)}
 function commitStage(){const d=ensureDevice(),st=CFG.stage[d];st.bg.scale=(+$('bs').value||100)/100;renderStage();mark('stage:'+d)}
 function bindDrag(){const stg=$('stage');document.querySelectorAll('.point').forEach(el=>el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);el.onpointermove=ev=>{const r=stg.getBoundingClientRect(),x=Math.max(0,Math.min(100,(ev.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100)),d=ensureDevice();const name=el.dataset.p,q={x:+x.toFixed(1),y:+Math.max(0,Math.min(100,groundUnshiftY(y,d,activeEditorWeek(),name,'dungeon'))).toFixed(1)};if(name==='hero_home')CFG.battleLayout[d].hero=q;else if(name==='enemy_home')CFG.battleLayout[d].enemy=q;else if(name==='attack_mid')CFG.battleLayout[d].attackMid=q;else if(name==='attack_strike')CFG.battleLayout[d].attackStrike=q;else CFG.referencePoints[d][name]=q;el.style.left=x+'%';el.style.top=y+'%';mark('points:'+d+':'+name);renderSceneEditor();renderSkillPreview()};const end=()=>{el.onpointermove=null;renderStage();renderSceneEditor();renderSkillPreview();renderTimeline()};el.onpointerup=end;el.onpointercancel=end});$('bgImg').onpointerdown=e=>{const d=ensureDevice(),b=CFG.stage[d].bg;if(b.locked)return;const sx=e.clientX,sy=e.clientY,ox=b.x||50,oy=b.y||50,r=stg.getBoundingClientRect();$('bgImg').setPointerCapture(e.pointerId);$('bgImg').onpointermove=ev=>{b.x=ox+(ev.clientX-sx)/r.width*100;b.y=oy+(ev.clientY-sy)/r.height*100;mark('stage:'+d);renderStage()};$('bgImg').onpointerup=()=>$('bgImg').onpointermove=null}}
 function fill(){const bgs=MANIFEST.assets.filter(x=>x.includes('images/backgrounds/'));syncAssetPicker('bgFolder','bg',$('bg')?.value||'','bg',bgs,'（未選擇背景）');syncAssetPicker('pathFolder','pathImg',$('pathImg')?.value||'','path',MANIFEST.assets,'（不使用 Path PNG）');const af=$('assetFolder');if(af){const keep=af.value;af.innerHTML=assetFolderOptions(keep,MANIFEST.assets,true);if([...af.options].some(o=>o.value===keep))af.value=keep}makePoints();renderSelectors();renderStage()}
@@ -374,7 +374,7 @@ const BATTLE_DEFAULTS={desktop:{hero:{x:18,y:0},enemy:{x:82,y:0},attackMid:{x:42
 const SIZE_DEFAULTS={desktop:{statusHero:160,dungeonHero:180,dungeonEnemy:180,battleHero:190,battleEnemy:190},tablet:{statusHero:150,dungeonHero:165,dungeonEnemy:165,battleHero:175,battleEnemy:175},mobile:{statusHero:135,dungeonHero:135,dungeonEnemy:135,battleHero:145,battleEnemy:145}};
 function sceneDeepClone(v){return JSON.parse(JSON.stringify(v))}
 function migrateOldSceneLayouts(){if(!CFG.sceneLayouts)return;CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};for(const d of DEVICES){const s=CFG.sceneLayouts[d]||{},st=s.status||{},en=s.dungeonEntry||{},ba=s.dungeon||{};CFG.sceneCoordinateLayout[d]=CFG.sceneCoordinateLayout[d]||{};CFG.battleLayout[d]=CFG.battleLayout[d]||{};CFG.objectSizes[d]=CFG.objectSizes[d]||{};if(st.hero){CFG.sceneCoordinateLayout[d].statusHero={x:+st.hero.x,y:+st.hero.y};CFG.objectSizes[d].statusHero=+st.hero.size||SIZE_DEFAULTS[d].statusHero}if(en.hero){CFG.sceneCoordinateLayout[d].dungeonHero={x:+en.hero.x,y:+en.hero.y};CFG.objectSizes[d].dungeonHero=+en.hero.size||SIZE_DEFAULTS[d].dungeonHero}if(en.enemy){CFG.sceneCoordinateLayout[d].dungeonEnemy={x:+en.enemy.x,y:+en.enemy.y};CFG.objectSizes[d].dungeonEnemy=+en.enemy.size||SIZE_DEFAULTS[d].dungeonEnemy}if(ba.hero){CFG.battleLayout[d].hero={x:+ba.hero.x,y:+ba.hero.y};CFG.objectSizes[d].battleHero=+ba.hero.size||SIZE_DEFAULTS[d].battleHero}if(ba.enemy){CFG.battleLayout[d].enemy={x:+ba.enemy.x,y:+ba.enemy.y};CFG.objectSizes[d].battleEnemy=+ba.enemy.size||SIZE_DEFAULTS[d].battleEnemy}}delete CFG.sceneLayouts}
-function ensureNativeLayouts(){migrateOldSceneLayouts();ensure();CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};CFG.mapGround=CFG.mapGround||{};CFG.referencePoints=CFG.referencePoints||{};for(const d of DEVICES){CFG.sceneCoordinateLayout[d]=Object.assign(sceneDeepClone(COORD_DEFAULTS[d]),CFG.sceneCoordinateLayout[d]||{});CFG.battleLayout[d]=Object.assign(sceneDeepClone(BATTLE_DEFAULTS[d]),CFG.battleLayout[d]||{});CFG.objectSizes[d]=Object.assign({},SIZE_DEFAULTS[d],CFG.objectSizes[d]||{});CFG.referencePoints[d]=CFG.referencePoints[d]||{}}}
+function ensureNativeLayouts(){migrateOldSceneLayouts();CFG.sceneCoordinateLayout=CFG.sceneCoordinateLayout||{};CFG.battleLayout=CFG.battleLayout||{};CFG.objectSizes=CFG.objectSizes||{};CFG.mapGround=CFG.mapGround||{};CFG.referencePoints=CFG.referencePoints||{};for(const d of DEVICES){CFG.sceneCoordinateLayout[d]=Object.assign(sceneDeepClone(COORD_DEFAULTS[d]),CFG.sceneCoordinateLayout[d]||{});CFG.battleLayout[d]=Object.assign(sceneDeepClone(BATTLE_DEFAULTS[d]),CFG.battleLayout[d]||{});CFG.objectSizes[d]=Object.assign({},SIZE_DEFAULTS[d],CFG.objectSizes[d]||{});CFG.referencePoints[d]=CFG.referencePoints[d]||{};const h=CFG.battleLayout[d].hero||BATTLE_DEFAULTS[d].hero,e=CFG.battleLayout[d].enemy||BATTLE_DEFAULTS[d].enemy,hHome=CFG.referencePoints[d].hero_home||{x:h.x,y:h.y||groundY(d,activeEditorWeek(),'dungeon')},eHome=CFG.referencePoints[d].enemy_home||{x:e.x,y:e.y||groundY(d,activeEditorWeek(),'dungeon')};const defaults={hero_center:{x:hHome.x,y:hHome.y-16},hero_cast:{x:hHome.x+4,y:hHome.y-15},hero_head:{x:hHome.x,y:hHome.y-28},enemy_center:{x:eHome.x,y:eHome.y-16},enemy_cast:{x:eHome.x-4,y:eHome.y-15},enemy_head:{x:eHome.x,y:eHome.y-28}};for(const [k,v] of Object.entries(defaults))if(!CFG.referencePoints[d][k])CFG.referencePoints[d][k]=v}}
 function currentHeroInfo(){try{const fam=JSON.parse(localStorage.getItem('heroRPG_FAMILY_V8')||'null');const pid=sessionStorage.getItem('activeHeroProfile')||fam?.activeProfileId||fam?.profiles?.[0]?.id;const p=fam?.profiles?.find(x=>x.id===pid)||fam?.profiles?.[0];return p?.data?.hero||{}}catch(e){return{}}}
 const HERO_KEYS={'見習勇者':'novice','初心者':'novice','戰士':'warrior','法師':'mage','牧師':'priest','獵人':'hunter','盜賊':'rogue','聖騎士':'paladin','魔劍士':'spellblade'};
 function sceneHeroSrc(){const h=currentHeroInfo(),key=h.jobAwakened?(HERO_KEYS[h.heroClass]||'novice'):'novice',female=h.gender==='female'?'_female':'';return `../images/hero_${key}${female}_idle.png`}
@@ -648,80 +648,52 @@ const originalMark=mark;lastUndoSnapshot=deep(CFG);mark=function(key){const now=
 function undo(){if(!undoStack.length){toast('沒有可復原的變更');return}CFG=undoStack.pop();lastUndoSnapshot=deep(CFG);dirty.add('undo');$('dirty').textContent='未儲存 '+dirty.size+' 項';document.body.classList.add('dirty');selectedFx=null;refreshAll();toast('已復原上一個變更')}
 function deleteSelected(){if(!selectedFx){toast('先點 A/B 的「👁 位置」或預覽特效');return}const a=fxArr(selectedFx.kind);if(a&&a[selectedFx.index]){a.splice(selectedFx.index,1);selectedFx=null;commitCurrent();renderFx();renderSkillPreview();renderTimeline();toast('已刪除特效')}}
 $('undoBtn').onclick=undo;$('deleteSelectedBtn').onclick=deleteSelected;addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo()}else if(e.key==='Delete'&&selectedFx){e.preventDefault();deleteSelected()}});
-function pnt(name){if(name==='hero_head')return bodyGuidePoint('head','player');if(name==='hero_cast')return bodyGuidePoint('cast','player');if(name==='hero_center')return bodyGuidePoint('center','player');if(name==='enemy_head')return bodyGuidePoint('head','monster');if(name==='enemy_cast')return bodyGuidePoint('cast','monster');if(name==='enemy_center')return bodyGuidePoint('center','monster');return pntRaw(name)}
-
+function pntBase(name){const d=$('device').value||'desktop';ensureDevice();let p;if(name==='hero_home')p=CFG.battleLayout[d].hero;else if(name==='enemy_home')p=CFG.battleLayout[d].enemy;else if(name==='attack_mid')p=CFG.battleLayout[d].attackMid;else if(name==='attack_strike')p=CFG.battleLayout[d].attackStrike;else p=CFG.referencePoints[d]?.[name]||{x:50,y:50};return groundShift(p,d,activeEditorWeek(),name,'dungeon')}
 const BODY_GUIDE_KINDS=['head','cast','center'];
 const BODY_GUIDE_DEFAULT_PX={head:-140,cast:-95,center:-72};
-function bodyAnchorHeroId(){return String($('heroActor')?.value||'novice')}
-function bodyAnchorMonsterId(){return String($('sceneMonster')?.value||$('monster')?.value||'').trim()}
-function bodyAnchorWeek(){return String(Math.max(1,Number(activeEditorWeek?.()||1)))}
-function bodyAnchorStore(side=$('side')?.value||'player',create=true){
-  ensure();
-  const d=String($('device')?.value||$('sceneDevice')?.value||'desktop');
+function bodyRigHeroId(){return String($('heroActor')?.value||'novice')}
+function bodyRigMonsterId(){return String($('sceneMonster')?.value||$('monster')?.value||'').trim()}
+function bodyRigWeek(){return String(Math.max(1,Number(activeEditorWeek?.()||1)))}
+function bodyRigStore(side='player',create=true){
+  ensure();const d=String($('device')?.value||$('sceneDevice')?.value||'desktop');
   if(side==='monster'){
-    const w=bodyAnchorWeek(),mid=bodyAnchorMonsterId();if(!mid)return null;
-    const dr=CFG.bodyAnchors.monsters[d]||(create?CFG.bodyAnchors.monsters[d]={}:null);if(!dr)return null;
-    const wr=dr[w]||(create?dr[w]={}:null);if(!wr)return null;
-    return wr[mid]||(create?wr[mid]={}:null)
+    const mid=bodyRigMonsterId();if(!mid)return null;const w=bodyRigWeek();
+    const byDevice=CFG.bodyAnchors.monsters[d]||(create?CFG.bodyAnchors.monsters[d]={}:null);if(!byDevice)return null;
+    const byWeek=byDevice[w]||(create?byDevice[w]={}:null);if(!byWeek)return null;
+    return byWeek[mid]||(create?byWeek[mid]={}:null)
   }
-  const hid=bodyAnchorHeroId(),hr=CFG.bodyAnchors.heroes[hid]||(create?CFG.bodyAnchors.heroes[hid]={}:null);if(!hr)return null;
-  return hr[d]||(create?hr[d]={}:null)
+  const hid=bodyRigHeroId(),byHero=CFG.bodyAnchors.heroes[hid]||(create?CFG.bodyAnchors.heroes[hid]={}:null);if(!byHero)return null;
+  return byHero[d]||(create?byHero[d]={}:null)
 }
-function bodyGuideFallbackOffset(kind,side){
-  const d=String($('device')?.value||'desktop'),[w,h]=deviceCanvas(d);
-  const home=side==='monster'?(CFG.battleLayout?.[d]?.enemy||BATTLE_DEFAULTS[d].enemy):(CFG.battleLayout?.[d]?.hero||BATTLE_DEFAULTS[d].hero);
-  const legacyName=(side==='monster'?'enemy_':'hero_')+kind,legacy=CFG.referencePoints?.[d]?.[legacyName];
-  if(legacy&&Number.isFinite(Number(legacy.y))&&home&&Number.isFinite(Number(home.y)))return +((Number(legacy.y)-Number(home.y))*h/100).toFixed(1);
+function bodyRigFallback(kind,side){
+  const d=String($('device')?.value||'desktop'),[,h]=deviceCanvas(d),home=pntBase(side==='monster'?'enemy_home':'hero_home');
+  const legacy=CFG.referencePoints?.[d]?.[(side==='monster'?'enemy_':'hero_')+kind];
+  if(legacy&&Number.isFinite(Number(legacy.y))&&Number.isFinite(Number(home?.y)))return +((Number(legacy.y)-Number(home.y))*h/100).toFixed(1);
   return BODY_GUIDE_DEFAULT_PX[kind]??0
 }
-function bodyGuideOffset(kind,side=$('side')?.value||'player'){
-  const s=bodyAnchorStore(side,true);if(!s)return BODY_GUIDE_DEFAULT_PX[kind]??0;
-  if(!Number.isFinite(Number(s[kind])))s[kind]=bodyGuideFallbackOffset(kind,side);
+function bodyRigOffset(kind,side='player'){
+  const s=bodyRigStore(side,true);if(!s)return BODY_GUIDE_DEFAULT_PX[kind]??0;
+  if(!Number.isFinite(Number(s[kind])))s[kind]=bodyRigFallback(kind,side);
   return Number(s[kind])
 }
-function setBodyGuideOffset(kind,offset,side=$('side')?.value||'player'){
-  const s=bodyAnchorStore(side,true);if(!s)return;
-  s[kind]=+Number(offset||0).toFixed(1);
-  const d=String($('device')?.value||'desktop'),owner=side==='monster'?`${bodyAnchorWeek()}:${bodyAnchorMonsterId()}`:bodyAnchorHeroId();
-  mark(`bodyAnchor:${side}:${d}:${owner}:${kind}`)
+function bodyRigSet(kind,offset,side='player'){
+  const s=bodyRigStore(side,true);if(!s)return;s[kind]=+Number(offset||0).toFixed(1);
+  const d=String($('device')?.value||'desktop'),owner=side==='monster'?`${bodyRigWeek()}:${bodyRigMonsterId()}`:bodyRigHeroId();mark(`bodyAnchor:${side}:${d}:${owner}:${kind}`)
 }
-function bodyGuidePoint(kind,side='player'){
-  const d=String($('device')?.value||'desktop'),[,h]=deviceCanvas(d),home=side==='monster'?pntRaw('enemy_home'):pntRaw('hero_home');
-  return {x:Number(home?.x||50),y:Number(home?.y||50)+bodyGuideOffset(kind,side)/h*100}
+function bodyRigPoint(kind,side='player'){
+  const d=String($('device')?.value||'desktop'),[,h]=deviceCanvas(d),home=pntBase(side==='monster'?'enemy_home':'hero_home');
+  return {x:Number(home?.x||50),y:Number(home?.y||50)+bodyRigOffset(kind,side)/h*100}
 }
-function pntRaw(name){
-  const d=$('device').value||'desktop';ensureDevice();let p;
-  if(name==='hero_home')p=CFG.battleLayout[d].hero;
-  else if(name==='enemy_home')p=CFG.battleLayout[d].enemy;
-  else if(name==='attack_mid')p=CFG.battleLayout[d].attackMid;
-  else if(name==='attack_strike')p=CFG.battleLayout[d].attackStrike;
-  else p=CFG.referencePoints[d]?.[name]||{x:50,y:50};
-  return groundShift(p,d,activeEditorWeek(),name,'dungeon')
-}
-function bodyGuideHtml(side=$('side')?.value||'player'){
-  return BODY_GUIDE_KINDS.map(k=>{const p=bodyGuidePoint(k,side);return `<div class="body-guide-line" data-body-guide="${side}" data-kind="${k}" data-label="${k.toUpperCase()} · ${side==='monster'?'怪物':'英雄'}" style="top:${p.y}%"></div>`}).join('')
-}
+function pnt(name){if(name==='hero_head')return bodyRigPoint('head','player');if(name==='hero_cast')return bodyRigPoint('cast','player');if(name==='hero_center')return bodyRigPoint('center','player');if(name==='enemy_head')return bodyRigPoint('head','monster');if(name==='enemy_cast')return bodyRigPoint('cast','monster');if(name==='enemy_center')return bodyRigPoint('center','monster');return pntBase(name)}
+function bodyGuideHtml(side){return BODY_GUIDE_KINDS.map(k=>{const p=bodyRigPoint(k,side);return `<div class="body-guide-line" data-body-guide="${side}" data-kind="${k}" data-label="${k.toUpperCase()} · ${side==='monster'?'怪物':'英雄'}" style="top:${p.y}%"></div>`}).join('')}
 function bindBodyGuides(){
   const stage=$('skillPreviewStage');if(!stage)return;
-  stage.querySelectorAll('.body-guide-line[data-body-guide]').forEach(line=>{
-    line.onpointerdown=e=>{
-      e.preventDefault();e.stopPropagation();const side=line.dataset.bodyGuide,kind=line.dataset.kind,d=$('device').value||'desktop',[cw,ch]=deviceCanvas(d),home=side==='monster'?pntRaw('enemy_home'):pntRaw('hero_home'),r=stage.getBoundingClientRect();
-      line.classList.add('dragging');line.setPointerCapture?.(e.pointerId);
-      line.onpointermove=ev=>{
-        const y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100));
-        const off=(y-Number(home.y||0))*ch/100;
-        setBodyGuideOffset(kind,off,side);line.style.top=y+'%';
-        renderStageBodyGuides();renderTimeline()
-      };
-      const end=()=>{line.onpointermove=null;line.classList.remove('dragging');renderSkillPreview();renderStageBodyGuides()};
-      line.onpointerup=end;line.onpointercancel=end
-    }
-  })
-}
-function renderStageBodyGuides(){
-  const st=$('stage');if(!st)return;st.querySelectorAll('.body-guide-line[data-stage-guide]').forEach(x=>x.remove());
-  const side=$('side')?.value||'player';
-  for(const k of BODY_GUIDE_KINDS){const p=bodyGuidePoint(k,side),e=document.createElement('div');e.className='body-guide-line';e.dataset.stageGuide='1';e.dataset.kind=k;e.dataset.label=`${k.toUpperCase()} · ${side==='monster'?'怪物':'英雄'}`;e.style.top=p.y+'%';e.style.pointerEvents='none';st.appendChild(e)}
+  stage.querySelectorAll('.body-guide-line[data-body-guide]').forEach(line=>{line.onpointerdown=e=>{
+    e.preventDefault();e.stopPropagation();const side=line.dataset.bodyGuide,kind=line.dataset.kind,d=$('device').value||'desktop',[,ch]=deviceCanvas(d),home=pntBase(side==='monster'?'enemy_home':'hero_home'),r=stage.getBoundingClientRect();
+    line.classList.add('dragging');line.setPointerCapture?.(e.pointerId);
+    line.onpointermove=ev=>{const y=Math.max(0,Math.min(100,(ev.clientY-r.top)/r.height*100));bodyRigSet(kind,(y-Number(home.y||0))*ch/100,side);line.style.top=y+'%'};
+    const end=()=>{line.onpointermove=null;line.classList.remove('dragging');renderSkillPreview();renderTimeline()};line.onpointerup=end;line.onpointercancel=end
+  }})
 }
 function sidePoints(){return $('side').value==='monster'?{self:'enemy_home',target:'hero_home'}:{self:'hero_home',target:'enemy_home'}}
 function skillHeroSrc(state='idle'){const key=$('heroActor')?.value||'novice',h=currentHeroInfo(),female=h.gender==='female'?'_female':'';return `../images/hero_${key}${female}_${state}.png`}
