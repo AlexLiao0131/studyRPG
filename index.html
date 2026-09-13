@@ -6137,6 +6137,7 @@ function gmStartWeekBattleTest(options={}){
   sessionStorage.setItem('gmTestWeek',String(w));sessionStorage.setItem('gmTestDay',String(d));sessionStorage.setItem('gmBattleTestActive','1');
   const encounter=gmTestEncounterInfo(w,d,mon),eventType=encounter.eventType,power=gmWeekTestPower(w,d,mon),heroMode=options.mode||document.getElementById('gmTestHeroMode')?.value||'standard';
   const testHero=gmBuildTestHero(w,heroMode,options.job);
+  if(Array.isArray(options.skillIds))testHero.testSkillIds=options.skillIds.slice(0,4);
   const iconEvt=eventType==='daily'?null:{type:eventType};
   runBattleSequence(mon.name,battleIconForEnemy(iconEvt,mon),power,0,0,eventType,monsterId,{testMode:true,testWeek:w,testDay:d,testHero});
   const formulaLabel=eventType==='final'?`期末公式 ×${SEMESTER_BALANCE.eventMultipliers.final}`:eventType==='midterm'?`期中公式 ×${SEMESTER_BALANCE.eventMultipliers.midterm}`:'週數日常公式';
@@ -7489,9 +7490,12 @@ tickLiveUnit=async function(u,isHero=false){const r=await __v10113TickLiveUnit(u
       if(testJob==='初心者') return BEGINNER_SKILLS.slice(0,4);
       const list=FORMAL_CLASS_SKILLS?.[testJob];
       if(list){
-        // 若目前存檔剛好也是同職，尊重玩家已配置的4招；否則測試器載入該職前4招。
+        // GM / Battle Test 直接使用本場指定的4招；不依賴正式角色存檔，也不回退成職業前4招。
+        const map=new Map(list.map(s=>[s.id,s]));
+        const testIds=(battleStateV10?.hero?.testSkillIds||[]).filter(id=>map.has(id)).slice(0,4);
+        if(testIds.length) return testIds.map(id=>map.get(id));
+        // 從主程式 GM 後台直接測試、未傳入本場配置時，才沿用正式角色同職配置。
         if(gameData.hero.jobAwakened && gameData.hero.heroClass===testJob){
-          const map=new Map(list.map(s=>[s.id,s]));
           const ids=(gameData.hero.equippedSkills||[]).filter(id=>map.has(id)).slice(0,4);
           if(ids.length) return ids.map(id=>map.get(id));
         }
