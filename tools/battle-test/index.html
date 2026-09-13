@@ -841,14 +841,9 @@ function syncLiveSkillTestConfig(w){
   const jobId=$('job')?.value||'novice',jobLabel=liveSelectedJobLabel();
   const ids=selectedSkillIds(jobId);
   if(jobId!=='novice'&&ids.length!==4)throw new Error('正式職業必須從 8 招選滿 4 招');
-  const gd=w?.gameData?.hero;
-  if(gd){
-    gd.jobAwakened=jobId!=='novice';
-    gd.heroClass=jobLabel;
-    gd.equippedSkills=ids.slice();
-    gd.knownSkills=[...new Set([...(gd.knownSkills||[]),...jobSkills(jobId).map(s=>s.id)])];
-    gd.skills=[...new Set([...(gd.skills||[]),...jobSkills(jobId).map(s=>s.id)])];
-  }
+
+  // Battle Test 只同步「本次測試用技能資料」到 iframe 的 Runtime 技能資料庫。
+  // 不修改 gameData.hero / equippedSkills / knownSkills / skills，避免任何正式角色資料被測試流程污染。
   if(jobId!=='novice'){
     const parentList=DB.formal?.[jobLabel]||[];
     const liveList=w?.STUDYRPG_SKILL_DATABASE?.formalClassSkills?.[jobLabel];
@@ -877,7 +872,8 @@ function startFormalRuntimeBattle(){
       week:source.week,
       day:source.day,
       job:liveSelectedJobLabel(),
-      mode:'standard'
+      mode:'standard',
+      skillIds:selectedIds
     });
     const monName=DB.monsters?.[monsterId]?.name||monsterId;
     const reviewNote=source.week!==selectedWeek?`（回顧怪來源：第 ${source.week} 週）`:'';
