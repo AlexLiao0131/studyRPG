@@ -9051,19 +9051,21 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
       spendFormalActionV101182(a);const marked=hasJudgmentMarkV101182(target);const r=await hitTarget(target,{...a,status:null},1.35,'physical');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.12));
       if(r.damage&&marked&&target.hp>0){removeJudgmentMarkV101182(target);await hitTarget(target,{id:'pal_blade_holy',name:'正義之刃・聖印爆發',type:'holy'},.50,'holy');addSimpleStatus(target,{type:'stun',turns:1},a.name);updateBattleStatuses();}return;
     }
-    if(f?.cls==='聖騎士'&&a.id==='pal_divine_storm'){
+    if(f?.cls==='聖騎士'&&(a.id==='pal_divine_storm'||a.special==='divine_storm')){
       spendFormalActionV101182(a);
-      let total=0;
-      const targets=(battleStateV10.enemies||[]).filter(t=>t.hp>0&&t.alive!==false);
-      for(const t of targets){
-        // 直接使用角色最終 ATK：此數值已包含裝備與詞綴，不另外讀武器數值，避免裝備被重複計算。
-        const r=await hitTarget(t,{id:'pal_divine_storm',name:'神聖風暴',type:'holy',source:'attack'},1.00,'holy');
-        total+=Number(r.damage||0);
-      }
-      // 傷害先結算，再上印記，避免新印記的神聖承傷+15%放大同一次神聖風暴。
-      for(const t of targets)if(t.hp>0)applyJudgmentMarkV101182(t);
+      // 真正走既有 AOE 管線：hitAll 會逐一對 battleStateV10.enemies 的所有存活敵人結算。
+      // source:'attack' 代表使用角色最終 ATK；裝備與詞綴已包含在最終 ATK，不重複抓武器數值。
+      const total=await hitAll(
+        {id:'pal_divine_storm',name:'神聖風暴',type:'holy',source:'attack'},
+        1.00,
+        'holy'
+      );
+      // 傷害全部結算後，再替仍存活的敵人附加/刷新印記。
+      // 這樣新印記的 +15% 神聖承傷不會反過來增幅同一次神聖風暴。
+      const survivors=(battleStateV10.enemies||[]).filter(t=>t.hp>0&&t.alive!==false);
+      for(const t of survivors)applyJudgmentMarkV101182(t);
       if(total>0)heroHeal(total*.30,'神聖風暴');
-      addBattleLog(`🌪️✨ 神聖風暴：本次實際總傷害 ${total}，恢復 ${Math.max(0,Math.round(total*.30))} HP。`);
+      addBattleLog(`🌪️✨ 神聖風暴：命中全體敵人，本次實際總傷害 ${total}，恢復 ${Math.max(0,Math.round(total*.30))} HP。`);
       return;
     }
     if(f?.cls==='聖騎士'&&a.id==='pal_consecrate'){
