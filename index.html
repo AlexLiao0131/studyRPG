@@ -6813,8 +6813,6 @@ if(gameData.settings?.cloud?.enabled)initFirebase();</script>
 <script>
 const FORMAL_CLASS_SKILLS=(window.STUDYRPG_SKILL_DATABASE?.formalClassSkills)||{};
 const FORMAL_PASSIVES=(window.STUDYRPG_SKILL_DATABASE?.formalPassives)||{};
-const __palDivineStormSkill=(FORMAL_CLASS_SKILLS['聖騎士']||[]).find(s=>s.id==='pal_freedom');
-if(__palDivineStormSkill)Object.assign(__palDivineStormSkill,{name:'神聖風暴',icon:'🌪️✨',cost:20,type:'holy',special:'divine_storm'});
 Object.values(FORMAL_CLASS_SKILLS).flat().forEach(s=>{s.description=s.description||formalSkillDesc(s);JOB_SKILL_LIBRARY[s.id]=s;});
 function formalSkillDesc(s){const bits=[];if(s.aoe)bits.push('全體');if(s.multiplier)bits.push(`${Math.round(s.multiplier*100)}%傷害`);if(s.effect?.turns)bits.push(`${s.effect.turns}回合效果`);if(s.status?.type)bits.push(`附加${s.status.type}`);return bits.join('｜')||'職業特殊技能';}
 JOB_RULES.forEach(r=>{if(FORMAL_CLASS_SKILLS[r.name])r.skills=FORMAL_CLASS_SKILLS[r.name].map(x=>x.id)});
@@ -6837,7 +6835,7 @@ function consumeSeal(){const f=battleStateV10.formal;if(!f.seal)return false;f.s
 function setEnchant(type){const f=battleStateV10.formal;f.enchant=type;addBattleLog(`🗡️ 武器獲得${type==='fire'?'🔥火焰':type==='ice'?'❄️冰霜':type==='lightning'?'⚡雷電':'✨神聖'}附魔。`);}
 async function triggerEnchant(target){const f=battleStateV10.formal;if(f.overload){f.overload=false;for(const [ty,st] of [['arcane',null],['fire',{type:'burn',turns:3,dotMatk:.2}],['ice',{type:'slow',turns:3,mods:{speedPct:-.25}}],['lightning',{type:'paralysis',turns:1,chance:.35}]]){const r=await hitTarget(target,{name:'全元素附魔',type:ty,multiplier:.45,status:st},.45,ty);}addBattleLog('🌈 全元素附魔爆發！次級附魔仍然保留。');return;}if(!f.enchant)return;const ty=f.enchant;f.enchant=null;const st=ty==='fire'?{type:'burn',turns:3,dotMatk:.2}:ty==='ice'?{type:'slow',turns:3,mods:{speedPct:-.25}}:ty==='lightning'?{type:'paralysis',turns:1,chance:.35}:null;await hitTarget(target,{name:'附魔武器',type:ty,multiplier:.55,status:st},.55,ty);}
 async function formalSkillAction(a){const f=battleStateV10.formal,target=selectedBattleEnemy();formalPay(a);f.uses[a.id]=(f.uses[a.id]||0)+1;recordSkillUsage(a.id);addBattleLog(`${a.icon||'✨'} ${battleStateV10.hero.name}使用「${a.name}」！`);
- if(a.id==='war_ragefill'){f.rage=100;updateFormalResourceUI();return;}if(a.special==='meditate'){if(f.uses[a.id]>2){f.uses[a.id]--;addBattleLog('本場魔力冥想已使用2次。');return;}addTimedEffect(battleStateV10.hero,{name:'魔力冥想',effectType:'buff',turns:3,mods:{hit:.15,mpRegenPct:.10}});return;}if(a.special==='cleanse'){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>!['poison','disease','curse'].includes(s.type));updateBattleStatuses();return;}if(a.special==='freedom'){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>!['stun','freeze','paralysis','slow'].includes(s.type));updateBattleStatuses();return;}if(a.special==='miracle'){if(f.miracle||f.uses[a.id]>1){addBattleLog('🌟 奇蹟每場只能準備一次。');return;}f.miracle=true;addStatus(battleStateV10.hero,{type:'miracle',name:'🌟 奇蹟',turns:999,effectType:'buff',mods:{}});return;}if(a.special==='bigheal'){heroHeal(battleStateV10.hero.maxHp*.55+virtueNow()*1.5,'神聖禱言');return;}if(a.special==='lightbolt'){f._lastPriestLightboltWasHeal=false;if(confirm('聖光彈：按「確定」治療自己；按「取消」攻擊敵人。')){f._lastPriestLightboltWasHeal=true;heroHeal(battleStateV10.hero.magicAttack*1.25+virtueNow()*1.2,'聖光彈');return;}}
+ if(a.id==='war_ragefill'){f.rage=100;updateFormalResourceUI();return;}if(a.special==='meditate'){if(f.uses[a.id]>2){f.uses[a.id]--;addBattleLog('本場魔力冥想已使用2次。');return;}addTimedEffect(battleStateV10.hero,{name:'魔力冥想',effectType:'buff',turns:3,mods:{hit:.15,mpRegenPct:.10}});return;}if(a.special==='cleanse'){battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>!['poison','disease','curse'].includes(s.type));updateBattleStatuses();return;}if(a.special==='miracle'){if(f.miracle||f.uses[a.id]>1){addBattleLog('🌟 奇蹟每場只能準備一次。');return;}f.miracle=true;addStatus(battleStateV10.hero,{type:'miracle',name:'🌟 奇蹟',turns:999,effectType:'buff',mods:{}});return;}if(a.special==='bigheal'){heroHeal(battleStateV10.hero.maxHp*.55+virtueNow()*1.5,'神聖禱言');return;}if(a.special==='lightbolt'){f._lastPriestLightboltWasHeal=false;if(confirm('聖光彈：按「確定」治療自己；按「取消」攻擊敵人。')){f._lastPriestLightboltWasHeal=true;heroHeal(battleStateV10.hero.magicAttack*1.25+virtueNow()*1.2,'聖光彈');return;}}
  if(a.special==='hound'){const h=battleStateV10.hero;f.hound={hp:Math.round(h.maxHp*.45),maxHp:Math.round(h.maxHp*.45),attack:h.attack*.85,defense:h.defense*.70,speed:h.speed*.90};addBattleLog(`🐕 獵犬加入戰鬥！HP ${f.hound.hp}｜ATK ${Math.round(f.hound.attack)}｜DEF ${Math.round(f.hound.defense)}`);return;}if(a.special==='snipe'){f.snipe={targetUid:target?.uid||null,armed:true};addStatus(battleStateV10.hero,{type:'snipe_aim',name:'🔭 狙擊瞄準',turns:2,effectType:'buff',mods:{}});addBattleLog(`🔭 鎖定 ${target?.name||'目標'}，本回合進入瞄準；下一次行動必定命中、必定暴擊！`);return;}if(a.special==='poison_coating'){battleStateV10.hero.statuses=(battleStateV10.hero.statuses||[]).filter(s=>!s.mods?.poisonCoating);addTimedEffect(battleStateV10.hero,{name:'☠️ 毒藥附魔',effectType:'buff',turns:4,mods:{poisonCoating:true}});addBattleLog('☠️ 毒藥附魔啟動：4回合內每次命中追加毒傷並刷新中毒。');updateBattleStatuses();return;}if(a.special==='steal'){if(target.stolen){addBattleLog('👜 這名敵人已經沒東西可偷了。');return;}if(Math.random()<.75){target.stolen=true;if(Math.random()<.55){const g=5+Math.floor(Math.random()*16);gameData.hero.gold+=g;addBattleLog(`👜 偷到 ${g} G！`);}else{gameData.inventory.push({id:uid(),itemId:'stolen_potion',name:'初級生命藥水',status:'unused',source:'steal'});addBattleLog('👜 偷到初級生命藥水！');}saveGame();}else addBattleLog('👜 盜竊失敗！');return;}
  if(a.special==='disrupt'){
    const buffs=(target.statuses||[]).filter(s=>s.effectType==='buff'&&!s.unstealable);
@@ -6910,7 +6908,7 @@ tickLiveUnit=async function(u,isHero=false){if(isHero&&battleStateV10?.formal){
       await __oldTickLiveUnit(u,isHero); updateBattleStatuses(); return true;
     }
   }
-if(f.resourceType==='energy')gainFormal('energy',8);if(f.resourceType==='dual')gainFormal('energy',8);const med=u.statuses?.find(s=>s.mods?.mpRegenPct);if(med)gainFormal('mp',f.maxMp*med.mods.mpRegenPct);const cons=u.statuses?.find(s=>s.mods?.consecrate);if(cons){const consecrateTotal=await hitAll({name:'奉獻',type:'holy'},cons.mods.consecrate,'holy');if(consecrateTotal>0)addBattleLog(`✨ 奉獻脈動：本回合共造成 ${consecrateTotal} 點神聖傷害。`);}if(f.hound){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(alive.length){const t=alive[Math.floor(Math.random()*alive.length)];const fake={...battleStateV10.hero,attack:f.hound.attack,speed:f.hound.speed};const r=resolveAttack(fake,t,{type:'physical',multiplier:1.00,canParry:false});if(r.damage){const biteFloor=Math.max(2,Math.round(f.hound.attack*.20));const biteDamage=Math.max(r.damage,biteFloor);applyDamageToEnemy(t,biteDamage);showDamage('enemy','-'+biteDamage);addSimpleStatus(t,{type:'bleed',turns:3,dotAtk:.15},'獵犬撕咬');addBattleLog(`🐕 獵犬咬擊 ${biteDamage}！`);}else if(r.type==='miss'||r.type==='dodge'){addBattleLog(`🐕 獵犬咬擊被閃開了！`);}}}if(f.cls==='聖騎士'&&!f.seal){f.seal=true;f.sealCooldown=0;addStatus(u,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});addBattleLog('✨ 聖印重新凝聚！');}}return __oldTickLiveUnit(u,isHero);};
+if(f.resourceType==='energy')gainFormal('energy',8);if(f.resourceType==='dual')gainFormal('energy',8);const med=u.statuses?.find(s=>s.mods?.mpRegenPct);if(med)gainFormal('mp',f.maxMp*med.mods.mpRegenPct);const cons=u.statuses?.find(s=>s.mods?.consecrate);if(cons){const total=await hitAll({name:'奉獻',type:'holy'},cons.mods.consecrate,'holy');if(total>0)addBattleLog(`✨ 奉獻脈動：本回合共造成 ${total} 點神聖傷害。`);}if(f.hound){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(alive.length){const t=alive[Math.floor(Math.random()*alive.length)];const fake={...battleStateV10.hero,attack:f.hound.attack,speed:f.hound.speed};const r=resolveAttack(fake,t,{type:'physical',multiplier:1.00,canParry:false});if(r.damage){const biteFloor=Math.max(2,Math.round(f.hound.attack*.20));const biteDamage=Math.max(r.damage,biteFloor);applyDamageToEnemy(t,biteDamage);showDamage('enemy','-'+biteDamage);addSimpleStatus(t,{type:'bleed',turns:3,dotAtk:.15},'獵犬撕咬');addBattleLog(`🐕 獵犬咬擊 ${biteDamage}！`);}else if(r.type==='miss'||r.type==='dodge'){addBattleLog(`🐕 獵犬咬擊被閃開了！`);}}}if(f.cls==='聖騎士'&&!f.seal){f.seal=true;f.sealCooldown=0;addStatus(u,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});addBattleLog('✨ 聖印重新凝聚！');}}return __oldTickLiveUnit(u,isHero);};
 const __oldCheckBattleEnd=checkBattleEnd;
 checkBattleEnd=async function(){if(battleStateV10?.heroHp<=0&&battleStateV10?.formal?.miracle){battleStateV10.formal.miracle=false;battleStateV10.heroHp=Math.round(battleStateV10.hero.maxHp*.40);battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>s.type!=='miracle');updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);addBattleLog('🌟 奇蹟！勇者重新站了起來！');return false;}return __oldCheckBattleEnd();};
 function gmTestSwitchClass(cls){const skills=FORMAL_CLASS_SKILLS[cls];if(!skills)return;gameData.hero.heroClass=cls;gameData.hero.jobAwakened=true;const ids=skills.map(s=>s.id);const allFormalIds=new Set(Object.values(FORMAL_CLASS_SKILLS).flat().map(x=>x.id));gameData.hero.knownSkills=[...(gameData.hero.knownSkills||[]).filter(id=>!allFormalIds.has(id)),...ids];gameData.hero.skills=[...(gameData.hero.skills||[]).filter(id=>!allFormalIds.has(id)),...ids];gameData.hero.equippedSkills=ids.slice(0,4);const rule=JOB_RULES.find(x=>x.name===cls);gameData.hero.jobPassive=rule?.passive||'';saveGame();renderAll();renderGM();alert(`🧪 已切換測試職業：${cls}\n已載入該職8招並自動裝備前4招。\n可到戰前技能配置自由換另外4招。`);}
@@ -7109,7 +7107,7 @@ pal_shock:'攻擊敵人時不耗MP且命中後回MP；選擇治療自己時消�
 pal_divine_shield:'消耗45 MP，3回合免疫所有傷害；控制與負面狀態本身仍可施加。',
 pal_wings:'消耗35 MP，4回合大幅提高所有傷害與治療量。',
 pal_blade:'不消耗MP，造成武器傷害並回復MP；若有聖印會消耗聖印並暈眩目標1回合。',
-pal_freedom:'神聖風暴：消耗20 MP，對現場全部敵人造成100%武器神聖傷害，並替存活敵人附加或刷新3回合審判印記；自身恢復本次實際總傷害30%的HP。',
+pal_divine_storm:'消耗20 MP，對現場全部敵人造成100% ATK神聖傷害；傷害後為所有存活敵人附加或刷新3回合審判印記，並恢復本次實際總傷害30%的HP。',
 pal_consecrate:'消耗35 MP，在3回合內每回合對全體敵人造成神聖傷害；第3回合一次引爆場上所有審判印記。',
 pal_verdict:'消耗45 MP，造成巨大單體神聖傷害；若有聖印會消耗並啟動低血量處決效果，Boss不會即死。',
 sb_arcane_strike:'消耗能量，一次行動產生「武器物理傷害＋秘法傷害」兩個獨立傷害事件。命中會回復MP；若已有附魔也會觸發附魔。',
@@ -9053,17 +9051,19 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
       spendFormalActionV101182(a);const marked=hasJudgmentMarkV101182(target);const r=await hitTarget(target,{...a,status:null},1.35,'physical');if(r.damage)gainFormal('mp',Math.round(f.maxMp*.12));
       if(r.damage&&marked&&target.hp>0){removeJudgmentMarkV101182(target);await hitTarget(target,{id:'pal_blade_holy',name:'正義之刃・聖印爆發',type:'holy'},.50,'holy');addSimpleStatus(target,{type:'stun',turns:1},a.name);updateBattleStatuses();}return;
     }
-    if(f?.cls==='聖騎士'&&a.id==='pal_freedom'){
+    if(f?.cls==='聖騎士'&&a.id==='pal_divine_storm'){
       spendFormalActionV101182(a);
-      const stormTargets=(battleStateV10.enemies||[]).filter(t=>t.hp>0&&t.alive!==false);
       let total=0;
-      for(const t of stormTargets){
+      const targets=(battleStateV10.enemies||[]).filter(t=>t.hp>0&&t.alive!==false);
+      for(const t of targets){
+        // 直接使用角色最終 ATK：此數值已包含裝備與詞綴，不另外讀武器數值，避免裝備被重複計算。
         const r=await hitTarget(t,{id:'pal_divine_storm',name:'神聖風暴',type:'holy',source:'attack'},1.00,'holy');
-        total+=r.damage||0;
+        total+=Number(r.damage||0);
       }
-      for(const t of stormTargets)if(t.hp>0)applyJudgmentMarkV101182(t);
+      // 傷害先結算，再上印記，避免新印記的神聖承傷+15%放大同一次神聖風暴。
+      for(const t of targets)if(t.hp>0)applyJudgmentMarkV101182(t);
       if(total>0)heroHeal(total*.30,'神聖風暴');
-      addBattleLog(`🌪️✨ 神聖風暴：總傷害 ${total}，恢復 ${Math.max(0,Math.round(total*.30))} HP，並為存活敵人附加／刷新審判印記。`);
+      addBattleLog(`🌪️✨ 神聖風暴：本次實際總傷害 ${total}，恢復 ${Math.max(0,Math.round(total*.30))} HP。`);
       return;
     }
     if(f?.cls==='聖騎士'&&a.id==='pal_consecrate'){
@@ -9140,16 +9140,16 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
     FORMAL_SKILL_HELP.hunter_hound='消耗30能量，每場限用一次。召喚可被敵人鎖定與攻擊的獵犬；獵犬從下一回合依速度行動，自動撕咬並造成流血，流血每次發動有25%機率揭露弱點。';
     FORMAL_SKILL_HELP.pal_crusader='不消耗MP，造成105%神聖傷害並回復12% MaxMP；攻擊審判印記目標時追加75%神聖傷害並刷新印記至3回合。';
     FORMAL_SKILL_HELP.pal_blade='不消耗MP，造成135%物理傷害並回復12% MaxMP；命中印記目標時消耗印記，追加50%神聖傷害並暈眩1回合。';
-    FORMAL_SKILL_HELP.pal_freedom='神聖風暴：消耗20 MP，對現場全部敵人造成100%武器神聖傷害，並替存活敵人附加或刷新3回合審判印記；自身恢復本次實際總傷害30%的HP。';
+    FORMAL_SKILL_HELP.pal_divine_storm='消耗20 MP，對所有存活敵人造成100% ATK神聖傷害；傷害結算後為所有存活敵人附加或刷新3回合審判印記，並恢復本次實際總傷害30%的HP。';
     FORMAL_SKILL_HELP.pal_consecrate='消耗35 MP，3回合每回合對全體造成45%神聖傷害；第3回合一次消耗場上所有審判印記，每枚印記各引發一次50%全體神聖爆炸。';
-    for(const id of ['war_ragefill','war_laststand','war_charge','hunter_focus','hunter_hound','pal_crusader','pal_blade','pal_freedom','pal_consecrate']){
+    for(const id of ['war_ragefill','war_laststand','war_charge','hunter_focus','hunter_hound','pal_crusader','pal_blade','pal_divine_storm','pal_consecrate']){
       const skill=Object.values(FORMAL_CLASS_SKILLS||{}).flat().find(s=>s.id===id);if(skill)skill.description=FORMAL_SKILL_HELP[id];
     }
   }
   if(typeof FORMAL_PASSIVE_HELP!=='undefined'){
     FORMAL_PASSIVE_HELP['戰士']='🔥 怒氣：普攻與受擊累積怒氣；怒氣越高，傷害與斬殺線越高。怒氣強化每場限用一次。破釜沉舟期間受到致命傷害會保留1 HP；衝鋒只有命中後才會附加暈眩與破甲，Boss暈眩另受抗性判定。';
     FORMAL_PASSIVE_HELP['獵人']='🎯 弱點：普攻命中有22%機率揭露弱點；流血目標提高為47%，流血每次跳傷另有25%機率揭露。弱點持續3回合，可供致命射擊與狙擊消耗。召喚獵犬每場限一次，獵犬有獨立HP、速度與行動回合，也會被敵人鎖定、控制或擊倒。';
-    FORMAL_PASSIVE_HELP['聖騎士']='✨ 聖印：開戰只持有1枚聖印。持印普攻轉為神聖傷害並按實際傷害35%回MP，命中後聖印離開自身並轉移成目標3回合審判印記；一般普攻命中回5% MaxMP。戰場上任何時候只會有1枚聖印／審判印記，印記存在時不會在自身重新生成；印記消失後才依冷卻回到聖騎士身上。印記使神聖承傷+15%。';
+    FORMAL_PASSIVE_HELP['聖騎士']='✨ 聖印：開戰持有1枚聖印。持印普攻轉為神聖傷害並按實際傷害35%回MP，命中後聖印轉移成目標3回合審判印記；一般普攻命中回5% MaxMP。聖印無冷卻，會在下一次自身回合更新時重新凝聚，因此可把審判印記鋪到複數敵人；每名敵人最多1枚。印記使神聖承傷+15%。';
   }
 })();
 </script>
@@ -9527,10 +9527,6 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
     if(action?.special==='cleanse'){
       const before=hero.statuses.length;hero.statuses=hero.statuses.filter(s=>!['disease','curse','swamp_corruption'].includes(s.type));
       if(hero.statuses.length<before)addBattleLog('✨ 淨化解除疾病、詛咒與腐化。');
-    }
-    if(action?.special==='freedom'){
-      const before=hero.statuses.length;hero.statuses=hero.statuses.filter(s=>!['fear','bind','machine_bind','tentacle_bind','python_constrict'].includes(s.type));
-      if(hero.statuses.length<before)addBattleLog('🪽 自由祝福解除恐懼與束縛。');
     }
     updateBattleStatuses();return result;
   });
