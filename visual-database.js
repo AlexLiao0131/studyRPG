@@ -104,9 +104,9 @@ window.STUDYRPG_VISUAL_DATABASE={
       "status": {
         "groundY": 87.5,
         "hero": {
-          "x": 40.9,
+          "x": 49,
           "groundScene": "status",
-          "footOffsetY": -82.4
+          "footOffsetY": -5.2
         },
         "heroSize": 150
       },
@@ -128,9 +128,9 @@ window.STUDYRPG_VISUAL_DATABASE={
       "battle": {
         "groundY": 68,
         "hero": {
-          "x": 37.5,
+          "x": 17,
           "groundScene": "battle",
-          "footOffsetY": 0
+          "footOffsetY": -3.5
         },
         "enemy": {
           "x": 71.4,
@@ -446,7 +446,7 @@ window.STUDYRPG_VISUAL_DATABASE={
       "effectAnchor": {
         "width": 100,
         "height": 100,
-        "y": -3.3
+        "y": 0
       }
     }
   },
@@ -457,79 +457,6 @@ window.STUDYRPG_VISUAL_DATABASE={
       "selfFX": [],
       "pathFX": null,
       "targetFX": [],
-      "summons": []
-    },
-    "ember": {
-      "enabled": true,
-      "actorAction": "cast",
-      "selfFX": [
-        {
-          "image": "images/Skill Png/魔力彈匯聚.png",
-          "anchor": "self",
-          "point": "enemy_front",
-          "scaleMode": "self",
-          "scale": 1,
-          "offsetX": 8.9,
-          "offsetY": -23.9,
-          "delay": 0,
-          "at": null,
-          "mirrorX": false,
-          "duration": 350,
-          "lifetime": "instant",
-          "enter": {
-            "type": "fade",
-            "duration": 120
-          },
-          "exit": {
-            "type": "fade",
-            "duration": 160
-          },
-          "loop": {
-            "enabled": false,
-            "interval": 800
-          }
-        }
-      ],
-      "pathFX": {
-        "image": "images/Skill Png/魔力彈飛行.png",
-        "path": "straight",
-        "duration": 420,
-        "scale": 1,
-        "delay": 0,
-        "at": null,
-        "mirrorX": false,
-        "fromPoint": "hero_home",
-        "viaPoint": "air_high",
-        "toPoint": "enemy_home"
-      },
-      "targetFX": [
-        {
-          "image": "images/Skill Png/魔力彈爆破.png",
-          "anchor": "target",
-          "point": "enemy_front",
-          "scaleMode": "target",
-          "scale": 1,
-          "offsetX": 1.3,
-          "offsetY": -12,
-          "delay": 0,
-          "at": null,
-          "mirrorX": false,
-          "duration": 350,
-          "lifetime": "instant",
-          "enter": {
-            "type": "pop",
-            "duration": 120
-          },
-          "exit": {
-            "type": "dissolve",
-            "duration": 160
-          },
-          "loop": {
-            "enabled": false,
-            "interval": 800
-          }
-        }
-      ],
       "summons": []
     }
   },
@@ -695,11 +622,6 @@ window.STUDYRPG_VISUAL_DATABASE={
           "y": -5,
           "size": 175
         }
-      }
-    },
-    "slime_water": {
-      "tablet": {
-        "status": {}
       }
     }
   }
