@@ -6903,7 +6903,7 @@ tickLiveUnit=async function(u,isHero=false){if(isHero&&battleStateV10?.formal){
       await __oldTickLiveUnit(u,isHero); updateBattleStatuses(); return true;
     }
   }
-if(f.resourceType==='energy')gainFormal('energy',8);if(f.resourceType==='dual')gainFormal('energy',8);const med=u.statuses?.find(s=>s.mods?.mpRegenPct);if(med)gainFormal('mp',f.maxMp*med.mods.mpRegenPct);const cons=u.statuses?.find(s=>s.mods?.consecrate);if(cons)await hitAll({name:'奉獻',type:'holy'},cons.mods.consecrate,'holy');if(f.hound){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(alive.length){const t=alive[Math.floor(Math.random()*alive.length)];const fake={...battleStateV10.hero,attack:f.hound.attack,speed:f.hound.speed};const r=resolveAttack(fake,t,{type:'physical',multiplier:1.00,canParry:false});if(r.damage){const biteFloor=Math.max(2,Math.round(f.hound.attack*.20));const biteDamage=Math.max(r.damage,biteFloor);applyDamageToEnemy(t,biteDamage);showDamage('enemy','-'+biteDamage);addSimpleStatus(t,{type:'bleed',turns:3,dotAtk:.15},'獵犬撕咬');addBattleLog(`🐕 獵犬咬擊 ${biteDamage}！`);}else if(r.type==='miss'||r.type==='dodge'){addBattleLog(`🐕 獵犬咬擊被閃開了！`);}}}if(f.cls==='聖騎士'&&!f.seal){if(f.sealCooldown>0)f.sealCooldown--;else{f.seal=true;addStatus(u,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});addBattleLog('✨ 聖印恢復！');}}}return __oldTickLiveUnit(u,isHero);};
+if(f.resourceType==='energy')gainFormal('energy',8);if(f.resourceType==='dual')gainFormal('energy',8);const med=u.statuses?.find(s=>s.mods?.mpRegenPct);if(med)gainFormal('mp',f.maxMp*med.mods.mpRegenPct);const cons=u.statuses?.find(s=>s.mods?.consecrate);if(cons)await hitAll({name:'奉獻',type:'holy'},cons.mods.consecrate,'holy');if(f.hound){const alive=battleStateV10.enemies.filter(x=>x.hp>0&&x.alive!==false);if(alive.length){const t=alive[Math.floor(Math.random()*alive.length)];const fake={...battleStateV10.hero,attack:f.hound.attack,speed:f.hound.speed};const r=resolveAttack(fake,t,{type:'physical',multiplier:1.00,canParry:false});if(r.damage){const biteFloor=Math.max(2,Math.round(f.hound.attack*.20));const biteDamage=Math.max(r.damage,biteFloor);applyDamageToEnemy(t,biteDamage);showDamage('enemy','-'+biteDamage);addSimpleStatus(t,{type:'bleed',turns:3,dotAtk:.15},'獵犬撕咬');addBattleLog(`🐕 獵犬咬擊 ${biteDamage}！`);}else if(r.type==='miss'||r.type==='dodge'){addBattleLog(`🐕 獵犬咬擊被閃開了！`);}}}if(f.cls==='聖騎士'&&!f.seal){if(f.sealCooldown>0)f.sealCooldown--;else{f.seal=true;addStatus(u,{type:'holy_seal',name:'✨ 聖印',turns:999,effectType:'buff',mods:{}});addBattleLog('✨ 聖印回到聖騎士身上！');}}}return __oldTickLiveUnit(u,isHero);};
 const __oldCheckBattleEnd=checkBattleEnd;
 checkBattleEnd=async function(){if(battleStateV10?.heroHp<=0&&battleStateV10?.formal?.miracle){battleStateV10.formal.miracle=false;battleStateV10.heroHp=Math.round(battleStateV10.hero.maxHp*.40);battleStateV10.hero.statuses=battleStateV10.hero.statuses.filter(s=>s.type!=='miracle');updateBattleHp('hero',battleStateV10.heroHp,battleStateV10.hero.maxHp);addBattleLog('🌟 奇蹟！勇者重新站了起來！');return false;}return __oldCheckBattleEnd();};
 function gmTestSwitchClass(cls){const skills=FORMAL_CLASS_SKILLS[cls];if(!skills)return;gameData.hero.heroClass=cls;gameData.hero.jobAwakened=true;const ids=skills.map(s=>s.id);const allFormalIds=new Set(Object.values(FORMAL_CLASS_SKILLS).flat().map(x=>x.id));gameData.hero.knownSkills=[...(gameData.hero.knownSkills||[]).filter(id=>!allFormalIds.has(id)),...ids];gameData.hero.skills=[...(gameData.hero.skills||[]).filter(id=>!allFormalIds.has(id)),...ids];gameData.hero.equippedSkills=ids.slice(0,4);const rule=JOB_RULES.find(x=>x.name===cls);gameData.hero.jobPassive=rule?.passive||'';saveGame();renderAll();renderGM();alert(`🧪 已切換測試職業：${cls}\n已載入該職8招並自動裝備前4招。\n可到戰前技能配置自由換另外4招。`);}
@@ -7097,13 +7097,13 @@ rogue_rupture:'至少需要1顆能量球，消耗全部能量球。球越多，�
 rogue_steal:'消耗15能量，嘗試從敵人偷取金幣或普通消耗品；同一敵人成功後不能再次偷取。',
 rogue_cloak:'消耗25能量，3回合完全抵抗秘法、火、冰、雷與神聖等直接魔法傷害；物理傷害、控制與既有持續傷害仍正常。',
 rogue_frenzy:'需要3顆能量球並全部消耗，連續攻擊5次；每擊隨機選擇存活敵人，結束後能量回滿。',
-pal_crusader:'不消耗MP。造成一次武器神聖傷害並回復MP；若有聖印會自動消耗，再追加一次獨立神聖傷害。',
+pal_crusader:'不消耗MP。造成一次武器神聖傷害並回復MP；若目標已有審判印記，追加一次神聖傷害並把該目標印記刷新為3回合。',
 pal_shock:'攻擊敵人時不耗MP且命中後回MP；選擇治療自己時消耗MP並恢復HP。',
 pal_divine_shield:'消耗45 MP，3回合免疫所有傷害；控制與負面狀態本身仍可施加。',
 pal_wings:'消耗35 MP，4回合大幅提高所有傷害與治療量。',
 pal_blade:'不消耗MP，造成武器傷害並回復MP；若有聖印會消耗聖印並暈眩目標1回合。',
 pal_freedom:'消耗20 MP，解除暈眩、冰凍、麻痺、減速等控制效果。',
-pal_consecrate:'消耗35 MP，在3回合內每回合對全體敵人造成神聖傷害。',
+pal_consecrate:'消耗35 MP，在3回合內每回合對全體敵人造成神聖傷害；第3回合一次引爆場上所有審判印記。',
 pal_verdict:'消耗45 MP，造成巨大單體神聖傷害；若有聖印會消耗並啟動低血量處決效果，Boss不會即死。',
 sb_arcane_strike:'消耗能量，一次行動產生「武器物理傷害＋秘法傷害」兩個獨立傷害事件。命中會回復MP；若已有附魔也會觸發附魔。',
 sb_element_bolt:'消耗MP，隨機造成火／冰／雷其中一種魔法傷害，並把相同元素放入次級武器附魔槽。',
@@ -7120,7 +7120,7 @@ const FORMAL_PASSIVE_HELP={
 '牧師':'🪽 神恩護盾：主動治療技能會產生護盾；護盾承受攻擊時回復少量HP，護盾被打破時再觸發一次較大的治療。另有「美德共鳴」機率返還技能MP。',
 '獵人':'🎯 弱點發現：普攻命中有機率發現目標弱點；目標流血時機率提高。弱點可被致命射擊或狙擊消耗。',
 '盜賊':'🗡️ 隱藏殺意：戰鬥第一回合無視速度，盜賊必定取得第一個行動權。',
-'聖騎士':'✨ 聖印：戰鬥開始持有1枚可驅散聖印；部分技能會消耗它。消耗或被驅散後空窗1整回合，再於下一回合恢復。',
+'聖騎士':'✨ 聖印：戰鬥開始只持有1枚聖印；持印普攻命中後，聖印會轉移到敵人身上成為審判印記。印記存在期間自身不會再生成第二枚；印記消失後才依冷卻回到身上。',
 '魔劍士':'🗡️✨ 附魔武器：元素法術會留下次級武器附魔；下一次普攻或劍技命中觸發。元素爆發的全元素附魔位於第一層，優先觸發且不會覆蓋次級附魔。'
 };
 function showFormalSkillHelp(id){const s=Object.values(FORMAL_CLASS_SKILLS||{}).flat().find(x=>x.id===id);if(!s)return;alert(`${s.icon||'✨'} ${s.name}\n\n${FORMAL_SKILL_HELP[id]||s.description||'尚無說明'}`);}
@@ -8942,8 +8942,20 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
   function hasJudgmentMarkV101182(target){return !!target?.statuses?.some(s=>s.type==='judgment_mark'&&s.turns>0);}
   function applyJudgmentMarkV101182(target){
     if(!target||target.hp<=0)return;
-    addStatus(target,{type:'judgment_mark',name:'⚖️ 審判印記',turns:3,effectType:'debuff',mods:{holyTakenPct:.15}});
-    addBattleLog(`⚖️ ${target.name}獲得審判印記（3回合）。`);updateBattleStatuses();renderBattleTargets();
+    // 每名敵人最多保留一枚審判印記。
+    // 普攻再次命中同一目標，或十字軍打擊命中已帶印記的目標時，只刷新至3回合，不疊加第二枚。
+    const existing=(target.statuses||[]).find(s=>s.type==='judgment_mark');
+    if(existing){
+      existing.turns=3;
+      existing.name='⚖️ 審判印記';
+      existing.effectType='debuff';
+      existing.mods={...(existing.mods||{}),holyTakenPct:.15};
+      addBattleLog(`⚖️ ${target.name}的審判印記刷新為3回合。`);
+    }else{
+      addStatus(target,{type:'judgment_mark',name:'⚖️ 審判印記',turns:3,effectType:'debuff',mods:{holyTakenPct:.15}});
+      addBattleLog(`⚖️ ${target.name}獲得審判印記（3回合）。`);
+    }
+    updateBattleStatuses();renderBattleTargets();
   }
   function removeJudgmentMarkV101182(target){
     const had=hasJudgmentMarkV101182(target);
@@ -8954,7 +8966,7 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
     const marked=(battleStateV10.enemies||[]).filter(t=>t.hp>0&&hasJudgmentMarkV101182(t));
     if(!marked.length)return;
     marked.forEach(removeJudgmentMarkV101182);updateBattleStatuses();renderBattleTargets();
-    addBattleLog(`✨ 奉獻終結：消耗 ${marked.length} 枚審判印記，引發 ${marked.length} 次範圍神聖爆炸！`);
+    addBattleLog(`✨ 奉獻終結：一次消耗 ${marked.length} 枚審判印記，引發 ${marked.length} 次範圍神聖爆炸！`);
     for(let i=0;i<marked.length;i++)await hitAll({id:'pal_consecrate_burst',name:'奉獻・聖印爆炸',type:'holy'},.50,'holy');
   }
   function addHunterWeaknessV101182(target,source='弱點發現'){
@@ -9108,7 +9120,7 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
     FORMAL_SKILL_HELP.hunter_hound='消耗30能量，每場限用一次。召喚可被敵人鎖定與攻擊的獵犬；獵犬從下一回合依速度行動，自動撕咬並造成流血，流血每次發動有25%機率揭露弱點。';
     FORMAL_SKILL_HELP.pal_crusader='不消耗MP，造成105%神聖傷害並回復12% MaxMP；攻擊審判印記目標時追加75%神聖傷害並刷新印記至3回合。';
     FORMAL_SKILL_HELP.pal_blade='不消耗MP，造成135%物理傷害並回復12% MaxMP；命中印記目標時消耗印記，追加50%神聖傷害並暈眩1回合。';
-    FORMAL_SKILL_HELP.pal_consecrate='消耗35 MP，3回合每回合對全體造成45%神聖傷害；第3回合消耗場上全部審判印記，每枚印記各引發一次50%全體神聖爆炸。';
+    FORMAL_SKILL_HELP.pal_consecrate='消耗35 MP，3回合每回合對全體造成45%神聖傷害；第3回合一次消耗場上所有審判印記，每枚印記各引發一次50%全體神聖爆炸。';
     for(const id of ['war_ragefill','war_laststand','war_charge','hunter_focus','hunter_hound','pal_crusader','pal_blade','pal_consecrate']){
       const skill=Object.values(FORMAL_CLASS_SKILLS||{}).flat().find(s=>s.id===id);if(skill)skill.description=FORMAL_SKILL_HELP[id];
     }
@@ -9116,7 +9128,7 @@ window.StudyRPGCombatRuntimeCanonical=window.StudyRPGCombatRuntimeCanonical||(()
   if(typeof FORMAL_PASSIVE_HELP!=='undefined'){
     FORMAL_PASSIVE_HELP['戰士']='🔥 怒氣：普攻與受擊累積怒氣；怒氣越高，傷害與斬殺線越高。怒氣強化每場限用一次。破釜沉舟期間受到致命傷害會保留1 HP；衝鋒只有命中後才會附加暈眩與破甲，Boss暈眩另受抗性判定。';
     FORMAL_PASSIVE_HELP['獵人']='🎯 弱點：普攻命中有22%機率揭露弱點；流血目標提高為47%，流血每次跳傷另有25%機率揭露。弱點持續3回合，可供致命射擊與狙擊消耗。召喚獵犬每場限一次，獵犬有獨立HP、速度與行動回合，也會被敵人鎖定、控制或擊倒。';
-    FORMAL_PASSIVE_HELP['聖騎士']='✨ 聖印：開戰持有聖印。持印普攻轉為神聖傷害並按實際傷害35%回MP，命中後把聖印轉移成目標3回合審判印記；一般普攻命中回5% MaxMP。印記使神聖承傷+15%，可同時存在於複數敵人。';
+    FORMAL_PASSIVE_HELP['聖騎士']='✨ 聖印：開戰只持有1枚聖印。持印普攻轉為神聖傷害並按實際傷害35%回MP，命中後聖印離開自身並轉移成目標3回合審判印記；一般普攻命中回5% MaxMP。戰場上任何時候只會有1枚聖印／審判印記，印記存在時不會在自身重新生成；印記消失後才依冷卻回到聖騎士身上。印記使神聖承傷+15%。';
   }
 })();
 </script>
