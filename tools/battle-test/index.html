@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;borde
 
 <div class="card">
 <h2>⚔️ 正式 Runtime 實戰</h2>
-<div class="muted">直接載入主程式正式戰鬥 Runtime。沿用上方選擇的「週數／怪物／職業」，以 GM 測試模式開戰；不給 EXP、金幣、掉落，也不寫正式戰鬥紀錄。</div>
+<div class="muted">在 Battle Test 內嵌入主程式正式戰鬥 Runtime。只顯示戰鬥畫面，不顯示主程式一般介面；沿用上方選擇的「週數／怪物／職業」，以 GM 測試模式開戰，不給 EXP、金幣、掉落，也不寫正式戰鬥紀錄。</div>
 <div class="row" style="margin-top:8px">
 <button id="liveStart" class="green">⚔️ 用目前選擇進入實戰</button>
 <button id="liveReload">↻ 重載正式 Runtime</button>
@@ -856,6 +856,22 @@ function syncLiveSkillTestConfig(w){
   return ids;
 }
 
+function prepareFormalRuntimeViewport(w){
+  const d=w?.document;
+  if(!d)return;
+  let style=d.getElementById('battleTestRuntimeViewStyle');
+  if(!style){
+    style=d.createElement('style');
+    style.id='battleTestRuntimeViewStyle';
+    style.textContent=`
+      html,body{margin:0!important;padding:0!important;background:#0d1117!important;overflow:hidden!important;}
+      body>.app{display:none!important;}
+      #battleOverlay{z-index:2147483647!important;}
+    `;
+    d.head.appendChild(style);
+  }
+}
+
 function startFormalRuntimeBattle(){
   const frame=$('liveFrame');
   const selectedWeek=Number($('week')?.value||1);
@@ -866,6 +882,7 @@ function startFormalRuntimeBattle(){
   try{w=frame?.contentWindow}catch(e){w=null}
   if(!w){liveStatus('正式 Runtime iframe 尚未就緒。','warn');return false;}
   try{
+    prepareFormalRuntimeViewport(w);
     if(typeof w.gmStartWeekBattleTest!=='function')throw new Error('主程式沒有 gmStartWeekBattleTest()');
     const selectedIds=syncLiveSkillTestConfig(w);
     w.gmStartWeekBattleTest({
@@ -892,7 +909,8 @@ function loadFormalRuntimeAndBattle(autoStart=true){
   wrap.classList.remove('hidden');
   liveStatus('正在載入 GitHub Pages 同源主程式正式 Runtime…','warn');
   frame.onload=()=>{
-    // 主程式 load 完後再多讓初始化流程完成一拍。
+    // 正式 Runtime 只作為 Battle Test 的戰鬥引擎；隱藏主程式一般 UI，只保留戰鬥 overlay。
+    try{prepareFormalRuntimeViewport(frame.contentWindow)}catch(e){}
     setTimeout(()=>{
       if(autoStart)startFormalRuntimeBattle();
       else liveStatus('正式 Runtime 已重載。按「用目前選擇進入實戰」即可開戰。','ok');
