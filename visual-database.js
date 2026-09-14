@@ -133,9 +133,9 @@ window.STUDYRPG_VISUAL_DATABASE={
           "footOffsetY": -3.5
         },
         "enemy": {
-          "x": 71.4,
+          "x": 78.4,
           "groundScene": "battle",
-          "footOffsetY": -5
+          "footOffsetY": 0
         },
         "heroSize": 175,
         "enemySize": 175,
@@ -266,12 +266,12 @@ window.STUDYRPG_VISUAL_DATABASE={
         "y": 68
       },
       "enemy_front": {
-        "x": 67,
-        "y": 66
+        "x": 62.2,
+        "y": 77.8
       },
       "air_high": {
-        "x": 48,
-        "y": 27
+        "x": 61.8,
+        "y": 71.9
       },
       "summon_left": {
         "x": 60,
@@ -399,6 +399,12 @@ window.STUDYRPG_VISUAL_DATABASE={
       "battleSize": {
         "mobile": 250,
         "tablet": 320
+      },
+      "motionActions": {},
+      "effectAnchor": {
+        "width": 100,
+        "height": 100,
+        "y": 0
       }
     },
     "goblin_slave": {
@@ -493,7 +499,13 @@ window.STUDYRPG_VISUAL_DATABASE={
       "battleSize": {}
     },
     "forest_wolf": {
-      "battleSize": {}
+      "battleSize": {},
+      "motionActions": {},
+      "effectAnchor": {
+        "width": 100,
+        "height": 100,
+        "y": 0
+      }
     },
     "forest_bear": {
       "battleSize": {}
@@ -525,10 +537,37 @@ window.STUDYRPG_VISUAL_DATABASE={
   "playerSkills": {
     "power_strike": {
       "enabled": false,
-      "actorAction": "melee",
+      "actorAction": "dash",
       "selfFX": [],
       "pathFX": null,
-      "targetFX": [],
+      "targetFX": [
+        {
+          "image": "images/Skill Png/普通刀光.png",
+          "anchor": "target",
+          "point": "enemy_center",
+          "scaleMode": "target",
+          "scale": 1,
+          "offsetX": -4.2,
+          "offsetY": -17.4,
+          "delay": 0,
+          "at": 298,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "pop",
+            "duration": 120
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
       "summons": []
     },
     "ember": {
@@ -604,9 +643,268 @@ window.STUDYRPG_VISUAL_DATABASE={
         }
       ],
       "summons": []
+    },
+    "wolf_bite": {
+      "enabled": true,
+      "actorAction": "jump",
+      "selfFX": [
+        {
+          "image": "",
+          "anchor": "self",
+          "point": "enemy_center",
+          "scaleMode": "self",
+          "scale": 1,
+          "offsetX": 0,
+          "offsetY": 0,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "pop",
+            "duration": 120
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "pathFX": null,
+      "targetFX": [
+        {
+          "image": "images/Skill Png/野獸撕咬.png",
+          "anchor": "target",
+          "point": "hero_center",
+          "scaleMode": "target",
+          "scale": 1,
+          "offsetX": 1.2,
+          "offsetY": -15.5,
+          "delay": 0,
+          "at": 764,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "pop",
+            "duration": 120
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        },
+        {
+          "image": "images/Skill Png/流血DOT.png",
+          "anchor": "target",
+          "point": "hero_home",
+          "scaleMode": "target",
+          "scale": 1,
+          "offsetX": 0,
+          "offsetY": 0,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "fade",
+            "duration": 120
+          },
+          "exit": {
+            "type": "fade",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "summons": []
     }
   },
-  "monsterSkills": {},
+  "monsterSkills": {
+    "ember": {
+      "enabled": false,
+      "actorAction": "cast",
+      "selfFX": [
+        {
+          "image": "images/Skill Png/魔力彈匯聚.png",
+          "anchor": "self",
+          "point": "hero_center",
+          "scaleMode": "self",
+          "scale": 1,
+          "offsetX": 6.5,
+          "offsetY": -23,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "dissolve",
+            "duration": 200
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 100
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "pathFX": {
+        "image": "images/Skill Png/魔力彈飛行.png",
+        "path": "straight",
+        "pathModeUserSet": false,
+        "duration": 420,
+        "scale": 2,
+        "delay": 0,
+        "at": null,
+        "mirrorX": false,
+        "fromPoint": "hero_cast",
+        "viaPoint": "",
+        "toPoint": "enemy_center"
+      },
+      "targetFX": [
+        {
+          "image": "images/Skill Png/魔力彈爆破.png",
+          "anchor": "target",
+          "point": "enemy_center",
+          "scaleMode": "target",
+          "scale": 1,
+          "offsetX": -4.7,
+          "offsetY": -21.8,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "pop",
+            "duration": 120
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "summons": []
+    },
+    "slime_tackle": {
+      "enabled": false,
+      "actorAction": "melee",
+      "selfFX": [],
+      "pathFX": null,
+      "targetFX": [],
+      "summons": []
+    },
+    "wolf_bite": {
+      "enabled": true,
+      "actorAction": "jump",
+      "selfFX": [
+        {
+          "image": "",
+          "anchor": "self",
+          "point": "enemy_center",
+          "scaleMode": "self",
+          "scale": 1,
+          "offsetX": 0,
+          "offsetY": 0,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "pop",
+            "duration": 120
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "pathFX": null,
+      "targetFX": [
+        {
+          "image": "images/Skill Png/野獸撕咬.png",
+          "anchor": "target",
+          "point": "hero_center",
+          "scaleMode": "target",
+          "scale": 1,
+          "offsetX": 1.2,
+          "offsetY": -15.5,
+          "delay": 0,
+          "at": 764,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "pop",
+            "duration": 120
+          },
+          "exit": {
+            "type": "pop",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        },
+        {
+          "image": "images/Skill Png/流血DOT.png",
+          "anchor": "target",
+          "point": "hero_home",
+          "scaleMode": "target",
+          "scale": 1,
+          "offsetX": 0,
+          "offsetY": 0,
+          "delay": 0,
+          "at": null,
+          "mirrorX": false,
+          "duration": 350,
+          "lifetime": "instant",
+          "enter": {
+            "type": "fade",
+            "duration": 120
+          },
+          "exit": {
+            "type": "fade",
+            "duration": 160
+          },
+          "loop": {
+            "enabled": false,
+            "interval": 800
+          }
+        }
+      ],
+      "summons": []
+    }
+  },
   "equipmentAffixes": {
     "assault": {
       "enabled": false,
@@ -704,8 +1002,8 @@ window.STUDYRPG_VISUAL_DATABASE={
       },
       "tablet": {
         "battle": {
-          "x": 71.4,
-          "y": -5,
+          "x": 78.4,
+          "y": 0,
           "size": 175
         },
         "status": {}
@@ -793,7 +1091,7 @@ window.STUDYRPG_VISUAL_DATABASE={
         "tablet": {
           "head": -90.9,
           "cast": -79.5,
-          "center": -42.4
+          "center": -63
         }
       }
     },
@@ -822,7 +1120,7 @@ window.STUDYRPG_VISUAL_DATABASE={
             "center": -45.2
           },
           "forest_wolf": {
-            "head": -97,
+            "head": -133.1,
             "cast": -71.5,
             "center": -57.5
           },
