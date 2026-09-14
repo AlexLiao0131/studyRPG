@@ -10546,7 +10546,39 @@ function apply(){const d=device(),v=DB.devices?.[d];if(!v)return;
  const b=DB.stage?.[d]?.bg;if(b)document.querySelectorAll('.battle-scene-background,.dungeon-scene-background,.home-scene-background').forEach(x=>{imp(x,'transform-origin','center');imp(x,'transform',`translate(${Number(b.x??50)-50}%,${Number(b.y??50)-50}%) scale(${Number(b.scale)||1})`)})
 }
 window.studyRPGVisualDevice=device;window.studyRPGVisualGround=ground;window.studyRPGVisualAnchor=anchor;window.studyRPGApplyVisualLayout=apply;
-window.studyRPGResolveBattlePointV10179=function(name){const d=device(),b=DB.devices?.[d]?.battle||{};if(name==='hero_home')return anchor(b.hero,'battle',d);if(name==='enemy_home')return anchor(b.enemy,'battle',d);if(name==='attack_mid')return b.attackMid;if(name==='attack_strike'||name==='enemy_front')return b.attackStrike;return DB.referencePoints?.[d]?.[name]||null};
+function battleBodyPoint(kind,side,d,b){
+ const key=(side==='hero'?'hero_':'enemy_')+kind,legacy=DB.referencePoints?.[d]?.[key]||null,home=anchor(side==='hero'?b.hero:b.enemy,'battle',d);
+ if(!home)return legacy;
+ const h=d==='mobile'?260:300;
+ let saved=null;
+ if(side==='hero'){
+  let hid='novice';try{if(typeof heroAssetKey==='function')hid=heroAssetKey()||hid}catch(e){}
+  saved=DB.bodyAnchors?.heroes?.[hid]?.[d];
+ }else{
+  let mid='';
+  try{if(typeof selectedBattleEnemy==='function')mid=selectedBattleEnemy()?.monsterId||''}catch(e){}
+  try{if(!mid&&typeof battleStateV10!=='undefined')mid=battleStateV10?.monsterId||''}catch(e){}
+  if(!mid)mid=monsterId(document.getElementById('battleChar_enemy'));
+  saved=DB.bodyAnchors?.monsters?.[d]?.[String(week())]?.[mid];
+ }
+ const raw=saved?.[kind],offset=Number(raw);
+ if(raw==null||!Number.isFinite(offset))return legacy;
+ return{x:Number(home.x)||0,y:Number(home.y)+offset/h*100};
+}
+window.studyRPGResolveBattlePointV10179=function(name){
+ const d=device(),b=DB.devices?.[d]?.battle||{};
+ if(name==='hero_home')return anchor(b.hero,'battle',d);
+ if(name==='enemy_home')return anchor(b.enemy,'battle',d);
+ if(name==='attack_mid')return b.attackMid;
+ if(name==='attack_strike'||name==='enemy_front')return b.attackStrike;
+ if(name==='hero_head')return battleBodyPoint('head','hero',d,b);
+ if(name==='hero_cast')return battleBodyPoint('cast','hero',d,b);
+ if(name==='hero_center')return battleBodyPoint('center','hero',d,b);
+ if(name==='enemy_head')return battleBodyPoint('head','enemy',d,b);
+ if(name==='enemy_cast')return battleBodyPoint('cast','enemy',d,b);
+ if(name==='enemy_center')return battleBodyPoint('center','enemy',d,b);
+ return DB.referencePoints?.[d]?.[name]||null;
+};
 window.applySavedBattleLayout=function(){apply();requestAnimationFrame(()=>window.positionBattleTargetMarker?.())};
 for(const n of ['renderHero','renderDungeon','renderBattleTargets']){const old=window[n];if(typeof old==='function')window[n]=function(){const r=old.apply(this,arguments);requestAnimationFrame(apply);return r}}
 addEventListener('resize',()=>requestAnimationFrame(apply));if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(apply),{once:true});else requestAnimationFrame(apply);
