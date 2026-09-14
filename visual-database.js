@@ -532,17 +532,17 @@ window.STUDYRPG_VISUAL_DATABASE={
       "summons": []
     },
     "ember": {
-      "enabled": true,
+      "enabled": false,
       "actorAction": "cast",
       "selfFX": [
         {
           "image": "images/Skill Png/魔力彈匯聚.png",
           "anchor": "self",
-          "point": "hero_cast",
+          "point": "hero_center",
           "scaleMode": "self",
           "scale": 1,
-          "offsetX": 9.8,
-          "offsetY": -21.2,
+          "offsetX": 6.5,
+          "offsetY": -23,
           "delay": 0,
           "at": null,
           "mirrorX": false,
@@ -550,11 +550,11 @@ window.STUDYRPG_VISUAL_DATABASE={
           "lifetime": "instant",
           "enter": {
             "type": "dissolve",
-            "duration": 120
+            "duration": 200
           },
           "exit": {
             "type": "pop",
-            "duration": 160
+            "duration": 100
           },
           "loop": {
             "enabled": false,
@@ -567,7 +567,7 @@ window.STUDYRPG_VISUAL_DATABASE={
         "path": "straight",
         "pathModeUserSet": false,
         "duration": 420,
-        "scale": 1,
+        "scale": 2,
         "delay": 0,
         "at": null,
         "mirrorX": false,
@@ -582,8 +582,8 @@ window.STUDYRPG_VISUAL_DATABASE={
           "point": "enemy_center",
           "scaleMode": "target",
           "scale": 1,
-          "offsetX": -5.2,
-          "offsetY": -22.6,
+          "offsetX": -4.7,
+          "offsetY": -21.8,
           "delay": 0,
           "at": null,
           "mirrorX": false,
@@ -594,7 +594,7 @@ window.STUDYRPG_VISUAL_DATABASE={
             "duration": 120
           },
           "exit": {
-            "type": "dissolve",
+            "type": "pop",
             "duration": 160
           },
           "loop": {
@@ -707,7 +707,8 @@ window.STUDYRPG_VISUAL_DATABASE={
           "x": 71.4,
           "y": -5,
           "size": 175
-        }
+        },
+        "status": {}
       }
     },
     "forest_bear": {
@@ -776,7 +777,8 @@ window.STUDYRPG_VISUAL_DATABASE={
           "x": 71.4,
           "y": -5,
           "size": 175
-        }
+        },
+        "status": {}
       }
     }
   },
@@ -790,7 +792,7 @@ window.STUDYRPG_VISUAL_DATABASE={
         },
         "tablet": {
           "head": -90.9,
-          "cast": -54.4,
+          "cast": -79.5,
           "center": -42.4
         }
       }
@@ -820,9 +822,9 @@ window.STUDYRPG_VISUAL_DATABASE={
             "center": -45.2
           },
           "forest_wolf": {
-            "head": -150,
-            "cast": -111,
-            "center": -114
+            "head": -97,
+            "cast": -71.5,
+            "center": -57.5
           },
           "forest_bear": {
             "head": -150,
