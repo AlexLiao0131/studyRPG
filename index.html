@@ -8512,6 +8512,40 @@ window.addEventListener('focus',()=>refreshCalendarFromCloudOnReturn());
     return {required,approved,ratio:required?Math.min(1.2,approved/required):0,byCourse};
   };
 
+  // Read-only exam energy audit. Lives in the same scope as the production formula
+  // so every row uses the exact production helpers above.
+  window.studyRPGAuditExamEnergy=function(evt=null){
+    ensureExamBossConfig();
+    evt=nextOrCurrentExam('midterm',evt);
+    if(!evt)return {error:'找不到期中考事件',rows:[],byCourse:{}};
+    const ids=eventSubjectIds(evt),base=gameData.semester?.startDate||OFFICIAL_LAUNCH_DATE;
+    const approvedEnd=today()<evt.date?today():evt.date;
+    const snap=examCompletionTargetSnapshot(evt),rows=[],groups=new Map();
+    (gameData.taskRecords||[]).forEach((r,index)=>{
+      if(r.date<base||r.date>approvedEnd)return;
+      const t=(gameData.tasks||[]).find(x=>x.id===r.taskId)||r.taskSnapshot;if(!t)return;
+      const ratio=taskApprovalRatio(r),shares=taskCourseShares(t,ids),rawPoints=taskPowerGain(t);
+      const eligible=!(r.approvalStatus==='pending'||r.approvalStatus==='rejected'||ratio<=0||r.voluntaryChallenge===true);
+      Object.entries(shares).forEach(([id,share])=>rows.push({
+        index,recordId:r.id||'',date:r.date||'',taskId:r.taskId||'',taskName:t.name||t.title||t.id||'未命名任務',
+        subjectId:id,subjectName:subjectById(id)?.name||id,approvalStatus:r.approvalStatus??'(缺少)',
+        approvalRatio:ratio,rawPoints,share,contribution:eligible?rawPoints*ratio*share:0,
+        voluntaryChallenge:r.voluntaryChallenge===true,
+        duplicateKey:`${r.date||''}::${r.taskStableId||r.taskId||''}`
+      }));
+      const k=`${r.date||''}::${r.taskStableId||r.taskId||''}`;
+      if(k!=='::'){const a=groups.get(k)||[];a.push(r);groups.set(k,a)}
+    });
+    const duplicateKeys=new Set([...groups].filter(([,a])=>a.length>1).map(([k])=>k));
+    rows.forEach(x=>x.duplicate=duplicateKeys.has(x.duplicateKey));
+    const byCourse=Object.fromEntries(ids.map(id=>[id,{
+      name:subjectById(id)?.name||id,
+      approved:rows.filter(x=>x.subjectId===id).reduce((n,x)=>n+x.contribution,0),
+      required:Math.max(0,Number(snap?.required?.[id])||0)
+    }]));
+    return {eventId:evt.id,eventDate:evt.date,base,approvedEnd,rows,byCourse,duplicateCount:duplicateKeys.size};
+  };
+
   function examEnergyStage(r){
     const ratio=(Number(r?.required)||0)>0?(Number(r?.approved)||0)/Number(r.required):0;
     if(ratio>=1)return 1;
@@ -10829,82 +10863,30 @@ try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL
 </script>
 
 
-<!-- STUDYRPG_EXAM_ENERGY_AUDITOR_V2 -->
+
+
+
+<!-- STUDYRPG_EXAM_ENERGY_AUDITOR_UI_V3 -->
 <script>
 (function(){
   const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function show(html){
     document.getElementById('studyRPGExamAuditOverlay')?.remove();
-    const ov=document.createElement('div');
-    ov.id='studyRPGExamAuditOverlay';
-    ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#000e;padding:12px;overflow:auto;color:#e6edf3;font:13px system-ui,sans-serif';
-    ov.innerHTML='<div style="max-width:1100px;margin:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px"><div style="display:flex;justify-content:space-between;gap:8px"><h2 style="margin:0;color:#f0883e">考試能量檢查器（只讀）</h2><button id="eaClose">關閉</button></div>'+html+'</div>';
-    document.body.appendChild(ov);
-    document.getElementById('eaClose').onclick=()=>ov.remove();
+    const o=document.createElement('div');o.id='studyRPGExamAuditOverlay';
+    o.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#000e;padding:12px;overflow:auto;color:#e6edf3;font:13px system-ui,sans-serif';
+    o.innerHTML='<div style="max-width:1100px;margin:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px"><div style="display:flex;justify-content:space-between"><h2 style="margin:0;color:#f0883e">考試能量檢查器（只讀）</h2><button id="eaClose">關閉</button></div>'+html+'</div>';
+    document.body.appendChild(o);document.getElementById('eaClose').onclick=()=>o.remove();
   }
-  function subjectName(id){
-    const a=Array.isArray(gameData?.subjects)?gameData.subjects:[];
-    return a.find(x=>String(x?.id)===String(id))?.name||String(id);
-  }
-  function recordKey(r){return `${r?.date||''}::${r?.taskId||r?.taskStableId||''}`}
-  window.studyRPGAuditExamEnergy=function(){
-    show('<p>正在讀取任務紀錄……</p>');
+  function run(){
     try{
-      // 直接使用正式考試事件來源；若該來源不存在，再讀 semester/events。
-      let events=[];
-      if(typeof upcomingExamEvents==='function') events=upcomingExamEvents()||[];
-      if(!events.length) events=(gameData?.semester?.events||gameData?.examEvents||[]);
-      events=events.filter(e=>e&&(e.type==='midterm'||e.type==='final'||e.examSubjectIds));
-      const evt=events.find(e=>e.type==='midterm'&&String(e.date||'')>=String(today()))||events.find(e=>e.type==='midterm')||events[0];
-      if(!evt)throw new Error('找不到期中考事件');
-
-      const ids=eventSubjectIds(evt);
-      const base=gameData?.semester?.startDate||OFFICIAL_LAUNCH_DATE;
-      const endDate=String(today())<String(evt.date)?String(today()):String(evt.date);
-      const snap=examCompletionTargetSnapshot(evt);
-      const rows=[],groups=new Map();
-
-      (gameData?.taskRecords||[]).forEach((r,index)=>{
-        if(String(r?.date||'')<String(base)||String(r?.date||'')>endDate)return;
-        const t=(gameData?.tasks||[]).find(x=>x.id===r.taskId)||r.taskSnapshot;
-        if(!t)return;
-        const shares=taskCourseShares(t,ids)||{};
-        const ratio=Number(taskApprovalRatio(r))||0;
-        const points=Number(taskPowerGain(t))||0;
-        for(const [id,rawShare] of Object.entries(shares)){
-          const share=Number(rawShare)||0;
-          const eligible=!(r.approvalStatus==='pending'||r.approvalStatus==='rejected'||r.voluntaryChallenge===true);
-          rows.push({id,date:r.date||'',task:String(t?.name||t?.title||t?.id||'未命名任務'),
-            status:r.approvalStatus??'(缺少)',ratio,points,share,
-            contribution:eligible?points*ratio*share:0,key:recordKey(r),recordId:r.id||'',index});
-        }
-        const k=recordKey(r); if(k!=='::'){const a=groups.get(k)||[];a.push(r);groups.set(k,a)}
-      });
-
-      const dup=new Set([...groups].filter(([,a])=>a.length>1).map(([k])=>k));
-      rows.forEach(x=>x.duplicate=dup.has(x.key));
-      const totals=Object.fromEntries(ids.map(id=>[id,rows.filter(x=>String(x.id)===String(id)).reduce((n,x)=>n+x.contribution,0)]));
-      const trs=rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>
-        `<tr style="${x.duplicate||x.status==='(缺少)'?'background:#5a1d1d':''}"><td>${esc(x.date)}</td><td>${esc(subjectName(x.id))}</td><td>${esc(x.task)}</td><td>${esc(x.status)}</td><td>${(x.ratio*100).toFixed(0)}%</td><td>${x.points.toFixed(2)}</td><td>${(x.share*100).toFixed(0)}%</td><td><b>${x.contribution.toFixed(2)}</b></td><td>${x.duplicate?'⚠️重複':''}</td></tr>`
-      ).join('');
-
-      show(`<p>期間：${esc(base)} ～ ${esc(endDate)}｜考試：${esc(evt.date)}。<b>沒有修改任何資料。</b></p>
-      <div style="padding:10px;background:#0d1117;border-radius:8px">${ids.map(id=>`<b>${esc(subjectName(id))}</b>：${Number(totals[id]||0).toFixed(2)} / ${Number(snap?.required?.[id]||0).toFixed(2)}`).join('　｜　')}</div>
-      <p>⚠️ 同日同任務重複：${dup.size} 組｜缺少核定狀態：${rows.filter(x=>x.status==='(缺少)').length} 筆</p>
-      <div style="overflow:auto"><table style="width:100%;white-space:nowrap;border-collapse:collapse"><thead><tr><th>日期</th><th>科目</th><th>任務</th><th>核定</th><th>比例</th><th>點數</th><th>科目%</th><th>計入</th><th>警告</th></tr></thead><tbody>${trs||'<tr><td colspan="9">沒有紀錄</td></tr>'}</tbody></table></div>`);
-    }catch(e){
-      console.error('Exam energy auditor failed:',e);
-      show('<p style="color:#ff7b72"><b>檢查器發生錯誤：</b><br>'+esc(e?.stack||e?.message||e)+'</p><p>把這段錯誤截圖給我；沒有修改任何資料。</p>');
-    }
-  };
-  function add(){
-    document.getElementById('studyRPGExamAuditBtn')?.remove();
-    const b=document.createElement('button');
-    b.id='studyRPGExamAuditBtn';b.type='button';b.textContent='🔎 檢查考試能量';
-    b.style.cssText='position:fixed;right:10px;bottom:58px;z-index:2147483646;padding:9px 12px;border:1px solid #3fb950;border-radius:10px;background:#102a18;color:#7ee787;font-weight:900;box-shadow:0 3px 12px #0008';
-    b.addEventListener('click',()=>window.studyRPGAuditExamEnergy());
-    document.body.appendChild(b);
+      const d=window.studyRPGAuditExamEnergy();
+      if(d?.error)throw new Error(d.error);
+      const totals=Object.values(d.byCourse||{}).map(x=>`<b>${esc(x.name)}</b>：${Number(x.approved).toFixed(2)} / ${Number(x.required).toFixed(2)}`).join('　｜　');
+      const rows=(d.rows||[]).sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>`<tr style="${x.duplicate||x.approvalStatus==='(缺少)'?'background:#5a1d1d':''}"><td>${esc(x.date)}</td><td>${esc(x.subjectName)}</td><td>${esc(x.taskName)}</td><td>${esc(x.approvalStatus)}</td><td>${(x.approvalRatio*100).toFixed(0)}%</td><td>${x.rawPoints.toFixed(2)}</td><td>${(x.share*100).toFixed(0)}%</td><td><b>${x.contribution.toFixed(2)}</b></td><td>${x.duplicate?'⚠️重複':''}</td></tr>`).join('');
+      show(`<p>期間：${esc(d.base)} ～ ${esc(d.approvedEnd)}｜考試：${esc(d.eventDate)}。<b>不修改任何資料。</b></p><div style="padding:10px;background:#0d1117;border-radius:8px">${totals}</div><p>⚠️ 同日同任務重複：${d.duplicateCount} 組｜缺少核定狀態：${(d.rows||[]).filter(x=>x.approvalStatus==='(缺少)').length} 筆</p><div style="overflow:auto"><table style="width:100%;white-space:nowrap"><thead><tr><th>日期</th><th>科目</th><th>任務</th><th>核定</th><th>比例</th><th>點數</th><th>科目%</th><th>計入</th><th>警告</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+    }catch(e){show('<p style="color:#ff7b72"><b>錯誤：</b><br>'+esc(e?.stack||e)+'</p>')}
   }
+  function add(){if(document.getElementById('studyRPGExamAuditBtn'))return;const b=document.createElement('button');b.id='studyRPGExamAuditBtn';b.type='button';b.textContent='🔎 檢查考試能量';b.style.cssText='position:fixed;right:10px;bottom:58px;z-index:2147483646;padding:9px 12px;border:1px solid #3fb950;border-radius:10px;background:#102a18;color:#7ee787;font-weight:900';b.onclick=run;document.body.appendChild(b)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add();
 })();
 </script>
