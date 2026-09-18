@@ -10829,92 +10829,80 @@ try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL
 </script>
 
 
-<!-- STUDYRPG_EXAM_ENERGY_AUDITOR_V1 -->
+<!-- STUDYRPG_EXAM_ENERGY_AUDITOR_V2 -->
 <script>
 (function(){
-  function eaName(t){return String(t?.name||t?.subject||t?.progressValue||t?.id||'未命名任務')}
-  function eaSubjectName(id){
-    const all=[...(familyData?.examSubjects||[]),...(gameData?.subjects||[])];
-    return all.find(x=>String(x?.id)===String(id))?.name||String(id);
-  }
-  function eaKey(r){return `${r?.date||''}::${r?.taskId||r?.taskStableId||''}`}
-  window.studyRPGAuditExamEnergy=function(){
-    let events=[];
-    try{events=(typeof upcomingExamEvents==='function'?upcomingExamEvents():[])||[]}catch(e){}
-    if(!events.length)events=(gameData?.semester?.events||gameData?.examEvents||[]).filter(e=>e&&(e.type==='midterm'||e.type==='final'||e.examSubjectIds));
-    const evt=events.find(e=>e.type==='midterm'&&String(e.date||'')>=today())||events.find(e=>e.type==='midterm')||events[0];
-    if(!evt){alert('找不到期中考事件；沒有修改任何資料。');return}
-
-    const ids=eventSubjectIds(evt);
-    const base=gameData.semester?.startDate||OFFICIAL_LAUNCH_DATE;
-    const approvedEnd=today()<evt.date?today():evt.date;
-    const snap=examCompletionTargetSnapshot(evt);
-    const rows=[], groups=new Map();
-
-    (gameData.taskRecords||[]).forEach((r,index)=>{
-      if(r.date<base||r.date>approvedEnd)return;
-      const t=(gameData.tasks||[]).find(x=>x.id===r.taskId)||r.taskSnapshot;
-      if(!t)return;
-      const shares=taskCourseShares(t,ids);
-      const ratio=taskApprovalRatio(r);
-      const points=taskPowerGain(t);
-      for(const [id,share] of Object.entries(shares)){
-        const eligible=!(r.approvalStatus==='pending'||r.approvalStatus==='rejected'||r.voluntaryChallenge===true);
-        rows.push({
-          index,id,subject:eaSubjectName(id),date:r.date||'',task:eaName(t),
-          taskId:r.taskId||'',recordId:r.id||'',status:r.approvalStatus??'(缺少)',
-          ratio,basePoints:points,share,contribution:eligible?points*ratio*share:0,
-          voluntary:r.voluntaryChallenge===true,key:eaKey(r)
-        });
-      }
-      const k=eaKey(r);
-      if(k!=='::'){const a=groups.get(k)||[];a.push(r);groups.set(k,a)}
-    });
-
-    const duplicateKeys=new Set([...groups].filter(([,a])=>a.length>1).map(([k])=>k));
-    rows.forEach(x=>x.duplicate=duplicateKeys.has(x.key));
-    const totals=Object.fromEntries(ids.map(id=>[id,rows.filter(x=>x.id===id).reduce((n,x)=>n+x.contribution,0)]));
-
+  const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function show(html){
     document.getElementById('studyRPGExamAuditOverlay')?.remove();
     const ov=document.createElement('div');
     ov.id='studyRPGExamAuditOverlay';
-    ov.style.cssText='position:fixed;inset:0;z-index:200000;background:#000d;padding:12px;overflow:auto;color:#e6edf3;font:13px system-ui,sans-serif';
-    const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    const body=rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>
-      `<tr style="${x.duplicate||x.status==='(缺少)'?'background:#5a1d1d':''}">
-      <td>${esc(x.date)}</td><td>${esc(x.subject)}</td><td>${esc(x.task)}</td>
-      <td>${esc(x.status)}</td><td>${(x.ratio*100).toFixed(0)}%</td>
-      <td>${x.basePoints.toFixed(2)}</td><td>${(x.share*100).toFixed(0)}%</td>
-      <td><b>${x.contribution.toFixed(2)}</b></td>
-      <td>${x.duplicate?'⚠️同日同任務重複':''}</td></tr>`).join('');
-
-    ov.innerHTML=`<div style="max-width:1100px;margin:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px">
-      <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
-        <h2 style="margin:0;color:#f0883e">考試能量檢查器（只讀）</h2>
-        <button id="eaClose" style="padding:9px 14px">關閉</button>
-      </div>
-      <p>期間：${esc(base)} ～ ${esc(approvedEnd)}｜考試：${esc(evt.date)}。<b>不會修改任何存檔。</b></p>
-      <div style="padding:10px;background:#0d1117;border-radius:8px;margin:8px 0">
-        ${ids.map(id=>`<b>${esc(eaSubjectName(id))}</b>：已計入 ${Number(totals[id]||0).toFixed(2)} / 總需求 ${Number(snap?.required?.[id]||0).toFixed(2)}`).join('　｜　')}
-      </div>
-      <div style="padding:10px;background:#2d2208;border-radius:8px;margin:8px 0">
-        ⚠️ 同日同任務重複：${duplicateKeys.size} 組　｜　缺少核定狀態：${rows.filter(x=>x.status==='(缺少)').length} 筆
-      </div>
-      <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;white-space:nowrap">
-        <thead><tr><th>日期</th><th>科目</th><th>任務</th><th>核定狀態</th><th>核定%</th><th>任務點數</th><th>科目占比</th><th>實際計入</th><th>警告</th></tr></thead>
-        <tbody>${body||'<tr><td colspan="9">沒有可計入紀錄</td></tr>'}</tbody>
-      </table></div>
-    </div>`;
+    ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#000e;padding:12px;overflow:auto;color:#e6edf3;font:13px system-ui,sans-serif';
+    ov.innerHTML='<div style="max-width:1100px;margin:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px"><div style="display:flex;justify-content:space-between;gap:8px"><h2 style="margin:0;color:#f0883e">考試能量檢查器（只讀）</h2><button id="eaClose">關閉</button></div>'+html+'</div>';
     document.body.appendChild(ov);
     document.getElementById('eaClose').onclick=()=>ov.remove();
-  };
+  }
+  function subjectName(id){
+    const a=Array.isArray(gameData?.subjects)?gameData.subjects:[];
+    return a.find(x=>String(x?.id)===String(id))?.name||String(id);
+  }
+  function recordKey(r){return `${r?.date||''}::${r?.taskId||r?.taskStableId||''}`}
+  window.studyRPGAuditExamEnergy=function(){
+    show('<p>正在讀取任務紀錄……</p>');
+    try{
+      // 直接使用正式考試事件來源；若該來源不存在，再讀 semester/events。
+      let events=[];
+      if(typeof upcomingExamEvents==='function') events=upcomingExamEvents()||[];
+      if(!events.length) events=(gameData?.semester?.events||gameData?.examEvents||[]);
+      events=events.filter(e=>e&&(e.type==='midterm'||e.type==='final'||e.examSubjectIds));
+      const evt=events.find(e=>e.type==='midterm'&&String(e.date||'')>=String(today()))||events.find(e=>e.type==='midterm')||events[0];
+      if(!evt)throw new Error('找不到期中考事件');
 
+      const ids=eventSubjectIds(evt);
+      const base=gameData?.semester?.startDate||OFFICIAL_LAUNCH_DATE;
+      const endDate=String(today())<String(evt.date)?String(today()):String(evt.date);
+      const snap=examCompletionTargetSnapshot(evt);
+      const rows=[],groups=new Map();
+
+      (gameData?.taskRecords||[]).forEach((r,index)=>{
+        if(String(r?.date||'')<String(base)||String(r?.date||'')>endDate)return;
+        const t=(gameData?.tasks||[]).find(x=>x.id===r.taskId)||r.taskSnapshot;
+        if(!t)return;
+        const shares=taskCourseShares(t,ids)||{};
+        const ratio=Number(taskApprovalRatio(r))||0;
+        const points=Number(taskPowerGain(t))||0;
+        for(const [id,rawShare] of Object.entries(shares)){
+          const share=Number(rawShare)||0;
+          const eligible=!(r.approvalStatus==='pending'||r.approvalStatus==='rejected'||r.voluntaryChallenge===true);
+          rows.push({id,date:r.date||'',task:String(t?.name||t?.title||t?.id||'未命名任務'),
+            status:r.approvalStatus??'(缺少)',ratio,points,share,
+            contribution:eligible?points*ratio*share:0,key:recordKey(r),recordId:r.id||'',index});
+        }
+        const k=recordKey(r); if(k!=='::'){const a=groups.get(k)||[];a.push(r);groups.set(k,a)}
+      });
+
+      const dup=new Set([...groups].filter(([,a])=>a.length>1).map(([k])=>k));
+      rows.forEach(x=>x.duplicate=dup.has(x.key));
+      const totals=Object.fromEntries(ids.map(id=>[id,rows.filter(x=>String(x.id)===String(id)).reduce((n,x)=>n+x.contribution,0)]));
+      const trs=rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>
+        `<tr style="${x.duplicate||x.status==='(缺少)'?'background:#5a1d1d':''}"><td>${esc(x.date)}</td><td>${esc(subjectName(x.id))}</td><td>${esc(x.task)}</td><td>${esc(x.status)}</td><td>${(x.ratio*100).toFixed(0)}%</td><td>${x.points.toFixed(2)}</td><td>${(x.share*100).toFixed(0)}%</td><td><b>${x.contribution.toFixed(2)}</b></td><td>${x.duplicate?'⚠️重複':''}</td></tr>`
+      ).join('');
+
+      show(`<p>期間：${esc(base)} ～ ${esc(endDate)}｜考試：${esc(evt.date)}。<b>沒有修改任何資料。</b></p>
+      <div style="padding:10px;background:#0d1117;border-radius:8px">${ids.map(id=>`<b>${esc(subjectName(id))}</b>：${Number(totals[id]||0).toFixed(2)} / ${Number(snap?.required?.[id]||0).toFixed(2)}`).join('　｜　')}</div>
+      <p>⚠️ 同日同任務重複：${dup.size} 組｜缺少核定狀態：${rows.filter(x=>x.status==='(缺少)').length} 筆</p>
+      <div style="overflow:auto"><table style="width:100%;white-space:nowrap;border-collapse:collapse"><thead><tr><th>日期</th><th>科目</th><th>任務</th><th>核定</th><th>比例</th><th>點數</th><th>科目%</th><th>計入</th><th>警告</th></tr></thead><tbody>${trs||'<tr><td colspan="9">沒有紀錄</td></tr>'}</tbody></table></div>`);
+    }catch(e){
+      console.error('Exam energy auditor failed:',e);
+      show('<p style="color:#ff7b72"><b>檢查器發生錯誤：</b><br>'+esc(e?.stack||e?.message||e)+'</p><p>把這段錯誤截圖給我；沒有修改任何資料。</p>');
+    }
+  };
   function add(){
-    if(document.getElementById('studyRPGExamAuditBtn'))return;
+    document.getElementById('studyRPGExamAuditBtn')?.remove();
     const b=document.createElement('button');
-    b.id='studyRPGExamAuditBtn'; b.type='button'; b.textContent='🔎 檢查考試能量';
-    b.style.cssText='position:fixed;right:10px;bottom:58px;z-index:100000;padding:9px 12px;border:1px solid #3fb950;border-radius:10px;background:#102a18;color:#7ee787;font-weight:900;box-shadow:0 3px 12px #0008';
-    b.onclick=studyRPGAuditExamEnergy;
+    b.id='studyRPGExamAuditBtn';b.type='button';b.textContent='🔎 檢查考試能量';
+    b.style.cssText='position:fixed;right:10px;bottom:58px;z-index:2147483646;padding:9px 12px;border:1px solid #3fb950;border-radius:10px;background:#102a18;color:#7ee787;font-weight:900;box-shadow:0 3px 12px #0008';
+    b.addEventListener('click',()=>window.studyRPGAuditExamEnergy());
     document.body.appendChild(b);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add();
