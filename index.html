@@ -2531,44 +2531,16 @@ function applyGoldWithDebt(amount){
 }
 
 
-function itemDefinition(inv){
-  if(!inv)return null;
-  return inv.itemData
-    || gameData.shopItems.find(x=>x.id===inv.itemId)
-    || ITEM_DATABASE[inv.definitionId]
-    || Object.values(ITEM_DATABASE).find(x=>x.name===inv.name||(x.aliases||[]).includes(inv.name))
-    || null;
-}
-function itemCategory(itemOrInv){
-  const item=itemOrInv?.itemId||itemOrInv?.definitionId||itemOrInv?.itemData?itemDefinition(itemOrInv):itemOrInv;
-  return item?.category||(item?.battleConsumable?'consumable':'coupon');
-}
-function inventoryStackKey(inv){
-  const item=itemDefinition(inv);
-  return String(inv?.definitionId||inv?.itemId||item?.id||inv?.name||inv?.id||'');
-}
-function inventoryGroups(items){
-  const groups=new Map();
-  (items||[]).forEach(inv=>{
-    const key=inventoryStackKey(inv);
-    let group=groups.get(key);
-    if(!group){group={key,inv,item:itemDefinition(inv),count:0,sources:[]};groups.set(key,group);}
-    group.count++;
-    if(inv.source&&!group.sources.includes(inv.source))group.sources.push(inv.source);
-  });
-  return [...groups.values()];
-}
 function isBattleConsumableInventory(inv){
-  const item=itemDefinition(inv);
-  return !!(inv&&inv.status==='unused'&&itemCategory(item)==='consumable'&&item?.battleConsumable);
+  repairRuntimeData();
+  const shop=gameData.shopItems.find(x=>x.id===inv?.itemId);
+  return !!shop?.battleConsumable;
 }
-function battleConsumableCount(invOrKey){
-  const key=typeof invOrKey==='string'?invOrKey:inventoryStackKey(invOrKey);
-  return gameData.inventory.filter(inv=>isBattleConsumableInventory(inv)&&inventoryStackKey(inv)===key).length;
+function battleConsumableCount(name){
+  return gameData.inventory.filter(inv=>inv.name===name && inv.status==='unused' && isBattleConsumableInventory(inv)).length;
 }
-function consumeBattleConsumable(invOrKey){
-  const key=typeof invOrKey==='string'?invOrKey:inventoryStackKey(invOrKey);
-  const idx=gameData.inventory.findIndex(inv=>isBattleConsumableInventory(inv)&&inventoryStackKey(inv)===key);
+function consumeBattleConsumable(name){
+  const idx=gameData.inventory.findIndex(inv=>inv.name===name && inv.status==='unused' && isBattleConsumableInventory(inv));
   if(idx<0)return false;
   gameData.inventory.splice(idx,1);
   saveGame();
@@ -2754,9 +2726,9 @@ const EQUIPMENT_DATABASE={
 };
 
 const ITEM_DATABASE={
-  small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',aliases:['初級生命藥水'],category:'consumable',subtype:'battle',icon:'❤️',effectType:'heal_hp',effectValue:60,battleConsumable:true},
-  small_energy_potion:{id:'small_energy_potion',name:'小型能量藥水',aliases:[],category:'consumable',subtype:'battle',icon:'⚡',effectType:'heal_energy',effectValue:35,battleConsumable:true},
-  beginner_poison:{id:'beginner_poison',name:'初級毒藥',aliases:[],category:'consumable',subtype:'battle',icon:'☠️',effectType:'poison',effectValue:6,effectTurns:3,battleConsumable:true},
+  small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',category:'consumable',icon:'🧪',effectType:'heal_hp',effectValue:50},
+  small_energy_potion:{id:'small_energy_potion',name:'小型能量藥水',category:'consumable',icon:'🔷',effectType:'heal_energy',effectValue:35},
+  beginner_poison:{id:'beginner_poison',name:'初級毒藥',category:'consumable',icon:'☠️',effectType:'poison',effectValue:6,effectTurns:3},
   ...EQUIPMENT_DATABASE
 };
 
@@ -3422,7 +3394,7 @@ function isNonSchoolDay(){
 // V10.10.23：同一週由週一到週五逐步升壓；週末重打視同週五 Boss。
 function weeklyEncounterFactor(dayIndex){
   const i=Math.max(0,Math.min(4,Number(dayIndex)||0));
-  return [0.90,0.98,1.06,1.14,1.22][i];
+  return [0.90,0.98,1.06,1.14,1.00][i];
 }
 function calibratedDailyMonsterPower(){
   const week=semesterProgressWeek();
@@ -3686,12 +3658,10 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
     will:effectiveStat(rawBase*variance('will')),
     virtue:0
   };
-  // V10.10.28：effectiveStat 會在高數值逐漸飽和，因此不能只靠 e.will/e.str 支撐後期怪物。
-  // 保留 Power<=100 的前期手感；只有超過 100 的 Power 轉成後期成長量，避免 W1~W3 被重新拉高。
-  const latePower=Math.max(0,Number(power||0)-100);
-  const lateHp=latePower*(boss?1.80:.55);
-  const maxHp=Math.round((boss?150:100)+(boss?5.2:3.6)*e.will+1.0*e.str+lateHp);
-  const maxEnergy=Math.round(45+e.int*.45+e.will*.25+latePower*.04);
+  // Power 只負責產生怪物的基礎能力；HP/MP 再由能力值推導。
+  // 不再把 Power>100 額外灌入 HP/MP，避免同一份 Power 被重複計算而造成後期數值脫鉤。
+  const maxHp=Math.round((boss?150:100)+(boss?5.2:3.6)*e.will+1.0*e.str);
+  const maxEnergy=Math.round(45+e.int*.45+e.will*.25);
   const resist={fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0};
   if(name.includes('史萊姆')){resist.fire=-.15;resist.ice=.10;}
   if(name.includes('獸人')){resist.fire=.15;resist.ice=-.20;}
@@ -3699,11 +3669,11 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
   if(name.includes('騎士')){resist.fire=.10;resist.ice=.10;resist.lightning=.10;resist.wind=.10;}
   return {
     side:'enemy',name,...e,maxHp,maxEnergy,
-    // 高 Power 額外成長採溫和線性補償，解除 effectiveStat 飽和造成的後期斷層。
-    attack:9+e.str*1.15+latePower*.05,
-    magicAttack:7+e.int*1.15+latePower*.05,
-    defense:8+e.will*.75+latePower*.035,
-    magicDefense:7+e.will*.70+latePower*.035,
+    // 戰鬥數值統一由 effectiveStat 後的能力值推導，Power 不再二次加成。
+    attack:9+e.str*1.15,
+    magicAttack:7+e.int*1.15,
+    defense:8+e.will*.75,
+    magicDefense:7+e.will*.70,
     speed:e.agi,
     crit:clampBattle(.04+.20*(e.agi/(e.agi+100)),.04,.24),
     evade:clampBattle(.02+.16*(e.agi/(e.agi+100)),.02,.18),
@@ -4171,53 +4141,27 @@ function showBattleSkills(){
 function showBattleItems(){
   if(!battleStateV10||battleStateV10.busy)return;
   const box=document.getElementById('battleSubmenu');
-  const usable=inventoryGroups(gameData.inventory.filter(isBattleConsumableInventory));
-  if(!usable.length){
-    box.innerHTML='<div class="battle-choice"><strong>🎒 沒有可用的戰鬥道具</strong><span>背包中目前沒有戰鬥消耗品。</span></div>';
-  }else{
-    box.innerHTML=usable.map(({inv,item,count})=>`
-      <button class="battle-choice" onclick="battleUseItem('${inv.id}')">
-        <strong>${item?.icon||'🧪'} ${item?.name||inv.name} <span class="item-count">×${count}</span></strong>
-        <span>${battleItemDescription(item)}</span>
-      </button>`).join('');
-  }
+  const poisonCount=battleConsumableCount('初級毒藥');
+  box.innerHTML=`
+    <button class="battle-choice" ${poisonCount<1?'disabled':''} onclick="battleUsePoison()">
+      <strong>🧪 初級毒藥 <span class="item-count">×${poisonCount}</span></strong>
+      <span>${poisonCount>0?'使敵人有高機率中毒3回合；使用後消耗1瓶。':'背包裡沒有初級毒藥。請先從商店購買。'}</span>
+    </button>`;
   box.style.display='grid';
 }
 function hideBattleSubmenu(){
   const box=document.getElementById('battleSubmenu');if(box)box.style.display='none';
 }
-function battleItemDescription(item){
-  if(!item)return '戰鬥消耗品';
-  if(item.effectType==='heal_hp')return `恢復 ${Number(item.effectValue)||0} HP；使用後消耗1個。`;
-  if(item.effectType==='heal_energy')return `恢復 ${Number(item.effectValue)||0} 點戰鬥資源；使用後消耗1個。`;
-  if(item.effectType==='poison')return `使敵人有高機率中毒 ${Number(item.effectTurns)||3} 回合；使用後消耗1個。`;
-  return item.description||'使用後消耗1個。';
-}
-async function battleUseItem(invId){
+async function battleUsePoison(){
   if(!battleStateV10||battleStateV10.busy)return;
-  const inv=gameData.inventory.find(x=>x.id===invId&&isBattleConsumableInventory(x));
-  const item=itemDefinition(inv);
-  if(!inv||!item)return;
   const target=selectedBattleEnemy();if(!target)return;
-  const stackKey=inventoryStackKey(inv);
-  if(!consumeBattleConsumable(stackKey)){addBattleLog('🎒 道具數量不足。');hideBattleSubmenu();return;}
+  if(battleConsumableCount('初級毒藥')<1){addBattleLog('🎒 沒有初級毒藥。');hideBattleSubmenu();return;}
+  if(!consumeBattleConsumable('初級毒藥'))return;
   battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;
   const banner=document.getElementById('battleRoundBanner');if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
   const completed=await runInitiativeRound(async()=>{
-    if(item.effectType==='heal_hp'){
-      heroHeal(Number(item.effectValue)||0,item.name||inv.name);
-    }else if(item.effectType==='heal_energy'){
-      const value=Number(item.effectValue)||0,f=battleStateV10.formal;
-      if(f?.resourceType==='rage')gainFormal('rage',value);
-      else if(f?.resourceType==='mp')gainFormal('mp',value);
-      else gainFormal('energy',value);
-    }else if(item.effectType==='poison'){
-      if(Math.random()<statusChance(.75,target,'poison')){
-        addStatus(target,{type:'poison',name:'中毒',turns:Number(item.effectTurns)||3,power:Number(item.effectValue)||6,effectType:'debuff',mods:{}});
-        addBattleLog(`☠️ ${target.name}中毒了。`);
-      }else addBattleLog(`🧪 ${target.name}抵抗了${item.name||inv.name}！`);
-    }
-    addBattleLog(`${item.icon||'🧪'} 使用${item.name||inv.name}，剩餘 ${battleConsumableCount(stackKey)} 個。`);
+    addBattleLog('🧪 使用初級毒藥，剩餘 '+battleConsumableCount('初級毒藥')+' 瓶。');
+    if(Math.random()<statusChance(.75,target,'poison')){addStatus(target,{type:'poison',name:'中毒',turns:3,maxHpDot:.03,effectType:'debuff',mods:{}});addBattleLog(`☠️ ${target.name}中毒了。`);}else addBattleLog(`🧪 ${target.name}抵抗了毒藥！`);
   });
   if(!completed||battleStateV10.ended)return;
   battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();updateBattleStatuses();
@@ -4432,10 +4376,8 @@ function renderBattleTargets(){
 }
 function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   const def=MONSTER_DATABASE[monsterId]||{id:monsterId,name:opts.name||'怪物'};
-  // 週五 roster Boss 在正式每日副本原本 eventType 仍是 daily，
-  // 導致 deriveEnemyStats 沒有套到 Boss HP 公式。Boss 旗標在這裡轉成 boss 統計模式。
-  const statEventType=(def.boss||opts.isBoss) && eventType==='daily' ? 'midterm' : eventType;
-  let base=deriveEnemyStats(power,def.name,statEventType);
+  // boss:true 是怪物身分；只有真正的 midterm/final eventType 才使用考試 Boss 數值公式。
+  let base=deriveEnemyStats(power,def.name,eventType);
   if(monsterId==='hero_mirror'){
     const h=makeHeroBattleStats();
     base={...base,maxHp:Math.round(h.maxHp*.95),maxEnergy:h.maxEnergy,attack:h.attack*.85,magicAttack:h.magicAttack*.85,defense:h.defense*.85,magicDefense:h.magicDefense*.85,speed:h.speed*.85,crit:h.crit,evade:h.evade,parry:h.parry,block:h.block,statusRes:h.statusRes,elementalBaseRes:h.elementalBaseRes,resist:{...h.resist}};
@@ -5189,6 +5131,8 @@ function renderBag(){
 const ITEM_CATEGORY_LABELS={all:'全部',consumable:'消耗品',equipment:'裝備',coupon:'兌換券',special:'特殊'};
 const EQUIP_SLOT_LABELS={weapon:'⚔️ 武器',head:'🪖 頭部',body:'👕 身體',accessory:'💍 飾品'};
 let shopCategoryFilter='all',bagCategoryFilter='all';
+function itemDefinition(inv){return gameData.shopItems.find(x=>x.id===inv?.itemId)||inv?.itemData||null;}
+function itemCategory(itemOrInv){const item=itemOrInv?.itemId?itemDefinition(itemOrInv):itemOrInv;return item?.category||(item?.battleConsumable?'consumable':'coupon');}
 
 function ensureAssetAudit(){
   gameData.assetAudit=gameData.assetAudit&&typeof gameData.assetAudit==='object'?gameData.assetAudit:{};
@@ -5291,16 +5235,22 @@ function renderBag(){
   const activeItems=inventory.filter(inv=>inv.status!=='used'&&(bagCategoryFilter==='all'||itemCategory(inv)===bagCategoryFilter));
   const usedCoupons=inventory.filter(inv=>inv.status==='used'&&itemCategory(inv)==='coupon'&&(bagCategoryFilter==='all'||bagCategoryFilter==='coupon'));
   if(!activeItems.length)html+='<div class="card small">這個分類目前沒有可使用的物品。</div>';
-  // 可堆疊類型只在顯示／使用層依正式物品識別聚合；inventory 仍維持每個實體物品一筆，
-  // 因此既有兌換核銷、裝備 inv.id、掉落來源與舊存檔都不需要改格式。
-  const renderItems=[];
-  const stackable=activeItems.filter(inv=>['coupon','consumable'].includes(itemCategory(inv)));
-  const individual=activeItems.filter(inv=>!['coupon','consumable'].includes(itemCategory(inv)));
-  renderItems.push(...inventoryGroups(stackable),...individual.map(inv=>({inv,item:itemDefinition(inv),count:1,sources:inv.source?[inv.source]:[]})));
+  // 兌換券維持「一張 = 一筆 inventory」的正式資料結構，只在背包 UI 合併顯示張數。
+  // 申請使用時仍只送出其中一張 inv.id，因此不影響既有核准／核銷／使用紀錄。
+  const couponGroups=new Map(),renderItems=[];
+  activeItems.forEach(inv=>{
+    const cat=itemCategory(inv);
+    if(cat!=='coupon'){renderItems.push({inv,count:1,sources:[inv.source]});return;}
+    const key=[inv.itemId||'',inv.name||'',inv.status||'unused'].join('||');
+    let g=couponGroups.get(key);
+    if(!g){g={inv,count:0,sources:[]};couponGroups.set(key,g);renderItems.push(g);}
+    g.count++;
+    if(inv.source&&!g.sources.includes(inv.source))g.sources.push(inv.source);
+  });
   renderItems.forEach(entry=>{
     const inv=entry.inv,item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);
     const statusText=inv.status==='pending'?'<div class="small">狀態：等待家長核准</div>':'';
-    const countText=['coupon','consumable'].includes(cat)&&entry.count>1?` <span class="pill good">×${entry.count}</span>`:'';
+    const countText=cat==='coupon'&&entry.count>1?` <span class="pill good">×${entry.count}</span>`:'';
     const sourceText=entry.sources.length>1?'多重來源':entry.sources[0]==='dungeon'?'副本掉落':entry.sources[0]==='lottery'?'抽獎':'商店';
     html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong>${countText} <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${sourceText}</div>${statusText}${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用 1 張</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`;
   });
@@ -10219,7 +10169,11 @@ window.StudyRPGCombatRuntimeCanonical.finalize();
   window.ensureEquipmentRuntimeData=ensureEquipmentRuntimeData;
   ensureEquipmentRuntimeData();
 
-  DB.items=ITEM_DATABASE;
+  DB.items={
+    small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',aliases:['初級生命藥水'],category:'consumable',subtype:'battle',icon:'❤️',effectType:'heal_hp',effectValue:60,battleConsumable:true},
+    small_energy_potion:{id:'small_energy_potion',name:'小型能量藥水',aliases:[],category:'consumable',subtype:'battle',icon:'⚡',effectType:'heal_energy',effectValue:35,battleConsumable:true},
+    beginner_poison:{id:'beginner_poison',name:'初級毒藥',aliases:[],category:'consumable',subtype:'battle',icon:'☠️',effectType:'poison',effectTurns:3,battleConsumable:true}
+  };
 
   DB.rarityRules={
     common:{name:'普通',affixCount:0,random:true,editable:false},
@@ -10240,7 +10194,16 @@ window.StudyRPGCombatRuntimeCanonical.finalize();
   DB.orangeDrop={allFloors:true,normalFloorChance:.015,bossFloorChance:.06};
 
   function itemByName(name){return Object.values(DB.items).find(x=>x.name===name||(x.aliases||[]).includes(name))||null;}
-  function itemDef(inv){return itemDefinition(inv);}
+  function itemDef(inv){
+    if(!inv)return null;
+    return inv.itemData||gameData.shopItems.find(x=>x.id===inv.itemId)||DB.items[inv.definitionId]||itemByName(inv.name)||null;
+  }
+  window.isBattleConsumableInventory=function(inv){return !!(inv&&inv.status==='unused'&&itemDef(inv)?.battleConsumable);};
+  window.battleConsumableCount=function(name){const def=itemByName(name);return gameData.inventory.filter(inv=>inv.status==='unused'&&isBattleConsumableInventory(inv)&&itemDef(inv)?.id===(def?.id||itemDef(inv)?.id)).length;};
+  window.consumeBattleConsumableById=function(definitionId){
+    const i=gameData.inventory.findIndex(inv=>inv.status==='unused'&&isBattleConsumableInventory(inv)&&itemDef(inv)?.id===definitionId);
+    if(i<0)return false;gameData.inventory.splice(i,1);saveGame();return true;
+  };
 
   function migrateInventory(){
     gameData.inventory=(gameData.inventory||[]).map(inv=>{
@@ -10385,6 +10348,31 @@ window.StudyRPGCombatRuntimeCanonical.finalize();
     ensureEquipmentRuntimeData();
     const list=(gameData.inventory||[]).filter(inv=>itemDef(inv)?.category==='equipment');
     return `<div class="card"><h3>🔨 裝備處理</h3><div>強化碎片：<b>${gameData.hero.enhancementShards||0}</b>｜強化上限＋10</div><button class="btn gold" onclick="bulkProcessLowEquipment('sell')">批量出售白綠裝</button> <button class="btn purple" onclick="bulkProcessLowEquipment('dismantle')">批量分解白綠裝</button>${list.map(inv=>{const item=itemDef(inv),r=rarityOf(item),lv=Number(item.enhancementLevel)||0,blocked=equippedInventory(inv);return `<details class="card"><summary><b>${RARITY_LABEL[r]||r} ${escapeHtml(inv.name)} ${lv?'＋'+lv:''}</b></summary><div class="small">${equipmentStatText(item)}${blocked?'｜使用中':''}${inv.locked?'｜🔒已鎖定':''}</div><button class="btn gray" onclick="toggleEquipmentLock('${inv.id}')">${inv.locked?'解鎖':'鎖定'}</button> <button class="btn blue" onclick="enhanceEquipment('${inv.id}')" ${lv>=10?'disabled':''}>強化</button> <button class="btn gold" onclick="sellEquipment('${inv.id}')" ${blocked||inv.locked?'disabled':''}>出售</button> <button class="btn red" onclick="dismantleEquipment('${inv.id}')" ${blocked||inv.locked||r==='legendary'?'disabled':''}>分解</button></details>`;}).join('')}</div>`;
+  };
+
+  window.showBattleItems=function(){
+    if(!battleStateV10||battleStateV10.busy)return;const box=document.getElementById('battleSubmenu');
+    const usable=Object.values(DB.items).filter(def=>def.battleConsumable).map(def=>({def,count:gameData.inventory.filter(inv=>inv.status==='unused'&&isBattleConsumableInventory(inv)&&itemDef(inv)?.id===def.id).length}));
+    box.innerHTML=usable.map(({def,count})=>`<button class="battle-choice" ${count<1?'disabled':''} onclick="battleUseDatabaseItem('${def.id}')"><strong>${def.icon} ${def.name} <span class="item-count">×${count}</span></strong><span>${def.effectType==='heal_hp'?`恢復 ${def.effectValue} HP`:def.effectType==='heal_energy'?`恢復 ${def.effectValue} 點戰鬥資源`:'使敵人中毒3回合'}</span></button>`).join('');box.style.display='grid';
+  };
+  window.battleUseDatabaseItem=async function(id){
+    if(!battleStateV10||battleStateV10.busy)return;const def=DB.items[id],target=selectedBattleEnemy();if(!def||!target||!consumeBattleConsumableById(id))return;
+    battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;const banner=document.getElementById('battleRoundBanner');if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
+    const completed=await runInitiativeRound(async()=>{
+      if(def.effectType==='heal_hp')heroHeal(def.effectValue,def.name);
+      else if(def.effectType==='heal_energy'){const f=battleStateV10.formal;if(f?.resourceType==='rage')gainFormal('rage',def.effectValue);else if(f?.resourceType==='mp')gainFormal('mp',def.effectValue);else gainFormal('energy',def.effectValue);}
+      else if(def.effectType==='poison'){if(Math.random()<statusChance(.75,target,'poison'))addStatus(target,{type:'poison',name:'中毒',turns:def.effectTurns||3,maxHpDot:.03,effectType:'debuff',mods:{}});else addBattleLog(`🧪 ${target.name}抵抗了毒藥！`);}
+      addBattleLog(`${def.icon} 使用${def.name}。`);
+    });
+    if(!completed||battleStateV10.ended)return;battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();updateBattleStatuses();
+  };
+
+  window.gmAddShopItem=function(){
+    ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name)return alert('請輸入商品名稱');
+    const category=document.getElementById('gmShopCategory')?.value||'coupon',item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};
+    if(category==='equipment'){item.equipSlot=document.getElementById('gmEquipSlot')?.value||'weapon';const k=document.getElementById('gmEquipStat')?.value||'attack';let v=Number(document.getElementById('gmEquipValue')?.value)||0;if(['crit','evade','block'].includes(k))v/=100;item.stats[k]=v;}
+    if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}
+    gameData.shopItems.push(item);saveGame();renderAll();
   };
 
   migrateInventory();saveGame();if(gameData.hero?.name)renderAll();
@@ -10660,7 +10648,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
 function currentElement(side){if(side==='hero')return document.getElementById('battleHeroSprite')||document.getElementById('battleChar_hero');const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;return u?document.querySelector(`[data-enemy-uid="${u.uid}"]`):document.querySelector('.battle-enemy-unit-sprite');}
 function anchorBox(side,fx){const arena=document.getElementById('battleArena');if(!arena)return null;let el=currentElement(side),r=el?.getBoundingClientRect(),a=arena.getBoundingClientRect();if(!r){const p=point(side==='hero'?'hero_home':'enemy_home');return {x:a.width*p.x/100,y:a.height*p.y/100,w:100,h:100};}let key='novice';if(side!=='hero'){const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;key=u?.monsterId||''}const ea=side==='hero'?C.heroes?.[key]?.effectAnchor:C.monsters?.[key]?.effectAnchor;const ew=Number(ea?.width||100)/100,eh=Number(ea?.height||100)/100,ey=Number(ea?.y||0)/100;return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2+r.height*ey,w:r.width*ew,h:r.height*eh};}
 function transFrames(type,enter=true){switch(type){case'fade':return enter?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}];case'dissolve':return enter?[{opacity:0,clipPath:'inset(50% 50% 50% 50%)',filter:'blur(6px)'},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'blur(0)'}]:[{opacity:1,clipPath:'inset(0 0 0 0)'},{opacity:0,clipPath:'inset(45% 45% 45% 45%)',filter:'blur(7px)'}];case'scale':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.2)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(.2)'}];case'pop':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.4)'},{opacity:1,transform:'translate(-50%,-50%) scale(1.18)'},{transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) scale(1.25)'}];case'slide':return enter?[{opacity:0,transform:'translate(-80%,-50%)'},{opacity:1,transform:'translate(-50%,-50%)'}]:[{opacity:1,transform:'translate(-50%,-50%)'},{opacity:0,transform:'translate(-20%,-50%)'}];case'flash':return enter?[{opacity:0},{opacity:1,filter:'brightness(3)'},{filter:'brightness(1)'}]:[{opacity:1},{opacity:0,filter:'brightness(3)'}];case'rotate':return enter?[{opacity:0,transform:'translate(-50%,-50%) rotate(-180deg) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) rotate(0) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) rotate(180deg) scale(.5)'}];case'blur':return enter?[{opacity:0,filter:'blur(12px)'},{opacity:1,filter:'blur(0)'}]:[{opacity:1,filter:'blur(0)'},{opacity:0,filter:'blur(12px)'}];default:return null}}
-async function playFx(fx,defaultSide){if(!fx?.image)return false;if(fx.delay)await sleep(Number(fx.delay)||0);const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=fx.scaleMode==='fixed'?96:(fx.scaleMode==='self'?anchorBox(defaultSide,fx)?.h:b.h);const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';img.style.scale=fx.mirrorX?'-1 1':'1 1';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
+async function playFx(fx,defaultSide){if(!fx?.image)return false;if(fx.delay)await sleep(Number(fx.delay)||0);const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=96;const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';img.style.scale=fx.mirrorX?'-1 1':'1 1';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
 async function playList(list,side){let ok=false;for(const f of list||[])ok=(await playFx(typeof f==='string'?{image:f}:f,side))||ok;return ok}
 const oldSeq=window.playSkillVisualSequence;
 async function playPathFx(p,side){
