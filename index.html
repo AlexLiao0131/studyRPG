@@ -2531,16 +2531,44 @@ function applyGoldWithDebt(amount){
 }
 
 
+function itemDefinition(inv){
+  if(!inv)return null;
+  return inv.itemData
+    || gameData.shopItems.find(x=>x.id===inv.itemId)
+    || ITEM_DATABASE[inv.definitionId]
+    || Object.values(ITEM_DATABASE).find(x=>x.name===inv.name||(x.aliases||[]).includes(inv.name))
+    || null;
+}
+function itemCategory(itemOrInv){
+  const item=itemOrInv?.itemId||itemOrInv?.definitionId||itemOrInv?.itemData?itemDefinition(itemOrInv):itemOrInv;
+  return item?.category||(item?.battleConsumable?'consumable':'coupon');
+}
+function inventoryStackKey(inv){
+  const item=itemDefinition(inv);
+  return String(inv?.definitionId||inv?.itemId||item?.id||inv?.name||inv?.id||'');
+}
+function inventoryGroups(items){
+  const groups=new Map();
+  (items||[]).forEach(inv=>{
+    const key=inventoryStackKey(inv);
+    let group=groups.get(key);
+    if(!group){group={key,inv,item:itemDefinition(inv),count:0,sources:[]};groups.set(key,group);}
+    group.count++;
+    if(inv.source&&!group.sources.includes(inv.source))group.sources.push(inv.source);
+  });
+  return [...groups.values()];
+}
 function isBattleConsumableInventory(inv){
-  repairRuntimeData();
-  const shop=gameData.shopItems.find(x=>x.id===inv?.itemId);
-  return !!shop?.battleConsumable;
+  const item=itemDefinition(inv);
+  return !!(inv&&inv.status==='unused'&&itemCategory(item)==='consumable'&&item?.battleConsumable);
 }
-function battleConsumableCount(name){
-  return gameData.inventory.filter(inv=>inv.name===name && inv.status==='unused' && isBattleConsumableInventory(inv)).length;
+function battleConsumableCount(invOrKey){
+  const key=typeof invOrKey==='string'?invOrKey:inventoryStackKey(invOrKey);
+  return gameData.inventory.filter(inv=>isBattleConsumableInventory(inv)&&inventoryStackKey(inv)===key).length;
 }
-function consumeBattleConsumable(name){
-  const idx=gameData.inventory.findIndex(inv=>inv.name===name && inv.status==='unused' && isBattleConsumableInventory(inv));
+function consumeBattleConsumable(invOrKey){
+  const key=typeof invOrKey==='string'?invOrKey:inventoryStackKey(invOrKey);
+  const idx=gameData.inventory.findIndex(inv=>isBattleConsumableInventory(inv)&&inventoryStackKey(inv)===key);
   if(idx<0)return false;
   gameData.inventory.splice(idx,1);
   saveGame();
@@ -2726,9 +2754,9 @@ const EQUIPMENT_DATABASE={
 };
 
 const ITEM_DATABASE={
-  small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',category:'consumable',icon:'🧪',effectType:'heal_hp',effectValue:50},
-  small_energy_potion:{id:'small_energy_potion',name:'小型能量藥水',category:'consumable',icon:'🔷',effectType:'heal_energy',effectValue:35},
-  beginner_poison:{id:'beginner_poison',name:'初級毒藥',category:'consumable',icon:'☠️',effectType:'poison',effectValue:6,effectTurns:3},
+  small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',aliases:['初級生命藥水'],category:'consumable',subtype:'battle',icon:'❤️',effectType:'heal_hp',effectValue:60,battleConsumable:true},
+  small_energy_potion:{id:'small_energy_potion',name:'小型能量藥水',aliases:[],category:'consumable',subtype:'battle',icon:'⚡',effectType:'heal_energy',effectValue:35,battleConsumable:true},
+  beginner_poison:{id:'beginner_poison',name:'初級毒藥',aliases:[],category:'consumable',subtype:'battle',icon:'☠️',effectType:'poison',effectValue:6,effectTurns:3,battleConsumable:true},
   ...EQUIPMENT_DATABASE
 };
 
@@ -3658,8 +3686,7 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
     will:effectiveStat(rawBase*variance('will')),
     virtue:0
   };
-  // Power 只負責產生怪物的基礎能力；HP/MP 再由能力值推導。
-  // 不再把 Power>100 額外灌入 HP/MP，避免同一份 Power 被重複計算而造成後期數值脫鉤。
+  // Power 只負責產生怪物的基礎能力；HP/MP 再由能力值推導，避免 Power 被重複計算。
   const maxHp=Math.round((boss?150:100)+(boss?5.2:3.6)*e.will+1.0*e.str);
   const maxEnergy=Math.round(45+e.int*.45+e.will*.25);
   const resist={fire:0,ice:0,lightning:0,wind:0,poison:0,curse:0};
@@ -3669,7 +3696,7 @@ function deriveEnemyStats(power,name='怪物',eventType='daily'){
   if(name.includes('騎士')){resist.fire=.10;resist.ice=.10;resist.lightning=.10;resist.wind=.10;}
   return {
     side:'enemy',name,...e,maxHp,maxEnergy,
-    // 戰鬥數值統一由 effectiveStat 後的能力值推導，Power 不再二次加成。
+    // 高 Power 額外成長採溫和線性補償，解除 effectiveStat 飽和造成的後期斷層。
     attack:9+e.str*1.15,
     magicAttack:7+e.int*1.15,
     defense:8+e.will*.75,
@@ -3721,6 +3748,7 @@ function updateBattleStatuses(){
     el.innerHTML=statuses.map(st=>`<span class="status-token ${st.effectType==='buff'?'effect-buff':st.effectType==='debuff'?'effect-debuff':''}">${statusLabel(st)} ${st.turns}</span>`).join('');
   };
   paint('hero',battleStateV10.hero);paint('enemy',typeof selectedBattleEnemy==='function'?selectedBattleEnemy():battleStateV10.enemy);
+  requestAnimationFrame(()=>window.studyRPGRenderStatusFx?.());
 }
 function updateBattleResource(side,val,max){
   const pct=Math.max(0,Math.round(val/max*100));
@@ -4141,27 +4169,53 @@ function showBattleSkills(){
 function showBattleItems(){
   if(!battleStateV10||battleStateV10.busy)return;
   const box=document.getElementById('battleSubmenu');
-  const poisonCount=battleConsumableCount('初級毒藥');
-  box.innerHTML=`
-    <button class="battle-choice" ${poisonCount<1?'disabled':''} onclick="battleUsePoison()">
-      <strong>🧪 初級毒藥 <span class="item-count">×${poisonCount}</span></strong>
-      <span>${poisonCount>0?'使敵人有高機率中毒3回合；使用後消耗1瓶。':'背包裡沒有初級毒藥。請先從商店購買。'}</span>
-    </button>`;
+  const usable=inventoryGroups(gameData.inventory.filter(isBattleConsumableInventory));
+  if(!usable.length){
+    box.innerHTML='<div class="battle-choice"><strong>🎒 沒有可用的戰鬥道具</strong><span>背包中目前沒有戰鬥消耗品。</span></div>';
+  }else{
+    box.innerHTML=usable.map(({inv,item,count})=>`
+      <button class="battle-choice" onclick="battleUseItem('${inv.id}')">
+        <strong>${item?.icon||'🧪'} ${item?.name||inv.name} <span class="item-count">×${count}</span></strong>
+        <span>${battleItemDescription(item)}</span>
+      </button>`).join('');
+  }
   box.style.display='grid';
 }
 function hideBattleSubmenu(){
   const box=document.getElementById('battleSubmenu');if(box)box.style.display='none';
 }
-async function battleUsePoison(){
+function battleItemDescription(item){
+  if(!item)return '戰鬥消耗品';
+  if(item.effectType==='heal_hp')return `恢復 ${Number(item.effectValue)||0} HP；使用後消耗1個。`;
+  if(item.effectType==='heal_energy')return `恢復 ${Number(item.effectValue)||0} 點戰鬥資源；使用後消耗1個。`;
+  if(item.effectType==='poison')return `使敵人有高機率中毒 ${Number(item.effectTurns)||3} 回合；使用後消耗1個。`;
+  return item.description||'使用後消耗1個。';
+}
+async function battleUseItem(invId){
   if(!battleStateV10||battleStateV10.busy)return;
+  const inv=gameData.inventory.find(x=>x.id===invId&&isBattleConsumableInventory(x));
+  const item=itemDefinition(inv);
+  if(!inv||!item)return;
   const target=selectedBattleEnemy();if(!target)return;
-  if(battleConsumableCount('初級毒藥')<1){addBattleLog('🎒 沒有初級毒藥。');hideBattleSubmenu();return;}
-  if(!consumeBattleConsumable('初級毒藥'))return;
+  const stackKey=inventoryStackKey(inv);
+  if(!consumeBattleConsumable(stackKey)){addBattleLog('🎒 道具數量不足。');hideBattleSubmenu();return;}
   battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;
   const banner=document.getElementById('battleRoundBanner');if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
   const completed=await runInitiativeRound(async()=>{
-    addBattleLog('🧪 使用初級毒藥，剩餘 '+battleConsumableCount('初級毒藥')+' 瓶。');
-    if(Math.random()<statusChance(.75,target,'poison')){addStatus(target,{type:'poison',name:'中毒',turns:3,maxHpDot:.03,effectType:'debuff',mods:{}});addBattleLog(`☠️ ${target.name}中毒了。`);}else addBattleLog(`🧪 ${target.name}抵抗了毒藥！`);
+    if(item.effectType==='heal_hp'){
+      heroHeal(Number(item.effectValue)||0,item.name||inv.name);
+    }else if(item.effectType==='heal_energy'){
+      const value=Number(item.effectValue)||0,f=battleStateV10.formal;
+      if(f?.resourceType==='rage')gainFormal('rage',value);
+      else if(f?.resourceType==='mp')gainFormal('mp',value);
+      else gainFormal('energy',value);
+    }else if(item.effectType==='poison'){
+      if(Math.random()<statusChance(.75,target,'poison')){
+        addStatus(target,{type:'poison',name:'中毒',turns:Number(item.effectTurns)||3,power:Number(item.effectValue)||6,effectType:'debuff',mods:{}});
+        addBattleLog(`☠️ ${target.name}中毒了。`);
+      }else addBattleLog(`🧪 ${target.name}抵抗了${item.name||inv.name}！`);
+    }
+    addBattleLog(`${item.icon||'🧪'} 使用${item.name||inv.name}，剩餘 ${battleConsumableCount(stackKey)} 個。`);
   });
   if(!completed||battleStateV10.ended)return;
   battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();updateBattleStatuses();
@@ -4376,7 +4430,7 @@ function renderBattleTargets(){
 }
 function makeLiveEnemy(monsterId,power,eventType='daily',opts={}){
   const def=MONSTER_DATABASE[monsterId]||{id:monsterId,name:opts.name||'怪物'};
-  // boss:true 是怪物身分；只有真正的 midterm/final eventType 才使用考試 Boss 數值公式。
+  // boss:true 只代表怪物身分；只有真正的 midterm/final 才使用考試 Boss 數值公式。
   let base=deriveEnemyStats(power,def.name,eventType);
   if(monsterId==='hero_mirror'){
     const h=makeHeroBattleStats();
@@ -5131,8 +5185,6 @@ function renderBag(){
 const ITEM_CATEGORY_LABELS={all:'全部',consumable:'消耗品',equipment:'裝備',coupon:'兌換券',special:'特殊'};
 const EQUIP_SLOT_LABELS={weapon:'⚔️ 武器',head:'🪖 頭部',body:'👕 身體',accessory:'💍 飾品'};
 let shopCategoryFilter='all',bagCategoryFilter='all';
-function itemDefinition(inv){return gameData.shopItems.find(x=>x.id===inv?.itemId)||inv?.itemData||null;}
-function itemCategory(itemOrInv){const item=itemOrInv?.itemId?itemDefinition(itemOrInv):itemOrInv;return item?.category||(item?.battleConsumable?'consumable':'coupon');}
 
 function ensureAssetAudit(){
   gameData.assetAudit=gameData.assetAudit&&typeof gameData.assetAudit==='object'?gameData.assetAudit:{};
@@ -5235,22 +5287,16 @@ function renderBag(){
   const activeItems=inventory.filter(inv=>inv.status!=='used'&&(bagCategoryFilter==='all'||itemCategory(inv)===bagCategoryFilter));
   const usedCoupons=inventory.filter(inv=>inv.status==='used'&&itemCategory(inv)==='coupon'&&(bagCategoryFilter==='all'||bagCategoryFilter==='coupon'));
   if(!activeItems.length)html+='<div class="card small">這個分類目前沒有可使用的物品。</div>';
-  // 兌換券維持「一張 = 一筆 inventory」的正式資料結構，只在背包 UI 合併顯示張數。
-  // 申請使用時仍只送出其中一張 inv.id，因此不影響既有核准／核銷／使用紀錄。
-  const couponGroups=new Map(),renderItems=[];
-  activeItems.forEach(inv=>{
-    const cat=itemCategory(inv);
-    if(cat!=='coupon'){renderItems.push({inv,count:1,sources:[inv.source]});return;}
-    const key=[inv.itemId||'',inv.name||'',inv.status||'unused'].join('||');
-    let g=couponGroups.get(key);
-    if(!g){g={inv,count:0,sources:[]};couponGroups.set(key,g);renderItems.push(g);}
-    g.count++;
-    if(inv.source&&!g.sources.includes(inv.source))g.sources.push(inv.source);
-  });
+  // 可堆疊類型只在顯示／使用層依正式物品識別聚合；inventory 仍維持每個實體物品一筆，
+  // 因此既有兌換核銷、裝備 inv.id、掉落來源與舊存檔都不需要改格式。
+  const renderItems=[];
+  const stackable=activeItems.filter(inv=>['coupon','consumable'].includes(itemCategory(inv)));
+  const individual=activeItems.filter(inv=>!['coupon','consumable'].includes(itemCategory(inv)));
+  renderItems.push(...inventoryGroups(stackable),...individual.map(inv=>({inv,item:itemDefinition(inv),count:1,sources:inv.source?[inv.source]:[]})));
   renderItems.forEach(entry=>{
     const inv=entry.inv,item=itemDefinition(inv),cat=itemCategory(inv),equipped=cat==='equipment'&&Object.values(gameData.hero.equipment||{}).includes(inv.id);
     const statusText=inv.status==='pending'?'<div class="small">狀態：等待家長核准</div>':'';
-    const countText=cat==='coupon'&&entry.count>1?` <span class="pill good">×${entry.count}</span>`:'';
+    const countText=['coupon','consumable'].includes(cat)&&entry.count>1?` <span class="pill good">×${entry.count}</span>`:'';
     const sourceText=entry.sources.length>1?'多重來源':entry.sources[0]==='dungeon'?'副本掉落':entry.sources[0]==='lottery'?'抽獎':'商店';
     html+=`<div class="card"><strong>${item?.icon||'📦'} ${inv.name}</strong>${countText} <span class="pill">${ITEM_CATEGORY_LABELS[cat]||cat}</span><div class="small">來源：${sourceText}</div>${statusText}${cat==='equipment'?`<div class="item-meta">${EQUIP_SLOT_LABELS[item?.equipSlot]||'裝備'}｜${equipmentStatText(item)}</div><button class="btn ${equipped?'gray':'blue'}" onclick="equipInventory('${inv.id}')">${equipped?'卸下':'裝備'}</button>`:''}${inv.status==='unused'&&cat==='coupon'?`<button class="btn gold" onclick="requestCoupon('${inv.id}')">申請使用 1 張</button>`:''}${inv.status==='unused'&&cat==='consumable'?'<div class="small good">⚔️ 戰鬥消耗品：在戰鬥的「道具」中使用。</div>':''}</div>`;
   });
@@ -10169,11 +10215,7 @@ window.StudyRPGCombatRuntimeCanonical.finalize();
   window.ensureEquipmentRuntimeData=ensureEquipmentRuntimeData;
   ensureEquipmentRuntimeData();
 
-  DB.items={
-    small_hp_potion:{id:'small_hp_potion',name:'小型生命藥水',aliases:['初級生命藥水'],category:'consumable',subtype:'battle',icon:'❤️',effectType:'heal_hp',effectValue:60,battleConsumable:true},
-    small_energy_potion:{id:'small_energy_potion',name:'小型能量藥水',aliases:[],category:'consumable',subtype:'battle',icon:'⚡',effectType:'heal_energy',effectValue:35,battleConsumable:true},
-    beginner_poison:{id:'beginner_poison',name:'初級毒藥',aliases:[],category:'consumable',subtype:'battle',icon:'☠️',effectType:'poison',effectTurns:3,battleConsumable:true}
-  };
+  DB.items=ITEM_DATABASE;
 
   DB.rarityRules={
     common:{name:'普通',affixCount:0,random:true,editable:false},
@@ -10194,16 +10236,7 @@ window.StudyRPGCombatRuntimeCanonical.finalize();
   DB.orangeDrop={allFloors:true,normalFloorChance:.015,bossFloorChance:.06};
 
   function itemByName(name){return Object.values(DB.items).find(x=>x.name===name||(x.aliases||[]).includes(name))||null;}
-  function itemDef(inv){
-    if(!inv)return null;
-    return inv.itemData||gameData.shopItems.find(x=>x.id===inv.itemId)||DB.items[inv.definitionId]||itemByName(inv.name)||null;
-  }
-  window.isBattleConsumableInventory=function(inv){return !!(inv&&inv.status==='unused'&&itemDef(inv)?.battleConsumable);};
-  window.battleConsumableCount=function(name){const def=itemByName(name);return gameData.inventory.filter(inv=>inv.status==='unused'&&isBattleConsumableInventory(inv)&&itemDef(inv)?.id===(def?.id||itemDef(inv)?.id)).length;};
-  window.consumeBattleConsumableById=function(definitionId){
-    const i=gameData.inventory.findIndex(inv=>inv.status==='unused'&&isBattleConsumableInventory(inv)&&itemDef(inv)?.id===definitionId);
-    if(i<0)return false;gameData.inventory.splice(i,1);saveGame();return true;
-  };
+  function itemDef(inv){return itemDefinition(inv);}
 
   function migrateInventory(){
     gameData.inventory=(gameData.inventory||[]).map(inv=>{
@@ -10348,31 +10381,6 @@ window.StudyRPGCombatRuntimeCanonical.finalize();
     ensureEquipmentRuntimeData();
     const list=(gameData.inventory||[]).filter(inv=>itemDef(inv)?.category==='equipment');
     return `<div class="card"><h3>🔨 裝備處理</h3><div>強化碎片：<b>${gameData.hero.enhancementShards||0}</b>｜強化上限＋10</div><button class="btn gold" onclick="bulkProcessLowEquipment('sell')">批量出售白綠裝</button> <button class="btn purple" onclick="bulkProcessLowEquipment('dismantle')">批量分解白綠裝</button>${list.map(inv=>{const item=itemDef(inv),r=rarityOf(item),lv=Number(item.enhancementLevel)||0,blocked=equippedInventory(inv);return `<details class="card"><summary><b>${RARITY_LABEL[r]||r} ${escapeHtml(inv.name)} ${lv?'＋'+lv:''}</b></summary><div class="small">${equipmentStatText(item)}${blocked?'｜使用中':''}${inv.locked?'｜🔒已鎖定':''}</div><button class="btn gray" onclick="toggleEquipmentLock('${inv.id}')">${inv.locked?'解鎖':'鎖定'}</button> <button class="btn blue" onclick="enhanceEquipment('${inv.id}')" ${lv>=10?'disabled':''}>強化</button> <button class="btn gold" onclick="sellEquipment('${inv.id}')" ${blocked||inv.locked?'disabled':''}>出售</button> <button class="btn red" onclick="dismantleEquipment('${inv.id}')" ${blocked||inv.locked||r==='legendary'?'disabled':''}>分解</button></details>`;}).join('')}</div>`;
-  };
-
-  window.showBattleItems=function(){
-    if(!battleStateV10||battleStateV10.busy)return;const box=document.getElementById('battleSubmenu');
-    const usable=Object.values(DB.items).filter(def=>def.battleConsumable).map(def=>({def,count:gameData.inventory.filter(inv=>inv.status==='unused'&&isBattleConsumableInventory(inv)&&itemDef(inv)?.id===def.id).length}));
-    box.innerHTML=usable.map(({def,count})=>`<button class="battle-choice" ${count<1?'disabled':''} onclick="battleUseDatabaseItem('${def.id}')"><strong>${def.icon} ${def.name} <span class="item-count">×${count}</span></strong><span>${def.effectType==='heal_hp'?`恢復 ${def.effectValue} HP`:def.effectType==='heal_energy'?`恢復 ${def.effectValue} 點戰鬥資源`:'使敵人中毒3回合'}</span></button>`).join('');box.style.display='grid';
-  };
-  window.battleUseDatabaseItem=async function(id){
-    if(!battleStateV10||battleStateV10.busy)return;const def=DB.items[id],target=selectedBattleEnemy();if(!def||!target||!consumeBattleConsumableById(id))return;
-    battleStateV10.busy=true;setBattleControls(false);hideBattleSubmenu();battleStateV10.round++;const banner=document.getElementById('battleRoundBanner');if(banner)banner.textContent=`ROUND ${battleStateV10.round}`;
-    const completed=await runInitiativeRound(async()=>{
-      if(def.effectType==='heal_hp')heroHeal(def.effectValue,def.name);
-      else if(def.effectType==='heal_energy'){const f=battleStateV10.formal;if(f?.resourceType==='rage')gainFormal('rage',def.effectValue);else if(f?.resourceType==='mp')gainFormal('mp',def.effectValue);else gainFormal('energy',def.effectValue);}
-      else if(def.effectType==='poison'){if(Math.random()<statusChance(.75,target,'poison'))addStatus(target,{type:'poison',name:'中毒',turns:def.effectTurns||3,maxHpDot:.03,effectType:'debuff',mods:{}});else addBattleLog(`🧪 ${target.name}抵抗了毒藥！`);}
-      addBattleLog(`${def.icon} 使用${def.name}。`);
-    });
-    if(!completed||battleStateV10.ended)return;battleStateV10.busy=false;setBattleControls(true);renderBattleTargets();updateBattleStatuses();
-  };
-
-  window.gmAddShopItem=function(){
-    ensureItemSystem();const name=document.getElementById('gmShopName')?.value.trim();if(!name)return alert('請輸入商品名稱');
-    const category=document.getElementById('gmShopCategory')?.value||'coupon',item={id:uid(),name,icon:category==='equipment'?'🛡️':category==='consumable'?'🧪':category==='coupon'?'🎟️':'✨',category,description:document.getElementById('gmShopDesc')?.value.trim()||'',price:Number(document.getElementById('gmShopPrice')?.value)||0,dailyLimit:Math.max(1,Number(document.getElementById('gmShopLimit')?.value)||1),active:true,stats:{}};
-    if(category==='equipment'){item.equipSlot=document.getElementById('gmEquipSlot')?.value||'weapon';const k=document.getElementById('gmEquipStat')?.value||'attack';let v=Number(document.getElementById('gmEquipValue')?.value)||0;if(['crit','evade','block'].includes(k))v/=100;item.stats[k]=v;}
-    if(category==='consumable'){item.subtype='battle';item.battleConsumable=true;item.effectType=document.getElementById('gmEffectType')?.value||'poison';item.effectValue=Number(document.getElementById('gmEffectValue')?.value)||0;item.effectTurns=item.effectType==='poison'?3:0;}
-    gameData.shopItems.push(item);saveGame();renderAll();
   };
 
   migrateInventory();saveGame();if(gameData.hero?.name)renderAll();
@@ -10575,7 +10583,7 @@ window.studyRPGResolveBattlePointV10179=function(name){
  if(name==='enemy_center')return battleBodyPoint('center','enemy',d,b);
  return DB.referencePoints?.[d]?.[name]||null;
 };
-window.applySavedBattleLayout=function(){apply();requestAnimationFrame(()=>window.positionBattleTargetMarker?.())};
+window.applySavedBattleLayout=function(){apply();requestAnimationFrame(()=>{window.positionBattleTargetMarker?.();window.studyRPGRenderStatusFx?.()})};
 for(const n of ['renderHero','renderDungeon','renderBattleTargets']){const old=window[n];if(typeof old==='function')window[n]=function(){const r=old.apply(this,arguments);requestAnimationFrame(apply);return r}}
 addEventListener('resize',()=>requestAnimationFrame(apply));if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(apply),{once:true});else requestAnimationFrame(apply);
 })();
@@ -10591,7 +10599,7 @@ const HERO_DEFAULT={
  melee:{spriteState:'attack',motion:'forward',from:'hero_home',to:'enemy_front',returnTo:'hero_home',duration:560},
  cast:{spriteState:'attack',motion:'stay',duration:520},
  shoot:{spriteState:'attack',motion:'stay',duration:520},
- jump:{spriteState:'attack',motion:'jump',from:'hero_home',via:'air_high',to:'enemy_front',returnTo:'hero_home',duration:700},
+ jump:{spriteState:'attack',motion:'jump',from:'hero_home',via:'hero_air_high',to:'enemy_front',returnTo:'hero_home',duration:700},
  dash:{spriteState:'attack',motion:'dash',from:'hero_home',to:'enemy_front',returnTo:'hero_home',duration:420},
  buff:{spriteState:'idle',motion:'stay',duration:500}, hurt:{spriteState:'hurt',motion:'stay',duration:420}, death:{spriteState:'death',motion:'stay',duration:900}
 };
@@ -10599,12 +10607,12 @@ const MON_DEFAULT={
  idle:{spriteState:'idle',motion:'stay',duration:360},
  melee:{spriteState:'battle',motion:'forward',from:'enemy_home',to:'enemy_front',returnTo:'enemy_home',duration:620},
  cast:{spriteState:'battle',motion:'stay',duration:600}, shoot:{spriteState:'battle',motion:'stay',duration:560},
- jump:{spriteState:'battle',motion:'jump',from:'enemy_home',via:'air_high',to:'enemy_front',returnTo:'enemy_home',duration:720},
+ jump:{spriteState:'battle',motion:'jump',from:'enemy_home',via:'enemy_air_high',to:'enemy_front',returnTo:'enemy_home',duration:720},
  dash:{spriteState:'battle',motion:'dash',from:'enemy_home',to:'enemy_front',returnTo:'enemy_home',duration:480},
  buff:{spriteState:'idle',motion:'stay',duration:500}, hurt:{spriteState:'battle',motion:'stay',duration:420}, death:{spriteState:'idle',motion:'stay',duration:900}
 };
 const device=()=>window.studyRPGVisualDevice?.()||(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
-const defaultRefs={desktop:{hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28}},tablet:{hero_home:{x:17,y:68},enemy_home:{x:83,y:68},enemy_front:{x:67,y:66},air_high:{x:48,y:27}},mobile:{hero_home:{x:18,y:65},enemy_home:{x:82,y:65},enemy_front:{x:66,y:63},air_high:{x:48,y:25}}};
+const defaultRefs={desktop:{hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},hero_air_high:{x:48,y:28},enemy_air_high:{x:48,y:28}},tablet:{hero_home:{x:17,y:68},enemy_home:{x:83,y:68},enemy_front:{x:67,y:66},air_high:{x:48,y:27},hero_air_high:{x:48,y:27},enemy_air_high:{x:48,y:27}},mobile:{hero_home:{x:18,y:65},enemy_home:{x:82,y:65},enemy_front:{x:66,y:63},air_high:{x:48,y:25},hero_air_high:{x:48,y:25},enemy_air_high:{x:48,y:25}}};
 function merge(a,b){return Object.assign({},clone(a||{}),clone(b||{}));}
 window.HERO_MOTION_ACTIONS=window.HERO_MOTION_ACTIONS||{};
 for(const k of ['novice','warrior','mage','priest','hunter','rogue','paladin','spellblade']) window.HERO_MOTION_ACTIONS[k]=merge(HERO_DEFAULT,C.heroes?.[k]?.motionActions);
@@ -10624,7 +10632,7 @@ const oldSeq=window.playSkillVisualSequence;
 window.playSkillVisualSequence=async function(side,action={}){const p=window.studyRPGResolvePresentation(action,side==='enemy');if(!p.enabled)return oldSeq?.(side,action)||false;const from=skillVisualPoint(side),to=skillVisualPoint(side==='hero'?'enemy':'hero');if(!from||!to)return oldSeq?.(side,action)||false;let ok=false;ok=(await fxList(p.selfFX,from))||ok;if(p.pathFX?.image){try{ok=(await flySkillVisualImage(p.pathFX.image,from,to,{size:Number(p.pathFX.size)||82,duration:Number(p.pathFX.duration)||420,path:p.pathFX.path||'straight'}))||ok}catch(e){console.warn(e)}}ok=(await fxList(p.targetFX,to))||ok;return ok;};
 function setSprite(side,unit,def){if(side==='hero'){const img=document.getElementById('battleHeroSprite');if(img){try{img.src=heroSpritePath(def.spriteState||'attack')}catch(e){}}return;}const img=unit?document.querySelector(`[data-enemy-uid="${unit.uid}"]`):null,m=typeof MONSTER_DATABASE!=='undefined'?MONSTER_DATABASE[unit?.monsterId]:null,path=m?.sprites?.[def.spriteState]||m?.sprites?.battle||m?.sprites?.idle;if(img&&path)img.src=sprite(path);}
 function idleSprite(side,unit){if(side==='hero'){const img=document.getElementById('battleHeroSprite');if(img)try{img.src=heroSpritePath('idle')}catch(e){};return;}const img=unit?document.querySelector(`[data-enemy-uid="${unit.uid}"]`):null,m=typeof MONSTER_DATABASE!=='undefined'?MONSTER_DATABASE[unit?.monsterId]:null;if(img&&m?.sprites?.idle)img.src=sprite(m.sprites.idle);}
-async function playMotion(side,unit,name){const el=side==='hero'?document.getElementById('battleChar_hero'):(unit?document.querySelector(`[data-enemy-uid="${unit.uid}"]`):document.getElementById('battleChar_enemy'));const arena=document.getElementById('battleArena');const d=side==='hero'?window.heroMotionAction(name):monsterMotion(unit,name);if(!el||!arena){await battleSleep(Number(d.duration)||420);return;}setSprite(side,unit,d);const home=ref(d.from||(side==='hero'?'hero_home':'enemy_home')),to=ref(d.to||'enemy_front'),via=ref(d.via||'air_high'),w=arena.clientWidth,h=arena.clientHeight,off=p=>({x:(p.x-home.x)/100*w,y:(p.y-home.y)/100*h});let frames=[{transform:''}];if(d.motion==='forward'||d.motion==='dash'){let q=off(to);frames=[{transform:''},{transform:`translate(${q.x}px,${q.y}px)`,offset:.55},{transform:''}]}else if(d.motion==='jump'){let a=off(via),q=off(to);frames=[{transform:''},{transform:`translate(${a.x}px,${a.y}px)`,offset:.35},{transform:`translate(${q.x}px,${q.y}px)`,offset:.7},{transform:''}]};try{await el.animate(frames,{duration:Math.max(120,Number(d.duration)||500),easing:d.motion==='jump'?'ease-in-out':'ease'}).finished}catch(e){await battleSleep(Number(d.duration)||420)}idleSprite(side,unit);}
+async function playMotion(side,unit,name){const el=side==='hero'?document.getElementById('battleChar_hero'):(unit?document.querySelector(`[data-enemy-uid="${unit.uid}"]`):document.getElementById('battleChar_enemy'));const arena=document.getElementById('battleArena');const d=side==='hero'?window.heroMotionAction(name):monsterMotion(unit,name);if(!el||!arena){await battleSleep(Number(d.duration)||420);return;}setSprite(side,unit,d);const home=ref(d.from||(side==='hero'?'hero_home':'enemy_home')),to=ref(d.to||'enemy_front'),viaName=(d.motion==='jump'&&(!d.via||d.via==='air_high'))?(side==='hero'?'hero_air_high':'enemy_air_high'):(d.via||'air_high'),via=ref(viaName),w=arena.clientWidth,h=arena.clientHeight,off=p=>({x:(p.x-home.x)/100*w,y:(p.y-home.y)/100*h});let frames=[{transform:''}];if(d.motion==='forward'||d.motion==='dash'){let q=off(to);frames=[{transform:''},{transform:`translate(${q.x}px,${q.y}px)`,offset:.55},{transform:''}]}else if(d.motion==='jump'){let a=off(via),q=off(to);frames=[{transform:''},{transform:`translate(${a.x}px,${a.y}px)`,offset:.35},{transform:`translate(${q.x}px,${q.y}px)`,offset:.7},{transform:''}]};try{await el.animate(frames,{duration:Math.max(120,Number(d.duration)||500),easing:d.motion==='jump'?'ease-in-out':'ease'}).finished}catch(e){await battleSleep(Number(d.duration)||420)}idleSprite(side,unit);}
 const oldAnim=window.animateBattleAction;
 window.animateBattleAction=async function(attackerSide,result,attackerUnit=null,action=null){const p=action?window.studyRPGResolvePresentation(action,attackerSide==='enemy'):null;if(!p?.enabled||!p.actorAction)return oldAnim.apply(this,arguments);const defenderSide=attackerSide==='hero'?'enemy':'hero',defender=document.getElementById('battleChar_'+defenderSide);try{await Promise.all([playMotion(attackerSide,attackerUnit,p.actorAction),window.playSkillVisualSequence(attackerSide,action)]);if(result?.type==='dodge')defender?.classList.add('dodge');else if(result?.damage>0)defender?.classList.add('hit');await battleSleep(180)}finally{defender?.classList.remove('dodge','hit');idleSprite(attackerSide,attackerUnit)}};
 
@@ -10635,18 +10643,22 @@ const rg=window.renderGM;if(typeof rg==='function')window.renderGM=function(){co
 </script>
 
 <style id="studyRPGUnifiedFxStyleV1016">
-#battleArena .study-vfx-node{position:absolute;z-index:30;pointer-events:none;object-fit:contain;transform-origin:center center;will-change:transform,opacity,filter,clip-path}.battle-summon-layer .study-summon-positioned{position:absolute!important;right:auto!important;bottom:auto!important;max-width:none!important;max-height:none!important;transform-origin:center bottom!important}
+#battleArena .study-vfx-node{position:absolute;z-index:30;pointer-events:none;object-fit:contain;transform-origin:center center;will-change:transform,opacity,filter,clip-path}#battleArena .study-status-vfx-node{position:absolute;z-index:29;pointer-events:none;object-fit:contain;transform-origin:center center;will-change:transform,opacity}.battle-summon-layer .study-summon-positioned{position:absolute!important;right:auto!important;bottom:auto!important;max-width:none!important;max-height:none!important;transform-origin:center bottom!important}
 </style>
 <script id="studyRPGUnifiedFxRuntimeV1016">
 (function(){
 'use strict';
 const C=window.STUDYRPG_VISUAL_DATABASE||{};
 const dev=()=>window.studyRPGVisualDevice?.()||(innerWidth<=600?'mobile':innerWidth<=1024?'tablet':'desktop');
-const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
+const defaults={hero_home:{x:18,y:68},enemy_home:{x:82,y:68},enemy_front:{x:68,y:66},air_high:{x:48,y:28},hero_air_high:{x:48,y:28},enemy_air_high:{x:48,y:28},summon_left:{x:62,y:69},summon_center:{x:72,y:69},summon_right:{x:82,y:69}};
 const point=n=>window.studyRPGResolveBattlePointV10179?.(n)||defaults[n]||defaults.enemy_front;
 const sleep=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms||0)));
 function currentElement(side){if(side==='hero')return document.getElementById('battleHeroSprite')||document.getElementById('battleChar_hero');const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;return u?document.querySelector(`[data-enemy-uid="${u.uid}"]`):document.querySelector('.battle-enemy-unit-sprite');}
 function anchorBox(side,fx){const arena=document.getElementById('battleArena');if(!arena)return null;let el=currentElement(side),r=el?.getBoundingClientRect(),a=arena.getBoundingClientRect();if(!r){const p=point(side==='hero'?'hero_home':'enemy_home');return {x:a.width*p.x/100,y:a.height*p.y/100,w:100,h:100};}let key='novice';if(side!=='hero'){const u=typeof selectedBattleEnemy==='function'?selectedBattleEnemy():null;key=u?.monsterId||''}const ea=side==='hero'?C.heroes?.[key]?.effectAnchor:C.monsters?.[key]?.effectAnchor;const ew=Number(ea?.width||100)/100,eh=Number(ea?.height||100)/100,ey=Number(ea?.y||0)/100;return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2+r.height*ey,w:r.width*ew,h:r.height*eh};}
+function statusFxElement(side,unit){if(side==='hero')return document.getElementById('battleChar_hero');if(unit?.uid)return document.querySelector(`[data-enemy-uid="${unit.uid}"]`);return document.getElementById('battleChar_enemy')}
+function statusFxAnchorBox(side,unit,cfg){const arena=document.getElementById('battleArena'),el=statusFxElement(side,unit);if(!arena||!el)return null;const a=arena.getBoundingClientRect(),r=el.getBoundingClientRect(),mode=cfg?.anchor||'center';let x=r.left-a.left+r.width/2,y=r.top-a.top+r.height/2;if(mode==='head')y=r.top-a.top+r.height*.18;else if(mode==='home')y=r.bottom-a.top;return{x,y,w:r.width,h:r.height}}
+window.studyRPGRenderStatusFx=function(){const arena=document.getElementById('battleArena');if(!arena)return;arena.querySelectorAll('.study-status-vfx-node').forEach(n=>n.remove());if(!battleStateV10)return;const rows=[['hero',battleStateV10.hero],...((battleStateV10.enemies||[]).filter(u=>u&&u.hp>0&&u.alive!==false).map(u=>['enemy',u]))];for(const [side,unit] of rows){for(const st of (unit?.statuses||[])){const cfg=C.statusFX?.[st.type];if(!cfg?.enabled||!cfg.image)continue;const b=statusFxAnchorBox(side,unit,cfg);if(!b)continue;const img=document.createElement('img');img.className='study-status-vfx-node';img.dataset.statusType=st.type;img.src=cfg.image;const size=Math.max(12,Math.min(b.w,b.h)*Number(cfg.scale||1));img.style.width=size+'px';img.style.height=size+'px';img.style.left=(b.x+b.w*Number(cfg.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(cfg.offsetY||0)/100)+'px';img.style.transform='translate(-50%,-50%)';img.style.scale=cfg.mirrorX?'-1 1':'1 1';arena.appendChild(img)}}};
+addEventListener('resize',()=>requestAnimationFrame(()=>window.studyRPGRenderStatusFx?.()));
 function transFrames(type,enter=true){switch(type){case'fade':return enter?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}];case'dissolve':return enter?[{opacity:0,clipPath:'inset(50% 50% 50% 50%)',filter:'blur(6px)'},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'blur(0)'}]:[{opacity:1,clipPath:'inset(0 0 0 0)'},{opacity:0,clipPath:'inset(45% 45% 45% 45%)',filter:'blur(7px)'}];case'scale':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.2)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(.2)'}];case'pop':return enter?[{opacity:0,transform:'translate(-50%,-50%) scale(.4)'},{opacity:1,transform:'translate(-50%,-50%) scale(1.18)'},{transform:'translate(-50%,-50%) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) scale(1.25)'}];case'slide':return enter?[{opacity:0,transform:'translate(-80%,-50%)'},{opacity:1,transform:'translate(-50%,-50%)'}]:[{opacity:1,transform:'translate(-50%,-50%)'},{opacity:0,transform:'translate(-20%,-50%)'}];case'flash':return enter?[{opacity:0},{opacity:1,filter:'brightness(3)'},{filter:'brightness(1)'}]:[{opacity:1},{opacity:0,filter:'brightness(3)'}];case'rotate':return enter?[{opacity:0,transform:'translate(-50%,-50%) rotate(-180deg) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) rotate(0) scale(1)'}]:[{opacity:1},{opacity:0,transform:'translate(-50%,-50%) rotate(180deg) scale(.5)'}];case'blur':return enter?[{opacity:0,filter:'blur(12px)'},{opacity:1,filter:'blur(0)'}]:[{opacity:1,filter:'blur(0)'},{opacity:0,filter:'blur(12px)'}];default:return null}}
 async function playFx(fx,defaultSide){if(!fx?.image)return false;if(fx.delay)await sleep(Number(fx.delay)||0);const arena=document.getElementById('battleArena');if(!arena)return false;const side=fx.anchor==='self'?defaultSide:fx.anchor==='target'?(defaultSide==='hero'?'enemy':'hero'):defaultSide;let b=anchorBox(side,fx);if(fx.anchor==='point'){const p=point(fx.point||'enemy_front');b={x:arena.clientWidth*p.x/100,y:arena.clientHeight*p.y/100,w:100,h:100}}if(!b)return false;const img=document.createElement('img');img.className='study-vfx-node';img.src=fx.image;const base=96;const scale=Number(fx.scale||1);img.style.left=(b.x+b.w*Number(fx.offsetX||0)/100)+'px';img.style.top=(b.y+b.h*Number(fx.offsetY||0)/100)+'px';img.style.width=Math.max(12,base*scale)+'px';img.style.height=Math.max(12,base*scale)+'px';img.style.transform='translate(-50%,-50%)';img.style.scale=fx.mirrorX?'-1 1':'1 1';arena.appendChild(img);const en=fx.enter||{};const ef=transFrames(en.type||'none',true);if(ef)await img.animate(ef,{duration:Number(en.duration||120),fill:'forwards',easing:'ease-out'}).finished.catch(()=>{});const life=fx.lifetime||'instant';const hold=life==='instant'?Math.max(0,Number(fx.duration||350)-Number(en.duration||0)-Number(fx.exit?.duration||0)):Number(fx.duration||700);await sleep(hold);if(['status','turn','persistent'].includes(life)){img.dataset.studyPersistent='1';return true}const ex=fx.exit||{};const xf=transFrames(ex.type||'none',false);if(xf)await img.animate(xf,{duration:Number(ex.duration||160),fill:'forwards',easing:'ease-in'}).finished.catch(()=>{});img.remove();return true}
 async function playList(list,side){let ok=false;for(const f of list||[])ok=(await playFx(typeof f==='string'?{image:f}:f,side))||ok;return ok}
@@ -10748,6 +10760,71 @@ try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',srAddButton);
   else srAddButton();
+})();
+</script>
+
+
+<!-- STUDYRPG_EXAM_REQUIREMENT_RECOVERY_V1 -->
+<script>
+(function(){
+  function erRead(key){
+    try{return JSON.parse(localStorage.getItem(key)||'null')}catch(e){return null}
+  }
+  function erProfile(fd){
+    if(!fd?.profiles?.length)return null;
+    return fd.profiles.find(p=>String(p.id)===String(activeProfileId))
+      ||fd.profiles.find(p=>String(p?.data?.hero?.name||'')===String(gameData?.hero?.name||''))
+      ||null;
+  }
+  window.studyRPGRepairExamRequirements=function(){
+    const boxes=[FAMILY_CLOUD_BACKUP_KEY,FAMILY_LAST_GOOD_BACKUP_KEY]
+      .map(k=>({key:k,box:erRead(k)})).filter(x=>x.box?.familyData)
+      .map(x=>({...x,profile:erProfile(x.box.familyData)}))
+      .filter(x=>x.profile?.data?.examCompletionTargetsV101716)
+      .sort((a,b)=>Number(b.box.savedAt||0)-Number(a.box.savedAt||0));
+    const current=gameData.examCompletionTargetsV101716||{};
+    let chosen=null,changes=[];
+    for(const candidate of boxes){
+      const old=candidate.profile.data.examCompletionTargetsV101716||{}, found=[];
+      for(const [eventKey,cur] of Object.entries(current)){
+        const prev=old[eventKey];
+        if(!prev||prev.semesterStart!==cur.semesterStart||prev.examDate!==cur.examDate)continue;
+        const a=Array.isArray(prev.subjectIds)?prev.subjectIds:[], b=Array.isArray(cur.subjectIds)?cur.subjectIds:[];
+        if(a.length!==b.length||!a.every(id=>b.includes(id)))continue;
+        for(const id of b){
+          const now=Number(cur?.required?.[id]), before=Number(prev?.required?.[id]);
+          if(Number.isFinite(now)&&Number.isFinite(before)&&before>now+0.001)
+            found.push({eventKey,id,from:now,to:before});
+        }
+      }
+      if(found.length){chosen=candidate;changes=found;break}
+    }
+    if(!chosen||!changes.length){
+      alert('備份裡沒有找到比目前更高、且屬於同一場考試的原始總需求；沒有修改任何資料。');
+      return;
+    }
+    const when=chosen.box.savedAt?new Date(chosen.box.savedAt).toLocaleString():'未知時間';
+    const names=Object.fromEntries((gameData.subjects||[]).map(s=>[s.id,s.name]));
+    const msg='找到更新前的考試總需求紀錄：'+when+'\n\n'
+      +changes.map(x=>`${names[x.id]||x.id}：${x.from.toFixed(1)} → ${x.to.toFixed(1)}`).join('\n')
+      +'\n\n只恢復上面這些「考試總需求」，不動已累積能量、任務、能力、金幣、裝備。確定恢復？';
+    if(!confirm(msg))return;
+    try{localStorage.setItem(FAMILY_KEY+'_EXAM_REPAIR_SAFETY_'+Date.now(),JSON.stringify({savedAt:Date.now(),familyData}))}catch(e){}
+    for(const x of changes) current[x.eventKey].required[x.id]=x.to;
+    gameData.examCompletionTargetsV101716=current;
+    saveGame();
+    try{renderAll()}catch(e){}
+    alert('考試總需求已從更新前備份恢復。');
+  };
+  function add(){
+    if(document.getElementById('studyRPGExamRepairBtn'))return;
+    const b=document.createElement('button');
+    b.id='studyRPGExamRepairBtn'; b.type='button';
+    b.textContent='🛠 修復考試能量';
+    b.style.cssText='position:fixed;right:10px;bottom:10px;z-index:100000;padding:9px 12px;border:1px solid #58a6ff;border-radius:10px;background:#0d2742;color:#dbeafe;font-weight:900;box-shadow:0 3px 12px #0008';
+    b.onclick=studyRPGRepairExamRequirements; document.body.appendChild(b);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add();
 })();
 </script>
 
