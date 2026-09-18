@@ -10828,5 +10828,98 @@ try{BEGINNER_SKILLS?.forEach(normalizeAll)}catch(e){}try{Object.values(JOB_SKILL
 })();
 </script>
 
+
+<!-- STUDYRPG_EXAM_ENERGY_AUDITOR_V1 -->
+<script>
+(function(){
+  function eaName(t){return String(t?.name||t?.subject||t?.progressValue||t?.id||'未命名任務')}
+  function eaSubjectName(id){
+    const all=[...(familyData?.examSubjects||[]),...(gameData?.subjects||[])];
+    return all.find(x=>String(x?.id)===String(id))?.name||String(id);
+  }
+  function eaKey(r){return `${r?.date||''}::${r?.taskId||r?.taskStableId||''}`}
+  window.studyRPGAuditExamEnergy=function(){
+    let events=[];
+    try{events=(typeof upcomingExamEvents==='function'?upcomingExamEvents():[])||[]}catch(e){}
+    if(!events.length)events=(gameData?.semester?.events||gameData?.examEvents||[]).filter(e=>e&&(e.type==='midterm'||e.type==='final'||e.examSubjectIds));
+    const evt=events.find(e=>e.type==='midterm'&&String(e.date||'')>=today())||events.find(e=>e.type==='midterm')||events[0];
+    if(!evt){alert('找不到期中考事件；沒有修改任何資料。');return}
+
+    const ids=eventSubjectIds(evt);
+    const base=gameData.semester?.startDate||OFFICIAL_LAUNCH_DATE;
+    const approvedEnd=today()<evt.date?today():evt.date;
+    const snap=examCompletionTargetSnapshot(evt);
+    const rows=[], groups=new Map();
+
+    (gameData.taskRecords||[]).forEach((r,index)=>{
+      if(r.date<base||r.date>approvedEnd)return;
+      const t=(gameData.tasks||[]).find(x=>x.id===r.taskId)||r.taskSnapshot;
+      if(!t)return;
+      const shares=taskCourseShares(t,ids);
+      const ratio=taskApprovalRatio(r);
+      const points=taskPowerGain(t);
+      for(const [id,share] of Object.entries(shares)){
+        const eligible=!(r.approvalStatus==='pending'||r.approvalStatus==='rejected'||r.voluntaryChallenge===true);
+        rows.push({
+          index,id,subject:eaSubjectName(id),date:r.date||'',task:eaName(t),
+          taskId:r.taskId||'',recordId:r.id||'',status:r.approvalStatus??'(缺少)',
+          ratio,basePoints:points,share,contribution:eligible?points*ratio*share:0,
+          voluntary:r.voluntaryChallenge===true,key:eaKey(r)
+        });
+      }
+      const k=eaKey(r);
+      if(k!=='::'){const a=groups.get(k)||[];a.push(r);groups.set(k,a)}
+    });
+
+    const duplicateKeys=new Set([...groups].filter(([,a])=>a.length>1).map(([k])=>k));
+    rows.forEach(x=>x.duplicate=duplicateKeys.has(x.key));
+    const totals=Object.fromEntries(ids.map(id=>[id,rows.filter(x=>x.id===id).reduce((n,x)=>n+x.contribution,0)]));
+
+    document.getElementById('studyRPGExamAuditOverlay')?.remove();
+    const ov=document.createElement('div');
+    ov.id='studyRPGExamAuditOverlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:200000;background:#000d;padding:12px;overflow:auto;color:#e6edf3;font:13px system-ui,sans-serif';
+    const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const body=rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>
+      `<tr style="${x.duplicate||x.status==='(缺少)'?'background:#5a1d1d':''}">
+      <td>${esc(x.date)}</td><td>${esc(x.subject)}</td><td>${esc(x.task)}</td>
+      <td>${esc(x.status)}</td><td>${(x.ratio*100).toFixed(0)}%</td>
+      <td>${x.basePoints.toFixed(2)}</td><td>${(x.share*100).toFixed(0)}%</td>
+      <td><b>${x.contribution.toFixed(2)}</b></td>
+      <td>${x.duplicate?'⚠️同日同任務重複':''}</td></tr>`).join('');
+
+    ov.innerHTML=`<div style="max-width:1100px;margin:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px">
+      <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+        <h2 style="margin:0;color:#f0883e">考試能量檢查器（只讀）</h2>
+        <button id="eaClose" style="padding:9px 14px">關閉</button>
+      </div>
+      <p>期間：${esc(base)} ～ ${esc(approvedEnd)}｜考試：${esc(evt.date)}。<b>不會修改任何存檔。</b></p>
+      <div style="padding:10px;background:#0d1117;border-radius:8px;margin:8px 0">
+        ${ids.map(id=>`<b>${esc(eaSubjectName(id))}</b>：已計入 ${Number(totals[id]||0).toFixed(2)} / 總需求 ${Number(snap?.required?.[id]||0).toFixed(2)}`).join('　｜　')}
+      </div>
+      <div style="padding:10px;background:#2d2208;border-radius:8px;margin:8px 0">
+        ⚠️ 同日同任務重複：${duplicateKeys.size} 組　｜　缺少核定狀態：${rows.filter(x=>x.status==='(缺少)').length} 筆
+      </div>
+      <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;white-space:nowrap">
+        <thead><tr><th>日期</th><th>科目</th><th>任務</th><th>核定狀態</th><th>核定%</th><th>任務點數</th><th>科目占比</th><th>實際計入</th><th>警告</th></tr></thead>
+        <tbody>${body||'<tr><td colspan="9">沒有可計入紀錄</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+    document.body.appendChild(ov);
+    document.getElementById('eaClose').onclick=()=>ov.remove();
+  };
+
+  function add(){
+    if(document.getElementById('studyRPGExamAuditBtn'))return;
+    const b=document.createElement('button');
+    b.id='studyRPGExamAuditBtn'; b.type='button'; b.textContent='🔎 檢查考試能量';
+    b.style.cssText='position:fixed;right:10px;bottom:58px;z-index:100000;padding:9px 12px;border:1px solid #3fb950;border-radius:10px;background:#102a18;color:#7ee787;font-weight:900;box-shadow:0 3px 12px #0008';
+    b.onclick=studyRPGAuditExamEnergy;
+    document.body.appendChild(b);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add();
+})();
+</script>
+
 </body>
 </html>
