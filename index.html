@@ -2700,8 +2700,14 @@ function weekdayNumberFor(dateStr=today()){
 }
 function isTaskScheduledToday(t,dateStr=today()){
   if(!t||t.active===false)return false;
+  // 正式任務生命週期：不論一次性或重複任務，都必須先尊重啟用區間。
+  // 避免已過期／早已完成的舊重複任務因只檢查 weekday 而重新出現在今日任務。
+  const activeFrom=t.activeFrom||t.createdDate||t.date||'';
+  const activeUntil=t.activeUntil||'';
+  if(activeFrom&&dateStr<activeFrom)return false;
+  if(activeUntil&&dateStr>activeUntil)return false;
   if(Array.isArray(t.cancelledDates)&&t.cancelledDates.includes(dateStr))return false;
-  // 一次性任務：只在指定日/建立日出現；完成後隔日不會復活。
+  // 一次性任務：只在指定日/建立日出現；完成或未完成都不會跨日復活。
   if(t.recurring!==true){
     const onceDate=t.date||t.createdDate||t.activeFrom||dateStr;
     return dateStr===onceDate;
@@ -6010,7 +6016,10 @@ function gmAddTask(){
     quantityUnit:(document.getElementById('gmQuantityUnit')?.value||'次').trim(),
     scoreMax:Math.max(1,Number(document.getElementById('gmScoreMax')?.value)||100),
     allowCorrection:document.getElementById('gmAllowCorrection')?.checked!==false,
-    correctionExp:Math.max(0,Number(document.getElementById('gmCorrectionExp')?.value)||0)
+    correctionExp:Math.max(0,Number(document.getElementById('gmCorrectionExp')?.value)||0),
+    // 修改任務時保留既有「指定日取消」紀錄；新增任務才建立空陣列。
+    // 否則編輯同一個重複任務會把先前取消日洗掉，造成日期狀態錯亂。
+    cancelledDates:Array.isArray(existing?.cancelledDates)?[...existing.cancelledDates]:[]
   };
   if(rewardMode==='manual'){
     const previewStat=Math.max(0,manualVal1)+Math.max(0,manualVal2);
@@ -6055,6 +6064,11 @@ function gmToggleTaskCancellation(id){
   t.cancelledDates=Array.isArray(t.cancelledDates)?t.cancelledDates:[];
   const exists=t.cancelledDates.includes(date);
   const cancelling=!exists;
+  const activeFrom=t.activeFrom||t.createdDate||t.date||'';
+  const activeUntil=t.activeUntil||'';
+  if(cancelling&&activeFrom&&date<activeFrom){alert(`這項任務從 ${activeFrom} 才開始，不能取消更早日期。`);return;}
+  if(cancelling&&activeUntil&&date>activeUntil){alert(`這項任務已於 ${activeUntil} 結束，不能取消更晚日期。`);return;}
+  if(cancelling&&!isTaskScheduledToday(t,date)){alert('這項任務在指定日期原本就沒有排程，不需要取消。');return;}
   const hasCompleted=(gameData.taskRecords||[]).some(r=>r.taskId===id&&r.date===date&&r.voluntaryChallenge!==true);
   if(cancelling&&hasCompleted){alert('這項任務當天已有完成紀錄，不能再用取消移除。若成果不合格，請在核定時選擇 0%。');return;}
   const scheduledBefore=isTaskScheduledToday(t,date);
