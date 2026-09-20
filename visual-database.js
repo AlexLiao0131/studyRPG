@@ -47,6 +47,11 @@ window.STUDYRPG_VISUAL_DATABASE={
         "status": 95,
         "dungeon": 95
       }
+    },
+    "4": {
+      "tablet": {
+        "dungeon": 81
+      }
     }
   },
   "devices": {
@@ -521,6 +526,28 @@ window.STUDYRPG_VISUAL_DATABASE={
       "battleSize": {
         "desktop": 135,
         "tablet": 140
+      }
+    },
+    "orc_slave": {
+      "battleSize": {
+        "desktop": 125,
+        "tablet": 125
+      }
+    },
+    "orc_warrior": {
+      "battleSize": {}
+    },
+    "orc_shaman": {
+      "battleSize": {}
+    },
+    "orc_champion": {
+      "battleSize": {
+        "tablet": 190
+      }
+    },
+    "orc_general": {
+      "battleSize": {
+        "tablet": 200
       }
     }
   },
@@ -1078,6 +1105,58 @@ window.STUDYRPG_VISUAL_DATABASE={
         },
         "status": {}
       }
+    },
+    "orc_slave": {
+      "desktop": {
+        "battle": {
+          "x": 82,
+          "y": 0,
+          "size": 190
+        }
+      },
+      "tablet": {
+        "battle": {
+          "x": 78.4,
+          "y": 0,
+          "size": 175
+        }
+      }
+    },
+    "orc_warrior": {
+      "tablet": {
+        "battle": {
+          "x": 78.4,
+          "y": 0,
+          "size": 175
+        }
+      }
+    },
+    "orc_shaman": {
+      "tablet": {
+        "battle": {
+          "x": 78.4,
+          "y": 0,
+          "size": 175
+        }
+      }
+    },
+    "orc_champion": {
+      "tablet": {
+        "battle": {
+          "x": 78.4,
+          "y": 0,
+          "size": 175
+        }
+      }
+    },
+    "orc_general": {
+      "tablet": {
+        "battle": {
+          "x": 78.4,
+          "y": 0,
+          "size": 175
+        }
+      }
     }
   },
   "bodyAnchors": {
@@ -1102,6 +1181,13 @@ window.STUDYRPG_VISUAL_DATABASE={
             "head": -135,
             "cast": -96,
             "center": -99
+          }
+        },
+        "4": {
+          "orc_slave": {
+            "head": -160.5,
+            "cast": -121.5,
+            "center": -124.5
           }
         }
       },
@@ -1138,6 +1224,33 @@ window.STUDYRPG_VISUAL_DATABASE={
             "head": -150,
             "cast": -111,
             "center": -114
+          }
+        },
+        "4": {
+          "orc_warrior": {
+            "head": -165,
+            "cast": -126,
+            "center": -129
+          },
+          "orc_shaman": {
+            "head": -165,
+            "cast": -126,
+            "center": -129
+          },
+          "orc_champion": {
+            "head": -165,
+            "cast": -126,
+            "center": -129
+          },
+          "orc_general": {
+            "head": -165,
+            "cast": -126,
+            "center": -129
+          },
+          "orc_slave": {
+            "head": -123,
+            "cast": -84,
+            "center": -87
           }
         }
       }
