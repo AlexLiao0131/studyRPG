@@ -6079,6 +6079,9 @@ function gmToggleTaskCancellation(id){
   if(date===today()&&scheduledBefore!==scheduledAfter&&typeof window.adjustDailyBalanceForCancellationV101176==='function'){
     window.adjustDailyBalanceForCancellationV101176(t,scheduledAfter?'restore':'cancel');
   }
+  // 取消／恢復日期不是「編輯任務」。結束後清掉後台編輯目標，
+  // 避免下一次新增任務被 gmAddTask() 誤判成修改上一個任務。
+  gmEditingTaskId='';
   saveGame();renderAll();alert(exists?`已恢復 ${date} 的任務`:`已取消 ${date} 的任務；當日不列入應完成需求，今日怪物戰力已同步扣回`);
 }
 function gmAddShopItem(){
