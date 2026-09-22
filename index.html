@@ -1379,7 +1379,34 @@ function startHeroIdleAnimation(){
 }
 
 // V8 相容舊存檔
+// Inventory lifecycle: destructive actions use persistent tombstones.
+function ensureInventoryLifecycle(d){
+  if(!d||typeof d!=='object')return d;
+  if(!d.inventoryTombstones||typeof d.inventoryTombstones!=='object'||Array.isArray(d.inventoryTombstones))d.inventoryTombstones={};
+  if(!Array.isArray(d.inventory))d.inventory=[];
+  const dead=d.inventoryTombstones;
+  d.inventory=d.inventory.filter(inv=>!inv?.id||!Object.prototype.hasOwnProperty.call(dead,String(inv.id)));
+  return d;
+}
+function recordInventoryRemoval(id,reason='removed'){
+  if(!id)return false;
+  ensureInventoryLifecycle(gameData);
+  const key=String(id);
+  if(Object.prototype.hasOwnProperty.call(gameData.inventoryTombstones,key))return false;
+  gameData.inventoryTombstones[key]={removedAt:new Date().toISOString(),reason:String(reason||'removed')};
+  gameData.inventory=gameData.inventory.filter(x=>String(x?.id)!==key);
+  return true;
+}
+function applyInventoryTombstonesToFamily(fd){
+  for(const p of (fd?.profiles||[]))ensureInventoryLifecycle(p?.data);
+  return fd;
+}
+window.ensureInventoryLifecycle=ensureInventoryLifecycle;
+window.recordInventoryRemoval=recordInventoryRemoval;
+window.applyInventoryTombstonesToFamily=applyInventoryTombstonesToFamily;
+
 function migrateProfileData(d){
+  ensureInventoryLifecycle(d);
   if(!d.uniqueEquipmentDefinitions)d.uniqueEquipmentDefinitions={};
   if(d.hero?.stats && d.hero.stats.vit!==undefined){
     const oldVit=Number(d.hero.stats.vit)||0;
@@ -6744,6 +6771,7 @@ async function pushCloud(opts={}){
         return false;
       }
       let clone=JSON.parse(JSON.stringify(familyData));
+      applyInventoryTombstonesToFamily(clone);
       if(currentFamilyId){
         const seasonId=currentSeasonStorageId();
         // IMPORTANT: familyData is one large Firestore field. A plain setDoc here is last-writer-wins and lets an idle iPad
@@ -6751,6 +6779,7 @@ async function pushCloud(opts={}){
         const latest=await readFamilyCloud(currentFamilyId);
         if(latest?.familyData?.profiles?.length){
           clone=mergeCloud3(cloudBaselineFamily||latest.familyData,clone,latest.familyData);
+          applyInventoryTombstonesToFamily(clone);
           familyData=clone;
           activeProfileId=familyData.profiles.some(p=>p.id===activeProfileId)?activeProfileId:(familyData.activeProfileId||familyData.profiles[0]?.id);
           familyData.activeProfileId=activeProfileId;
@@ -10424,10 +10453,10 @@ window.StudyRPGCombatRuntimeCanonical.finalize();
   function enhancementBase(item){if(item.baseStatsForEnhancement)return item.baseStatsForEnhancement;const raw={...(item.stats||{})};item.baseStatsForEnhancement={...raw};item.unenhancedStats={...raw};return item.baseStatsForEnhancement;}
   const ENHANCE_COST=[0,2,3,4,5,6,8,10,12,15,20],ENHANCE_KEYS=new Set(['attack','magicAttack','defense','magicDefense','maxHp','maxEnergy','speed']);
   window.toggleEquipmentLock=function(id){const inv=gameData.inventory.find(x=>x.id===id);if(!inv)return;inv.locked=!inv.locked;saveGame();renderBag();};
-  window.sellEquipment=function(id){const inv=gameData.inventory.find(x=>x.id===id),item=inv&&itemDef(inv);if(!inv||!item||equippedInventory(inv)||inv.locked)return alert('已裝備或已鎖定的裝備不能出售。');const rarity=rarityOf(item),score=Math.max(1,Number(equipmentPowerScore?.(item))||1),mult={common:.6,uncommon:1,rare:1.8,epic:3.5,legendary:8}[rarity]||1,value=Math.max(1,Math.round(score*mult));if(!confirm(`出售【${inv.name}】並獲得 ${value} G？`))return;if(rarity==='legendary'&&!confirm('這是橘色獨特裝備，確定仍要出售？'))return;gameData.hero.gold+=value;gameData.inventory=gameData.inventory.filter(x=>x.id!==id);saveGame();renderAll();};
-  window.dismantleEquipment=function(id){const inv=gameData.inventory.find(x=>x.id===id),item=inv&&itemDef(inv);if(!inv||!item||equippedInventory(inv)||inv.locked)return alert('已裝備或已鎖定的裝備不能分解。');const rarity=rarityOf(item);if(rarity==='legendary')return alert('橘色裝備無法分解。');const amount={common:1,uncommon:3,rare:8,epic:20}[rarity]||1;if(['rare','epic'].includes(rarity)&&!confirm(`分解【${inv.name}】取得 ${amount} 強化碎片？`))return;gameData.hero.enhancementShards+=amount;gameData.inventory=gameData.inventory.filter(x=>x.id!==id);saveGame();renderAll();};
+  window.sellEquipment=function(id){const inv=gameData.inventory.find(x=>x.id===id),item=inv&&itemDef(inv);if(!inv||!item||equippedInventory(inv)||inv.locked)return alert('已裝備或已鎖定的裝備不能出售。');const rarity=rarityOf(item),score=Math.max(1,Number(equipmentPowerScore?.(item))||1),mult={common:.6,uncommon:1,rare:1.8,epic:3.5,legendary:8}[rarity]||1,value=Math.max(1,Math.round(score*mult));if(!confirm(`出售【${inv.name}】並獲得 ${value} G？`))return;if(rarity==='legendary'&&!confirm('這是橘色獨特裝備，確定仍要出售？'))return;gameData.hero.gold+=value;if(!recordInventoryRemoval(id,'sold'))return;saveGame();renderAll();};
+  window.dismantleEquipment=function(id){const inv=gameData.inventory.find(x=>x.id===id),item=inv&&itemDef(inv);if(!inv||!item||equippedInventory(inv)||inv.locked)return alert('已裝備或已鎖定的裝備不能分解。');const rarity=rarityOf(item);if(rarity==='legendary')return alert('橘色裝備無法分解。');const amount={common:1,uncommon:3,rare:8,epic:20}[rarity]||1;if(['rare','epic'].includes(rarity)&&!confirm(`分解【${inv.name}】取得 ${amount} 強化碎片？`))return;if(!recordInventoryRemoval(id,'dismantled'))return;gameData.hero.enhancementShards+=amount;saveGame();renderAll();};
   window.enhanceEquipment=function(id){const inv=gameData.inventory.find(x=>x.id===id);let item=inv&&itemDef(inv);if(!inv||!item)return;if(!inv.itemData){inv.itemData=JSON.parse(JSON.stringify(item));item=inv.itemData;}const lv=Math.max(0,Number(item.enhancementLevel)||0);if(lv>=10)return alert('這件裝備已經強化到＋10。');const cost=ENHANCE_COST[lv+1];if(gameData.hero.enhancementShards<cost)return alert(`強化碎片不足，需要 ${cost}。`);if(!confirm(`消耗 ${cost} 碎片，將【${inv.name}】強化至＋${lv+1}？`))return;gameData.hero.enhancementShards-=cost;const original={...(item.unenhancedStats||item.stats||{})},base=enhancementBase(item),next=lv+1;item.unenhancedStats=original;item.stats={...original};for(const [k,v] of Object.entries(base))if(ENHANCE_KEYS.has(k))item.stats[k]=Math.round((Number(original[k])+(Number(v)||0)*.03*next)*100)/100;item.enhancementLevel=next;saveGame();renderAll();};
-  window.bulkProcessLowEquipment=function(mode){const targets=gameData.inventory.filter(inv=>{const item=itemDef(inv),r=rarityOf(item);return item?.category==='equipment'&&['common','uncommon'].includes(r)&&!equippedInventory(inv)&&!inv.locked;});if(!targets.length)return alert('沒有可批量處理的白色或綠色裝備。');if(!confirm(`${mode==='sell'?'出售':'分解'} ${targets.length} 件未鎖定白綠裝？`))return;let gain=0;for(const inv of targets){const item=itemDef(inv),r=rarityOf(item);if(mode==='sell'){const score=Math.max(1,Number(equipmentPowerScore?.(item))||1);gain+=Math.max(1,Math.round(score*(r==='common'?.6:1)));}else gain+=r==='common'?1:3;}const ids=new Set(targets.map(x=>x.id));gameData.inventory=gameData.inventory.filter(x=>!ids.has(x.id));if(mode==='sell')gameData.hero.gold+=gain;else gameData.hero.enhancementShards+=gain;saveGame();renderAll();alert(`已處理 ${targets.length} 件，獲得 ${gain} ${mode==='sell'?'G':'強化碎片'}。`);};
+  window.bulkProcessLowEquipment=function(mode){const targets=gameData.inventory.filter(inv=>{const item=itemDef(inv),r=rarityOf(item);return item?.category==='equipment'&&['common','uncommon'].includes(r)&&!equippedInventory(inv)&&!inv.locked;});if(!targets.length)return alert('沒有可批量處理的白色或綠色裝備。');if(!confirm(`${mode==='sell'?'出售':'分解'} ${targets.length} 件未鎖定白綠裝？`))return;let gain=0;for(const inv of targets){const item=itemDef(inv),r=rarityOf(item);if(mode==='sell'){const score=Math.max(1,Number(equipmentPowerScore?.(item))||1);gain+=Math.max(1,Math.round(score*(r==='common'?.6:1)));}else gain+=r==='common'?1:3;}const reason=mode==='sell'?'sold':'dismantled';let removed=0;for(const inv of targets)if(recordInventoryRemoval(inv.id,reason))removed++;if(removed!==targets.length){alert('部分裝備已先被其他同步操作處理，已停止發放本次批量獎勵以避免重複取得。');saveGame();renderAll();return;}if(mode==='sell')gameData.hero.gold+=gain;else gameData.hero.enhancementShards+=gain;saveGame();renderAll();alert(`已處理 ${targets.length} 件，獲得 ${gain} ${mode==='sell'?'G':'強化碎片'}。`);};
   window.equipmentProcessingHTML=function(){
     ensureEquipmentRuntimeData();
     const list=(gameData.inventory||[]).filter(inv=>itemDef(inv)?.category==='equipment');
