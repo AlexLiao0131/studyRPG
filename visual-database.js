@@ -52,6 +52,12 @@ window.STUDYRPG_VISUAL_DATABASE={
       "tablet": {
         "dungeon": 81
       }
+    },
+    "9": {
+      "tablet": {
+        "dungeon": 86.5,
+        "status": 86.5
+      }
     }
   },
   "devices": {
@@ -113,7 +119,7 @@ window.STUDYRPG_VISUAL_DATABASE={
           "groundScene": "status",
           "footOffsetY": -5.2
         },
-        "heroSize": 150
+        "heroSize": 185
       },
       "dungeonEntry": {
         "groundY": 86.5,
@@ -142,7 +148,7 @@ window.STUDYRPG_VISUAL_DATABASE={
           "groundScene": "battle",
           "footOffsetY": 0
         },
-        "heroSize": 175,
+        "heroSize": 165,
         "enemySize": 175,
         "attackMid": {
           "x": 42,
@@ -549,10 +555,30 @@ window.STUDYRPG_VISUAL_DATABASE={
       "battleSize": {
         "tablet": 200
       }
+    },
+    "skeleton": {
+      "idleSize": {},
+      "battleSize": {}
+    },
+    "lizard_warrior": {
+      "idleSize": {},
+      "battleSize": {}
+    },
+    "apocalypse_war": {
+      "idleSize": {},
+      "battleSize": {}
     }
   },
   "heroes": {
     "novice": {
+      "motionActions": {},
+      "effectAnchor": {
+        "width": 100,
+        "height": 100,
+        "y": 0
+      }
+    },
+    "spellblade": {
       "motionActions": {},
       "effectAnchor": {
         "width": 100,
@@ -757,6 +783,14 @@ window.STUDYRPG_VISUAL_DATABASE={
           }
         }
       ],
+      "summons": []
+    },
+    "magic_slash": {
+      "enabled": false,
+      "actorAction": "melee",
+      "selfFX": [],
+      "pathFX": null,
+      "targetFX": [],
       "summons": []
     }
   },
@@ -1103,7 +1137,12 @@ window.STUDYRPG_VISUAL_DATABASE={
           "y": -5,
           "size": 175
         },
-        "status": {}
+        "status": {},
+        "dungeonEntry": {
+          "x": 40.7,
+          "y": -2.4,
+          "size": 165
+        }
       }
     },
     "orc_slave": {
@@ -1157,6 +1196,16 @@ window.STUDYRPG_VISUAL_DATABASE={
           "size": 175
         }
       }
+    },
+    "apocalypse_war": {
+      "tablet": {
+        "status": {},
+        "battle": {
+          "x": 78.4,
+          "y": 0,
+          "size": 175
+        }
+      }
     }
   },
   "bodyAnchors": {
@@ -1171,6 +1220,18 @@ window.STUDYRPG_VISUAL_DATABASE={
           "head": -90.9,
           "cast": -79.5,
           "center": -63
+        }
+      },
+      "spellblade": {
+        "desktop": {
+          "head": -135,
+          "cast": -96,
+          "center": -99
+        },
+        "tablet": {
+          "head": -112.5,
+          "cast": -73.5,
+          "center": -76.5
         }
       }
     },
@@ -1251,6 +1312,27 @@ window.STUDYRPG_VISUAL_DATABASE={
             "head": -123,
             "cast": -84,
             "center": -87
+          }
+        },
+        "5": {
+          "skeleton": {
+            "head": -123,
+            "cast": -84,
+            "center": -87
+          }
+        },
+        "7": {
+          "lizard_warrior": {
+            "head": -123,
+            "cast": -84,
+            "center": -87
+          }
+        },
+        "9": {
+          "apocalypse_war": {
+            "head": -154.5,
+            "cast": -110,
+            "center": -98
           }
         }
       }
